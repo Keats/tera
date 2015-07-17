@@ -1,0 +1,4 @@
+[package]
+name = "tera"
+version = "0.1.0"
+authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
