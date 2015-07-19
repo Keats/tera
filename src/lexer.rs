@@ -27,8 +27,9 @@ enum State {
   VariableStart,
   VariableEnd,
   InsideBlock,
-  Number,
   Variable,
+  Operator, // an operator in a block, such as * in {{ price * 100 }}
+  Number, // a number in a block, such as 100 in {{ price * 100 }}
 }
 
 #[derive(PartialEq, Debug)]
@@ -50,12 +51,10 @@ impl Token {
 pub struct Scanner {
   name: String,
   input: String,
-  chars: Vec<(usize, char)>,
+  chars: Vec<(usize, char)>, // (bytes index, char)
+  index: usize, // where we are in the chars vec
   state: State,
-  position: usize, // where we are in the chars vec
   start_position: usize, // where the current state started
-
-  input_bytes_position: u32, // where we are in the input by bytes
 }
 
 impl Scanner {
@@ -64,46 +63,104 @@ impl Scanner {
       name: "test".to_string(),
       input: input.to_string(),
       chars: input.char_indices().collect(),
+      index: 0,
       state: State::Text,
-      position: 0,
       start_position: 0,
-      input_bytes_position: 0,
     }
   }
 
-  // We know we have {{ with self.position being on the first
-  fn lex_left_variable_delimiter(&mut self) -> Token {
-    self.position += 2;
+  // We know we have {{ with self.index being on the first
+  fn lex_left_variable_delimiter(&mut self) -> Option<Token> {
+    self.index += 2;
     self.state = State::InsideBlock;
 
-    Token::new(TokenType::VariableStart, "{{")
+    Some(Token::new(TokenType::VariableStart, "{{"))
+  }
+
+  // TODO: merge with the one above?
+  fn lex_right_variable_delimiter(&mut self) -> Option<Token> {
+    self.index += 2;
+    self.state = State::Text;
+
+    Some(Token::new(TokenType::VariableEnd, "}}"))
   }
 
   // TODO: see if we can simplify below
-  fn lex_text(&mut self) -> Token {
+  fn lex_text(&mut self) -> Option<Token> {
     // Gets all chars until we reach {{ (only that for now)
-    self.start_position = self.chars[self.position].0;
-    let mut next_char_pos = self.chars[self.position].0;
+    self.start_position = self.chars[self.index].0;
+    let mut next_index = self.chars[self.index].0;
 
     loop {
-      if self.input[next_char_pos..].starts_with(LEFT_VARIABLE_DELIM) {
+      if self.input[next_index..].starts_with(LEFT_VARIABLE_DELIM) {
         self.state = State::VariableStart;
+
+        // If we have a delim right at the beginning
+        if next_index == 0 {
+          return self.lex_left_variable_delimiter();
+        }
         break;
       }
       // TODO: add leftBlockDelim as the variable one
 
       // got to EOF
-      if self.position == self.chars.len() - 1 {
-        next_char_pos = self.input.len();
+      if self.index == self.chars.len() - 1 {
+        next_index = self.input.len();
         break;
       }
-      self.position += 1;
+      self.index += 1;
     }
 
-    Token::new(
+    Some(Token::new(
       TokenType::Text,
-      &self.input[self.start_position..next_char_pos]
-    )
+      &self.input[self.start_position..next_index]
+    ))
+  }
+
+  // We know we have a space, we need to figure out how many
+  fn lex_space(&mut self) -> Option<Token> {
+    self.start_position = self.chars[self.index].0;
+
+    loop {
+      if !self.chars[self.index].1.is_whitespace() {
+        break;
+      }
+
+      self.index += 1;
+    }
+
+    Some(Token::new(
+      TokenType::Space,
+      &self.input[self.start_position..self.chars[self.index].0]
+    ))
+  }
+
+  fn lex_variable(&mut self) -> Option<Token> {
+    self.start_position = self.chars[self.index].0;
+
+    loop {
+      let current = self.chars[self.index].1;
+      if current == '.' || current.is_whitespace() {
+        break;
+      }
+      self.index += 1;
+    }
+
+    Some(Token::new(
+      TokenType::Variable,
+      &self.input[self.start_position..self.chars[self.index].0]
+    ))
+  }
+
+  // Works for both {{ }} and {% %}
+  fn lex_inside_block(&mut self) -> Option<Token> {
+    match self.chars[self.index].1 {
+      x if x.is_whitespace() => return self.lex_space(),
+      x if x.is_alphabetic() || x == '_' => return self.lex_variable(),
+      '}' => return self.lex_right_variable_delimiter(),
+      _ => None,
+    }
+
   }
 }
 
@@ -112,18 +169,20 @@ impl Iterator for Scanner {
 
   fn next(&mut self) -> Option<Token> {
     // Empty template
+    // TODO: maybe put it in lex_text if we return an Option?
     if self.input.len() == 0 {
       return None;
     }
 
     // Got to the end
-    if self.position == self.chars.len() - 1 {
+    if self.index >= self.chars.len() - 1 {
       return None;
     }
 
     match self.state {
-      State::Text => Some(self.lex_text()),
-      State::VariableStart => Some(self.lex_left_variable_delimiter()),
+      State::Text => self.lex_text(),
+      State::VariableStart => self.lex_left_variable_delimiter(),
+      State::InsideBlock => self.lex_inside_block(),
       _ => None,
     }
   }
@@ -171,7 +230,7 @@ mod tests {
     Token::new(TokenType::Space, " ")
   }
 
-  fn check_if_correct(expected: Vec<Token>, obtained: Vec<Token>) -> bool {
+  fn check_if_correct(expected: &Vec<Token>, obtained: &Vec<Token>) -> bool {
     if expected.len() != obtained.len() {
       return false;
     }
@@ -211,17 +270,20 @@ mod tests {
     ];
 
     for test in tests {
-      println!("{:?}", test.name);
       let tokens: Vec<Token> = Scanner::new(&test.input).collect();
       if tokens.len() != test.expected.len() {
         println!("Test {} failed: different number of tokens.", test.name);
+        println!("Expected: {:?}", test.expected);
+        println!("Got: {:?}", tokens);
         assert!(false);
       }
 
-      if check_if_correct(test.expected, tokens) {
+      if check_if_correct(&test.expected, &tokens) {
         assert!(true);
       } else {
         println!("Test {} failed: different tokens", test.name);
+        println!("Expected: {:?}", test.expected);
+        println!("Got: {:?}", tokens);
         assert!(false);
       }
     }
