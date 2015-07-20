@@ -13,11 +13,12 @@ const RIGHT_VARIABLE_DELIM: &'static str  = "}}";
 pub enum TokenType {
   Text, // HTML text etc
   Space,
-  //BlockStart,
-  //BlockEnd,
   VariableStart, // {{
   VariableEnd, // }}
   Variable, // variable name, tera keywords
+  Number, // number in variable blocks
+  Operator, // + - * /
+  Error, // errors uncountered while lexing, such as 1.2.3 number
 }
 
 // List of different states the scanner can be in
@@ -54,7 +55,6 @@ pub struct Scanner {
   chars: Vec<(usize, char)>, // (bytes index, char)
   index: usize, // where we are in the chars vec
   state: State,
-  start_position: usize, // where the current state started
 }
 
 impl Scanner {
@@ -65,7 +65,6 @@ impl Scanner {
       chars: input.char_indices().collect(),
       index: 0,
       state: State::Text,
-      start_position: 0,
     }
   }
 
@@ -88,7 +87,7 @@ impl Scanner {
   // TODO: see if we can simplify below
   fn lex_text(&mut self) -> Option<Token> {
     // Gets all chars until we reach {{ (only that for now)
-    self.start_position = self.chars[self.index].0;
+    let start_position = self.chars[self.index].0;
     let mut next_index = self.chars[self.index].0;
 
     loop {
@@ -113,13 +112,13 @@ impl Scanner {
 
     Some(Token::new(
       TokenType::Text,
-      &self.input[self.start_position..next_index]
+      &self.input[start_position..next_index]
     ))
   }
 
   // We know we have a space, we need to figure out how many
   fn lex_space(&mut self) -> Option<Token> {
-    self.start_position = self.chars[self.index].0;
+    let start_position = self.chars[self.index].0;
 
     loop {
       if !self.chars[self.index].1.is_whitespace() {
@@ -131,12 +130,48 @@ impl Scanner {
 
     Some(Token::new(
       TokenType::Space,
-      &self.input[self.start_position..self.chars[self.index].0]
+      &self.input[start_position..self.chars[self.index].0]
+    ))
+  }
+
+  fn lex_number(&mut self) -> Option<Token> {
+    let start_position = self.chars[self.index].0;
+    let mut seen_dot = false;
+    let mut error = "";
+
+    loop {
+      let current = self.chars[self.index].1;
+      // TODO: parametize '}' ?
+      if current.is_whitespace() || current == '}' {
+        break;
+      }
+      if current == '.' {
+        if seen_dot {
+          error = "A number has 2 dots";
+        } else {
+          seen_dot = true;
+        }
+      }
+      if !current.is_numeric() && current != '.' {
+        error = "A number has unallowed chars";
+      }
+      self.index += 1;
+    }
+
+    if error.len() > 0 {
+      return Some(Token::new(
+        TokenType::Error,
+        error
+      ));
+    }
+    Some(Token::new(
+      TokenType::Number,
+      &self.input[start_position..self.chars[self.index].0]
     ))
   }
 
   fn lex_variable(&mut self) -> Option<Token> {
-    self.start_position = self.chars[self.index].0;
+    let start_position = self.chars[self.index].0;
 
     loop {
       let current = self.chars[self.index].1;
@@ -148,16 +183,28 @@ impl Scanner {
 
     Some(Token::new(
       TokenType::Variable,
-      &self.input[self.start_position..self.chars[self.index].0]
+      &self.input[start_position..self.chars[self.index].0]
     ))
   }
 
-  // Works for both {{ }} and {% %}
-  fn lex_inside_block(&mut self) -> Option<Token> {
+  fn lex_operator(&mut self) -> Option<Token> {
+    self.index += 1;
+    self.state = State::InsideBlock;
+
+    Some(Token::new(
+      TokenType::Operator,
+      &self.input[self.chars[self.index - 1].0..self.chars[self.index].0]
+    ))
+  }
+
+  // Works for both {{ }}
+  fn lex_inside_variable_block(&mut self) -> Option<Token> {
     match self.chars[self.index].1 {
       x if x.is_whitespace() => return self.lex_space(),
       x if x.is_alphabetic() || x == '_' => return self.lex_variable(),
       '}' => return self.lex_right_variable_delimiter(),
+      x if x.is_numeric() => return self.lex_number(),
+      '*' | '+' | '-' | '/' | '.' => return self.lex_operator(),
       _ => None,
     }
 
@@ -182,7 +229,7 @@ impl Iterator for Scanner {
     match self.state {
       State::Text => self.lex_text(),
       State::VariableStart => self.lex_left_variable_delimiter(),
-      State::InsideBlock => self.lex_inside_block(),
+      State::InsideBlock => self.lex_inside_variable_block(),
       _ => None,
     }
   }
@@ -230,6 +277,18 @@ mod tests {
     Token::new(TokenType::Space, " ")
   }
 
+  fn number_token(value: &str) -> Token {
+    Token::new(TokenType::Number, value)
+  }
+
+  fn operator_token(value: &str) -> Token {
+    Token::new(TokenType::Operator, value)
+  }
+
+  fn error_token() -> Token {
+    Token::new(TokenType::Error, "")
+  }
+
   fn check_if_correct(expected: &Vec<Token>, obtained: &Vec<Token>) -> bool {
     if expected.len() != obtained.len() {
       return false;
@@ -238,6 +297,11 @@ mod tests {
     for i in 0..expected.len() {
       if expected[i].kind != obtained[i].kind {
         return false;
+      }
+
+      // Do not check error values as i'll probably change them often
+      if expected[i].kind == TokenType::Error {
+        continue;
       }
 
       if expected[i].value != obtained[i].value {
@@ -252,21 +316,41 @@ mod tests {
     let tests: Vec<LexerTest> = vec![
       LexerTest::new("empty", "", vec![]),
       LexerTest::new("only text", "Hello 世界", vec![text_token("Hello 世界")]),
-      LexerTest::new("only variable", "{{ greeting }}", vec![
+      LexerTest::new("variable and text", "{{ greeting }} 世界", vec![
         variable_start_token(),
         space_token(),
         variable_token("greeting"),
         space_token(),
-        variable_end_token()
+        variable_end_token(),
+        text_token(" 世界"),
       ]),
-      // LexerTest::new("variable and text", "{{ greeting }} 世界", vec![
-      //   variable_start_token(),
-      //   space_token(),
-      //   variable_token("greeting"),
-      //   space_token(),
-      //   variable_end_token(),
-      //   text_token(" 世界")
-      // ]),
+      LexerTest::new("numbers", "{{1 3.14}}", vec![
+        variable_start_token(),
+        number_token("1"),
+        space_token(),
+        number_token("3.14"),
+        variable_end_token(),
+      ]),
+      LexerTest::new("invalid numbers", "{{1up 3.14.15}}", vec![
+        variable_start_token(),
+        error_token(),
+        space_token(),
+        error_token(),
+        variable_end_token(),
+      ]),
+      LexerTest::new("operators", "{{+ - * / .}}", vec![
+        variable_start_token(),
+        operator_token("+"),
+        space_token(),
+        operator_token("-"),
+        space_token(),
+        operator_token("*"),
+        space_token(),
+        operator_token("/"),
+        space_token(),
+        operator_token("."),
+        variable_end_token(),
+      ])
     ];
 
     for test in tests {
