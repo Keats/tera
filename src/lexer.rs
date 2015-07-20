@@ -60,13 +60,31 @@ pub struct Scanner {
 
 impl Scanner {
   pub fn new(input: &str) -> Scanner {
+    // We want to figure out what's the initial state so we check the first
+    // 2 chars
+    let first_chars = input.chars().take(2).collect::<String>();
+    // TODO: &* is pretty ugly, any way to fix that?
+    let state = match &*first_chars {
+      "{{" => State::VariableStart,
+      _ => State::Text
+    };
+
     Scanner {
       name: "test".to_string(),
       input: input.to_string(),
       chars: input.char_indices().collect(),
       index: 0,
-      state: State::Text,
+      state: state,
     }
+  }
+
+  // Gets the substring from 2 indices of the chars vec
+  // Substring is non-inclusive
+  fn get_input_substring(&self, start: usize, end: usize) -> &str {
+    let start_bytes = self.chars[start].0;
+    let end_bytes = self.chars[end].0;
+
+    &self.input[start_bytes..end_bytes]
   }
 
   // We know we have {{ with self.index being on the first
@@ -119,7 +137,7 @@ impl Scanner {
 
   // We know we have a space, we need to figure out how many
   fn lex_space(&mut self) -> Option<Token> {
-    let start_position = self.chars[self.index].0;
+    let start_index = self.index;
 
     loop {
       if !self.chars[self.index].1.is_whitespace() {
@@ -129,10 +147,7 @@ impl Scanner {
       self.index += 1;
     }
 
-    Some(Token::new(
-      TokenType::Space,
-      &self.input[start_position..self.chars[self.index].0]
-    ))
+    Some(Token::new(TokenType::Space, self.get_input_substring(start_index, self.index)))
   }
 
   fn lex_number(&mut self) -> Option<Token> {
@@ -141,20 +156,11 @@ impl Scanner {
     let mut error = "";
 
     loop {
-      let current = self.chars[self.index].1;
-      // TODO: parametize '}' ?
-      if current.is_whitespace() || current == '}' {
-        break;
-      }
-      if current == '.' {
-        if seen_dot {
-          error = "A number has 2 dots";
-        } else {
-          seen_dot = true;
-        }
-      }
-      if !current.is_numeric() && current != '.' {
-        error = "A number has unallowed chars";
+      match self.chars[self.index].1 {
+        x if x.is_whitespace() || x == '}' => break,
+        '.' =>  if seen_dot { error = "A number has 2 dots" } else { seen_dot = true},
+        x if !x.is_numeric() => error = "A number has unallowed chars",
+        _ => {}
       }
       self.index += 1;
     }
@@ -173,19 +179,19 @@ impl Scanner {
   }
 
   fn lex_variable(&mut self) -> Option<Token> {
-    let start_position = self.chars[self.index].0;
+    let start_index = self.index;
 
     loop {
-      let current = self.chars[self.index].1;
-      if current == '.' || current.is_whitespace() {
-        break;
+      match self.chars[self.index].1 {
+        x if x.is_whitespace() || x == '.' => break,
+        _ => {}
       }
       self.index += 1;
     }
 
     Some(Token::new(
       TokenType::Variable,
-      &self.input[start_position..self.chars[self.index].0]
+      self.get_input_substring(start_index, self.index)
     ))
   }
 
@@ -195,11 +201,10 @@ impl Scanner {
 
     Some(Token::new(
       TokenType::Operator,
-      &self.input[self.chars[self.index - 1].0..self.chars[self.index].0]
+      self.get_input_substring(self.index - 1, self.index)
     ))
   }
 
-  // Works for both {{ }}
   fn lex_inside_variable_block(&mut self) -> Option<Token> {
     match self.chars[self.index].1 {
       x if x.is_whitespace() => return self.lex_space(),
@@ -218,7 +223,6 @@ impl Iterator for Scanner {
 
   fn next(&mut self) -> Option<Token> {
     // Empty template
-    // TODO: maybe put it in lex_text if we return an Option?
     if self.input.len() == 0 {
       return None;
     }
