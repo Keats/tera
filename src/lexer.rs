@@ -1,5 +1,5 @@
 const LEFT_VARIABLE_DELIM: &'static str  = "{{";
-//const RIGHT_VARIABLE_DELIM: &'static str  = "}}";
+const RIGHT_VARIABLE_DELIM: &'static str  = "}}";
 
 
 // List of token types to emit to the parser.
@@ -56,7 +56,7 @@ impl Tokenizer {
     let first_chars = input.chars().take(2).collect::<String>();
     // TODO: &* is pretty ugly, any way to fix that?
     let state = match &*first_chars {
-      "{{" => State::VariableStart,
+      LEFT_VARIABLE_DELIM => State::VariableStart,
       _ => State::Text
     };
 
@@ -94,7 +94,7 @@ impl Tokenizer {
     self.index += 2;
     self.state = State::InsideBlock;
 
-    Token::new(TokenType::VariableStart, "{{")
+    Token::new(TokenType::VariableStart, LEFT_VARIABLE_DELIM)
   }
 
   // TODO: merge with the one above?
@@ -102,7 +102,7 @@ impl Tokenizer {
     self.index += 2;
     self.state = State::Text;
 
-    Token::new(TokenType::VariableEnd, "}}")
+    Token::new(TokenType::VariableEnd, RIGHT_VARIABLE_DELIM)
   }
 
   fn lex_text(&mut self) -> Token {
