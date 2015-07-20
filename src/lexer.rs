@@ -16,8 +16,9 @@ pub enum TokenType {
   VariableStart, // {{
   VariableEnd, // }}
   Variable, // variable name, tera keywords
-  Number, // number in variable blocks
-  Operator, // + - * /
+  Int,
+  Float,
+  Operator, // + - * / .
   Error, // errors uncountered while lexing, such as 1.2.3 number
 }
 
@@ -29,7 +30,7 @@ enum State {
   VariableEnd,
   InsideBlock,
   Variable,
-  Operator, // an operator in a block, such as * in {{ price * 100 }}
+  Operator, // an operator in a block, such as * in blocks
   Number, // a number in a block, such as 100 in {{ price * 100 }}
 }
 
@@ -164,8 +165,9 @@ impl Scanner {
         error
       ));
     }
+
     Some(Token::new(
-      TokenType::Number,
+      if seen_dot { TokenType::Float } else { TokenType::Int },
       &self.input[start_position..self.chars[self.index].0]
     ))
   }
@@ -277,8 +279,12 @@ mod tests {
     Token::new(TokenType::Space, " ")
   }
 
-  fn number_token(value: &str) -> Token {
-    Token::new(TokenType::Number, value)
+  fn int_token(value: &str) -> Token {
+    Token::new(TokenType::Int, value)
+  }
+
+  fn float_token(value: &str) -> Token {
+    Token::new(TokenType::Float, value)
   }
 
   fn operator_token(value: &str) -> Token {
@@ -326,9 +332,9 @@ mod tests {
       ]),
       LexerTest::new("numbers", "{{1 3.14}}", vec![
         variable_start_token(),
-        number_token("1"),
+        int_token("1"),
         space_token(),
-        number_token("3.14"),
+        float_token("3.14"),
         variable_end_token(),
       ]),
       LexerTest::new("invalid numbers", "{{1up 3.14.15}}", vec![
