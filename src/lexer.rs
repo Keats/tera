@@ -29,13 +29,15 @@ enum State {
 pub struct Token {
   kind: TokenType,
   value: String,
+  lineno: usize,
 }
 
 impl Token {
-  pub fn new(kind: TokenType, value: &str) -> Token {
+  pub fn new(kind: TokenType, value: &str, lineno: usize) -> Token {
     Token {
       kind: kind,
-      value: value.to_string()
+      value: value.to_string(),
+      lineno: lineno,
     }
   }
 }
@@ -89,23 +91,45 @@ impl Tokenizer {
     self.index >= self.chars.len() - 1
   }
 
-  // We know we have {{ with self.index being on the first
-  fn lex_left_variable_delimiter(&mut self) -> Token {
-    self.index += 2;
-    self.state = State::InsideBlock;
-
-    Token::new(TokenType::VariableStart, LEFT_VARIABLE_DELIM)
+  // TODO: check if this is actually correct once i have a parser/compiler
+  // hint: probably not
+  fn get_current_line_number(&self) -> usize {
+    // String.matches is unstable for now
+    1 + &self.input[..self.chars[self.index].0]
+          .chars()
+          .filter(|&c| c == '\n')
+          .collect::<Vec<_>>()
+          .len()
   }
 
-  // TODO: merge with the one above?
-  fn lex_right_variable_delimiter(&mut self) -> Token {
+
+  // It might be worth having a generic function to handle
+  // {{, }}, operators and possibly more when the size is known
+  fn lex_left_variable_delimiter(&mut self) -> Token {
+    let lineno = self.get_current_line_number();
+
     self.index += 2;
+    if self.index >= self.chars.len() {
+      self.index = self.chars.len() - 1;
+    }
+    self.state = State::InsideBlock;
+
+    Token::new(TokenType::VariableStart, LEFT_VARIABLE_DELIM, lineno)
+  }
+
+  fn lex_right_variable_delimiter(&mut self) -> Token {
+    let lineno = self.get_current_line_number();
+    self.index += 2;
+    if self.index >= self.chars.len() {
+      self.index = self.chars.len() - 1;
+    }
     self.state = State::Text;
 
-    Token::new(TokenType::VariableEnd, RIGHT_VARIABLE_DELIM)
+    Token::new(TokenType::VariableEnd, RIGHT_VARIABLE_DELIM, lineno)
   }
 
   fn lex_text(&mut self) -> Token {
+    let lineno = self.get_current_line_number();
     let start_index = self.index;
 
     loop {
@@ -121,11 +145,12 @@ impl Tokenizer {
       self.index += 1;
     }
 
-    Token::new(TokenType::Text, self.get_substring(start_index))
+    Token::new(TokenType::Text, self.get_substring(start_index), lineno)
   }
 
   // We know we have a space, we need to figure out how many
   fn lex_space(&mut self) -> Token {
+    let lineno = self.get_current_line_number();
     let start_index = self.index;
 
     loop {
@@ -136,10 +161,11 @@ impl Tokenizer {
       self.index += 1;
     }
 
-    Token::new(TokenType::Space, self.get_substring(start_index))
+    Token::new(TokenType::Space, self.get_substring(start_index), lineno)
   }
 
   fn lex_number(&mut self) -> Token {
+    let lineno = self.get_current_line_number();
     let start_index = self.index;
     let mut number_type = TokenType::Int;
     let mut error = "";
@@ -161,13 +187,14 @@ impl Tokenizer {
     }
 
     if error.len() > 0 {
-      return Token::new(TokenType::Error, error);
+      return Token::new(TokenType::Error, error, lineno);
     }
 
-    Token::new(number_type, self.get_substring(start_index))
+    Token::new(number_type, self.get_substring(start_index), lineno)
   }
 
   fn lex_variable(&mut self) -> Token {
+    let lineno = self.get_current_line_number();
     let start_index = self.index;
 
     loop {
@@ -178,24 +205,30 @@ impl Tokenizer {
       self.index += 1;
     }
 
-    Token::new(TokenType::Variable, self.get_substring(start_index))
+    Token::new(TokenType::Variable, self.get_substring(start_index), lineno)
   }
 
   fn lex_operator(&mut self) -> Token {
+    let lineno = self.get_current_line_number();
     self.index += 1;
+    if self.index >= self.chars.len() {
+      self.index = self.chars.len() - 1;
+    }
     self.state = State::InsideBlock;
 
-    Token::new(TokenType::Operator, self.get_substring(self.index - 1))
+    Token::new(TokenType::Operator, self.get_substring(self.index - 1), lineno)
   }
 
   fn lex_inside_variable_block(&mut self) -> Token {
+    let lineno = self.get_current_line_number();
+
     match self.chars[self.index].1 {
       x if x.is_whitespace() => self.lex_space(),
       x if x.is_alphabetic() || x == '_' => self.lex_variable(),
       '}' => self.lex_right_variable_delimiter(),
       x if x.is_numeric() => self.lex_number(),
       '*' | '+' | '-' | '/' | '.' => self.lex_operator(),
-      _ => Token::new(TokenType::Error, "Unknown char in variable block"),
+      _ => Token::new(TokenType::Error, "Unknown char in variable block", lineno),
     }
   }
 }
@@ -240,39 +273,39 @@ mod tests {
   }
 
   fn text_token(value: &str) -> Token {
-    Token::new(TokenType::Text, value)
+    Token::new(TokenType::Text, value, 1)
   }
 
   fn variable_token(value: &str) -> Token {
-    Token::new(TokenType::Variable, value)
+    Token::new(TokenType::Variable, value, 1)
   }
 
   fn variable_start_token() -> Token {
-    Token::new(TokenType::VariableStart, "{{")
+    Token::new(TokenType::VariableStart, "{{", 1)
   }
 
   fn variable_end_token() -> Token {
-    Token::new(TokenType::VariableEnd, "}}")
+    Token::new(TokenType::VariableEnd, "}}", 1)
   }
 
   fn space_token() -> Token {
-    Token::new(TokenType::Space, " ")
+    Token::new(TokenType::Space, " ", 1)
   }
 
   fn int_token(value: &str) -> Token {
-    Token::new(TokenType::Int, value)
+    Token::new(TokenType::Int, value, 1)
   }
 
   fn float_token(value: &str) -> Token {
-    Token::new(TokenType::Float, value)
+    Token::new(TokenType::Float, value, 1)
   }
 
   fn operator_token(value: &str) -> Token {
-    Token::new(TokenType::Operator, value)
+    Token::new(TokenType::Operator, value, 1)
   }
 
   fn error_token() -> Token {
-    Token::new(TokenType::Error, "")
+    Token::new(TokenType::Error, "", 1)
   }
 
   fn check_if_correct(expected: &Vec<Token>, obtained: &Vec<Token>) -> bool {
@@ -340,6 +373,7 @@ mod tests {
     ];
 
     for test in tests {
+      println!("Testing: {}", test.name);
       let tokens: Vec<Token> = Tokenizer::new(&test.input).collect();
       if tokens.len() != test.expected.len() {
         println!("Test {} failed: different number of tokens.", test.name);
