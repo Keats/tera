@@ -1,10 +1,5 @@
-// TODO: remove below
-#![allow(dead_code)]
-
-//let leftBlockDelim: String = "{%".to_string();
-//let rightBlockDelim: String = "%}".to_string();
 const LEFT_VARIABLE_DELIM: &'static str  = "{{";
-const RIGHT_VARIABLE_DELIM: &'static str  = "}}";
+//const RIGHT_VARIABLE_DELIM: &'static str  = "}}";
 
 
 // List of token types to emit to the parser.
@@ -209,13 +204,8 @@ impl Iterator for Tokenizer {
   type Item = Token;
 
   fn next(&mut self) -> Option<Token> {
-    // Empty template
-    if self.input.len() == 0 {
-      return None;
-    }
-
-    // Got to the end
-    if self.is_over() {
+    // Empty template or we got to the end
+    if self.input.len() == 0 || self.is_over() {
       return None;
     }
 
@@ -223,7 +213,6 @@ impl Iterator for Tokenizer {
       State::Text => Some(self.lex_text()),
       State::VariableStart => Some(self.lex_left_variable_delimiter()),
       State::InsideBlock => Some(self.lex_inside_variable_block()),
-      _ => None,
     }
   }
 }
