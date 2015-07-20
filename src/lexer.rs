@@ -27,11 +27,7 @@ pub enum TokenType {
 enum State {
   Text,
   VariableStart,
-  VariableEnd,
   InsideBlock,
-  Variable,
-  Operator, // an operator in a block, such as * in blocks
-  Number, // a number in a block, such as 100 in {{ price * 100 }}
 }
 
 #[derive(PartialEq, Debug)]
