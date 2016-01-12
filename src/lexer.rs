@@ -15,6 +15,28 @@ pub enum ItemType {
     Float,
     Operator, // + - * / .
     Error, // errors uncountered while lexing, such as 1.2.3 number
+    Eof
+}
+
+// All the potential errors we can encouter
+#[derive(Debug)]
+enum LexerError {
+    InvalidNumber,
+    UnclosedVariableBlock,
+    NestedDelimiter,
+    UnknownChar
+}
+
+
+impl ToString for LexerError {
+    fn to_string(&self) -> String {
+        match *self {
+            LexerError::InvalidNumber => "Invalid Number".to_owned(),
+            LexerError::UnclosedVariableBlock => "Unclosed variable block".to_owned(),
+            LexerError::UnknownChar => "Unknown char".to_owned(),
+            LexerError::NestedDelimiter => "Nesting delimiter is not allowed".to_owned(),
+        }
+    }
 }
 
 // List of different states the Lexer can be in
@@ -55,9 +77,8 @@ pub struct Lexer {
 impl Lexer {
     fn new(input: &str) -> Lexer {
         // We want to figure out what's the initial state so we check the first
-        // 2 chars
+        // 2 chars, we need that since every method returns an item
         let first_chars = input.chars().take(2).collect::<String>();
-        // TODO: &* is pretty ugly, any way to fix that?
         let state = match &*first_chars {
             LEFT_VARIABLE_DELIM => State::VariableStart,
             _ => State::Text
@@ -92,38 +113,25 @@ impl Lexer {
         self.index >= self.chars.len() - 1
     }
 
-    // TODO: check if this is actually correct once i have a parser/compiler
-    // hint: probably not
-    // fn get_current_line_number(&self) -> usize {
-    //   // String.matches is unstable for now
-    //   1 + &self.input[..self.chars[self.index].0]
-    //         .chars()
-    //         .filter(|&c| c == '\n')
-    //         .collect::<Vec<_>>()
-    //         .len()
-    // }
-
-    // It might be worth having a generic function to handle
-    // {{, }}, operators and possibly more when the size is known
     fn lex_left_variable_delimiter(&mut self) -> Item {
         let start_index = self.index;
-
-        self.index += 2;
-        if self.index >= self.chars.len() {
-            self.index = self.chars.len() - 1;
+        if self.is_over() {
+            self.state = State::Over;
+            return Item::new(ItemType::Eof, "", start_index);
         }
+        self.index += 2;
         self.state = State::InsideBlock;
-
         Item::new(ItemType::VariableStart, LEFT_VARIABLE_DELIM, start_index)
     }
 
     fn lex_right_variable_delimiter(&mut self) -> Item {
         let start_index = self.index;
+        if self.is_over() {
+            self.state = State::Over;
+            return Item::new(ItemType::Eof, "", start_index);
+        }
 
         self.index += 2;
-        if self.index >= self.chars.len() {
-            self.index = self.chars.len() - 1;
-        }
         self.state = State::Text;
 
         Item::new(ItemType::VariableEnd, RIGHT_VARIABLE_DELIM, start_index)
@@ -131,6 +139,10 @@ impl Lexer {
 
     fn lex_text(&mut self) -> Item {
         let start_index = self.index;
+        if self.is_over() {
+            self.state = State::Over;
+            return Item::new(ItemType::Eof, "", start_index);
+        }
 
         loop {
             if self.input[self.chars[self.index].0..].starts_with(LEFT_VARIABLE_DELIM) {
@@ -149,6 +161,10 @@ impl Lexer {
     // We know we have a space, we need to figure out how many
     fn lex_space(&mut self) -> Item {
         let start_index = self.index;
+        if self.is_over() {
+            self.state = State::Over;
+            return Item::new(ItemType::Eof, "", start_index);
+        }
 
         loop {
             if !self.chars[self.index].1.is_whitespace() {
@@ -164,6 +180,11 @@ impl Lexer {
         let start_index = self.index;
         let mut number_type = ItemType::Int;
         let mut is_error = false;
+
+        if self.is_over() {
+            self.state = State::Over;
+            return Item::new(ItemType::Eof, "", start_index);
+        }
 
         loop {
             match self.chars[self.index].1 {
@@ -189,7 +210,11 @@ impl Lexer {
 
         if is_error {
             self.state = State::Over;
-            return Item::new(ItemType::Error, "Invalid Number", start_index);
+            return Item::new(
+                ItemType::Error,
+                &LexerError::InvalidNumber.to_string(),
+                start_index
+            );
         }
 
         Item::new(number_type, self.get_substring(start_index), start_index)
@@ -211,18 +236,22 @@ impl Lexer {
 
     fn lex_operator(&mut self) -> Item {
         let start_index = self.index;
-
         self.index += 1;
-        if self.index >= self.chars.len() {
-            self.index = self.chars.len() - 1;
-        }
         self.state = State::InsideBlock;
-
         Item::new(ItemType::Operator, self.get_substring(self.index - 1), start_index)
     }
 
     fn lex_inside_variable_block(&mut self) -> Item {
         let start_index = self.index;
+
+        if self.is_over() {
+            self.state = State::Over;
+            return Item::new(
+                ItemType::Error,
+                &LexerError::UnclosedVariableBlock.to_string(),
+                start_index
+            )
+        }
 
         match self.chars[self.index].1 {
             x if x.is_whitespace() => self.lex_space(),
@@ -230,9 +259,21 @@ impl Lexer {
             '}' => self.lex_right_variable_delimiter(),
             x if x.is_numeric() => self.lex_number(),
             '*' | '+' | '-' | '/' | '.' => self.lex_operator(),
+            '{' => {
+                self.state = State::Over;
+                Item::new(
+                    ItemType::Error,
+                    &LexerError::NestedDelimiter.to_string(),
+                    start_index
+                )
+            }
             _ => {
                 self.state = State::Over;
-                Item::new(ItemType::Error, "Unknown char in variable block", start_index)
+                Item::new(
+                    ItemType::Error,
+                    &LexerError::UnknownChar.to_string(),
+                    start_index
+                )
             },
         }
     }
@@ -243,7 +284,7 @@ impl Iterator for Lexer {
 
     fn next(&mut self) -> Option<Item> {
         // Empty template or we got to the end
-        if self.input.len() == 0 || self.is_over() {
+        if self.input.len() == 0 {
             return None;
         }
 
@@ -259,7 +300,14 @@ impl Iterator for Lexer {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        Item,
+        ItemType,
+        LexerError,
+        Lexer,
+        LEFT_VARIABLE_DELIM, RIGHT_VARIABLE_DELIM
+    };
+
     macro_rules! pretty_assert_eq {
         ($left:expr , $right:expr) => ({
             match (&($left), &($right)) {
@@ -309,6 +357,10 @@ mod tests {
         Item::new(ItemType::Error, value, position)
     }
 
+    fn eof_item(position: usize) -> Item {
+        Item::new(ItemType::Eof, "", position)
+    }
+
     #[test]
     fn test_empty() {
         let items: Vec<Item> = Lexer::new("").collect();
@@ -319,7 +371,14 @@ mod tests {
     #[test]
     fn test_only_text() {
         let items: Vec<Item> = Lexer::new("Hello 世界").collect();
-        let expected = vec![text_item("Hello 世界", 0)];
+        let expected = vec![text_item("Hello 世界", 0), eof_item(7)];
+        pretty_assert_eq!(items, expected);
+    }
+
+    #[test]
+    fn test_text_new_line() {
+        let items: Vec<Item> = Lexer::new("Hello\n 世界").collect();
+        let expected = vec![text_item("Hello\n 世界", 0), eof_item(8)];
         pretty_assert_eq!(items, expected);
     }
 
@@ -333,6 +392,27 @@ mod tests {
             space_item(" ",11),
             variable_end_item(12),
             text_item(" 世界", 14),
+            eof_item(16)
+        ];
+        pretty_assert_eq!(items, expected);
+    }
+
+    #[test]
+    fn test_unclosed_opening_variable_delimiter() {
+        let items: Vec<Item> = Lexer::new("{{").collect();
+        let expected = vec![
+            variable_start_item(0),
+            error_item(&LexerError::UnclosedVariableBlock.to_string(), 2),
+        ];
+        pretty_assert_eq!(items, expected);
+    }
+
+    #[test]
+    fn test_invalid_nested_variable_delimiter() {
+        let items: Vec<Item> = Lexer::new("{{{{").collect();
+        let expected = vec![
+            variable_start_item(0),
+            error_item(&LexerError::NestedDelimiter.to_string(), 2),
         ];
         pretty_assert_eq!(items, expected);
     }
@@ -347,6 +427,7 @@ mod tests {
             float_item("3.14", 4),
             space_item("  ",8),
             variable_end_item(10),
+            eof_item(12)
         ];
         pretty_assert_eq!(items, expected);
     }
@@ -356,7 +437,7 @@ mod tests {
         let items: Vec<Item> = Lexer::new("{{1up}}").collect();
         let expected = vec![
             variable_start_item(0),
-            error_item("Invalid Number", 2),
+            error_item(&LexerError::InvalidNumber.to_string(), 2),
         ];
         pretty_assert_eq!(items, expected);
     }
@@ -376,6 +457,7 @@ mod tests {
             space_item(" ", 9),
             operator_item(".", 10),
             variable_end_item(11),
+            eof_item(13)
         ];
         pretty_assert_eq!(items, expected);
     }
