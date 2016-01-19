@@ -1,5 +1,5 @@
 #![allow(dead_code)]
 
-// mod nodes;
-// mod parser;
 mod lexer;
+mod nodes;
+mod parser;

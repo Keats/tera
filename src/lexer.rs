@@ -1,16 +1,17 @@
 use std::fmt;
 
+// Still missing strings, () and []
 // List of token types to emit to the parser.
 // Different from the state enum despite some identical members
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum TokenType {
     Text, // HTML text
     Space,
     VariableStart, // {{
     VariableEnd, // }}
     Identifier, // variable name for example
-    BlockStart, // {%
-    BlockEnd, // %}
+    TagStart, // {%
+    TagEnd, // %}
     Int,
     Float,
     Bool,
@@ -26,6 +27,7 @@ pub enum TokenType {
     NotEqual, // !=
     And, // &&
     Or, // ||
+    Pipe, // |
     Error, // errors uncountered while lexing, such as 1.2.3 number
     Eof,
     // And now tera keywords
@@ -38,12 +40,12 @@ pub enum TokenType {
     Endfor,
 }
 
-#[derive(Debug)]
-struct Token {
-    kind: TokenType,
-    value: String,
-    line: usize,
-    position: usize // byte position in the input
+#[derive(Clone, Debug)]
+pub struct Token {
+    pub kind: TokenType,
+    pub value: String,
+    pub line: usize,
+    pub position: usize // byte position in the input
 }
 
 impl Token {
@@ -88,7 +90,7 @@ const EOF: char = '֍';
 
 /// Lexer based on the one used in go templates (https://www.youtube.com/watch?v=HxaD_trXwRE)
 #[derive(Debug)]
-struct Lexer {
+pub struct Lexer {
     name: String, // name of input, to report errors
     input: String, // template being lexed
     chars: Vec<(usize, char)>, // (bytes index, char)
@@ -98,7 +100,7 @@ struct Lexer {
     current_char: usize, // current index in the chars vec
     state: StateFn, // current state fn
     current_block_type: BlockType, // whether we are in a {{ or {% block
-    tokens: Vec<Token> // tokens found
+    pub tokens: Vec<Token> // tokens found
 }
 
 impl Lexer {
@@ -114,6 +116,17 @@ impl Lexer {
             tokens: vec![],
             current_block_type: BlockType::Variable, // we don't care about default one
             state: StateFn(Some(lex_text))
+        }
+    }
+
+    pub fn run(&mut self) {
+        loop {
+            // It's a bit weird how we get the value of a newtype struct
+            let StateFn(state_fn) = self.state;
+            if state_fn.is_none() {
+                break;
+            }
+            self.state = state_fn.unwrap()(self);
         }
     }
 
@@ -186,17 +199,6 @@ impl Lexer {
         self.get_substring(self.position, self.input.len()).starts_with(pattern)
     }
 
-    fn run(&mut self) {
-        loop {
-            // It's a bit weird how we get the value of a newtype struct
-            let StateFn(state_fn) = self.state;
-            if state_fn.is_none() {
-                break;
-            }
-            self.state = state_fn.unwrap()(self);
-        }
-    }
-
     // Errors are slighty different as we give them a value
     fn error(&mut self, message: &str) -> StateFn {
         let line = self.get_line_number();
@@ -217,8 +219,8 @@ impl Lexer {
         self.position += 2;
         match self.current_block_type {
             BlockType::Block => match side {
-                DelimiterSide::Left => self.add_token(TokenType::BlockStart),
-                DelimiterSide::Right => self.add_token(TokenType::BlockEnd),
+                DelimiterSide::Left => self.add_token(TokenType::TagStart),
+                DelimiterSide::Right => self.add_token(TokenType::TagEnd),
             },
             BlockType::Variable => match side {
                 DelimiterSide::Left => self.add_token(TokenType::VariableStart),
@@ -354,7 +356,7 @@ fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
                 if lexer.accept('|') {
                     lexer.add_token(TokenType::Or);
                 } else {
-                    lexer.error("Unknown token");
+                    lexer.add_token(TokenType::Pipe);
                 }
             },
             '!' =>  {
@@ -401,8 +403,8 @@ mod tests {
             TokenTest { kind: kind, value: value }
         }
     }
-    const T_BLOCK_START: TokenTest<'static> = TokenTest { kind: BlockStart, value: "{%"};
-    const T_BLOCK_END: TokenTest<'static> = TokenTest { kind: BlockEnd, value: "%}"};
+    const T_TAG_START: TokenTest<'static> = TokenTest { kind: TagStart, value: "{%"};
+    const T_TAG_END: TokenTest<'static> = TokenTest { kind: TagEnd, value: "%}"};
     const T_VARIABLE_START: TokenTest<'static> = TokenTest { kind: VariableStart, value: "{{"};
     const T_VARIABLE_END: TokenTest<'static> = TokenTest { kind: VariableEnd, value: "}}"};
     const T_EOF: TokenTest<'static> = TokenTest { kind: Eof, value: ""};
@@ -536,24 +538,24 @@ mod tests {
     fn test_block() {
         let expected = vec![
             text_token("Hello "),
-            T_BLOCK_START, T_SPACE,
+            T_TAG_START, T_SPACE,
             T_IF,
             T_SPACE,
             identifier_token("japanese"),
             T_SPACE,
-            T_BLOCK_END,
+            T_TAG_END,
             text_token("世界"),
-            T_BLOCK_START,
+            T_TAG_START,
             T_SPACE,
             T_ELSE,
             T_SPACE,
-            T_BLOCK_END,
+            T_TAG_END,
             text_token("world"),
-            T_BLOCK_START,
+            T_TAG_START,
             T_SPACE,
             T_ENDIF,
             T_SPACE,
-            T_BLOCK_END,
+            T_TAG_END,
             T_EOF
         ];
         test_tokens("Hello {% if japanese %}世界{% else %}world{% endif %}", expected);

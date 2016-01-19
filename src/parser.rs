@@ -1,113 +1,188 @@
-use std::fmt;
-
-use nodes::{Node, ListNode, TextNode};
-use lexer::{Lexer, ItemType, Item};
+use lexer::{Lexer, TokenType, Token};
+use nodes::*;
 
 
-pub struct Tree {
+#[derive(Debug)]
+pub struct Parser {
     name: String,
-    root: ListNode,
+    text: String,
     lexer: Lexer,
-    peeks: Vec<Item>
+    root: ListNode,
+    current_token: usize, // where we are in the parsing of the tokens
 }
 
-impl fmt::Debug for Tree {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-            "(name: {}, root: {:?}, lexer: {:?})",
-            self.name, self.root, self.lexer.clone().collect::<Vec<Item>>()
-        )
-    }
-}
+impl Parser {
+    pub fn new(name: &str, text: &str) -> Parser {
+        let mut lexer = Lexer::new(name, text);
+        lexer.run();
 
-impl Tree {
-    pub fn new(name: &str, input: &str) -> Tree {
-        let lexer = Lexer::new(input);
-
-        Tree {
+        Parser {
             name: name.to_owned(),
-            lexer: lexer,
+            text: text.to_owned(),
             root: ListNode::new(0),
-            peeks: vec![]
+            lexer: lexer,
+            current_token: 0
         }
     }
 
-    fn is_unexpected(&self, token: Item) -> ! {
-        // TODO: get line number
-        panic!("Unexpected item {:?}", token);
-    }
-
-    fn next_non_space(&mut self) -> Item {
-        // We will have peeked the first one already
-        let mut token = self.peeks[0].clone();
-        self.peeks = vec![];
+    pub fn parse(&mut self) {
         loop {
-            if token.kind != ItemType::Space {
-                break;
-            }
-            token = self.lexer.next().unwrap();
-        }
-        token
-    }
-
-    // fn variable_block(&mut self) -> Box<TextNode> {
-
-    // }
-
-    fn text_or_action(&mut self) -> Box<TextNode> {
-        let next = self.next_non_space();
-        println!("Text or action: {:?}", next);
-        match next.kind {
-            ItemType::Text => Box::new(TextNode::new(next.position, next.value)),
-            // ItemType::VariableStart => (),
-            _ => self.is_unexpected(next)
-        }
-    }
-
-    fn parse(&mut self) {
-        loop {
-            let next = match self.lexer.next() {
+            let node = match self.parse_next() {
                 Some(n) => n,
                 None => break
             };
-            if next.kind == ItemType::Eof {
-                break
-            }
-            println!("Next: {:?}", next);
-            self.peeks = vec![next];
-            let n = self.text_or_action();
-            self.root.append(n);
+
+            self.root.nodes.push(node);
         }
     }
-}
 
-pub fn parse(name: &str, input: &str) -> Tree {
-    let mut tree = Tree::new(name, input);
-    tree.parse();
+    fn peek(&self) -> Token {
+        self.lexer.tokens.get(self.current_token).unwrap().clone()
+    }
 
-    tree
+    fn peek_non_space(&mut self) -> Token {
+        let mut token = self.next();
+        loop {
+            if token.kind != TokenType::Space {
+                break;
+            }
+            token = self.next();
+        }
+        // Only rewind once (see once i have tests)
+        self.current_token -= 1;
+
+        token
+    }
+
+    fn next(&mut self) -> Token {
+        let token = self.peek();
+        self.current_token += 1;
+
+        token
+    }
+
+    fn next_non_space(&mut self) -> Token {
+        let mut token = self.next();
+        loop {
+            if token.kind != TokenType::Space {
+                break;
+            }
+            token = self.next();
+        }
+
+        token
+    }
+
+    fn expect(&mut self, kind: TokenType) -> Token {
+        let token = self.peek_non_space();
+        if token.kind != kind {
+            panic!("Unexpected token: {:?}", token);
+        }
+
+        self.next_non_space()
+    }
+
+    fn parse_next(&mut self) -> Option<Box<Node>> {
+        loop {
+            match self.peek().kind {
+                TokenType::VariableStart => (),
+                TokenType::TagStart => (),
+                TokenType::Text => return self.parse_text(),
+                _ => break
+            };
+        }
+
+        None
+    }
+
+    fn parse_text(&mut self) -> Option<Box<Node>> {
+        let token = self.next();
+        Some(Box::new(TextNode::new(token.position, token.value)))
+    }
+
+    fn parse_variable_block(&mut self) -> Option<Box<Node>> {
+        let token = self.expect(TokenType::VariableStart);
+        let contained = self.parse_whole_expression(None, TokenType::VariableEnd);
+        let node = VariableBlockNode::new(token.position, contained.unwrap());
+        self.expect(TokenType::VariableEnd);
+
+        Some(Box::new(node))
+    }
+
+    fn parse_whole_expression(&mut self, stack: Option<ListNode>, terminator: TokenType) -> Option<Box<Node>> {
+        let token = self.peek_non_space();
+        let node_stack = stack.unwrap_or(ListNode::new(token.position));
+        // TODO: finish
+        None
+    }
+
+    fn parse_single_expression(&mut self, stack: Option<ListNode>, terminator: TokenType) -> Option<Box<Node>> {
+        let token = self.peek_non_space();
+
+        if token.kind == terminator {
+            panic!("Unexpected terminator");
+        }
+
+        match token.kind {
+            TokenType::Identifier => return self.parse_identifier(),
+            TokenType::Float | TokenType::Int | TokenType::Bool => return self.parse_literal(),
+            TokenType::Add | TokenType::Substract => {
+                panic!("wololo");
+            }
+            _ => panic!("unexpected")
+        }
+
+        None
+    }
+
+    fn parse_identifier(&mut self) -> Option<Box<Node>> {
+        let ident = self.next_non_space();
+        Some(Box::new(IdentifierNode::new(ident.position, ident.value)))
+    }
+
+    fn parse_literal(&mut self) -> Option<Box<Node>> {
+        let literal = self.next_non_space();
+
+        match literal.kind {
+            TokenType::Int => {
+                let value = literal.value.parse::<i32>().unwrap();
+                return Some(Box::new(IntNode::new(literal.position, value)));
+            },
+            TokenType::Float => {
+                let value = literal.value.parse::<f32>().unwrap();
+                return Some(Box::new(FloatNode::new(literal.position, value)));
+            },
+            TokenType::Bool => {
+                let value = if literal.value == "false" { false } else { true };
+                return Some(Box::new(BoolNode::new(literal.position, value)));
+            },
+            _ => panic!("unexpected type when parsing literal")
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse};
+    use super::{Parser};
+    use nodes::*;
 
-    #[test]
-    fn test_empty() {
-        let tree = parse("test", "");
-        assert_eq!(tree.root.nodes.len(), 0);
+    fn compare_expected_nodes(expected: Vec<NodeKind>, got: ListNode) {
+
     }
 
-    #[test]
-    fn test_only_text() {
-        let tree = parse("test", "Hello world");
-        assert_eq!(tree.root.nodes.len(), 1);
-        //assert_eq!(tree.root.nodes[0].as_ref().text, "Hello world");
-    }
+    // #[test]
+    // fn test_empty() {
+    //     let mut parser = Parser::new("empty", "");
+    //     parser.parse();
+    //     assert_eq!(0, parser.root.nodes.len());
+    // }
 
     #[test]
-    fn test_only_variable() {
-        let tree = parse("test", "{{ greeting }}");
-        assert_eq!(tree.root.nodes.len(), 1);
+    fn test_plain_string() {
+        let mut parser = Parser::new("plain_string", "Hello world");
+        parser.parse();
+        assert_eq!(1, parser.root.nodes.len());
+        let node = parser.root.nodes[0];
+        assert_eq!(node.get_kind(), NodeKind::Text);
     }
 }
