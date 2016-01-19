@@ -18,6 +18,14 @@ pub enum TokenType {
     Substract, // -
     Multiply, // *
     Divide, // /
+    Greater, // >
+    GreaterOrEqual, // >=
+    Lower, // <,
+    LowerOrEqual, // <=
+    Equal, // ==
+    NotEqual, // !=
+    And, // &&
+    Or, // ||
     Error, // errors uncountered while lexing, such as 1.2.3 number
     Eof,
     // And now tera keywords
@@ -66,7 +74,7 @@ enum BlockType {
     Block,
 }
 
-/// Just to know
+/// Just to know which side of a delimiter we need to add
 #[derive(Debug)]
 enum DelimiterSide {
     Left,
@@ -287,6 +295,7 @@ fn lex_number(lexer: &mut Lexer) -> StateFn {
     }
 }
 
+// Lexing a word inside a block
 fn lex_identifier(lexer: &mut Lexer) -> StateFn {
     loop {
         match lexer.next() {
@@ -327,11 +336,53 @@ fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
             '+' => lexer.add_token(TokenType::Add),
             '*' => lexer.add_token(TokenType::Multiply),
             '/' => lexer.add_token(TokenType::Divide),
+            '=' =>  {
+                if lexer.accept('=') {
+                    lexer.add_token(TokenType::Equal);
+                } else {
+                    lexer.error("Unknown token");
+                }
+            },
+            '&' =>  {
+                if lexer.accept('&') {
+                    lexer.add_token(TokenType::And);
+                } else {
+                    lexer.error("Unknown token");
+                }
+            },
+            '|' =>  {
+                if lexer.accept('|') {
+                    lexer.add_token(TokenType::Or);
+                } else {
+                    lexer.error("Unknown token");
+                }
+            },
+            '!' =>  {
+                if lexer.accept('=') {
+                    lexer.add_token(TokenType::NotEqual);
+                } else {
+                    lexer.error("Unknown token");
+                }
+            },
+            '<' =>  {
+                if lexer.accept('=') {
+                    lexer.add_token(TokenType::LowerOrEqual);
+                } else {
+                    lexer.add_token(TokenType::Lower);
+                }
+            },
+            '>' =>  {
+                if lexer.accept('=') {
+                    lexer.add_token(TokenType::GreaterOrEqual);
+                } else {
+                    lexer.add_token(TokenType::Greater);
+                }
+            },
             _ => { return StateFn(None); }
         };
     }
 
-    StateFn(None)
+    lexer.error("Unclosed Delimiter")
 }
 
 
@@ -367,6 +418,14 @@ mod tests {
     const T_FOR: TokenTest<'static> = TokenTest { kind: For, value: "for"};
     const T_IN: TokenTest<'static> = TokenTest { kind: In, value: "in"};
     const T_ENDFOR: TokenTest<'static> = TokenTest { kind: Endfor, value: "endfor"};
+    const T_GREATER: TokenTest<'static> = TokenTest { kind: Greater, value: ">"};
+    const T_GREATER_OR_EQUAL: TokenTest<'static> = TokenTest { kind: GreaterOrEqual, value: ">="};
+    const T_LOWER: TokenTest<'static> = TokenTest { kind: Lower, value: "<"};
+    const T_LOWER_OR_EQUAL: TokenTest<'static> = TokenTest { kind: LowerOrEqual, value: "<="};
+    const T_EQUAL: TokenTest<'static> = TokenTest { kind: Equal, value: "=="};
+    const T_NOTEQUAL: TokenTest<'static> = TokenTest { kind: NotEqual, value: "!="};
+    const T_AND: TokenTest<'static> = TokenTest { kind: And, value: "&&"};
+    const T_OR: TokenTest<'static> = TokenTest { kind: Or, value: "||"};
 
     fn identifier_token(ident: &str) -> TokenTest {
         TokenTest::new(Identifier, ident)
@@ -384,13 +443,17 @@ mod tests {
         TokenTest::new(Float, value)
     }
 
+    fn error_token(msg: &str) -> TokenTest {
+        TokenTest::new(Error, msg)
+    }
+
     fn test_tokens(input: &str, test_tokens: Vec<TokenTest>) {
         let mut lexer = Lexer::new("test", input);
         lexer.run();
 
         if test_tokens.len() != lexer.tokens.len() {
             println!("Number of tokens not matching: expected {}, got {}", test_tokens.len(), lexer.tokens.len());
-            println!("{:?}", lexer.tokens);
+            println!("{:#?}", lexer.tokens);
             assert!(false);
         }
 
@@ -453,16 +516,20 @@ mod tests {
     fn test_operators() {
         let expected = vec![
             T_VARIABLE_START,
-            T_SPACE,
             T_SUBSTRACT,
             T_ADD,
             T_MULTIPLY,
             T_DIVIDE,
-            T_SPACE,
+            T_EQUAL,
+            T_AND,
+            T_LOWER_OR_EQUAL,
+            T_GREATER_OR_EQUAL,
+            T_NOTEQUAL,
+            T_OR,
             T_VARIABLE_END,
             T_EOF
         ];
-        test_tokens("{{ -+*/ }}", expected);
+        test_tokens("{{-+*/==&&<=>=!=||}}", expected);
     }
 
     #[test]
@@ -490,5 +557,17 @@ mod tests {
             T_EOF
         ];
         test_tokens("Hello {% if japanese %}世界{% else %}world{% endif %}", expected);
+    }
+
+    #[test]
+    fn test_unclosed_block() {
+        let expected = vec![T_VARIABLE_START, error_token("Unclosed Delimiter")];
+        test_tokens("{{", expected);
+    }
+
+    #[test]
+    fn test_invalid_number() {
+        let expected = vec![T_VARIABLE_START, error_token("Two dots in a number")];
+        test_tokens("{{1.2.2", expected);
     }
 }
