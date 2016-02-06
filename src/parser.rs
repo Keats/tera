@@ -1,5 +1,5 @@
 use lexer::{Lexer, TokenType, Token};
-use nodes::*;
+use nodes::{Node, SpecificNode};
 
 
 #[derive(Debug)]
@@ -7,7 +7,7 @@ pub struct Parser {
     name: String,
     text: String,
     lexer: Lexer,
-    root: ListNode,
+    root: Node,
     current_token: usize, // where we are in the parsing of the tokens
 }
 
@@ -19,7 +19,7 @@ impl Parser {
         Parser {
             name: name.to_owned(),
             text: text.to_owned(),
-            root: ListNode::new(0),
+            root: Node::new(0, SpecificNode::List(vec![])),
             lexer: lexer,
             current_token: 0
         }
@@ -32,7 +32,7 @@ impl Parser {
                 None => break
             };
 
-            self.root.nodes.push(node);
+            self.root.push(node);
         }
     }
 
@@ -97,26 +97,26 @@ impl Parser {
 
     fn parse_text(&mut self) -> Option<Box<Node>> {
         let token = self.next();
-        Some(Box::new(TextNode::new(token.position, token.value)))
+        Some(Box::new(Node::new(token.position, SpecificNode::Text(token.value))))
     }
 
     fn parse_variable_block(&mut self) -> Option<Box<Node>> {
         let token = self.expect(TokenType::VariableStart);
         let contained = self.parse_whole_expression(None, TokenType::VariableEnd);
-        let node = VariableBlockNode::new(token.position, contained.unwrap());
+        let node = Node::new(token.position, SpecificNode::VariableBlock(contained.unwrap()));
         self.expect(TokenType::VariableEnd);
 
         Some(Box::new(node))
     }
 
-    fn parse_whole_expression(&mut self, stack: Option<ListNode>, terminator: TokenType) -> Option<Box<Node>> {
+    fn parse_whole_expression(&mut self, stack: Option<Node>, terminator: TokenType) -> Option<Box<Node>> {
         let token = self.peek_non_space();
-        let node_stack = stack.unwrap_or(ListNode::new(token.position));
+        let node_stack = stack.unwrap_or(Node::new(token.position, SpecificNode::List(vec![])));
         // TODO: finish
         None
     }
 
-    fn parse_single_expression(&mut self, stack: Option<ListNode>, terminator: TokenType) -> Option<Box<Node>> {
+    fn parse_single_expression(&mut self, stack: Option<Node>, terminator: TokenType) -> Option<Box<Node>> {
         let token = self.peek_non_space();
 
         if token.kind == terminator {
@@ -137,7 +137,7 @@ impl Parser {
 
     fn parse_identifier(&mut self) -> Option<Box<Node>> {
         let ident = self.next_non_space();
-        Some(Box::new(IdentifierNode::new(ident.position, ident.value)))
+        Some(Box::new(Node::new(ident.position, SpecificNode::Identifier(ident.value))))
     }
 
     fn parse_literal(&mut self) -> Option<Box<Node>> {
@@ -146,15 +146,15 @@ impl Parser {
         match literal.kind {
             TokenType::Int => {
                 let value = literal.value.parse::<i32>().unwrap();
-                return Some(Box::new(IntNode::new(literal.position, value)));
+                return Some(Box::new(Node::new(literal.position, SpecificNode::Int(value))));
             },
             TokenType::Float => {
                 let value = literal.value.parse::<f32>().unwrap();
-                return Some(Box::new(FloatNode::new(literal.position, value)));
+                return Some(Box::new(Node::new(literal.position, SpecificNode::Float(value))));
             },
             TokenType::Bool => {
                 let value = if literal.value == "false" { false } else { true };
-                return Some(Box::new(BoolNode::new(literal.position, value)));
+                return Some(Box::new(Node::new(literal.position, SpecificNode::Bool(value))));
             },
             _ => panic!("unexpected type when parsing literal")
         }
@@ -164,11 +164,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::{Parser};
-    use nodes::*;
-
-    fn compare_expected_nodes(expected: Vec<NodeKind>, got: ListNode) {
-
-    }
+    use nodes::{Node, SpecificNode};
 
     // #[test]
     // fn test_empty() {
@@ -179,10 +175,13 @@ mod tests {
 
     #[test]
     fn test_plain_string() {
-        let mut parser = Parser::new("plain_string", "Hello world");
-        parser.parse();
-        assert_eq!(1, parser.root.nodes.len());
-        let node = parser.root.nodes[0];
-        assert_eq!(node.get_kind(), NodeKind::Text);
+        let node = Node::new(0, SpecificNode::Text("hello".to_owned()));
+        println!("{}", node);
+        // let mut parser = Parser::new("plain_string", "Hello world");
+        // parser.parse();
+        // assert_eq!(1, parser.root.nodes.len());
+        // let ref node = parser.root.nodes[0];
+        // let kind = node.get_kind();
+        // assert_eq!(kind, NodeKind::Text);
     }
 }
