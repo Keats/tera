@@ -182,7 +182,7 @@ impl Lexer {
         let line = self.get_line_number();
         let substring = self.get_substring(self.start, self.position);
 
-        self.tokens.push(Token::new(kind, &substring, line, self.position));
+        self.tokens.push(Token::new(kind, &substring, line, self.start));
         self.start = self.position;
     }
 
@@ -461,6 +461,10 @@ mod tests {
 
         for (i, t) in test_tokens.iter().enumerate() {
             let ref lexer_token = lexer.tokens[i];
+            // Should always start at position 0
+            if i == 0 {
+                assert_eq!(lexer_token.position, 0);
+            }
             if t.kind != lexer_token.kind {
                 println!("Wrong kind. Expected: {:?}. \n Got: {:?}", t, lexer_token);
                 assert!(false);
