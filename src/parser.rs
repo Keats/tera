@@ -85,7 +85,7 @@ impl Parser {
     fn parse_next(&mut self) -> Option<Box<Node>> {
         loop {
             match self.peek().kind {
-                TokenType::VariableStart => (),
+                TokenType::VariableStart => return self.parse_variable_block(),
                 TokenType::TagStart => (),
                 TokenType::Text => return self.parse_text(),
                 _ => break
@@ -109,17 +109,31 @@ impl Parser {
         Some(Box::new(node))
     }
 
+    // Parse a block/tag until we get to the terminator
     fn parse_whole_expression(&mut self, stack: Option<Node>, terminator: TokenType) -> Option<Box<Node>> {
         let token = self.peek_non_space();
-        let node_stack = stack.unwrap_or(Node::new(token.position, SpecificNode::List(vec![])));
-        // TODO: finish
+
+        let mut node_stack = stack.unwrap_or(Node::new(token.position, SpecificNode::List(vec![])));
+        let next = self.parse_single_expression(&node_stack, &terminator).unwrap();
+        node_stack.push(next);
+
+        loop {
+            let token = self.peek_non_space();
+            if token.kind == terminator {
+                if node_stack.get_children().len() == 0 {
+                    panic!("Unexpected terminator");
+                }
+                return node_stack.get_children().pop();
+            }
+        }
+
         None
     }
 
-    fn parse_single_expression(&mut self, stack: Option<Node>, terminator: TokenType) -> Option<Box<Node>> {
+    fn parse_single_expression(&mut self, stack: &Node, terminator: &TokenType) -> Option<Box<Node>> {
         let token = self.peek_non_space();
 
-        if token.kind == terminator {
+        if token.kind == *terminator {
             panic!("Unexpected terminator");
         }
 
@@ -166,22 +180,49 @@ mod tests {
     use super::{Parser};
     use nodes::{Node, SpecificNode};
 
+    fn compared_expected(expected: Vec<SpecificNode>, got: Vec<Box<Node>>) {
+        if expected.len() != got.len() {
+            assert!(false);
+        }
+
+        for (i, node) in got.iter().enumerate() {
+            let expected_node = expected.get(i).unwrap().clone();
+            assert_eq!(expected_node, node.specific);
+        }
+    }
+
+    fn test_parser(input: &str, expected: Vec<SpecificNode>) {
+        let mut parser = Parser::new("dummy", input);
+        parser.parse();
+        let children = parser.root.get_children();
+        compared_expected(expected, children)
+    }
+
     // #[test]
     // fn test_empty() {
     //     let mut parser = Parser::new("empty", "");
     //     parser.parse();
-    //     assert_eq!(0, parser.root.nodes.len());
+    //     assert_eq!(0, parser.root.get_children().len());
+    // }
+
+    // #[test]
+    // fn test_plain_string() {
+    //     test_parser(
+    //         "Hello world",
+    //         vec![SpecificNode::Text("Hello world".to_owned())]
+    //     );
     // }
 
     #[test]
-    fn test_plain_string() {
-        let node = Node::new(0, SpecificNode::Text("hello".to_owned()));
-        println!("{}", node);
-        // let mut parser = Parser::new("plain_string", "Hello world");
-        // parser.parse();
-        // assert_eq!(1, parser.root.nodes.len());
-        // let ref node = parser.root.nodes[0];
-        // let kind = node.get_kind();
-        // assert_eq!(kind, NodeKind::Text);
+    fn test_variable_block_and_text() {
+        test_parser(
+            "{{ greeting }} 世界",
+            vec![
+                SpecificNode::VariableBlock(
+                    Box::new(Node::new(3, SpecificNode::Identifier("greeting".to_owned())))
+                ),
+                SpecificNode::Text(" 世界".to_owned()),
+            ]
+        );
     }
 }

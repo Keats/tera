@@ -1,7 +1,7 @@
 use std::fmt;
 
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum SpecificNode {
     List(Vec<Box<Node>>),
     Text(String),
@@ -12,10 +12,10 @@ pub enum SpecificNode {
     Bool(bool),
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Node {
-    position: usize,
-    specific: SpecificNode,
+    pub position: usize,
+    pub specific: SpecificNode,
 }
 
 impl Node {
@@ -31,6 +31,14 @@ impl Node {
         match self.specific {
             SpecificNode::List(ref mut l) => l.push(specific),
             _ => panic!("tried to push on a non list node")
+        }
+    }
+
+    // Only used by SpecificNode::List
+    pub fn get_children(&mut self) -> Vec<Box<Node>> {
+        match self.specific {
+            SpecificNode::List(ref l) => l.clone(),
+            _ => panic!("tried to get_children on a non list node")
         }
     }
 }
