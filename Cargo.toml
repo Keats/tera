@@ -2,3 +2,17 @@
 name = "tera"
 version = "0.1.0"
 authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
+
+[dependencies]
+clippy = {version = "~0.0.35", optional = true}
+
+
+[features]
+default = []
+dev = ["clippy"]
+
+
+[profile.bench]
+lto = true
+codegen-units = 1
+opt-level = 3

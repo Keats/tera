@@ -1,395 +1,593 @@
-const LEFT_VARIABLE_DELIM: &'static str  = "{{";
-const RIGHT_VARIABLE_DELIM: &'static str  = "}}";
+use std::fmt;
 
-
+// Still missing strings, () and []
 // List of token types to emit to the parser.
 // Different from the state enum despite some identical members
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum TokenType {
-  Text, // HTML text etc
-  Space,
-  VariableStart, // {{
-  VariableEnd, // }}
-  Variable, // variable name, tera keywords
-  Int,
-  Float,
-  Operator, // + - * / .
-  Error, // errors uncountered while lexing, such as 1.2.3 number
+    Text, // HTML text
+    Space,
+    VariableStart, // {{
+    VariableEnd, // }}
+    Identifier, // variable name for example
+    TagStart, // {%
+    TagEnd, // %}
+    Int,
+    Float,
+    Bool,
+    Add, // +
+    Substract, // -
+    Multiply, // *
+    Divide, // /
+    Greater, // >
+    GreaterOrEqual, // >=
+    Lower, // <,
+    LowerOrEqual, // <=
+    Equal, // ==
+    NotEqual, // !=
+    And, // &&
+    Or, // ||
+    Pipe, // |
+    Error, // errors uncountered while lexing, such as 1.2.3 number
+    Eof,
+    // And now tera keywords
+    If,
+    Else,
+    Elif,
+    Endif,
+    For,
+    In,
+    Endfor,
 }
 
-// List of different states the Tokenizer can be in
-#[derive(Debug)]
-enum State {
-  Text,
-  VariableStart,
-  InsideBlock,
-}
-
-#[derive(PartialEq, Debug)]
+#[derive(Clone, Debug)]
 pub struct Token {
-  kind: TokenType,
-  value: String,
-  lineno: usize,
+    pub kind: TokenType,
+    pub value: String,
+    pub line: usize,
+    pub position: usize // byte position in the input
 }
 
 impl Token {
-  pub fn new(kind: TokenType, value: &str, lineno: usize) -> Token {
-    Token {
-      kind: kind,
-      value: value.to_string(),
-      lineno: lineno,
+    pub fn new(kind: TokenType, input: &str, line: usize, position: usize) -> Token {
+        Token {
+            kind: kind,
+            value: input.to_owned(),
+            line: line,
+            position: position
+        }
     }
-  }
+
+    pub fn precedence(&self) -> usize {
+        match self.kind {
+            TokenType::Multiply | TokenType::Divide => 5,
+            TokenType::Add | TokenType::Substract => 4,
+            TokenType::Equal | TokenType::GreaterOrEqual | TokenType::Greater
+            | TokenType::NotEqual | TokenType::LowerOrEqual | TokenType::Lower => {
+                3
+            },
+            TokenType::And => 2,
+            TokenType::Or => 1,
+            _ => 0
+        }
+    }
 }
 
+// can't use cyclic references in a type so we use a newtype struct where it
+// works for some reason
+struct StateFn(Option<fn(&mut Lexer) -> StateFn>);
+impl fmt::Debug for StateFn {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // TODO: can we get a function name?
+        write!(f, "")
+    }
+}
+
+/// which kind of block are we currently in (to know which type of token type to emit)
 #[derive(Debug)]
-pub struct Tokenizer {
-  name: String,
-  input: String,
-  chars: Vec<(usize, char)>, // (bytes index, char)
-  index: usize, // where we are in the chars vec
-  state: State,
+enum BlockType {
+    Variable,
+    Block,
 }
 
-impl Tokenizer {
-  pub fn new(input: &str) -> Tokenizer {
-    // We want to figure out what's the initial state so we check the first
-    // 2 chars
-    let first_chars = input.chars().take(2).collect::<String>();
-    // TODO: &* is pretty ugly, any way to fix that?
-    let state = match &*first_chars {
-      LEFT_VARIABLE_DELIM => State::VariableStart,
-      _ => State::Text
-    };
-
-    Tokenizer {
-      name: "test".to_string(),
-      input: input.to_string(),
-      chars: input.char_indices().collect(),
-      index: 0,
-      state: state,
-    }
-  }
-
-  // Gets the substring a start index and self.index
-  // Substring is non-inclusive
-  fn get_substring(&self, start: usize) -> &str {
-    let start_bytes = self.chars[start].0;
-    let end_bytes = self.chars[self.index].0;
-
-    // special case if the end index is the last char
-    if self.is_over() {
-      return &self.input[start_bytes..];
-    }
-
-    &self.input[start_bytes..end_bytes]
-  }
-
-  // We'll want to make sure we don't continue after the end in several
-  // lexer methods
-  fn is_over(&self) -> bool {
-    self.index >= self.chars.len() - 1
-  }
-
-  // TODO: check if this is actually correct once i have a parser/compiler
-  // hint: probably not
-  fn get_current_line_number(&self) -> usize {
-    // String.matches is unstable for now
-    1 + &self.input[..self.chars[self.index].0]
-          .chars()
-          .filter(|&c| c == '\n')
-          .collect::<Vec<_>>()
-          .len()
-  }
-
-
-  // It might be worth having a generic function to handle
-  // {{, }}, operators and possibly more when the size is known
-  fn lex_left_variable_delimiter(&mut self) -> Token {
-    let lineno = self.get_current_line_number();
-
-    self.index += 2;
-    if self.index >= self.chars.len() {
-      self.index = self.chars.len() - 1;
-    }
-    self.state = State::InsideBlock;
-
-    Token::new(TokenType::VariableStart, LEFT_VARIABLE_DELIM, lineno)
-  }
-
-  fn lex_right_variable_delimiter(&mut self) -> Token {
-    let lineno = self.get_current_line_number();
-    self.index += 2;
-    if self.index >= self.chars.len() {
-      self.index = self.chars.len() - 1;
-    }
-    self.state = State::Text;
-
-    Token::new(TokenType::VariableEnd, RIGHT_VARIABLE_DELIM, lineno)
-  }
-
-  fn lex_text(&mut self) -> Token {
-    let lineno = self.get_current_line_number();
-    let start_index = self.index;
-
-    loop {
-      if self.input[self.chars[self.index].0..].starts_with(LEFT_VARIABLE_DELIM) {
-        self.state = State::VariableStart;
-        break;
-      }
-
-      if self.is_over() {
-        break;
-      }
-
-      self.index += 1;
-    }
-
-    Token::new(TokenType::Text, self.get_substring(start_index), lineno)
-  }
-
-  // We know we have a space, we need to figure out how many
-  fn lex_space(&mut self) -> Token {
-    let lineno = self.get_current_line_number();
-    let start_index = self.index;
-
-    loop {
-      if !self.chars[self.index].1.is_whitespace() {
-        break;
-      }
-
-      self.index += 1;
-    }
-
-    Token::new(TokenType::Space, self.get_substring(start_index), lineno)
-  }
-
-  fn lex_number(&mut self) -> Token {
-    let lineno = self.get_current_line_number();
-    let start_index = self.index;
-    let mut number_type = TokenType::Int;
-    let mut error = "";
-
-    loop {
-      match self.chars[self.index].1 {
-        x if x.is_whitespace() || x == '}' => break,
-        '.' => {
-          match number_type {
-            TokenType::Int => number_type = TokenType::Float,
-            TokenType::Float => error = "A number has 2 dots",
-            _ => {}
-          }
-        },
-        x if !x.is_numeric() => error = "A number has unallowed chars",
-        _ => {}
-      }
-      self.index += 1;
-    }
-
-    if error.len() > 0 {
-      return Token::new(TokenType::Error, error, lineno);
-    }
-
-    Token::new(number_type, self.get_substring(start_index), lineno)
-  }
-
-  fn lex_variable(&mut self) -> Token {
-    let lineno = self.get_current_line_number();
-    let start_index = self.index;
-
-    loop {
-      match self.chars[self.index].1 {
-        x if x.is_whitespace() || x == '.' => break,
-        _ => {}
-      }
-      self.index += 1;
-    }
-
-    Token::new(TokenType::Variable, self.get_substring(start_index), lineno)
-  }
-
-  fn lex_operator(&mut self) -> Token {
-    let lineno = self.get_current_line_number();
-    self.index += 1;
-    if self.index >= self.chars.len() {
-      self.index = self.chars.len() - 1;
-    }
-    self.state = State::InsideBlock;
-
-    Token::new(TokenType::Operator, self.get_substring(self.index - 1), lineno)
-  }
-
-  fn lex_inside_variable_block(&mut self) -> Token {
-    let lineno = self.get_current_line_number();
-
-    match self.chars[self.index].1 {
-      x if x.is_whitespace() => self.lex_space(),
-      x if x.is_alphabetic() || x == '_' => self.lex_variable(),
-      '}' => self.lex_right_variable_delimiter(),
-      x if x.is_numeric() => self.lex_number(),
-      '*' | '+' | '-' | '/' | '.' => self.lex_operator(),
-      _ => Token::new(TokenType::Error, "Unknown char in variable block", lineno),
-    }
-  }
+/// Just to know which side of a delimiter we need to add
+#[derive(Debug)]
+enum DelimiterSide {
+    Left,
+    Right,
 }
 
-impl Iterator for Tokenizer {
-  type Item = Token;
+/// Ok we're using the Right-Facing Armenian Eternity Sign as EOF char since it
+/// looks pretty and doesn't seem used at all and the code is better if
+/// we don't use options (U+058D)
+const EOF: char = '֍';
 
-  fn next(&mut self) -> Option<Token> {
-    // Empty template or we got to the end
-    if self.input.len() == 0 || self.is_over() {
-      return None;
+/// Lexer based on the one used in go templates (https://www.youtube.com/watch?v=HxaD_trXwRE)
+#[derive(Debug)]
+pub struct Lexer {
+    name: String, // name of input, to report errors
+    input: String, // template being lexed
+    chars: Vec<(usize, char)>, // (bytes index, char)
+    start: usize, // where the current item started in the input (in bytes)
+    position: usize, // current position in the input (in bytes)
+    last_position: usize, // last position in the input (in bytes)
+    current_char: usize, // current index in the chars vec
+    state: StateFn, // current state fn
+    current_block_type: BlockType, // whether we are in a {{ or {% block
+    pub tokens: Vec<Token> // tokens found
+}
+
+impl Lexer {
+    pub fn new(name: &str, input: &str) -> Lexer {
+        Lexer {
+            name: name.to_owned(),
+            input: input.to_owned(),
+            chars: input.char_indices().collect(),
+            start: 0,
+            position: 0,
+            last_position: 0,
+            current_char: 0,
+            tokens: vec![],
+            current_block_type: BlockType::Variable, // we don't care about default one
+            state: StateFn(Some(lex_text))
+        }
     }
 
-    match self.state {
-      State::Text => Some(self.lex_text()),
-      State::VariableStart => Some(self.lex_left_variable_delimiter()),
-      State::InsideBlock => Some(self.lex_inside_variable_block()),
+    pub fn run(&mut self) {
+        loop {
+            // It's a bit weird how we get the value of a newtype struct
+            let StateFn(state_fn) = self.state;
+            if state_fn.is_none() {
+                break;
+            }
+            self.state = state_fn.unwrap()(self);
+        }
     }
-  }
+
+    fn next(&mut self) -> char {
+        if self.is_over() {
+            return EOF;
+        }
+
+        let current_char = self.chars[self.current_char];
+        let width =  if self.current_char < self.chars.len() - 1 {
+            self.chars[self.current_char + 1].0 - current_char.0
+        } else {
+            self.input.len() - current_char.0
+        };
+        self.last_position = self.position;
+        self.position += width;
+        self.current_char += 1;
+
+        current_char.1
+    }
+
+    fn backup(&mut self) {
+        self.position = self.last_position;
+        self.current_char -= 1;
+    }
+
+    fn peek(&mut self) -> char {
+        let next_char = self.next();
+        self.backup();
+
+        next_char
+    }
+
+    fn get_line_number(&self) -> usize {
+        1 + self.get_substring(0, self.last_position)
+              .chars()
+              .filter(|&c| c == '\n')
+              .collect::<Vec<_>>()
+              .len()
+    }
+
+    fn add_text_token(&mut self) {
+        if self.position > self.start {
+            self.add_token(TokenType::Text);
+        }
+    }
+
+    fn get_substring(&self, start: usize, end: usize) -> String {
+        String::from_utf8(self.input.as_bytes()[start..end].to_vec()).unwrap()
+    }
+
+    fn add_token(&mut self, kind: TokenType) {
+        let line = self.get_line_number();
+        let substring = self.get_substring(self.start, self.position);
+
+        self.tokens.push(Token::new(kind, &substring, line, self.start));
+        self.start = self.position;
+    }
+
+    fn accept(&mut self, valid: char) -> bool {
+        if self.next() == valid {
+            return true;
+        }
+        self.backup();
+
+        false
+    }
+
+    fn starts_with(&self, pattern: &str) -> bool {
+        self.get_substring(self.position, self.input.len()).starts_with(pattern)
+    }
+
+    // Errors are slighty different as we give them a value
+    fn error(&mut self, message: &str) -> StateFn {
+        let line = self.get_line_number();
+        self.tokens.push(
+            Token::new(TokenType::Error, message, line, self.position)
+        );
+
+        StateFn(None)
+    }
+
+    fn is_over(&self) -> bool {
+        self.position >= self.input.len()
+    }
+
+    // Easy way to handle delimiters while lexing rather than duplicating
+    // the logic in 2 almost identical lexing functions
+    fn add_delimiter(&mut self, side: DelimiterSide) -> StateFn {
+        self.position += 2;
+        match self.current_block_type {
+            BlockType::Block => match side {
+                DelimiterSide::Left => self.add_token(TokenType::TagStart),
+                DelimiterSide::Right => self.add_token(TokenType::TagEnd),
+            },
+            BlockType::Variable => match side {
+                DelimiterSide::Left => self.add_token(TokenType::VariableStart),
+                DelimiterSide::Right => self.add_token(TokenType::VariableEnd),
+            }
+        }
+        self.start = self.position;
+        self.current_char += 2;
+
+        match side {
+            DelimiterSide::Left => return StateFn(Some(lex_inside_block)),
+            DelimiterSide::Right => return StateFn(Some(lex_text)),
+        }
+    }
+}
+
+
+fn lex_text(lexer: &mut Lexer) -> StateFn {
+    while !lexer.is_over() {
+        match lexer.chars[lexer.current_char].1 {
+            '{' => {
+                if lexer.starts_with("{{") {
+                    lexer.add_text_token();
+                    lexer.current_block_type = BlockType::Variable;
+                    return lexer.add_delimiter(DelimiterSide::Left);
+                } else if lexer.starts_with("{%") {
+                    lexer.add_text_token();
+                    lexer.current_block_type = BlockType::Block;
+                    return lexer.add_delimiter(DelimiterSide::Left);
+                }
+            },
+            _ => {
+                if lexer.next() == EOF {
+                    break;
+                }
+            }
+        }
+    }
+
+    lexer.add_text_token();
+    lexer.add_token(TokenType::Eof);
+
+    StateFn(None)
+}
+
+fn lex_space(lexer: &mut Lexer) -> StateFn {
+    while lexer.peek().is_whitespace() {
+        lexer.next();
+    }
+
+    lexer.add_token(TokenType::Space);
+    StateFn(Some(lex_inside_block))
+}
+
+fn lex_number(lexer: &mut Lexer) -> StateFn {
+    let mut token_type = TokenType::Int;
+
+    loop {
+        match lexer.next() {
+            x if x.is_numeric() => continue,
+            '.' => {
+                if token_type == TokenType::Int {
+                    token_type = TokenType::Float;
+                } else {
+                    return lexer.error("Two dots in a number");
+                }
+            },
+            _ => {
+                lexer.backup();
+                lexer.add_token(token_type);
+                return StateFn(Some(lex_inside_block));
+            }
+        }
+    }
+}
+
+// Lexing a word inside a block
+fn lex_identifier(lexer: &mut Lexer) -> StateFn {
+    loop {
+        match lexer.next() {
+            x if x.is_alphanumeric() => continue,
+            _ => {
+                lexer.backup();
+                match lexer.get_substring(lexer.start, lexer.position).as_ref() {
+                    "if" => lexer.add_token(TokenType::If),
+                    "else" => lexer.add_token(TokenType::Else),
+                    "elif" => lexer.add_token(TokenType::Elif),
+                    "endif" => lexer.add_token(TokenType::Endif),
+                    "for" => lexer.add_token(TokenType::For),
+                    "in" => lexer.add_token(TokenType::In),
+                    "endfor" => lexer.add_token(TokenType::Endfor),
+                    "true" | "false" => lexer.add_token(TokenType::Bool),
+                    _ => lexer.add_token(TokenType::Identifier)
+                }
+
+                return StateFn(Some(lex_inside_block));
+            }
+        }
+    }
+}
+
+fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
+    while !lexer.is_over() {
+        // Check if we are at the end of the block
+        if lexer.starts_with("}}") || lexer.starts_with("%}") {
+            return lexer.add_delimiter(DelimiterSide::Right);
+        }
+
+        // Missing: string, ||, &&, >=, <=, ==, >, <, !=, ), (
+        match lexer.next() {
+            x if x.is_whitespace() => { return StateFn(Some(lex_space)); }
+            x if x.is_numeric() => { return StateFn(Some(lex_number)); }
+            x if x.is_alphanumeric() => { return StateFn(Some(lex_identifier)); }
+            '-' => lexer.add_token(TokenType::Substract),
+            '+' => lexer.add_token(TokenType::Add),
+            '*' => lexer.add_token(TokenType::Multiply),
+            '/' => lexer.add_token(TokenType::Divide),
+            '=' =>  {
+                if lexer.accept('=') {
+                    lexer.add_token(TokenType::Equal);
+                } else {
+                    lexer.error("Unknown token");
+                }
+            },
+            '&' =>  {
+                if lexer.accept('&') {
+                    lexer.add_token(TokenType::And);
+                } else {
+                    lexer.error("Unknown token");
+                }
+            },
+            '|' =>  {
+                if lexer.accept('|') {
+                    lexer.add_token(TokenType::Or);
+                } else {
+                    lexer.add_token(TokenType::Pipe);
+                }
+            },
+            '!' =>  {
+                if lexer.accept('=') {
+                    lexer.add_token(TokenType::NotEqual);
+                } else {
+                    lexer.error("Unknown token");
+                }
+            },
+            '<' =>  {
+                if lexer.accept('=') {
+                    lexer.add_token(TokenType::LowerOrEqual);
+                } else {
+                    lexer.add_token(TokenType::Lower);
+                }
+            },
+            '>' =>  {
+                if lexer.accept('=') {
+                    lexer.add_token(TokenType::GreaterOrEqual);
+                } else {
+                    lexer.add_token(TokenType::Greater);
+                }
+            },
+            _ => { return StateFn(None); }
+        };
+    }
+
+    lexer.error("Unclosed Delimiter")
 }
 
 
 #[cfg(test)]
 mod tests {
-  use super::*;
+    use super::{TokenType, Lexer};
+    use super::TokenType::*;
 
-  #[derive(Debug)]
-  struct LexerTest {
-    name: String,
-    input: String,
-    expected: Vec<Token>
-  }
-
-  impl LexerTest {
-    pub fn new(name: &str, input: &str, expected: Vec<Token>) -> LexerTest {
-      LexerTest {
-        name: name.to_string(),
-        input: input.to_string(),
-        expected: expected
-      }
+    #[derive(Debug)]
+    struct TokenTest<'a> {
+        kind: TokenType,
+        value: &'a str,
     }
-  }
+    impl<'a> TokenTest<'a> {
+        fn new(kind: TokenType, value: &'a str) -> TokenTest<'a> {
+            TokenTest { kind: kind, value: value }
+        }
+    }
+    const T_TAG_START: TokenTest<'static> = TokenTest { kind: TagStart, value: "{%"};
+    const T_TAG_END: TokenTest<'static> = TokenTest { kind: TagEnd, value: "%}"};
+    const T_VARIABLE_START: TokenTest<'static> = TokenTest { kind: VariableStart, value: "{{"};
+    const T_VARIABLE_END: TokenTest<'static> = TokenTest { kind: VariableEnd, value: "}}"};
+    const T_EOF: TokenTest<'static> = TokenTest { kind: Eof, value: ""};
+    const T_ADD: TokenTest<'static> = TokenTest { kind: Add, value: "+"};
+    const T_SUBSTRACT: TokenTest<'static> = TokenTest { kind: Substract, value: "-"};
+    const T_MULTIPLY: TokenTest<'static> = TokenTest { kind: Multiply, value: "*"};
+    const T_DIVIDE: TokenTest<'static> = TokenTest { kind: Divide, value: "/"};
+    const T_SPACE: TokenTest<'static> = TokenTest { kind: Space, value: " "};
+    const T_IF: TokenTest<'static> = TokenTest { kind: If, value: "if"};
+    const T_ELSE: TokenTest<'static> = TokenTest { kind: Else, value: "else"};
+    const T_ELIF: TokenTest<'static> = TokenTest { kind: Elif, value: "elif"};
+    const T_ENDIF: TokenTest<'static> = TokenTest { kind: Endif, value: "endif"};
+    const T_FOR: TokenTest<'static> = TokenTest { kind: For, value: "for"};
+    const T_IN: TokenTest<'static> = TokenTest { kind: In, value: "in"};
+    const T_ENDFOR: TokenTest<'static> = TokenTest { kind: Endfor, value: "endfor"};
+    const T_GREATER: TokenTest<'static> = TokenTest { kind: Greater, value: ">"};
+    const T_GREATER_OR_EQUAL: TokenTest<'static> = TokenTest { kind: GreaterOrEqual, value: ">="};
+    const T_LOWER: TokenTest<'static> = TokenTest { kind: Lower, value: "<"};
+    const T_LOWER_OR_EQUAL: TokenTest<'static> = TokenTest { kind: LowerOrEqual, value: "<="};
+    const T_EQUAL: TokenTest<'static> = TokenTest { kind: Equal, value: "=="};
+    const T_NOTEQUAL: TokenTest<'static> = TokenTest { kind: NotEqual, value: "!="};
+    const T_AND: TokenTest<'static> = TokenTest { kind: And, value: "&&"};
+    const T_OR: TokenTest<'static> = TokenTest { kind: Or, value: "||"};
 
-  fn text_token(value: &str) -> Token {
-    Token::new(TokenType::Text, value, 1)
-  }
-
-  fn variable_token(value: &str) -> Token {
-    Token::new(TokenType::Variable, value, 1)
-  }
-
-  fn variable_start_token() -> Token {
-    Token::new(TokenType::VariableStart, "{{", 1)
-  }
-
-  fn variable_end_token() -> Token {
-    Token::new(TokenType::VariableEnd, "}}", 1)
-  }
-
-  fn space_token() -> Token {
-    Token::new(TokenType::Space, " ", 1)
-  }
-
-  fn int_token(value: &str) -> Token {
-    Token::new(TokenType::Int, value, 1)
-  }
-
-  fn float_token(value: &str) -> Token {
-    Token::new(TokenType::Float, value, 1)
-  }
-
-  fn operator_token(value: &str) -> Token {
-    Token::new(TokenType::Operator, value, 1)
-  }
-
-  fn error_token() -> Token {
-    Token::new(TokenType::Error, "", 1)
-  }
-
-  fn check_if_correct(expected: &Vec<Token>, obtained: &Vec<Token>) -> bool {
-    if expected.len() != obtained.len() {
-      return false;
+    fn identifier_token(ident: &str) -> TokenTest {
+        TokenTest::new(Identifier, ident)
     }
 
-    for i in 0..expected.len() {
-      if expected[i].kind != obtained[i].kind {
-        return false;
-      }
-
-      // Do not check error values as i'll probably change them often
-      if expected[i].kind == TokenType::Error {
-        continue;
-      }
-
-      if expected[i].value != obtained[i].value {
-        return false;
-      }
+    fn text_token(text: &str) -> TokenTest {
+        TokenTest::new(Text, text)
     }
-    return true;
-  }
 
-  #[test]
-  fn test_lexer() {
-    let tests: Vec<LexerTest> = vec![
-      LexerTest::new("empty", "", vec![]),
-      LexerTest::new("only text", "Hello 世界", vec![text_token("Hello 世界")]),
-      LexerTest::new("variable and text", "{{ greeting }} 世界", vec![
-        variable_start_token(),
-        space_token(),
-        variable_token("greeting"),
-        space_token(),
-        variable_end_token(),
-        text_token(" 世界"),
-      ]),
-      LexerTest::new("numbers", "{{1 3.14}}", vec![
-        variable_start_token(),
-        int_token("1"),
-        space_token(),
-        float_token("3.14"),
-        variable_end_token(),
-      ]),
-      LexerTest::new("invalid numbers", "{{1up 3.14.15}}", vec![
-        variable_start_token(),
-        error_token(),
-        space_token(),
-        error_token(),
-        variable_end_token(),
-      ]),
-      LexerTest::new("operators", "{{+ - * / .}}", vec![
-        variable_start_token(),
-        operator_token("+"),
-        space_token(),
-        operator_token("-"),
-        space_token(),
-        operator_token("*"),
-        space_token(),
-        operator_token("/"),
-        space_token(),
-        operator_token("."),
-        variable_end_token(),
-      ])
-    ];
-
-    for test in tests {
-      println!("Testing: {}", test.name);
-      let tokens: Vec<Token> = Tokenizer::new(&test.input).collect();
-      if tokens.len() != test.expected.len() {
-        println!("Test {} failed: different number of tokens.", test.name);
-        println!("Expected: {:?}", test.expected);
-        println!("Got: {:?}", tokens);
-        assert!(false);
-      }
-
-      if check_if_correct(&test.expected, &tokens) {
-        assert!(true);
-      } else {
-        println!("Test {} failed: different tokens", test.name);
-        println!("Expected: {:?}", test.expected);
-        println!("Got: {:?}", tokens);
-        assert!(false);
-      }
+    fn int_token(value: &str) -> TokenTest {
+        TokenTest::new(Int, value)
     }
-  }
+
+    fn float_token(value: &str) -> TokenTest {
+        TokenTest::new(Float, value)
+    }
+
+    fn error_token(msg: &str) -> TokenTest {
+        TokenTest::new(Error, msg)
+    }
+
+    fn test_tokens(input: &str, test_tokens: Vec<TokenTest>) {
+        let mut lexer = Lexer::new("test", input);
+        lexer.run();
+
+        if test_tokens.len() != lexer.tokens.len() {
+            println!("Number of tokens not matching: expected {}, got {}", test_tokens.len(), lexer.tokens.len());
+            println!("{:#?}", lexer.tokens);
+            assert!(false);
+        }
+
+        for (i, t) in test_tokens.iter().enumerate() {
+            let ref lexer_token = lexer.tokens[i];
+            // Should always start at position 0
+            if i == 0 {
+                assert_eq!(lexer_token.position, 0);
+            }
+            if t.kind != lexer_token.kind {
+                println!("Wrong kind. Expected: {:?}. \n Got: {:?}", t, lexer_token);
+                assert!(false);
+            }
+            if t.value != lexer_token.value {
+                println!("Wrong value. Expected: {:?}. \n Got: {:?}", t, lexer_token);
+                assert!(false);
+            }
+
+        }
+    }
+
+    #[test]
+    fn test_empty() {
+        let expected = vec![T_EOF];
+        test_tokens("", expected);
+    }
+
+    #[test]
+    fn test_only_text() {
+        let expected = vec![text_token("Hello\n 世界"), T_EOF];
+        test_tokens("Hello\n 世界", expected);
+    }
+
+    #[test]
+    fn test_variable_block_and_text() {
+        let expected = vec![
+            T_VARIABLE_START,
+            T_SPACE,
+            identifier_token("greeting"),
+            T_SPACE,
+            T_VARIABLE_END,
+            text_token(" 世界"),
+            T_EOF
+        ];
+        test_tokens("{{ greeting }} 世界", expected);
+    }
+
+    #[test]
+    fn test_valid_numbers() {
+        let expected = vec![
+            T_VARIABLE_START,
+            T_SPACE,
+            int_token("1"),
+            T_SPACE,
+            float_token("3.14"),
+            T_SPACE,
+            T_VARIABLE_END,
+            T_EOF
+        ];
+        test_tokens("{{ 1 3.14 }}", expected);
+    }
+
+    #[test]
+    fn test_operators() {
+        let expected = vec![
+            T_VARIABLE_START,
+            T_SUBSTRACT,
+            T_ADD,
+            T_MULTIPLY,
+            T_DIVIDE,
+            T_EQUAL,
+            T_AND,
+            T_LOWER_OR_EQUAL,
+            T_GREATER_OR_EQUAL,
+            T_NOTEQUAL,
+            T_OR,
+            T_VARIABLE_END,
+            T_EOF
+        ];
+        test_tokens("{{-+*/==&&<=>=!=||}}", expected);
+    }
+
+    #[test]
+    fn test_block() {
+        let expected = vec![
+            text_token("Hello "),
+            T_TAG_START, T_SPACE,
+            T_IF,
+            T_SPACE,
+            identifier_token("japanese"),
+            T_SPACE,
+            T_TAG_END,
+            text_token("世界"),
+            T_TAG_START,
+            T_SPACE,
+            T_ELSE,
+            T_SPACE,
+            T_TAG_END,
+            text_token("world"),
+            T_TAG_START,
+            T_SPACE,
+            T_ENDIF,
+            T_SPACE,
+            T_TAG_END,
+            T_EOF
+        ];
+        test_tokens("Hello {% if japanese %}世界{% else %}world{% endif %}", expected);
+    }
+
+    #[test]
+    fn test_unclosed_block() {
+        let expected = vec![T_VARIABLE_START, error_token("Unclosed Delimiter")];
+        test_tokens("{{", expected);
+    }
+
+    #[test]
+    fn test_invalid_number() {
+        let expected = vec![T_VARIABLE_START, error_token("Two dots in a number")];
+        test_tokens("{{1.2.2", expected);
+    }
 }
