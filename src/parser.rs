@@ -125,7 +125,7 @@ impl Parser {
         let token = self.peek_non_space();
 
         let mut node_stack = stack.unwrap_or(Node::new(token.position, SpecificNode::List(vec![])));
-        let next = self.parse_single_expression(&node_stack, &terminator).unwrap();
+        let next = self.parse_single_expression(&terminator).unwrap();
         node_stack.push(next);
 
         loop {
@@ -175,7 +175,7 @@ impl Parser {
 
                     // * and / have the highest precedence so no need to check
                     // the following operators precedences
-                    let rhs = self.parse_single_expression(&node_stack, &terminator).unwrap();
+                    let rhs = self.parse_single_expression(&terminator).unwrap();
                     let lhs = node_stack.pop();
                     let node = if token.kind == TokenType::Multiply {
                         Node::new(lhs.position, SpecificNode::Multiplication{lhs: lhs, rhs: rhs})
@@ -191,7 +191,7 @@ impl Parser {
 
     // Parses the next non-space token as a simple expression
     // Used when parsing inside a block/tag and we want to get the next value
-    fn parse_single_expression(&mut self, stack: &Node, terminator: &TokenType) -> Option<Box<Node>> {
+    fn parse_single_expression(&mut self, terminator: &TokenType) -> Option<Box<Node>> {
         let token = self.peek_non_space();
 
         if token.kind == *terminator {
