@@ -57,6 +57,20 @@ impl Token {
             position: position
         }
     }
+
+    pub fn precedence(&self) -> usize {
+        match self.kind {
+            TokenType::Multiply | TokenType::Divide => 5,
+            TokenType::Add | TokenType::Substract => 4,
+            TokenType::Equal | TokenType::GreaterOrEqual | TokenType::Greater
+            | TokenType::NotEqual | TokenType::LowerOrEqual | TokenType::Lower => {
+                3
+            },
+            TokenType::And => 2,
+            TokenType::Or => 1,
+            _ => 0
+        }
+    }
 }
 
 // can't use cyclic references in a type so we use a newtype struct where it
