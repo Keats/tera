@@ -27,12 +27,7 @@ impl Parser {
 
     // Main loop of the parser, stops when there are no token left
     pub fn parse(&mut self) {
-        loop {
-            let node = match self.parse_next() {
-                Some(n) => n,
-                None => break
-            };
-
+        while let Some(node) = self.parse_next() {
             self.root.push(node);
         }
     }
@@ -44,12 +39,12 @@ impl Parser {
 
     // Look at the next token that isn't space
     fn peek_non_space(&mut self) -> Token {
-        let mut token = self.next();
+        let mut token = self.next_token();
         loop {
             if token.kind != TokenType::Space {
                 break;
             }
-            token = self.next();
+            token = self.next_token();
         }
         // Only rewind once (see once i have tests)
         self.current_token -= 1;
@@ -58,7 +53,7 @@ impl Parser {
     }
 
     // Get the next token
-    fn next(&mut self) -> Token {
+    fn next_token(&mut self) -> Token {
         let token = self.peek();
         self.current_token += 1;
 
@@ -67,12 +62,12 @@ impl Parser {
 
     // Get the next token that isn't space
     fn next_non_space(&mut self) -> Token {
-        let mut token = self.next();
+        let mut token = self.next_token();
         loop {
             if token.kind != TokenType::Space {
                 break;
             }
-            token = self.next();
+            token = self.next_token();
         }
 
         token
@@ -105,7 +100,7 @@ impl Parser {
 
     // Parse some html text
     fn parse_text(&mut self) -> Option<Box<Node>> {
-        let token = self.next();
+        let token = self.next_token();
         Some(Box::new(Node::new(token.position, SpecificNode::Text(token.value))))
     }
 
@@ -124,14 +119,14 @@ impl Parser {
     fn parse_whole_expression(&mut self, stack: Option<Node>, terminator: TokenType) -> Option<Box<Node>> {
         let token = self.peek_non_space();
 
-        let mut node_stack = stack.unwrap_or(Node::new(token.position, SpecificNode::List(vec![])));
+        let mut node_stack = stack.unwrap_or_else(|| Node::new(token.position, SpecificNode::List(vec![])));
         let next = self.parse_single_expression(&terminator).unwrap();
         node_stack.push(next);
 
         loop {
             let token = self.peek_non_space();
             if token.kind == terminator {
-                if node_stack.len() == 0 {
+                if node_stack.is_empty() {
                     panic!("Unexpected terminator");
                 }
                 return Some(node_stack.pop());
@@ -141,7 +136,7 @@ impl Parser {
                 TokenType::Add | TokenType::Substract => {
                     // consume it
                     self.next_non_space();
-                    if node_stack.len() == 0 {
+                    if node_stack.is_empty() {
                         continue;
                     }
 
@@ -169,7 +164,7 @@ impl Parser {
                 TokenType::Divide | TokenType::Multiply => {
                     // consume the operator
                     self.next_non_space();
-                    if node_stack.len() == 0 {
+                    if node_stack.is_empty() {
                         panic!("Unexpected division or multiplication");
                     }
 
@@ -223,15 +218,15 @@ impl Parser {
         match literal.kind {
             TokenType::Int => {
                 let value = literal.value.parse::<i32>().unwrap();
-                return Some(Box::new(Node::new(literal.position, SpecificNode::Int(value))));
+                Some(Box::new(Node::new(literal.position, SpecificNode::Int(value))))
             },
             TokenType::Float => {
                 let value = literal.value.parse::<f32>().unwrap();
-                return Some(Box::new(Node::new(literal.position, SpecificNode::Float(value))));
+                Some(Box::new(Node::new(literal.position, SpecificNode::Float(value))))
             },
             TokenType::Bool => {
                 let value = if literal.value == "false" { false } else { true };
-                return Some(Box::new(Node::new(literal.position, SpecificNode::Bool(value))));
+                Some(Box::new(Node::new(literal.position, SpecificNode::Bool(value))))
             },
             _ => panic!("unexpected type when parsing literal")
         }
@@ -294,12 +289,12 @@ mod tests {
     #[test]
     fn test_basic_math() {
         test_parser(
-            "{{1+3.14}}{{1-42}}{{1*42}}{{1/42}}{{test+1}}",
+            "{{1+3.41}}{{1-42}}{{1*42}}{{1/42}}{{test+1}}",
             vec![
                 SpecificNode::VariableBlock(
                     Box::new(Node::new(2, SpecificNode::Addition {
                         lhs: Box::new(Node::new(2, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(4, SpecificNode::Float(3.14))),
+                        rhs: Box::new(Node::new(4, SpecificNode::Float(3.41))),
                     }))
                 ),
                 SpecificNode::VariableBlock(

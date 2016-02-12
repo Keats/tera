@@ -144,7 +144,7 @@ impl Lexer {
         }
     }
 
-    fn next(&mut self) -> char {
+    fn next_char(&mut self) -> char {
         if self.is_over() {
             return EOF;
         }
@@ -168,7 +168,7 @@ impl Lexer {
     }
 
     fn peek(&mut self) -> char {
-        let next_char = self.next();
+        let next_char = self.next_char();
         self.backup();
 
         next_char
@@ -201,7 +201,7 @@ impl Lexer {
     }
 
     fn accept(&mut self, valid: char) -> bool {
-        if self.next() == valid {
+        if self.next_char() == valid {
             return true;
         }
         self.backup();
@@ -245,8 +245,8 @@ impl Lexer {
         self.current_char += 2;
 
         match side {
-            DelimiterSide::Left => return StateFn(Some(lex_inside_block)),
-            DelimiterSide::Right => return StateFn(Some(lex_text)),
+            DelimiterSide::Left => StateFn(Some(lex_inside_block)),
+            DelimiterSide::Right => StateFn(Some(lex_text)),
         }
     }
 }
@@ -267,7 +267,7 @@ fn lex_text(lexer: &mut Lexer) -> StateFn {
                 }
             },
             _ => {
-                if lexer.next() == EOF {
+                if lexer.next_char() == EOF {
                     break;
                 }
             }
@@ -282,7 +282,7 @@ fn lex_text(lexer: &mut Lexer) -> StateFn {
 
 fn lex_space(lexer: &mut Lexer) -> StateFn {
     while lexer.peek().is_whitespace() {
-        lexer.next();
+        lexer.next_char();
     }
 
     lexer.add_token(TokenType::Space);
@@ -293,7 +293,7 @@ fn lex_number(lexer: &mut Lexer) -> StateFn {
     let mut token_type = TokenType::Int;
 
     loop {
-        match lexer.next() {
+        match lexer.next_char() {
             x if x.is_numeric() => continue,
             '.' => {
                 if token_type == TokenType::Int {
@@ -314,7 +314,7 @@ fn lex_number(lexer: &mut Lexer) -> StateFn {
 // Lexing a word inside a block
 fn lex_identifier(lexer: &mut Lexer) -> StateFn {
     loop {
-        match lexer.next() {
+        match lexer.next_char() {
             x if x.is_alphanumeric() => continue,
             _ => {
                 lexer.backup();
@@ -344,7 +344,7 @@ fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
         }
 
         // Missing: string, ||, &&, >=, <=, ==, >, <, !=, ), (
-        match lexer.next() {
+        match lexer.next_char() {
             x if x.is_whitespace() => { return StateFn(Some(lex_space)); }
             x if x.is_numeric() => { return StateFn(Some(lex_number)); }
             x if x.is_alphanumeric() => { return StateFn(Some(lex_identifier)); }
@@ -474,7 +474,7 @@ mod tests {
         }
 
         for (i, t) in test_tokens.iter().enumerate() {
-            let ref lexer_token = lexer.tokens[i];
+            let lexer_token = &lexer.tokens[i];
             // Should always start at position 0
             if i == 0 {
                 assert_eq!(lexer_token.position, 0);

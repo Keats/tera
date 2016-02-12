@@ -55,11 +55,16 @@ impl Node {
     }
 
     // Only used by SpecificNode::List
-    pub fn len(&mut self) -> usize {
+    pub fn len(&self) -> usize {
         match self.specific {
             SpecificNode::List(ref l) => l.len(),
             _ => panic!("tried to len() on a non list node")
         }
+    }
+
+    // Only used by SpecificNode::List
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 

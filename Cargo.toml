@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
 
 [dependencies]
+rustc-serialize = "0.3"
 clippy = {version = "~0.0.35", optional = true}
 
 
