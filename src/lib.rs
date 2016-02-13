@@ -4,7 +4,10 @@
 #![cfg_attr(feature = "dev", feature(plugin))]
 #![cfg_attr(feature = "dev", plugin(clippy))]
 
-extern crate rustc_serialize;
+#![feature(custom_derive, plugin)]
+#![plugin(serde_macros)]
+extern crate serde;
+extern crate serde_json;
 
 mod lexer;
 mod nodes;

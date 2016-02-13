@@ -4,7 +4,9 @@ version = "0.1.0"
 authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
 
 [dependencies]
-rustc-serialize = "0.3"
+serde = "0.6"
+serde_json = "0.6"
+serde_macros = "0.6"
 clippy = {version = "~0.0.35", optional = true}
 
 
