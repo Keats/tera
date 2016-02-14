@@ -11,14 +11,7 @@ pub struct Context {
     data: Json
 }
 
-
 impl Context {
-    pub fn null() -> Context {
-        Context {
-            data: Json::Null
-        }
-    }
-
     pub fn new<T: Serialize>(d: &T) -> Context {
         Context {
             data: to_value(d)
@@ -27,6 +20,14 @@ impl Context {
 
     pub fn get(&self, path: &str) -> Option<&Json> {
         return self.data.lookup(path);
+    }
+}
+
+impl Default for Context {
+    fn default() -> Context {
+        Context {
+            data: Json::Null
+        }
     }
 }
 

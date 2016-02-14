@@ -7,7 +7,7 @@ pub struct Parser {
     name: String,
     text: String,
     lexer: Lexer,
-    root: Node,
+    pub root: Node,
     current_token: usize, // where we are in the parsing of the tokens
 }
 
@@ -16,13 +16,16 @@ impl Parser {
         let mut lexer = Lexer::new(name, text);
         lexer.run();
 
-        Parser {
+        let mut parser = Parser {
             name: name.to_owned(),
             text: text.to_owned(),
             root: Node::new(0, SpecificNode::List(vec![])),
             lexer: lexer,
             current_token: 0
-        }
+        };
+        parser.parse();
+
+        parser
     }
 
     // Main loop of the parser, stops when there are no token left
@@ -152,11 +155,11 @@ impl Parser {
                         // Or the next thing has lower precedence and we just
                         // add the node to the stack
                         let lhs = node_stack.pop();
-                        let node = if token.kind == TokenType::Add {
-                            Node::new(lhs.position, SpecificNode::Addition{lhs: lhs, rhs: rhs})
-                        } else {
-                            Node::new(lhs.position, SpecificNode::Substraction{lhs: lhs, rhs: rhs})
-                        };
+                        let operator = if token.kind == TokenType:: Add { "+" } else { "-" };
+                        let node = Node::new(
+                            lhs.position,
+                            SpecificNode::Math{lhs: lhs, rhs: rhs, operator: operator.to_owned()}
+                        );
                         node_stack.push(Box::new(node));
 
                     }
@@ -172,11 +175,11 @@ impl Parser {
                     // the following operators precedences
                     let rhs = self.parse_single_expression(&terminator).unwrap();
                     let lhs = node_stack.pop();
-                    let node = if token.kind == TokenType::Multiply {
-                        Node::new(lhs.position, SpecificNode::Multiplication{lhs: lhs, rhs: rhs})
-                    } else {
-                        Node::new(lhs.position, SpecificNode::Division{lhs: lhs, rhs: rhs})
-                    };
+                    let operator = if token.kind == TokenType:: Multiply { "*" } else { "/" };
+                    let node = Node::new(
+                        lhs.position,
+                        SpecificNode::Math{lhs: lhs, rhs: rhs, operator: operator.to_owned()}
+                    );
                     node_stack.push(Box::new(node));
                 },
                 _ => panic!("Unexpected token") // TODO: not panic
@@ -245,23 +248,19 @@ mod tests {
 
         for (i, node) in got.iter().enumerate() {
             let expected_node = expected.get(i).unwrap().clone();
-            println!("Expected: {:#?}", expected_node);
-            println!("Got: {:#?}", node.specific);
             assert_eq!(expected_node, node.specific);
         }
     }
 
     fn test_parser(input: &str, expected: Vec<SpecificNode>) {
-        let mut parser = Parser::new("dummy", input);
-        parser.parse();
+        let parser = Parser::new("dummy", input);
         let children = parser.root.get_children();
         compared_expected(expected, children)
     }
 
     #[test]
     fn test_empty() {
-        let mut parser = Parser::new("empty", "");
-        parser.parse();
+        let parser = Parser::new("empty", "");
         assert_eq!(0, parser.root.len());
     }
 
@@ -292,33 +291,38 @@ mod tests {
             "{{1+3.41}}{{1-42}}{{1*42}}{{1/42}}{{test+1}}",
             vec![
                 SpecificNode::VariableBlock(
-                    Box::new(Node::new(2, SpecificNode::Addition {
+                    Box::new(Node::new(2, SpecificNode::Math {
                         lhs: Box::new(Node::new(2, SpecificNode::Int(1))),
                         rhs: Box::new(Node::new(4, SpecificNode::Float(3.41))),
+                        operator: "+".to_owned()
                     }))
                 ),
                 SpecificNode::VariableBlock(
-                    Box::new(Node::new(12, SpecificNode::Substraction {
+                    Box::new(Node::new(12, SpecificNode::Math {
                         lhs: Box::new(Node::new(12, SpecificNode::Int(1))),
                         rhs: Box::new(Node::new(14, SpecificNode::Int(42))),
+                        operator: "-".to_owned()
                     }))
                 ),
                 SpecificNode::VariableBlock(
-                    Box::new(Node::new(20, SpecificNode::Multiplication {
+                    Box::new(Node::new(20, SpecificNode::Math {
                         lhs: Box::new(Node::new(20, SpecificNode::Int(1))),
                         rhs: Box::new(Node::new(22, SpecificNode::Int(42))),
+                        operator: "*".to_owned()
                     }))
                 ),
                 SpecificNode::VariableBlock(
-                    Box::new(Node::new(28, SpecificNode::Division {
+                    Box::new(Node::new(28, SpecificNode::Math {
                         lhs: Box::new(Node::new(28, SpecificNode::Int(1))),
                         rhs: Box::new(Node::new(30, SpecificNode::Int(42))),
+                        operator: "/".to_owned()
                     }))
                 ),
                 SpecificNode::VariableBlock(
-                    Box::new(Node::new(36, SpecificNode::Addition {
+                    Box::new(Node::new(36, SpecificNode::Math {
                         lhs: Box::new(Node::new(36, SpecificNode::Identifier("test".to_owned()))),
                         rhs: Box::new(Node::new(41, SpecificNode::Int(1))),
+                        operator: "+".to_owned()
                     }))
                 ),
             ]
@@ -331,12 +335,14 @@ mod tests {
             "{{ 1 / 2 + 1 }}",
             vec![
                 SpecificNode::VariableBlock(
-                    Box::new(Node::new(3, SpecificNode::Addition {
-                        lhs: Box::new(Node::new(3, SpecificNode::Division {
+                    Box::new(Node::new(3, SpecificNode::Math {
+                        lhs: Box::new(Node::new(3, SpecificNode::Math {
                             lhs: Box::new(Node::new(3, SpecificNode::Int(1))),
                             rhs: Box::new(Node::new(7, SpecificNode::Int(2))),
+                            operator: "/".to_owned()
                         })),
-                        rhs: Box::new(Node::new(11, SpecificNode::Int(1)))
+                        rhs: Box::new(Node::new(11, SpecificNode::Int(1))),
+                        operator: "+".to_owned()
                     }))
                 ),
             ]
@@ -346,21 +352,25 @@ mod tests {
     #[test]
     fn test_math_precedence_complex() {
         test_parser(
-            "{{ 1 / 2 + 3 * 2 + 42 }}", // should be  ((1/2) + (3*2)) + 42
+            "{{ 1 / 2 + 3 * 2 + 42 }}",
             vec![
                 SpecificNode::VariableBlock(
-                    Box::new(Node::new(3, SpecificNode::Addition {
-                        lhs: Box::new(Node::new(3, SpecificNode::Division {
+                    Box::new(Node::new(3, SpecificNode::Math {
+                        lhs: Box::new(Node::new(3, SpecificNode::Math {
                             lhs: Box::new(Node::new(3, SpecificNode::Int(1))),
                             rhs: Box::new(Node::new(7, SpecificNode::Int(2))),
+                            operator: "/".to_owned()
                         })),
-                        rhs: Box::new(Node::new(11, SpecificNode::Addition {
-                            lhs: Box::new(Node::new(11, SpecificNode::Multiplication {
+                        rhs: Box::new(Node::new(11, SpecificNode::Math {
+                            lhs: Box::new(Node::new(11, SpecificNode::Math {
                                 lhs: Box::new(Node::new(11, SpecificNode::Int(3))),
-                                rhs: Box::new(Node::new(15, SpecificNode::Int(2)))
+                                rhs: Box::new(Node::new(15, SpecificNode::Int(2))),
+                                operator: "*".to_owned()
                             })),
-                            rhs: Box::new(Node::new(19, SpecificNode::Int(42)))
-                        }))
+                            rhs: Box::new(Node::new(19, SpecificNode::Int(42))),
+                            operator: "+".to_owned()
+                        })),
+                        operator: "+".to_owned()
                     }))
                 ),
             ]

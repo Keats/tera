@@ -10,10 +10,7 @@ pub enum SpecificNode {
     Int(i32),
     Float(f32),
     Bool(bool),
-    Addition {lhs: Box<Node>, rhs: Box<Node>},
-    Substraction {lhs: Box<Node>, rhs: Box<Node>},
-    Multiplication {lhs: Box<Node>, rhs: Box<Node>},
-    Division {lhs: Box<Node>, rhs: Box<Node>}
+    Math {lhs: Box<Node>, rhs: Box<Node>, operator: String},
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -47,7 +44,7 @@ impl Node {
     }
 
     // Only used by SpecificNode::List
-    pub fn get_children(&mut self) -> Vec<Box<Node>> {
+    pub fn get_children(&self) -> Vec<Box<Node>> {
         match self.specific {
             SpecificNode::List(ref l) => l.clone(),
             _ => panic!("tried to get_children on a non list node")
@@ -84,10 +81,9 @@ impl fmt::Display for Node {
             SpecificNode::Int(ref s) => write!(f, "<{}>", s),
             SpecificNode::Float(ref s) => write!(f, "<{}>", s),
             SpecificNode::Bool(ref s) => write!(f, "<{}>", s),
-            SpecificNode::Addition { ref lhs, ref rhs } => write!(f, "<{} + {}>", lhs, rhs),
-            SpecificNode::Substraction { ref lhs, ref rhs } => write!(f, "<{} - {}>", lhs, rhs),
-            SpecificNode::Multiplication { ref lhs, ref rhs } => write!(f, "<{} * {}>", lhs, rhs),
-            SpecificNode::Division { ref lhs, ref rhs } => write!(f, "<{} / {}>", lhs, rhs),
+            SpecificNode::Math { ref lhs, ref rhs , ref operator} => {
+                write!(f, "<{} {} {}>", lhs, operator, rhs)
+            },
         }
     }
 }

@@ -13,3 +13,4 @@ mod lexer;
 mod nodes;
 mod parser;
 mod context;
+mod render;
