@@ -8,9 +8,69 @@
 #![plugin(serde_macros)]
 extern crate serde;
 extern crate serde_json;
+extern crate walkdir;
 
 mod lexer;
 mod nodes;
 mod parser;
 mod context;
 mod render;
+mod template;
+
+
+
+// The actual api
+// TODO: move it to another file?
+use std::collections::BTreeMap;
+use std::io::prelude::*;
+use std::fs::File;
+
+// use serde::ser::Serialize;
+use walkdir::WalkDir;
+
+use template::Template;
+
+#[derive(Debug)]
+pub struct Tera {
+    templates: BTreeMap<String, Template>,
+}
+
+
+// Wanted api:
+// let mut tera = Tera::new("templates/");
+// tera.register_filter(Capitalize);
+// ^ the above can panic as it should be run in compile or first time
+// ^ it will have run lexer + parser so we only need to render
+// ...
+// tera.render("dashboard/index.html", &someData) (-> Result<String>)
+
+
+impl Tera {
+    pub fn new(dir: &str) -> Tera {
+        let mut templates = BTreeMap::new();
+
+        // We are parsing all the templates on instantiation
+        for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
+            let path = entry.path();
+            // We only care about actual files
+            if path.is_file() {
+                // We clean the filename by removing the dir given
+                // to Tera so users don't have to prefix everytime
+                let filepath = path.to_string_lossy().replace(dir, "");
+                // we know the file exists so unwrap all the things
+                let mut f = File::open(path).unwrap();
+                let mut input = String::new();
+                f.read_to_string(&mut input).unwrap();
+                templates.insert(filepath.to_owned(), Template::new(&filepath, &input));
+            }
+        }
+
+        Tera {
+            templates: templates
+        }
+    }
+
+    // pub fn render<T: Serialize>(template: &str, data: &T) -> String {
+
+    // }
+}

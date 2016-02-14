@@ -73,7 +73,9 @@ impl Renderer {
     }
 }
 
-pub fn render_from_string<T: Serialize>(template: &str, data: &T) -> String {
+// Only used for tests
+// TODO: move into tests module
+fn render_from_string<T: Serialize>(template: &str, data: &T) -> String {
     let context = Context::new(data);
     let parser = Parser::new("string", template);
     let mut renderer = Renderer::new(parser, context);

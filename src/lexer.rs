@@ -58,6 +58,8 @@ impl Token {
         }
     }
 
+    // Precedence for a token. We need to know that in order for the
+    // parser to do its job correctly when it comes to math and comparisons
     pub fn precedence(&self) -> usize {
         match self.kind {
             TokenType::Multiply | TokenType::Divide => 5,
@@ -84,13 +86,15 @@ impl fmt::Debug for StateFn {
 }
 
 /// which kind of block are we currently in (to know which type of token type to emit)
+/// We only have 2 types (3 if we add comments): {{ }} and {% %}
 #[derive(Debug)]
 enum BlockType {
     Variable,
     Block,
 }
 
-/// Just to know which side of a delimiter we need to add
+/// We need to keep track of which side of a delimiter we need to add
+/// when lexing inside of a block
 #[derive(Debug)]
 enum DelimiterSide {
     Left,
@@ -98,8 +102,8 @@ enum DelimiterSide {
 }
 
 /// Ok we're using the Right-Facing Armenian Eternity Sign as EOF char since it
-/// looks pretty and doesn't seem used at all and the code is better if
-/// we don't use options (U+058D)
+/// looks pretty and doesn't seem used at all by a google search and the code is neater if
+/// we don't use Option (U+058D)
 const EOF: char = '֍';
 
 /// Lexer based on the one used in go templates (https://www.youtube.com/watch?v=HxaD_trXwRE)
@@ -133,6 +137,7 @@ impl Lexer {
         }
     }
 
+    // Do the whole lexing thingy
     pub fn run(&mut self) {
         loop {
             // It's a bit weird how we get the value of a newtype struct
@@ -144,13 +149,17 @@ impl Lexer {
         }
     }
 
+    // Gets the next char in the input. Note that input is utf8 therefore
+    // with of a character can be > 1
     fn next_char(&mut self) -> char {
         if self.is_over() {
             return EOF;
         }
 
         let current_char = self.chars[self.current_char];
-        let width =  if self.current_char < self.chars.len() - 1 {
+        // There's no way to get a char width in rust afaik so we calculate
+        // it by comparing with the next char
+        let width = if self.current_char < self.chars.len() - 1 {
             self.chars[self.current_char + 1].0 - current_char.0
         } else {
             self.input.len() - current_char.0
@@ -174,6 +183,9 @@ impl Lexer {
         next_char
     }
 
+    // Get the line number of the position by counting the number
+    // of '\n' in it
+    // TODO: actually check if that works
     fn get_line_number(&self) -> usize {
         1 + self.get_substring(0, self.last_position)
               .chars()
@@ -182,12 +194,15 @@ impl Lexer {
               .len()
     }
 
+    // Text tokens are a bit special as we start as a text token
+    // but the input might be empty
     fn add_text_token(&mut self) {
         if self.position > self.start {
             self.add_token(TokenType::Text);
         }
     }
 
+    // Need to get a substring on the bytes
     fn get_substring(&self, start: usize, end: usize) -> String {
         String::from_utf8(self.input.as_bytes()[start..end].to_vec()).unwrap()
     }
@@ -200,6 +215,7 @@ impl Lexer {
         self.start = self.position;
     }
 
+    // Returns whether the next char is the char we expected to see
     fn accept(&mut self, valid: char) -> bool {
         if self.next_char() == valid {
             return true;
@@ -312,6 +328,7 @@ fn lex_number(lexer: &mut Lexer) -> StateFn {
 }
 
 // Lexing a word inside a block
+// could be a variable lookup or a tera keyword
 fn lex_identifier(lexer: &mut Lexer) -> StateFn {
     loop {
         match lexer.next_char() {

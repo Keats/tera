@@ -1,6 +1,8 @@
 use std::fmt;
 
-
+// All the different types of node we can have in the ast
+// We only have one math node instead of one for each operation
+// to simplify the pattern matching
 #[derive(PartialEq, Debug, Clone)]
 pub enum SpecificNode {
     List(Vec<Box<Node>>),

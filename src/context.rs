@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap};
+use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
 use serde_json::value::{Value as Json, to_value};
@@ -19,7 +19,7 @@ impl Context {
     }
 
     pub fn get(&self, path: &str) -> Option<&Json> {
-        return self.data.lookup(path);
+        self.data.lookup(path)
     }
 }
 
