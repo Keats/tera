@@ -58,6 +58,23 @@ impl JsonRender for Json {
         }
     }
 }
+
+
+pub trait JsonNumber {
+    fn to_number(&self) -> Result<f64, ()>;
+}
+
+impl JsonNumber for Json {
+    fn to_number(&self) -> Result<f64, ()> {
+        match *self {
+            Json::I64(i) => Ok(i as f64),
+            Json::U64(i) => Ok(i as f64),
+            Json::F64(f) => Ok(f),
+            _ => Err(())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Context};

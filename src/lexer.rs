@@ -315,7 +315,7 @@ fn lex_number(lexer: &mut Lexer) -> StateFn {
 fn lex_identifier(lexer: &mut Lexer) -> StateFn {
     loop {
         match lexer.next_char() {
-            x if x.is_alphanumeric() => continue,
+            x if x.is_alphabetic() ||x == '_' => continue,
             _ => {
                 lexer.backup();
                 match lexer.get_substring(lexer.start, lexer.position).as_ref() {
@@ -343,11 +343,10 @@ fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
             return lexer.add_delimiter(DelimiterSide::Right);
         }
 
-        // Missing: string, ||, &&, >=, <=, ==, >, <, !=, ), (
         match lexer.next_char() {
             x if x.is_whitespace() => { return StateFn(Some(lex_space)); }
             x if x.is_numeric() => { return StateFn(Some(lex_number)); }
-            x if x.is_alphanumeric() => { return StateFn(Some(lex_identifier)); }
+            x if x.is_alphabetic() || x == '_' => { return StateFn(Some(lex_identifier)); }
             '-' => lexer.add_token(TokenType::Substract),
             '+' => lexer.add_token(TokenType::Add),
             '*' => lexer.add_token(TokenType::Multiply),
@@ -530,6 +529,23 @@ mod tests {
             T_EOF
         ];
         test_tokens("{{ 1 3.14 }}", expected);
+    }
+
+    #[test]
+    fn test_numbers_and_variable() {
+        let expected = vec![
+            T_VARIABLE_START,
+            T_SPACE,
+            int_token("1"),
+            T_SPACE,
+            T_MULTIPLY,
+            T_SPACE,
+            identifier_token("vat_rate"),
+            T_SPACE,
+            T_VARIABLE_END,
+            T_EOF
+        ];
+        test_tokens("{{ 1 * vat_rate }}", expected);
     }
 
     #[test]
