@@ -31,7 +31,33 @@ impl Default for Context {
     }
 }
 
+pub trait JsonRender {
+    fn render(&self) -> String;
+}
 
+impl JsonRender for Json {
+    fn render(&self) -> String {
+        match *self {
+            Json::String(ref s) => s.to_string(),
+            Json::I64(i) => i.to_string(),
+            Json::U64(i) => i.to_string(),
+            Json::F64(f) => f.to_string(),
+            Json::Bool (i) => i.to_string(),
+            Json::Null => "".to_owned(),
+            Json::Array (ref a) => {
+                let mut buf = String::new();
+                buf.push('[');
+                for i in a.iter() {
+                    buf.push_str(i.render().as_ref());
+                    buf.push_str(", ");
+                }
+                buf.push(']');
+                buf
+            },
+            Json::Object (_) => "[object]".to_owned()
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::{Context};
