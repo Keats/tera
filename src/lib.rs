@@ -25,10 +25,11 @@ use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::fs::File;
 
-// use serde::ser::Serialize;
+use serde::ser::Serialize;
 use walkdir::WalkDir;
 
-use template::Template;
+// Re-export templates
+pub use template::Template;
 
 #[derive(Debug)]
 pub struct Tera {
@@ -70,7 +71,13 @@ impl Tera {
         }
     }
 
-    // pub fn render<T: Serialize>(template: &str, data: &T) -> String {
+    pub fn render<T: Serialize>(&self, template_name: &str, data: &T) -> String {
+        let template = self.templates.get(template_name).unwrap(); // TODO error handling
 
-    // }
+        template.render(data)
+    }
+
+    pub fn get_template(&self, template_name: &str) -> Option<&Template> {
+        self.templates.get(template_name)
+    }
 }

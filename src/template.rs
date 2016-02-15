@@ -1,11 +1,17 @@
+use serde::ser::Serialize;
 
+use context::Context;
 use nodes::Node;
 use parser::Parser;
+use render::Renderer;
+
 
 // This is the parsed equivalent of a html template file
+// also handles rendering a template
+// It really ties the library together
 #[derive(Debug)]
 pub struct Template {
-    name: String, // filename
+    pub name: String, // filename
     ast: Node // will always be a ListNode
 }
 
@@ -17,5 +23,11 @@ impl Template {
             name: name.to_owned(),
             ast: parser.root
         }
+    }
+
+    pub fn render<T: Serialize>(&self, data: &T) -> String {
+        let mut renderer = Renderer::new(self.ast.clone(), Context::new(data));
+
+        renderer.render()
     }
 }

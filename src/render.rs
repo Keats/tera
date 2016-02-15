@@ -1,23 +1,20 @@
-use serde::ser::Serialize;
-
-use nodes::{Node};
+use nodes::Node;
 use nodes::SpecificNode::*;
 use context::{Context, JsonRender, JsonNumber};
-use parser::Parser;
 
 
 #[derive(Debug)]
-struct Renderer {
+pub struct Renderer {
     output: String,
     context: Context,
-    parser: Parser,
+    ast: Node,
 }
 
 impl Renderer {
-    pub fn new(parser: Parser, context: Context) -> Renderer {
+    pub fn new(ast: Node, context: Context) -> Renderer {
         Renderer {
             output: String::new(),
-            parser: parser,
+            ast: ast,
             context: context
         }
     }
@@ -62,43 +59,33 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self) {
-        for node in self.parser.root.get_children() {
+    pub fn render(&mut self) -> String {
+        for node in self.ast.get_children() {
             match node.specific {
                 Text(ref s) => self.output.push_str(s),
                 VariableBlock(s) => self.render_variable_block(*s),
                 _ => panic!("woo")
             }
         }
+
+        self.output.clone()
     }
 }
 
-// Only used for tests
-// TODO: move into tests module
-fn render_from_string<T: Serialize>(template: &str, data: &T) -> String {
-    let context = Context::new(data);
-    let parser = Parser::new("string", template);
-    let mut renderer = Renderer::new(parser, context);
-    renderer.render();
-
-    renderer.output
-}
-
-
 #[cfg(test)]
 mod tests {
-    use super::{render_from_string};
+    use template::Template;
     use std::collections::BTreeMap;
 
     #[test]
     fn test_render_simple_string() {
-        let result = render_from_string("<h1>Hello world</h1>", &"");
+        let result = Template::new("", "<h1>Hello world</h1>").render(&"");
         assert_eq!(result, "<h1>Hello world</h1>".to_owned());
     }
 
     #[test]
     fn test_render_math() {
-        let result = render_from_string("This is {{ 2000 + 16 }}.", &"");
+        let result = Template::new("", "This is {{ 2000 + 16 }}.").render(&"");
         assert_eq!(result, "This is 2016.".to_owned());
     }
 
@@ -107,7 +94,7 @@ mod tests {
         let mut d = BTreeMap::new();
         d.insert("name".to_owned(), "Vincent");
 
-        let result = render_from_string("My name is {{ name }}.", &d);
+        let result = Template::new("", "My name is {{ name }}.").render(&d);
         assert_eq!(result, "My name is Vincent.".to_owned());
     }
 
@@ -116,8 +103,7 @@ mod tests {
         let mut d = BTreeMap::new();
         d.insert("vat_rate".to_owned(), 0.20);
 
-        let result = render_from_string("Vat: £{{ 100 * vat_rate }}.", &d);
+        let result = Template::new("", "Vat: £{{ 100 * vat_rate }}.").render(&d);
         assert_eq!(result, "Vat: £20.".to_owned());
     }
-
 }

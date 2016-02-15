@@ -35,6 +35,7 @@ pub trait JsonRender {
     fn render(&self) -> String;
 }
 
+// Needed to render variables
 impl JsonRender for Json {
     fn render(&self) -> String {
         match *self {
@@ -64,6 +65,7 @@ pub trait JsonNumber {
     fn to_number(&self) -> Result<f64, ()>;
 }
 
+// Needed for all the maths
 impl JsonNumber for Json {
     fn to_number(&self) -> Result<f64, ()> {
         match *self {
