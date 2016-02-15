@@ -19,25 +19,29 @@ impl Renderer {
         }
     }
 
-    fn eval_math(&self, node: &Node) -> f64 {
+    fn eval_math(&self, node: &Node) -> f32 {
         match node.specific {
             Identifier(ref s) => {
                 // TODO: no unwrap here
                 let value = self.context.get(s).unwrap();
                 value.to_number().unwrap()
             },
-            Int(s) => s as f64,
-            Float(s) => s as f64,
+            Int(s) => s as f32,
+            Float(s) => s,
             Math { ref lhs, ref rhs, ref operator } => {
                 let l = self.eval_math(lhs);
                 let r = self.eval_math(rhs);
-                match operator as &str {
+                let mut result = match operator as &str {
                     "*" => l * r,
                     "/" => l / r,
                     "+" => l + r,
                     "-" => l - r,
                     _ => panic!("unexpected operator: {}", operator)
+                };
+                if result.fract() < 0.01 {
+                    result = result.round();
                 }
+                result
             }
             _ => panic!("Unexpected node")
         }

@@ -62,16 +62,16 @@ impl JsonRender for Json {
 
 
 pub trait JsonNumber {
-    fn to_number(&self) -> Result<f64, ()>;
+    fn to_number(&self) -> Result<f32, ()>;
 }
 
 // Needed for all the maths
 impl JsonNumber for Json {
-    fn to_number(&self) -> Result<f64, ()> {
+    fn to_number(&self) -> Result<f32, ()> {
         match *self {
-            Json::I64(i) => Ok(i as f64),
-            Json::U64(i) => Ok(i as f64),
-            Json::F64(f) => Ok(f),
+            Json::I64(i) => Ok(i as f32),
+            Json::U64(i) => Ok(i as f32),
+            Json::F64(f) => Ok(f as f32),
             _ => Err(())
         }
     }
