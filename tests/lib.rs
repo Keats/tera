@@ -1,4 +1,9 @@
+#![feature(custom_derive, plugin)]
+#![plugin(serde_macros)]
+
 /// Tests Tera with a variety of real templates
+extern crate serde;
+extern crate serde_json;
 extern crate tera;
 extern crate walkdir;
 
@@ -8,6 +13,7 @@ use std::collections::BTreeMap;
 
 use tera::{Tera, Template};
 use walkdir::WalkDir;
+use serde_json::value::{Value as Json, to_value};
 
 
 
@@ -33,12 +39,36 @@ fn read_all_expected(dir: &str) -> BTreeMap<String, String> {
     expected
 }
 
+
+#[derive(Debug, Serialize)]
+struct Product {
+    name: String,
+    manufacturer: String,
+    price: i32,
+    summary: String
+}
+impl Product {
+    pub fn new() -> Product {
+        Product {
+            name: "Moto G".to_owned(),
+            manufacturer: "Motorala".to_owned(),
+            summary: "A phone".to_owned(),
+            price: 100
+        }
+    }
+}
+
+
 fn assert_template_eq(template: &Template, expected: String) {
-    let rendered = template.render(&"");
+    let mut data: BTreeMap<String, Json> = BTreeMap::new();
+    data.insert("product".to_owned(), to_value(&Product::new()));
+    data.insert("username".to_owned(), to_value(&"bob"));
+
+    let rendered = template.render(&data);
     if rendered != expected {
         println!("Template {:?} was rendered incorrectly", template.name);
-        println!("Got {:#?}", rendered);
-        println!("Expected {:#?}", expected);
+        println!("Got: \n {:#?}", rendered);
+        println!("Expected: \n {:#?}", expected);
         assert!(false);
     }
 }
@@ -48,8 +78,19 @@ fn test_templates() {
     let tera = Tera::new("./tests/templates/");
     let expected = read_all_expected("./tests/expected/");
 
-    assert_template_eq(
-        tera.get_template("basic.html").unwrap(),
-        expected.get("basic.html").unwrap().clone()
-    );
+    for tpl in vec!["basic.html", "variables.html"] {
+        assert_template_eq(
+            tera.get_template(tpl).unwrap(),
+            expected.get(tpl).unwrap().clone()
+        );
+    }
+    // assert_template_eq(
+    //     tera.get_template("basic.html").unwrap(),
+    //     expected.get("basic.html").unwrap().clone()
+    // );
+
+    // assert_template_eq(
+    //     tera.get_template("variables.html").unwrap(),
+    //     expected.get("variables.html").unwrap().clone()
+    // );
 }

@@ -332,7 +332,7 @@ fn lex_number(lexer: &mut Lexer) -> StateFn {
 fn lex_identifier(lexer: &mut Lexer) -> StateFn {
     loop {
         match lexer.next_char() {
-            x if x.is_alphabetic() ||x == '_' => continue,
+            x if x.is_alphabetic() || x == '_' || x == '.' => continue,
             _ => {
                 lexer.backup();
                 match lexer.get_substring(lexer.start, lexer.position).as_ref() {
@@ -363,7 +363,7 @@ fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
         match lexer.next_char() {
             x if x.is_whitespace() => { return StateFn(Some(lex_space)); }
             x if x.is_numeric() => { return StateFn(Some(lex_number)); }
-            x if x.is_alphabetic() || x == '_' => { return StateFn(Some(lex_identifier)); }
+            x if x.is_alphabetic() || x == '_' || x == '.' => { return StateFn(Some(lex_identifier)); }
             '-' => lexer.add_token(TokenType::Substract),
             '+' => lexer.add_token(TokenType::Add),
             '*' => lexer.add_token(TokenType::Multiply),
