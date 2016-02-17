@@ -117,12 +117,42 @@ impl Parser {
         Some(Box::new(node))
     }
 
+    // Parse the content of a  {% %} block
+    fn parse_tag_block(&mut self) -> Option<Box<Node>> {
+        let token = self.expect(TokenType::TagStart);
+        let next_token = self.peek_non_space();
+
+        match next_token.kind {
+            TokenType::If => self.parse_if_block(token.position),
+            _ => panic!("Unexpected token")
+        };
+
+        None
+    }
+
+    fn parse_if_block(&mut self, start_position: usize) -> Option<Box<Node>> {
+        let if_node = Node::new(
+            start_position,
+            SpecificNode::If {condition_nodes: vec![], else_node: None}
+        );
+        let token = self.next_non_space();
+        let condition = self.parse_whole_expression(None, TokenType::TagEnd).unwrap();
+        // TODO: parse the body of the condition
+        // TODO: parse elif
+        // TODO: parse else
+        // TODO: parse >=, <=, ==, >, <, &&, || (ouch)
+        // until {% endif %}
+        None
+    }
+
     // Parse a block/tag until we get to the terminator
     // Also handles all the precedence
     fn parse_whole_expression(&mut self, stack: Option<Node>, terminator: TokenType) -> Option<Box<Node>> {
         let token = self.peek_non_space();
 
-        let mut node_stack = stack.unwrap_or_else(|| Node::new(token.position, SpecificNode::List(vec![])));
+        let mut node_stack = stack.unwrap_or_else(||
+            Node::new(token.position, SpecificNode::List(vec![]))
+        );
         let next = self.parse_single_expression(&terminator).unwrap();
         node_stack.push(next);
 
@@ -135,6 +165,7 @@ impl Parser {
                 return Some(node_stack.pop());
             }
 
+            // TODO: this whole thing can probably be refactored
             match token.kind {
                 TokenType::Add | TokenType::Substract => {
                     // consume it
@@ -155,10 +186,9 @@ impl Parser {
                         // Or the next thing has lower precedence and we just
                         // add the node to the stack
                         let lhs = node_stack.pop();
-                        let operator = if token.kind == TokenType:: Add { "+" } else { "-" };
                         let node = Node::new(
                             lhs.position,
-                            SpecificNode::Math{lhs: lhs, rhs: rhs, operator: operator.to_owned()}
+                            SpecificNode::Math{lhs: lhs, rhs: rhs, operator: token.kind}
                         );
                         node_stack.push(Box::new(node));
 
@@ -168,20 +198,54 @@ impl Parser {
                     // consume the operator
                     self.next_non_space();
                     if node_stack.is_empty() {
-                        panic!("Unexpected division or multiplication");
+                        panic!("Unexpected division or multiplication"); // TODO details
                     }
 
                     // * and / have the highest precedence so no need to check
                     // the following operators precedences
                     let rhs = self.parse_single_expression(&terminator).unwrap();
                     let lhs = node_stack.pop();
-                    let operator = if token.kind == TokenType:: Multiply { "*" } else { "/" };
                     let node = Node::new(
                         lhs.position,
-                        SpecificNode::Math{lhs: lhs, rhs: rhs, operator: operator.to_owned()}
+                        SpecificNode::Math{lhs: lhs, rhs: rhs, operator: token.kind}
                     );
                     node_stack.push(Box::new(node));
                 },
+                TokenType::Equal | TokenType::NotEqual | TokenType::GreaterOrEqual
+                | TokenType::Greater | TokenType::Lower | TokenType::LowerOrEqual => {
+                    // consume the operator
+                    self.next_non_space();
+                    // Those have the highest precedence in term of logic
+                    // (higher than && and ||)
+                    // TODO precedence with math op
+                    if node_stack.is_empty() {
+                        panic!("Unexpected logic token"); // TODO details
+                    }
+                    let rhs = self.parse_single_expression(&terminator).unwrap();
+                    let lhs = node_stack.pop();
+                    let node = Node::new(
+                        lhs.position,
+                        SpecificNode::Logic{lhs: lhs, rhs: rhs, operator: token.kind}
+                    );
+                    node_stack.push(Box::new(node));
+                },
+                TokenType::And | TokenType::Or => {
+                    // consume the operator
+                    self.next_non_space();
+                    // Those have the highest precedence in term of logic
+                    // (higher than && and ||)
+                    // TODO precedence with math op
+                    if node_stack.is_empty() {
+                        panic!("Unexpected logic token"); // TODO details
+                    }
+                    let rhs = self.parse_single_expression(&terminator).unwrap();
+                    let lhs = node_stack.pop();
+                    let node = Node::new(
+                        lhs.position,
+                        SpecificNode::Logic{lhs: lhs, rhs: rhs, operator: token.kind}
+                    );
+                    node_stack.push(Box::new(node));
+                }
                 _ => panic!("Unexpected token") // TODO: not panic
             }
         }
@@ -208,7 +272,7 @@ impl Parser {
         None
     }
 
-    // Parse an identifier (variable name)
+    // Parse an identifier (variable name or keyword)
     fn parse_identifier(&mut self) -> Option<Box<Node>> {
         let ident = self.next_non_space();
         Some(Box::new(Node::new(ident.position, SpecificNode::Identifier(ident.value))))
@@ -236,18 +300,24 @@ impl Parser {
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::{Parser};
+    use lexer::TokenType;
     use nodes::{Node, SpecificNode};
 
     fn compared_expected(expected: Vec<SpecificNode>, got: Vec<Box<Node>>) {
         if expected.len() != got.len() {
+            println!("Got: {:#?}", got);
             assert!(false);
         }
 
         for (i, node) in got.iter().enumerate() {
             let expected_node = expected.get(i).unwrap().clone();
+            if expected_node != node.specific {
+                println!("Got: {:#?}", node.specific);
+            }
             assert_eq!(expected_node, node.specific);
         }
     }
@@ -294,35 +364,35 @@ mod tests {
                     Box::new(Node::new(2, SpecificNode::Math {
                         lhs: Box::new(Node::new(2, SpecificNode::Int(1))),
                         rhs: Box::new(Node::new(4, SpecificNode::Float(3.41))),
-                        operator: "+".to_owned()
+                        operator: TokenType::Add
                     }))
                 ),
                 SpecificNode::VariableBlock(
                     Box::new(Node::new(12, SpecificNode::Math {
                         lhs: Box::new(Node::new(12, SpecificNode::Int(1))),
                         rhs: Box::new(Node::new(14, SpecificNode::Int(42))),
-                        operator: "-".to_owned()
+                        operator: TokenType::Substract
                     }))
                 ),
                 SpecificNode::VariableBlock(
                     Box::new(Node::new(20, SpecificNode::Math {
                         lhs: Box::new(Node::new(20, SpecificNode::Int(1))),
                         rhs: Box::new(Node::new(22, SpecificNode::Int(42))),
-                        operator: "*".to_owned()
+                        operator: TokenType::Multiply
                     }))
                 ),
                 SpecificNode::VariableBlock(
                     Box::new(Node::new(28, SpecificNode::Math {
                         lhs: Box::new(Node::new(28, SpecificNode::Int(1))),
                         rhs: Box::new(Node::new(30, SpecificNode::Int(42))),
-                        operator: "/".to_owned()
+                        operator: TokenType::Divide
                     }))
                 ),
                 SpecificNode::VariableBlock(
                     Box::new(Node::new(36, SpecificNode::Math {
                         lhs: Box::new(Node::new(36, SpecificNode::Identifier("test".to_owned()))),
                         rhs: Box::new(Node::new(41, SpecificNode::Int(1))),
-                        operator: "+".to_owned()
+                        operator: TokenType::Add
                     }))
                 ),
             ]
@@ -339,10 +409,10 @@ mod tests {
                         lhs: Box::new(Node::new(3, SpecificNode::Math {
                             lhs: Box::new(Node::new(3, SpecificNode::Int(1))),
                             rhs: Box::new(Node::new(7, SpecificNode::Int(2))),
-                            operator: "/".to_owned()
+                            operator: TokenType::Divide
                         })),
                         rhs: Box::new(Node::new(11, SpecificNode::Int(1))),
-                        operator: "+".to_owned()
+                        operator: TokenType::Add
                     }))
                 ),
             ]
@@ -359,21 +429,92 @@ mod tests {
                         lhs: Box::new(Node::new(3, SpecificNode::Math {
                             lhs: Box::new(Node::new(3, SpecificNode::Int(1))),
                             rhs: Box::new(Node::new(7, SpecificNode::Int(2))),
-                            operator: "/".to_owned()
+                            operator: TokenType::Divide
                         })),
                         rhs: Box::new(Node::new(11, SpecificNode::Math {
                             lhs: Box::new(Node::new(11, SpecificNode::Math {
                                 lhs: Box::new(Node::new(11, SpecificNode::Int(3))),
                                 rhs: Box::new(Node::new(15, SpecificNode::Int(2))),
-                                operator: "*".to_owned()
+                                operator: TokenType::Multiply
                             })),
                             rhs: Box::new(Node::new(19, SpecificNode::Int(42))),
-                            operator: "+".to_owned()
+                            operator: TokenType::Add
                         })),
-                        operator: "+".to_owned()
+                        operator: TokenType::Add
                     }))
                 ),
             ]
         );
     }
+
+    #[test]
+    fn test_basic_logic() {
+        test_parser(
+            "{{1==1}}{{1>1}}{{1<1}}{{1>=1}}{{1<=1}}{{1&&1}}{{1||1}}",
+            vec![
+                SpecificNode::VariableBlock(
+                    Box::new(Node::new(2, SpecificNode::Logic {
+                        lhs: Box::new(Node::new(2, SpecificNode::Int(1))),
+                        rhs: Box::new(Node::new(5, SpecificNode::Int(1))),
+                        operator: TokenType::Equal
+                    }))
+                ),
+                SpecificNode::VariableBlock(
+                    Box::new(Node::new(10, SpecificNode::Logic {
+                        lhs: Box::new(Node::new(10, SpecificNode::Int(1))),
+                        rhs: Box::new(Node::new(12, SpecificNode::Int(1))),
+                        operator: TokenType::Greater
+                    }))
+                ),
+                SpecificNode::VariableBlock(
+                    Box::new(Node::new(17, SpecificNode::Logic {
+                        lhs: Box::new(Node::new(17, SpecificNode::Int(1))),
+                        rhs: Box::new(Node::new(19, SpecificNode::Int(1))),
+                        operator: TokenType::Lower
+                    }))
+                ),
+                SpecificNode::VariableBlock(
+                    Box::new(Node::new(24, SpecificNode::Logic {
+                        lhs: Box::new(Node::new(24, SpecificNode::Int(1))),
+                        rhs: Box::new(Node::new(27, SpecificNode::Int(1))),
+                        operator: TokenType::GreaterOrEqual
+                    }))
+                ),
+                SpecificNode::VariableBlock(
+                    Box::new(Node::new(32, SpecificNode::Logic {
+                        lhs: Box::new(Node::new(32, SpecificNode::Int(1))),
+                        rhs: Box::new(Node::new(35, SpecificNode::Int(1))),
+                        operator: TokenType::LowerOrEqual
+                    }))
+                ),
+                SpecificNode::VariableBlock(
+                    Box::new(Node::new(40, SpecificNode::Logic {
+                        lhs: Box::new(Node::new(40, SpecificNode::Int(1))),
+                        rhs: Box::new(Node::new(43, SpecificNode::Int(1))),
+                        operator: TokenType::And
+                    }))
+                ),
+                SpecificNode::VariableBlock(
+                    Box::new(Node::new(48, SpecificNode::Logic {
+                        lhs: Box::new(Node::new(48, SpecificNode::Int(1))),
+                        rhs: Box::new(Node::new(51, SpecificNode::Int(1))),
+                        operator: TokenType::Or
+                    }))
+                ),
+            ]
+        );
+    }
+
+    // #[test]
+    // fn test_basic_if() {
+    //     test_parser(
+    //         "{% if true %}Hey{% endif %}",
+    //         vec![
+    //             SpecificNode::If {
+    //                 condition_nodes: vec![],
+    //                 else_node: None
+    //             },
+    //         ]
+    //     );
+    // }
 }

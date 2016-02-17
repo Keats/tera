@@ -1,5 +1,7 @@
 use std::fmt;
 
+use lexer::TokenType;
+
 // All the different types of node we can have in the ast
 // We only have one math node instead of one for each operation
 // to simplify the pattern matching
@@ -12,7 +14,10 @@ pub enum SpecificNode {
     Int(i32),
     Float(f32),
     Bool(bool),
-    Math {lhs: Box<Node>, rhs: Box<Node>, operator: String},
+    Math {lhs: Box<Node>, rhs: Box<Node>, operator: TokenType},
+    Logic {lhs: Box<Node>, rhs: Box<Node>, operator: TokenType},
+    If {condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>},
+    Conditional {condition: Box<Node>, body: Box<Node>}
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -86,6 +91,26 @@ impl fmt::Display for Node {
             SpecificNode::Math { ref lhs, ref rhs , ref operator} => {
                 write!(f, "<{} {} {}>", lhs, operator, rhs)
             },
+            SpecificNode::Logic { ref lhs, ref rhs , ref operator} => {
+                write!(f, "<{} {} {}>", lhs, operator, rhs)
+            },
+            SpecificNode::If { ref condition_nodes, ref else_node } => {
+                let mut stringified = String::new();
+                for (i, n) in condition_nodes.iter().enumerate() {
+                    if i == 0 {
+                        stringified.push_str(&format!("if: {}\n", n));
+                    } else {
+                        stringified.push_str(&format!("elif: {}\n", n));
+                    }
+                }
+                if else_node.is_some() {
+                    stringified.push_str(&format!("else: {}\n", else_node.clone().unwrap()));
+                }
+                write!(f, "{}", stringified)
+            },
+            SpecificNode::Conditional {ref condition, ref body } => {
+                write!(f, "{}? =>\n {}", condition, body)
+            }
         }
     }
 }

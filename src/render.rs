@@ -1,3 +1,4 @@
+use lexer::TokenType;
 use nodes::Node;
 use nodes::SpecificNode::*;
 use context::{Context, JsonRender, JsonNumber};
@@ -31,13 +32,15 @@ impl Renderer {
             Math { ref lhs, ref rhs, ref operator } => {
                 let l = self.eval_math(lhs);
                 let r = self.eval_math(rhs);
-                let mut result = match operator as &str {
-                    "*" => l * r,
-                    "/" => l / r,
-                    "+" => l + r,
-                    "-" => l - r,
-                    _ => panic!("unexpected operator: {}", operator)
+                let mut result = match *operator {
+                    TokenType::Multiply => l * r,
+                    TokenType::Divide => l / r,
+                    TokenType::Add => l + r,
+                    TokenType::Substract => l - r,
+                    _ => panic!("unexpected operator: {:?}", operator)
                 };
+                // TODO: fix properly
+                // TODO: add tests for float maths arithmetics
                 if result.fract() < 0.01 {
                     result = result.round();
                 }

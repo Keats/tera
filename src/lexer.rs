@@ -40,6 +40,26 @@ pub enum TokenType {
     Endfor,
 }
 
+impl fmt::Display for TokenType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            TokenType::Add => write!(f, "+"),
+            TokenType::Substract => write!(f, "-"),
+            TokenType::Multiply => write!(f, "*"),
+            TokenType::Divide => write!(f, "/"),
+            TokenType::Greater => write!(f, ">"),
+            TokenType::GreaterOrEqual => write!(f, ">="),
+            TokenType::Equal => write!(f, "=="),
+            TokenType::NotEqual => write!(f, "!="),
+            TokenType::Lower => write!(f, "<"),
+            TokenType::LowerOrEqual => write!(f, "<="),
+            TokenType::And => write!(f, "&&"),
+            TokenType::Or => write!(f, "||"),
+            _ => unreachable!()
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Token {
     pub kind: TokenType,
