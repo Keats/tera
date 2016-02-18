@@ -508,9 +508,9 @@ mod tests {
     }
 
     #[test]
-    fn test_logic_precedence_simple() {
+    fn test_logic_precedence_complex() {
         test_parser(
-            "{{1 > 2 || 3 == 4}}",
+            "{{1 > 2 || 3 == 4 && admin}}",
             vec![
                 SpecificNode::VariableBlock(
                     Box::new(Node::new(2, SpecificNode::Logic {
@@ -520,9 +520,13 @@ mod tests {
                             operator: TokenType::Greater
                         })),
                         rhs: Box::new(Node::new(11, SpecificNode::Logic {
-                            lhs: Box::new(Node::new(11, SpecificNode::Int(3))),
-                            rhs: Box::new(Node::new(16, SpecificNode::Int(4))),
-                            operator: TokenType::Equal
+                            lhs: Box::new(Node::new(11, SpecificNode::Logic {
+                                lhs: Box::new(Node::new(11, SpecificNode::Int(3))),
+                                rhs: Box::new(Node::new(16, SpecificNode::Int(4))),
+                                operator: TokenType::Equal
+                            })),
+                            rhs: Box::new(Node::new(21, SpecificNode::Identifier("admin".to_owned()))),
+                            operator: TokenType::And
                         })),
                         operator: TokenType::Or
                     }))
