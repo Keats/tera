@@ -34,7 +34,7 @@ impl Node {
         }
     }
 
-    // Only used by SpecificNode::List
+    // Only used by SpecificNode::List/If
     pub fn push(&mut self, specific: Box<Node>) {
         match self.specific {
             SpecificNode::List(ref mut l) => l.push(specific),

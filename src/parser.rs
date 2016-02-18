@@ -107,7 +107,7 @@ impl Parser {
         Some(Box::new(Node::new(token.position, SpecificNode::Text(token.value))))
     }
 
-    // Parse the content of a  {{ }} block
+    // Parse the content of a {{ }} block
     fn parse_variable_block(&mut self) -> Option<Box<Node>> {
         let token = self.expect(TokenType::VariableStart);
         let contained = self.parse_whole_expression(None, TokenType::VariableEnd);
@@ -117,7 +117,7 @@ impl Parser {
         Some(Box::new(node))
     }
 
-    // Parse the content of a  {% %} block
+    // Parse the content of a {% %} block
     fn parse_tag_block(&mut self) -> Option<Box<Node>> {
         let token = self.expect(TokenType::TagStart);
         let next_token = self.peek_non_space();
@@ -131,18 +131,25 @@ impl Parser {
     }
 
     fn parse_if_block(&mut self, start_position: usize) -> Option<Box<Node>> {
-        let if_node = Node::new(
+        let mut if_node = Node::new(
             start_position,
             SpecificNode::If {condition_nodes: vec![], else_node: None}
         );
         let token = self.next_non_space();
         let condition = self.parse_whole_expression(None, TokenType::TagEnd).unwrap();
+        let body = self.parse_tag_body();
         // TODO: parse the body of the condition
         // TODO: parse elif
         // TODO: parse else
-        // TODO: parse >=, <=, ==, >, <, &&, || (ouch)
         // until {% endif %}
         None
+    }
+
+    fn parse_tag_body(&mut self) -> Option<Box<Node>> {
+        // Same as normal parsing except it can stop on elif/else/endif/endfor
+        // Meeds to keep track of how many levels deep we are, for example
+        // if we have a {% if x %}{% if y %}{% endif %}{% endif %}, parsing
+        // should continue until the last endif and not stop at the first
     }
 
     // Parse a block/tag until we get to the terminator
@@ -297,7 +304,7 @@ impl Parser {
                 let value = if literal.value == "false" { false } else { true };
                 Some(Box::new(Node::new(literal.position, SpecificNode::Bool(value))))
             },
-            _ => panic!("unexpected type when parsing literal")
+            _ => unreachable!()
         }
     }
 }
@@ -535,16 +542,16 @@ mod tests {
         )
     }
 
-    // #[test]
-    // fn test_basic_if() {
-    //     test_parser(
-    //         "{% if true %}Hey{% endif %}",
-    //         vec![
-    //             SpecificNode::If {
-    //                 condition_nodes: vec![],
-    //                 else_node: None
-    //             },
-    //         ]
-    //     );
-    // }
+    #[test]
+    fn test_basic_if() {
+        test_parser(
+            "{% if true %}Hey{% endif %}",
+            vec![
+                SpecificNode::If {
+                    condition_nodes: vec![],
+                    else_node: None
+                },
+            ]
+        );
+    }
 }
