@@ -153,8 +153,18 @@ impl Parser {
         let mut node_stack = stack.unwrap_or_else(||
             Node::new(token.position, SpecificNode::List(vec![]))
         );
-        let next = self.parse_single_expression(&terminator).unwrap();
-        node_stack.push(next);
+
+
+        println!("parse_whole_expression: {:?}", token);
+        match token.kind {
+            TokenType::And | TokenType::Or => {
+                println!("Got a && or ||");
+            },
+            _ => {
+                let next = self.parse_single_expression(&terminator).unwrap();
+                node_stack.push(next);
+            }
+        };
 
         loop {
             let token = self.peek_non_space();
@@ -165,7 +175,7 @@ impl Parser {
                 return Some(node_stack.pop());
             }
 
-            // TODO: this whole thing can probably be refactored
+            // TODO: this whole thing can probably be refactored and simplified
             match token.kind {
                 TokenType::Add | TokenType::Substract => {
                     // consume it
@@ -191,7 +201,6 @@ impl Parser {
                             SpecificNode::Math{lhs: lhs, rhs: rhs, operator: token.kind}
                         );
                         node_stack.push(Box::new(node));
-
                     }
                 },
                 TokenType::Divide | TokenType::Multiply => {
@@ -212,7 +221,8 @@ impl Parser {
                     node_stack.push(Box::new(node));
                 },
                 TokenType::Equal | TokenType::NotEqual | TokenType::GreaterOrEqual
-                | TokenType::Greater | TokenType::Lower | TokenType::LowerOrEqual => {
+                | TokenType::Greater | TokenType::Lower | TokenType::LowerOrEqual
+                | TokenType::And | TokenType::Or => {
                     // consume the operator
                     self.next_non_space();
                     // Those have the highest precedence in term of logic
@@ -221,32 +231,44 @@ impl Parser {
                     if node_stack.is_empty() {
                         panic!("Unexpected logic token"); // TODO details
                     }
+
+                    println!("Current: {:?}", token);
                     let rhs = self.parse_single_expression(&terminator).unwrap();
-                    let lhs = node_stack.pop();
-                    let node = Node::new(
-                        lhs.position,
-                        SpecificNode::Logic{lhs: lhs, rhs: rhs, operator: token.kind}
-                    );
-                    node_stack.push(Box::new(node));
+                    let next_token = self.peek_non_space();
+                    println!("Rhs: {:?}", rhs);
+                    println!("Next: {:?}", next_token);
+                    if next_token.precedence() > token.precedence() {
+                        match token.kind {
+                            TokenType::And | TokenType::Or => {
+                                // Collapsing lhs and rhs into a logic node
+                                let lhs = node_stack.pop();
+                                let node = Node::new(
+                                    lhs.position,
+                                    SpecificNode::Logic{lhs: lhs, rhs: rhs, operator: token.kind}
+                                );
+                                node_stack.push(Box::new(node));
+                            },
+                            _ => node_stack.push(rhs)
+                        };
+                        return self.parse_whole_expression(Some(node_stack.clone()), terminator.clone());
+                    } else {
+                        let lhs = node_stack.pop();
+                        let node = Node::new(
+                            lhs.position,
+                            SpecificNode::Logic{lhs: lhs, rhs: rhs, operator: token.kind}
+                        );
+                        node_stack.push(Box::new(node));
+                    }
                 },
-                TokenType::And | TokenType::Or => {
-                    // consume the operator
-                    self.next_non_space();
-                    // Those have the highest precedence in term of logic
-                    // (higher than && and ||)
-                    // TODO precedence with math op
-                    if node_stack.is_empty() {
-                        panic!("Unexpected logic token"); // TODO details
-                    }
-                    let rhs = self.parse_single_expression(&terminator).unwrap();
-                    let lhs = node_stack.pop();
-                    let node = Node::new(
-                        lhs.position,
-                        SpecificNode::Logic{lhs: lhs, rhs: rhs, operator: token.kind}
-                    );
-                    node_stack.push(Box::new(node));
-                }
-                _ => panic!("Unexpected token") // TODO: not panic
+                // TokenType::And | TokenType::Or => {
+                //     // consume the operator
+                //     self.next_non_space();
+                //     if node_stack.is_empty() {
+                //         panic!("Unexpected logic token"); // TODO details
+                //     }
+
+                // },
+                _ => unreachable!()
             }
         }
     }
@@ -263,10 +285,7 @@ impl Parser {
         match token.kind {
             TokenType::Identifier => return self.parse_identifier(),
             TokenType::Float | TokenType::Int | TokenType::Bool => return self.parse_literal(),
-            TokenType::Add | TokenType::Substract => {
-                panic!("wololo");
-            }
-            _ => panic!("unexpected")
+            _ => panic!("unexpected token type: {:?}", token.kind)
         }
 
         None
@@ -503,6 +522,30 @@ mod tests {
                 ),
             ]
         );
+    }
+
+    #[test]
+    fn test_logic_precedence_simple() {
+        test_parser(
+            "{{1 > 2 || 3 == 4}}",
+            vec![
+                SpecificNode::VariableBlock(
+                    Box::new(Node::new(2, SpecificNode::Logic {
+                        lhs: Box::new(Node::new(2, SpecificNode::Logic {
+                            lhs: Box::new(Node::new(5, SpecificNode::Int(1))),
+                            rhs: Box::new(Node::new(5, SpecificNode::Int(2))),
+                            operator: TokenType::Greater
+                        })),
+                        rhs: Box::new(Node::new(2, SpecificNode::Logic {
+                            lhs: Box::new(Node::new(5, SpecificNode::Int(3))),
+                            rhs: Box::new(Node::new(5, SpecificNode::Int(4))),
+                            operator: TokenType::Equal
+                        })),
+                        operator: TokenType::Or
+                    }))
+                ),
+            ]
+        )
     }
 
     // #[test]
