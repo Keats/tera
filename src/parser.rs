@@ -112,7 +112,7 @@ impl Parser {
     fn expect(&mut self, kind: TokenType) -> Token {
         let token = self.peek_non_space();
         if token.kind != kind {
-            panic!("Unexpected token: {:?}", token);
+            panic!("Unexpected token: {:?}, expected: {:?}", token, kind);
         }
 
         self.next_non_space()
@@ -205,6 +205,8 @@ impl Parser {
                 self.if_nodes.push(if_node);
             },
             TokenType::Else => {
+                self.expect(TokenType::Else);
+                self.expect(TokenType::TagEnd);
                 self.currently_in.push(InsideBlock::Else);
                 // Replace the last one now that we have else
                 self.if_nodes.pop();
@@ -662,9 +664,9 @@ mod tests {
     }
 
     #[test]
-    fn test_basic_if() {
+    fn test_if() {
         test_parser(
-            "{% if true %}Hey{% endif %}",
+            "{% if true %}Hey{% elif a %}Hey{% elif b%}Hey{% else %}Hey{% endif %}",
             vec![
                 SpecificNode::If {
                     condition_nodes: vec![
@@ -674,10 +676,57 @@ mod tests {
                                 Box::new(Node::new(13, SpecificNode::Text("Hey".to_owned()))),
                             ])))
                         })),
+                        Box::new(Node::new(24, SpecificNode::Conditional {
+                            condition: Box::new(Node::new(24, SpecificNode::Identifier("a".to_owned()))),
+                            body: Box::new(Node::new(28, SpecificNode::List(vec![
+                                Box::new(Node::new(28, SpecificNode::Text("Hey".to_owned()))),
+                            ])))
+                        })),
+                        Box::new(Node::new(39, SpecificNode::Conditional {
+                            condition: Box::new(Node::new(39, SpecificNode::Identifier("b".to_owned()))),
+                            body: Box::new(Node::new(42, SpecificNode::List(vec![
+                                Box::new(Node::new(42, SpecificNode::Text("Hey".to_owned()))),
+                            ])))
+                        })),
                     ],
-                    else_node: None
+                    else_node: Some(Box::new(Node::new(55, SpecificNode::List(vec![
+                        Box::new(Node::new(55, SpecificNode::Text("Hey".to_owned()))),
+                    ]))))
                 },
             ]
         );
     }
+
+
+    // #[test]
+    // fn test_nested_if() {
+    //     test_parser(
+    //         "{% if true %}Hey{% if a %}Hey{% endif b%}{% endif %}",
+    //         vec![
+    //             SpecificNode::If {
+    //                 condition_nodes: vec![
+    //                     Box::new(Node::new(6, SpecificNode::Conditional {
+    //                         condition: Box::new(Node::new(6, SpecificNode::Bool(true))),
+    //                         body: Box::new(Node::new(13, SpecificNode::List(vec![
+    //                             Box::new(Node::new(13, SpecificNode::Text("Hey".to_owned()))),
+    //                         ])))
+    //                     })),
+    //                     Box::new(Node::new(24, SpecificNode::Conditional {
+    //                         condition: Box::new(Node::new(24, SpecificNode::Identifier("a".to_owned()))),
+    //                         body: Box::new(Node::new(28, SpecificNode::List(vec![
+    //                             Box::new(Node::new(28, SpecificNode::Text("Hey".to_owned()))),
+    //                         ])))
+    //                     })),
+    //                     Box::new(Node::new(39, SpecificNode::Conditional {
+    //                         condition: Box::new(Node::new(39, SpecificNode::Identifier("b".to_owned()))),
+    //                         body: Box::new(Node::new(42, SpecificNode::List(vec![
+    //                             Box::new(Node::new(42, SpecificNode::Text("Hey".to_owned()))),
+    //                         ])))
+    //                     })),
+    //                 ],
+    //                 else_node: None
+    //             },
+    //         ]
+    //     );
+    // }
 }
