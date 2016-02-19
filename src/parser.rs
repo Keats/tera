@@ -1,6 +1,18 @@
 use lexer::{Lexer, TokenType, Token};
 use nodes::{Node, SpecificNode};
 
+// TODO: vec![block_type]
+
+// Keeps track of which tag we are currently in
+// Needed to parse inside if/for for example and keep track on when to stop
+// those nodes
+#[derive(Debug)]
+enum InsideBlock {
+    If,
+    Elif,
+    Else,
+    For
+}
 
 #[derive(Debug)]
 pub struct Parser {
@@ -9,6 +21,10 @@ pub struct Parser {
     lexer: Lexer,
     pub root: Node,
     current_token: usize, // where we are in the parsing of the tokens
+
+    // The ones below are needed for nested if/for blocks
+    currently_in: Vec<InsideBlock>,
+    if_nodes: Vec<Node>
 }
 
 impl Parser {
@@ -21,7 +37,10 @@ impl Parser {
             text: text.to_owned(),
             root: Node::new(0, SpecificNode::List(vec![])),
             lexer: lexer,
-            current_token: 0
+            current_token: 0,
+
+            currently_in: vec![],
+            if_nodes: vec![]
         };
         parser.parse();
 
@@ -49,7 +68,6 @@ impl Parser {
             }
             token = self.next_token();
         }
-        // Only rewind once (see once i have tests)
         self.current_token -= 1;
 
         token
@@ -76,6 +94,20 @@ impl Parser {
         token
     }
 
+    // Used at a {% token to know the tag name
+    fn peek_tag_name(&mut self) -> TokenType {
+        let before_peeking = self.current_token;
+        self.next_token();
+        let tag_name = self.peek_non_space();
+        self.current_token = before_peeking;
+
+        tag_name.kind
+    }
+
+    fn rewind(&mut self) {
+        self.current_token += 1;
+    }
+
     // Panics if the expected token isn't found
     fn expect(&mut self, kind: TokenType) -> Token {
         let token = self.peek_non_space();
@@ -91,7 +123,13 @@ impl Parser {
     fn parse_next(&mut self) -> Option<Box<Node>> {
         loop {
             match self.peek().kind {
-                TokenType::TagStart => (),  // TODO
+                TokenType::TagStart => {
+                    match self.peek_tag_name() {
+                        TokenType::If | TokenType::Elif | TokenType::Else => self.parse_tag_block(),
+                        TokenType::Endif => return self.parse_tag_block(),
+                        _ => unreachable!()
+                    };
+                },
                 TokenType::VariableStart => return self.parse_variable_block(),
                 TokenType::Text => return self.parse_text(),
                 _ => break
@@ -120,36 +158,116 @@ impl Parser {
     // Parse the content of a {% %} block
     fn parse_tag_block(&mut self) -> Option<Box<Node>> {
         let token = self.expect(TokenType::TagStart);
-        let next_token = self.peek_non_space();
 
-        match next_token.kind {
-            TokenType::If => self.parse_if_block(token.position),
-            _ => panic!("Unexpected token")
+        match self.peek_non_space().kind {
+            TokenType::If | TokenType::Elif | TokenType::Else => self.parse_if_block(token.position),
+            TokenType::Endif => return self.if_nodes.pop().map(|n| Box::new(n)),
+            _ => unreachable!()
         };
 
         None
     }
 
-    fn parse_if_block(&mut self, start_position: usize) -> Option<Box<Node>> {
-        let mut if_node = Node::new(
-            start_position,
-            SpecificNode::If {condition_nodes: vec![], else_node: None}
-        );
-        let token = self.next_non_space();
+    // Used by parse_if_block to parse the if/elif/else nodes
+    fn parse_conditional_nodes(&mut self) -> Option<Box<Node>> {
+        // consume the tag name
+        match self.next_non_space().kind {
+            TokenType::If => self.currently_in.push(InsideBlock::If),
+            TokenType::Elif => self.currently_in.push(InsideBlock::Elif),
+            _ => unreachable!()
+        };
         let condition = self.parse_whole_expression(None, TokenType::TagEnd).unwrap();
-        let body = self.parse_tag_body();
-        // TODO: parse the body of the condition
-        // TODO: parse elif
-        // TODO: parse else
-        // until {% endif %}
-        None
+        self.expect(TokenType::TagEnd);
+
+        let body = self.parse_tag_body().unwrap();
+
+        Some(Box::new(
+            Node::new(
+                condition.position,
+                SpecificNode::Conditional {condition: condition, body: body}
+            )
+        ))
     }
 
+    fn parse_if_block(&mut self, start_position: usize) {
+        let mut if_node = self.if_nodes.last().map(|n| n.clone()).unwrap_or_else(||
+            Node::new(
+                start_position,
+                SpecificNode::If {condition_nodes: vec![], else_node: None}
+            )
+        );
+
+        self.currently_in.pop();
+        match self.peek_non_space().kind {
+            TokenType::If | TokenType::Elif => {
+                self.if_nodes.pop();
+                if_node.push(self.parse_conditional_nodes().unwrap());
+                self.if_nodes.push(if_node);
+            },
+            TokenType::Else => {
+                self.currently_in.push(InsideBlock::Else);
+                // Replace the last one now that we have else
+                self.if_nodes.pop();
+                let else_body = self.parse_tag_body();
+                self.if_nodes.push(Node::new(
+                    if_node.position,
+                    SpecificNode::If {
+                        condition_nodes: if_node.get_children(),
+                        else_node: else_body
+                    }
+                ));
+            },
+            _ => unreachable!()
+        }
+    }
+
+    // Same as normal parsing except it can stop on elif/else/endif/endfor
+    // Meeds to keep track of how many levels deep we are, for example
+    // if we have a {% if x %}{% if y %}{% endif %}{% endif %}, parsing
+    // should continue until the last endif and not stop at the first
     fn parse_tag_body(&mut self) -> Option<Box<Node>> {
-        // Same as normal parsing except it can stop on elif/else/endif/endfor
-        // Meeds to keep track of how many levels deep we are, for example
-        // if we have a {% if x %}{% if y %}{% endif %}{% endif %}, parsing
-        // should continue until the last endif and not stop at the first
+        let mut body = Node::new(self.peek().position, SpecificNode::List(vec![]));
+
+        loop {
+            let node = match self.parse_next() {
+                Some(n) => n,
+                None => panic!("Unexpected EOF")
+            };
+
+            match self.peek().kind {
+                TokenType::TagStart => {
+                    let tag_name = self.peek_tag_name();
+                    let currently_in = self.currently_in.pop().unwrap();
+                    match currently_in {
+                        InsideBlock::If | InsideBlock::Elif => match tag_name {
+                            TokenType::Elif | TokenType::Else | TokenType::Endif => {
+                                body.push(node);
+                                return Some(Box::new(body));
+                            },
+                            TokenType::Endfor => panic!("Unexpected endfor"),
+                            _ => body.push(node)
+                        },
+                        InsideBlock::Else => match tag_name {
+                            TokenType::Endif => {
+                                body.push(node);
+                                return Some(Box::new(body));
+                            },
+                            TokenType::Endfor | TokenType::Elif | TokenType::Else  => panic!("Unexpected {}", tag_name),
+                            _ => body.push(node)
+                        },
+                        InsideBlock::For => match tag_name {
+                            TokenType::Endfor => {
+                                body.push(node);
+                                return Some(Box::new(body));
+                            },
+                            TokenType::If | TokenType::Elif | TokenType::Else | TokenType::Endif  => panic!("Unexpected {}", tag_name),
+                            _ => body.push(node)
+                        },
+                    }
+                },
+                _ => body.push(node)
+            }
+        }
     }
 
     // Parse a block/tag until we get to the terminator
@@ -325,6 +443,7 @@ mod tests {
         for (i, node) in got.iter().enumerate() {
             let expected_node = expected.get(i).unwrap().clone();
             if expected_node != node.specific {
+                println!("Expected: {:#?}", expected_node);
                 println!("Got: {:#?}", node.specific);
             }
             assert_eq!(expected_node, node.specific);
@@ -548,7 +667,14 @@ mod tests {
             "{% if true %}Hey{% endif %}",
             vec![
                 SpecificNode::If {
-                    condition_nodes: vec![],
+                    condition_nodes: vec![
+                        Box::new(Node::new(6, SpecificNode::Conditional {
+                            condition: Box::new(Node::new(6, SpecificNode::Bool(true))),
+                            body: Box::new(Node::new(13, SpecificNode::List(vec![
+                                Box::new(Node::new(13, SpecificNode::Text("Hey".to_owned()))),
+                            ])))
+                        })),
+                    ],
                     else_node: None
                 },
             ]

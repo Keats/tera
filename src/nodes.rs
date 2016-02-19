@@ -17,6 +17,7 @@ pub enum SpecificNode {
     Math {lhs: Box<Node>, rhs: Box<Node>, operator: TokenType},
     Logic {lhs: Box<Node>, rhs: Box<Node>, operator: TokenType},
     If {condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>},
+    // represents a if/elif block and its body
     Conditional {condition: Box<Node>, body: Box<Node>}
 }
 
@@ -38,6 +39,7 @@ impl Node {
     pub fn push(&mut self, specific: Box<Node>) {
         match self.specific {
             SpecificNode::List(ref mut l) => l.push(specific),
+            SpecificNode::If {ref mut condition_nodes, ..} => condition_nodes.push(specific),
             _ => panic!("tried to push on a non list node")
         }
     }
@@ -50,11 +52,12 @@ impl Node {
         }
     }
 
-    // Only used by SpecificNode::List
+    // Only used by SpecificNode::List and SpecificNode::If
     pub fn get_children(&self) -> Vec<Box<Node>> {
         match self.specific {
             SpecificNode::List(ref l) => l.clone(),
-            _ => panic!("tried to get_children on a non list node")
+            SpecificNode::If {ref condition_nodes, ..} => condition_nodes.clone(),
+            _ => panic!("tried to get_children on a non-list/if node")
         }
     }
 
