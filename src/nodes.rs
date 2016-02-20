@@ -35,11 +35,11 @@ impl Node {
         }
     }
 
-    // Only used by SpecificNode::List/If
     pub fn push(&mut self, specific: Box<Node>) {
         match self.specific {
             SpecificNode::List(ref mut l) => l.push(specific),
             SpecificNode::If {ref mut condition_nodes, ..} => condition_nodes.push(specific),
+            SpecificNode::Conditional {ref mut body, ..} => body.push(specific),
             _ => panic!("tried to push on a non list node")
         }
     }
@@ -85,9 +85,9 @@ impl fmt::Display for Node {
                 }
                 write!(f, "{}", stringified)
             },
-            SpecificNode::Text(ref s) => write!(f, "<Text> {}", s),
+            SpecificNode::Text(ref s) => write!(f, "{}", s),
             SpecificNode::VariableBlock(ref s) => write!(f, "{{ {} }}", s),
-            SpecificNode::Identifier(ref s) => write!(f, "<{}>", s),
+            SpecificNode::Identifier(ref s) => write!(f, "{}", s),
             SpecificNode::Int(ref s) => write!(f, "<{}>", s),
             SpecificNode::Float(ref s) => write!(f, "<{}>", s),
             SpecificNode::Bool(ref s) => write!(f, "<{}>", s),
@@ -112,7 +112,7 @@ impl fmt::Display for Node {
                 write!(f, "{}", stringified)
             },
             SpecificNode::Conditional {ref condition, ref body } => {
-                write!(f, "{}? =>\n {}", condition, body)
+                write!(f, "{} ? => {}", condition, body)
             }
         }
     }

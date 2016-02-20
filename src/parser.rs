@@ -6,7 +6,7 @@ use nodes::{Node, SpecificNode};
 // Keeps track of which tag we are currently in
 // Needed to parse inside if/for for example and keep track on when to stop
 // those nodes
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum InsideBlock {
     If,
     Elif,
@@ -24,7 +24,7 @@ pub struct Parser {
 
     // The ones below are needed for nested if/for blocks
     currently_in: Vec<InsideBlock>,
-    if_nodes: Vec<Node>
+    tag_nodes: Vec<Node>
 }
 
 impl Parser {
@@ -40,7 +40,7 @@ impl Parser {
             current_token: 0,
 
             currently_in: vec![],
-            if_nodes: vec![]
+            tag_nodes: vec![]
         };
         parser.parse();
 
@@ -124,14 +124,28 @@ impl Parser {
         loop {
             match self.peek().kind {
                 TokenType::TagStart => {
-                    match self.peek_tag_name() {
-                        TokenType::If | TokenType::Elif | TokenType::Else => self.parse_tag_block(),
-                        TokenType::Endif => return self.parse_tag_block(),
+                    let tag_name = self.peek_tag_name();
+                    // Out of the match because I was getting a match have incompatible
+                    // return types
+                    if tag_name == TokenType::Endif && self.tag_nodes.len() == 1 {
+                        println!("What's left? {:?}", self.currently_in);
+                        println!("tag_nodes: {:?}", self.tag_nodes);
+                        return self.parse_tag_block();
+                    }
+                    match tag_name {
+                        TokenType::If | TokenType::Elif
+                        | TokenType::Else | TokenType::Endif => self.parse_tag_block(),
                         _ => unreachable!()
                     };
                 },
                 TokenType::VariableStart => return self.parse_variable_block(),
                 TokenType::Text => return self.parse_text(),
+                TokenType::Eof => {
+                    if self.tag_nodes.len() == 1 {
+                        return Some(Box::new(self.tag_nodes.pop().unwrap()));
+                    }
+                    break;
+                }
                 _ => break
             };
         }
@@ -158,10 +172,20 @@ impl Parser {
     // Parse the content of a {% %} block
     fn parse_tag_block(&mut self) -> Option<Box<Node>> {
         let token = self.expect(TokenType::TagStart);
-
         match self.peek_non_space().kind {
             TokenType::If | TokenType::Elif | TokenType::Else => self.parse_if_block(token.position),
-            TokenType::Endif => return self.if_nodes.pop().map(|n| Box::new(n)),
+            TokenType::Endif => {
+                println!("Found endif!");
+                self.expect(TokenType::Endif);
+                self.expect(TokenType::TagEnd);
+                // println!("Got 1 {:?}", self.tag_nodes);
+                if self.tag_nodes.len() == 1 {
+                    return self.tag_nodes.pop().map(|n| Box::new(n));
+                } else {
+                    let last = self.tag_nodes.pop().unwrap();
+                    self.tag_nodes.last_mut().unwrap().push(Box::new(last));
+                }
+            },
             _ => unreachable!()
         };
 
@@ -190,28 +214,44 @@ impl Parser {
     }
 
     fn parse_if_block(&mut self, start_position: usize) {
-        let mut if_node = self.if_nodes.last().map(|n| n.clone()).unwrap_or_else(||
-            Node::new(
-                start_position,
-                SpecificNode::If {condition_nodes: vec![], else_node: None}
-            )
-        );
-
-        self.currently_in.pop();
+        // {% if true %}parent{% if a %}nested{% endif b%}{% endif %}
         match self.peek_non_space().kind {
-            TokenType::If | TokenType::Elif => {
-                self.if_nodes.pop();
+            TokenType::If => {
+                self.tag_nodes.push(Node::new(
+                    start_position,
+                    SpecificNode::If {condition_nodes: vec![], else_node: None}
+                ));
+                let conditional = self.parse_conditional_nodes().unwrap();
+                println!("Parsed conditional");
+                println!("{:#?}", conditional);
+                println!("-----");
+                println!("Got a if, current tag_nodes: {:?}", self.tag_nodes);
+                match self.tag_nodes.pop() {
+                    Some(mut t) => {
+                        t.push(conditional);
+                        self.tag_nodes.push(t);
+                    }
+                    None => {
+                        self.tag_nodes.push(Node::new(
+                            start_position,
+                            SpecificNode::If {condition_nodes: vec![conditional], else_node: None}
+                        ));
+                    }
+                }
+            }
+            TokenType::Elif => {
+                let mut if_node = self.tag_nodes.pop().unwrap();
                 if_node.push(self.parse_conditional_nodes().unwrap());
-                self.if_nodes.push(if_node);
+                self.tag_nodes.push(if_node);
             },
             TokenType::Else => {
                 self.expect(TokenType::Else);
                 self.expect(TokenType::TagEnd);
                 self.currently_in.push(InsideBlock::Else);
                 // Replace the last one now that we have else
-                self.if_nodes.pop();
+                let if_node = self.tag_nodes.pop().unwrap();
                 let else_body = self.parse_tag_body();
-                self.if_nodes.push(Node::new(
+                self.tag_nodes.push(Node::new(
                     if_node.position,
                     SpecificNode::If {
                         condition_nodes: if_node.get_children(),
@@ -233,41 +273,60 @@ impl Parser {
         loop {
             let node = match self.parse_next() {
                 Some(n) => n,
-                None => panic!("Unexpected EOF")
+                None => {
+                    panic!("Unexpected EOF");
+                }
             };
 
+            body.push(node);
+            let currently = self.currently_in.last().cloned().unwrap();
+
+            // TODO: consume endif here
             match self.peek().kind {
                 TokenType::TagStart => {
                     let tag_name = self.peek_tag_name();
-                    let currently_in = self.currently_in.pop().unwrap();
-                    match currently_in {
+                    match currently {
                         InsideBlock::If | InsideBlock::Elif => match tag_name {
-                            TokenType::Elif | TokenType::Else | TokenType::Endif => {
-                                body.push(node);
+                            TokenType::Elif | TokenType::Else => {
+                                self.currently_in.pop();
                                 return Some(Box::new(body));
                             },
+                            TokenType::Endif => {
+                                self.expect(TokenType::TagStart);
+                                self.expect(TokenType::Endif);
+                                self.expect(TokenType::TagEnd);
+                                self.currently_in.pop();
+                                return Some(Box::new(body))
+                            }
                             TokenType::Endfor => panic!("Unexpected endfor"),
-                            _ => body.push(node)
+                            _ => ()
                         },
                         InsideBlock::Else => match tag_name {
                             TokenType::Endif => {
-                                body.push(node);
-                                return Some(Box::new(body));
+                                self.expect(TokenType::TagStart);
+                                self.expect(TokenType::Endif);
+                                self.expect(TokenType::TagEnd);
+                                self.currently_in.pop();
+                                return Some(Box::new(body))
                             },
                             TokenType::Endfor | TokenType::Elif | TokenType::Else  => panic!("Unexpected {}", tag_name),
-                            _ => body.push(node)
+                            _ => ()
                         },
                         InsideBlock::For => match tag_name {
                             TokenType::Endfor => {
-                                body.push(node);
+                                self.currently_in.pop();
                                 return Some(Box::new(body));
                             },
                             TokenType::If | TokenType::Elif | TokenType::Else | TokenType::Endif  => panic!("Unexpected {}", tag_name),
-                            _ => body.push(node)
+                            _ => ()
                         },
                     }
                 },
-                _ => body.push(node)
+                TokenType::Eof => {
+                    self.currently_in.pop();
+                    return Some(Box::new(body));
+                },
+                _ => ()
             }
         }
     }
@@ -698,35 +757,35 @@ mod tests {
     }
 
 
-    // #[test]
-    // fn test_nested_if() {
-    //     test_parser(
-    //         "{% if true %}Hey{% if a %}Hey{% endif b%}{% endif %}",
-    //         vec![
-    //             SpecificNode::If {
-    //                 condition_nodes: vec![
-    //                     Box::new(Node::new(6, SpecificNode::Conditional {
-    //                         condition: Box::new(Node::new(6, SpecificNode::Bool(true))),
-    //                         body: Box::new(Node::new(13, SpecificNode::List(vec![
-    //                             Box::new(Node::new(13, SpecificNode::Text("Hey".to_owned()))),
-    //                         ])))
-    //                     })),
-    //                     Box::new(Node::new(24, SpecificNode::Conditional {
-    //                         condition: Box::new(Node::new(24, SpecificNode::Identifier("a".to_owned()))),
-    //                         body: Box::new(Node::new(28, SpecificNode::List(vec![
-    //                             Box::new(Node::new(28, SpecificNode::Text("Hey".to_owned()))),
-    //                         ])))
-    //                     })),
-    //                     Box::new(Node::new(39, SpecificNode::Conditional {
-    //                         condition: Box::new(Node::new(39, SpecificNode::Identifier("b".to_owned()))),
-    //                         body: Box::new(Node::new(42, SpecificNode::List(vec![
-    //                             Box::new(Node::new(42, SpecificNode::Text("Hey".to_owned()))),
-    //                         ])))
-    //                     })),
-    //                 ],
-    //                 else_node: None
-    //             },
-    //         ]
-    //     );
-    // }
+    #[test]
+    fn test_nested_if() {
+        test_parser(
+            "{% if true %}parent{% if a %}nested{% endif %}{% endif %} hey",
+            vec![
+                SpecificNode::If {
+                    condition_nodes: vec![
+                        Box::new(Node::new(6, SpecificNode::Conditional {
+                            condition: Box::new(Node::new(6, SpecificNode::Bool(true))),
+                            body: Box::new(Node::new(13, SpecificNode::List(vec![
+                                Box::new(Node::new(13, SpecificNode::Text("Hey".to_owned()))),
+                            ])))
+                        })),
+                        Box::new(Node::new(24, SpecificNode::Conditional {
+                            condition: Box::new(Node::new(24, SpecificNode::Identifier("a".to_owned()))),
+                            body: Box::new(Node::new(28, SpecificNode::List(vec![
+                                Box::new(Node::new(28, SpecificNode::Text("Hey".to_owned()))),
+                            ])))
+                        })),
+                        Box::new(Node::new(39, SpecificNode::Conditional {
+                            condition: Box::new(Node::new(39, SpecificNode::Identifier("b".to_owned()))),
+                            body: Box::new(Node::new(42, SpecificNode::List(vec![
+                                Box::new(Node::new(42, SpecificNode::Text("Hey".to_owned()))),
+                            ])))
+                        })),
+                    ],
+                    else_node: None
+                },
+            ]
+        );
+    }
 }
