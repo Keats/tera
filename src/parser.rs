@@ -24,7 +24,7 @@ pub struct Parser {
 
     // The ones below are needed for nested if/for blocks
     currently_in: Vec<InsideBlock>,
-    tag_nodes: Vec<Node>
+    tag_nodes: Vec<Node>, // if/for nodes
 }
 
 impl Parser {
@@ -40,17 +40,23 @@ impl Parser {
             current_token: 0,
 
             currently_in: vec![],
-            tag_nodes: vec![]
+            tag_nodes: vec![],
         };
         parser.parse();
 
         parser
     }
 
-    // Main loop of the parser, stops when there are no token left
+    // Main loop of the parser, stops when we are at EOF or
     pub fn parse(&mut self) {
-        while let Some(node) = self.parse_next() {
-            self.root.push(node);
+        loop {
+            match self.peek().kind {
+                TokenType::TagStart => self.parse_tag_block(),
+                TokenType::VariableStart => self.parse_variable_block(),
+                TokenType::Text => self.parse_text(),
+                TokenType::Eof => break,
+                _ => panic!("Unexpected token when parsing: {:?}", self.peek())
+            };
         }
     }
 
@@ -104,10 +110,6 @@ impl Parser {
         tag_name.kind
     }
 
-    fn rewind(&mut self) {
-        self.current_token += 1;
-    }
-
     // Panics if the expected token isn't found
     fn expect(&mut self, kind: TokenType) -> Token {
         let token = self.peek_non_space();
@@ -118,229 +120,129 @@ impl Parser {
         self.next_non_space()
     }
 
-    // All the different "states" the parser can be in: either in a block, in text
-    // or in a tag
-    fn parse_next(&mut self) -> Option<Box<Node>> {
-        loop {
-            match self.peek().kind {
-                TokenType::TagStart => {
-                    let tag_name = self.peek_tag_name();
-                    // Out of the match because I was getting a match have incompatible
-                    // return types
-                    if tag_name == TokenType::Endif && self.tag_nodes.len() == 1 {
-                        println!("What's left? {:?}", self.currently_in);
-                        println!("tag_nodes: {:?}", self.tag_nodes);
-                        return self.parse_tag_block();
-                    }
-                    match tag_name {
-                        TokenType::If | TokenType::Elif
-                        | TokenType::Else | TokenType::Endif => self.parse_tag_block(),
-                        _ => unreachable!()
-                    };
-                },
-                TokenType::VariableStart => return self.parse_variable_block(),
-                TokenType::Text => return self.parse_text(),
-                TokenType::Eof => {
-                    if self.tag_nodes.len() == 1 {
-                        return Some(Box::new(self.tag_nodes.pop().unwrap()));
-                    }
-                    break;
-                }
-                _ => break
-            };
+    fn add_node(&mut self, node: Node) {
+        if self.tag_nodes.len() == 0 {
+            self.root.push(Box::new(node));
+            return;
         }
 
-        None
-    }
-
-    // Parse some html text
-    fn parse_text(&mut self) -> Option<Box<Node>> {
-        let token = self.next_token();
-        Some(Box::new(Node::new(token.position, SpecificNode::Text(token.value))))
-    }
-
-    // Parse the content of a {{ }} block
-    fn parse_variable_block(&mut self) -> Option<Box<Node>> {
-        let token = self.expect(TokenType::VariableStart);
-        let contained = self.parse_whole_expression(None, TokenType::VariableEnd);
-        let node = Node::new(token.position, SpecificNode::VariableBlock(contained.unwrap()));
-        self.expect(TokenType::VariableEnd);
-
-        Some(Box::new(node))
-    }
-
-    // Parse the content of a {% %} block
-    fn parse_tag_block(&mut self) -> Option<Box<Node>> {
-        let token = self.expect(TokenType::TagStart);
-        match self.peek_non_space().kind {
-            TokenType::If | TokenType::Elif | TokenType::Else => self.parse_if_block(token.position),
-            TokenType::Endif => {
-                println!("Found endif!");
-                self.expect(TokenType::Endif);
-                self.expect(TokenType::TagEnd);
-                // println!("Got 1 {:?}", self.tag_nodes);
-                if self.tag_nodes.len() == 1 {
-                    return self.tag_nodes.pop().map(|n| Box::new(n));
-                } else {
-                    let last = self.tag_nodes.pop().unwrap();
-                    self.tag_nodes.last_mut().unwrap().push(Box::new(last));
-                }
+        let currently_in = self.currently_in.last().cloned().unwrap();
+        match currently_in {
+            InsideBlock::If | InsideBlock::Elif => {
+                self.tag_nodes.last_mut().unwrap().append_to_last_conditional(Box::new(node));
+            },
+            InsideBlock::Else => {
+                self.tag_nodes.last_mut().unwrap().push_to_else(Box::new(node));
             },
             _ => unreachable!()
         };
 
-        None
     }
 
-    // Used by parse_if_block to parse the if/elif/else nodes
-    fn parse_conditional_nodes(&mut self) -> Option<Box<Node>> {
+    // Parse some html text
+    fn parse_text(&mut self) {
+        let token = self.next_token();
+        self.add_node(Node::new(token.position, SpecificNode::Text(token.value)));
+    }
+
+    // Parse the content of a {{ }} block
+    fn parse_variable_block(&mut self)  {
+        let token = self.expect(TokenType::VariableStart);
+        let contained = self.parse_whole_expression(None, TokenType::VariableEnd);
+        let node = Node::new(token.position, SpecificNode::VariableBlock(contained));
+        self.expect(TokenType::VariableEnd);
+
+        self.add_node(node);
+    }
+
+    // Parse the content of a {% %} block
+    fn parse_tag_block(&mut self) {
+        let token = self.expect(TokenType::TagStart);
+
+        match self.peek_non_space().kind {
+            TokenType::If => self.parse_if(token.position),
+            TokenType::Elif => self.parse_elif(),
+            TokenType::Else => self.parse_else(),
+            TokenType::Endif => {
+                self.expect(TokenType::Endif);
+                self.expect(TokenType::TagEnd);
+                let tag = self.tag_nodes.pop().unwrap();
+                self.add_node(tag);
+            },
+            _ => unreachable!()
+        };
+    }
+
+    // Parse if/elif condition and setups the body
+    fn parse_conditional_node(&mut self) -> Node {
         // consume the tag name
         match self.next_non_space().kind {
             TokenType::If => self.currently_in.push(InsideBlock::If),
             TokenType::Elif => self.currently_in.push(InsideBlock::Elif),
             _ => unreachable!()
         };
-        let condition = self.parse_whole_expression(None, TokenType::TagEnd).unwrap();
+        let condition = self.parse_whole_expression(None, TokenType::TagEnd);
         self.expect(TokenType::TagEnd);
+        let body = Node::new(self.peek().position, SpecificNode::List(vec![]));
 
-        let body = self.parse_tag_body().unwrap();
-
-        Some(Box::new(
-            Node::new(
-                condition.position,
-                SpecificNode::Conditional {condition: condition, body: body}
-            )
-        ))
+        Node::new(
+            condition.position,
+            SpecificNode::Conditional {condition: condition, body: Box::new(body)}
+        )
     }
 
-    fn parse_if_block(&mut self, start_position: usize) {
-        // {% if true %}parent{% if a %}nested{% endif b%}{% endif %}
-        match self.peek_non_space().kind {
-            TokenType::If => {
-                self.tag_nodes.push(Node::new(
-                    start_position,
-                    SpecificNode::If {condition_nodes: vec![], else_node: None}
-                ));
-                let conditional = self.parse_conditional_nodes().unwrap();
-                println!("Parsed conditional");
-                println!("{:#?}", conditional);
-                println!("-----");
-                println!("Got a if, current tag_nodes: {:?}", self.tag_nodes);
-                match self.tag_nodes.pop() {
-                    Some(mut t) => {
-                        t.push(conditional);
-                        self.tag_nodes.push(t);
-                    }
-                    None => {
-                        self.tag_nodes.push(Node::new(
-                            start_position,
-                            SpecificNode::If {condition_nodes: vec![conditional], else_node: None}
-                        ));
-                    }
-                }
-            }
-            TokenType::Elif => {
-                let mut if_node = self.tag_nodes.pop().unwrap();
-                if_node.push(self.parse_conditional_nodes().unwrap());
-                self.tag_nodes.push(if_node);
-            },
-            TokenType::Else => {
-                self.expect(TokenType::Else);
-                self.expect(TokenType::TagEnd);
-                self.currently_in.push(InsideBlock::Else);
-                // Replace the last one now that we have else
-                let if_node = self.tag_nodes.pop().unwrap();
-                let else_body = self.parse_tag_body();
-                self.tag_nodes.push(Node::new(
-                    if_node.position,
-                    SpecificNode::If {
-                        condition_nodes: if_node.get_children(),
-                        else_node: else_body
-                    }
-                ));
-            },
-            _ => unreachable!()
-        }
+    fn parse_if(&mut self, start_position: usize) {
+        let mut if_node = Node::new(
+            start_position,
+            SpecificNode::If {condition_nodes: vec![], else_node: None}
+        );
+        let node = self.parse_conditional_node();
+        if_node.push(Box::new(node));
+        self.tag_nodes.push(if_node);
     }
 
-    // Same as normal parsing except it can stop on elif/else/endif/endfor
-    // Meeds to keep track of how many levels deep we are, for example
-    // if we have a {% if x %}{% if y %}{% endif %}{% endif %}, parsing
-    // should continue until the last endif and not stop at the first
-    fn parse_tag_body(&mut self) -> Option<Box<Node>> {
-        let mut body = Node::new(self.peek().position, SpecificNode::List(vec![]));
+    fn parse_elif(&mut self) {
+        let currently_in = self.currently_in.last().cloned().unwrap();
+        match currently_in {
+            InsideBlock::If | InsideBlock::Elif => self.currently_in.pop(),
+            InsideBlock::Else | InsideBlock::For => panic!("Got a else/for
+             in a else")
+        };
+        let node = Box::new(self.parse_conditional_node());
+        self.tag_nodes.last_mut().unwrap().push(node);
+    }
 
-        loop {
-            let node = match self.parse_next() {
-                Some(n) => n,
-                None => {
-                    panic!("Unexpected EOF");
-                }
-            };
+    fn parse_else(&mut self) {
+        let currently_in = self.currently_in.last().cloned().unwrap();
+        match currently_in {
+            InsideBlock::If | InsideBlock::Elif => self.currently_in.pop(),
+            InsideBlock::Else | InsideBlock::For => panic!("Got a else/for in a else")
+        };
+        self.expect(TokenType::Else);
+        self.expect(TokenType::TagEnd);
+        self.currently_in.push(InsideBlock::Else);
 
-            body.push(node);
-            let currently = self.currently_in.last().cloned().unwrap();
-
-            // TODO: consume endif here
-            match self.peek().kind {
-                TokenType::TagStart => {
-                    let tag_name = self.peek_tag_name();
-                    match currently {
-                        InsideBlock::If | InsideBlock::Elif => match tag_name {
-                            TokenType::Elif | TokenType::Else => {
-                                self.currently_in.pop();
-                                return Some(Box::new(body));
-                            },
-                            TokenType::Endif => {
-                                self.expect(TokenType::TagStart);
-                                self.expect(TokenType::Endif);
-                                self.expect(TokenType::TagEnd);
-                                self.currently_in.pop();
-                                return Some(Box::new(body))
-                            }
-                            TokenType::Endfor => panic!("Unexpected endfor"),
-                            _ => ()
-                        },
-                        InsideBlock::Else => match tag_name {
-                            TokenType::Endif => {
-                                self.expect(TokenType::TagStart);
-                                self.expect(TokenType::Endif);
-                                self.expect(TokenType::TagEnd);
-                                self.currently_in.pop();
-                                return Some(Box::new(body))
-                            },
-                            TokenType::Endfor | TokenType::Elif | TokenType::Else  => panic!("Unexpected {}", tag_name),
-                            _ => ()
-                        },
-                        InsideBlock::For => match tag_name {
-                            TokenType::Endfor => {
-                                self.currently_in.pop();
-                                return Some(Box::new(body));
-                            },
-                            TokenType::If | TokenType::Elif | TokenType::Else | TokenType::Endif  => panic!("Unexpected {}", tag_name),
-                            _ => ()
-                        },
-                    }
-                },
-                TokenType::Eof => {
-                    self.currently_in.pop();
-                    return Some(Box::new(body));
-                },
-                _ => ()
+        let if_node = self.tag_nodes.pop().unwrap();
+        let list = Node::new(self.peek().position, SpecificNode::List(vec![]));
+        self.tag_nodes.push(Node::new(
+            if_node.position,
+            SpecificNode::If {
+                condition_nodes: if_node.get_children(),
+                else_node: Some(Box::new(list))
             }
-        }
+        ));
     }
 
     // Parse a block/tag until we get to the terminator
     // Also handles all the precedence
-    fn parse_whole_expression(&mut self, stack: Option<Node>, terminator: TokenType) -> Option<Box<Node>> {
+    fn parse_whole_expression(&mut self, stack: Option<Node>, terminator: TokenType) -> Box<Node> {
         let token = self.peek_non_space();
 
         let mut node_stack = stack.unwrap_or_else(||
             Node::new(token.position, SpecificNode::List(vec![]))
         );
 
-        let next = self.parse_single_expression(&terminator).unwrap();
+        let next = self.parse_single_expression(&terminator);
         node_stack.push(next);
 
         loop {
@@ -349,7 +251,7 @@ impl Parser {
                 if node_stack.is_empty() {
                     panic!("Unexpected terminator");
                 }
-                return Some(node_stack.pop());
+                return node_stack.pop();
             }
 
             // TODO: this whole thing can probably be refactored and simplified
@@ -361,7 +263,7 @@ impl Parser {
                         continue;
                     }
 
-                    let rhs = self.parse_whole_expression(Some(node_stack.clone()), terminator.clone()).unwrap();
+                    let rhs = self.parse_whole_expression(Some(node_stack.clone()), terminator.clone());
 
                     // Now for + - we need to know if the next token has a higher
                     // precedence (ie * or /)
@@ -389,7 +291,7 @@ impl Parser {
 
                     // * and / have the highest precedence so no need to check
                     // the following operators precedences
-                    let rhs = self.parse_single_expression(&terminator).unwrap();
+                    let rhs = self.parse_single_expression(&terminator);
                     let lhs = node_stack.pop();
                     let node = Node::new(
                         lhs.position,
@@ -407,7 +309,7 @@ impl Parser {
                         panic!("Unexpected logic token"); // TODO details
                     }
 
-                    let rhs = self.parse_single_expression(&terminator).unwrap();
+                    let rhs = self.parse_single_expression(&terminator);
                     let next_token = self.peek_non_space();
 
                     if next_token.precedence() > token.precedence() {
@@ -429,7 +331,7 @@ impl Parser {
                         panic!("Unexpected logic token"); // TODO details
                     }
                     let lhs = node_stack.pop();
-                    let rhs = self.parse_whole_expression(Some(node_stack.clone()), terminator.clone()).unwrap();
+                    let rhs = self.parse_whole_expression(Some(node_stack.clone()), terminator.clone());
                     let node = Node::new(
                         lhs.position,
                         SpecificNode::Logic{lhs: lhs, rhs: rhs, operator: token.kind}
@@ -444,7 +346,7 @@ impl Parser {
 
     // Parses the next non-space token as a simple expression
     // Used when parsing inside a block/tag and we want to get the next value
-    fn parse_single_expression(&mut self, terminator: &TokenType) -> Option<Box<Node>> {
+    fn parse_single_expression(&mut self, terminator: &TokenType) -> Box<Node> {
         let token = self.peek_non_space();
 
         if token.kind == *terminator {
@@ -456,32 +358,30 @@ impl Parser {
             TokenType::Float | TokenType::Int | TokenType::Bool => return self.parse_literal(),
             _ => panic!("unexpected token type: {:?}", token.kind)
         }
-
-        None
     }
 
     // Parse an identifier (variable name or keyword)
-    fn parse_identifier(&mut self) -> Option<Box<Node>> {
+    fn parse_identifier(&mut self) -> Box<Node> {
         let ident = self.next_non_space();
-        Some(Box::new(Node::new(ident.position, SpecificNode::Identifier(ident.value))))
+        Box::new(Node::new(ident.position, SpecificNode::Identifier(ident.value)))
     }
 
     // Parse a bool/int/float
-    fn parse_literal(&mut self) -> Option<Box<Node>> {
+    fn parse_literal(&mut self) -> Box<Node> {
         let literal = self.next_non_space();
 
         match literal.kind {
             TokenType::Int => {
                 let value = literal.value.parse::<i32>().unwrap();
-                Some(Box::new(Node::new(literal.position, SpecificNode::Int(value))))
+                Box::new(Node::new(literal.position, SpecificNode::Int(value)))
             },
             TokenType::Float => {
                 let value = literal.value.parse::<f32>().unwrap();
-                Some(Box::new(Node::new(literal.position, SpecificNode::Float(value))))
+                Box::new(Node::new(literal.position, SpecificNode::Float(value)))
             },
             TokenType::Bool => {
                 let value = if literal.value == "false" { false } else { true };
-                Some(Box::new(Node::new(literal.position, SpecificNode::Bool(value))))
+                Box::new(Node::new(literal.position, SpecificNode::Bool(value)))
             },
             _ => unreachable!()
         }
@@ -725,31 +625,31 @@ mod tests {
     #[test]
     fn test_if() {
         test_parser(
-            "{% if true %}Hey{% elif a %}Hey{% elif b%}Hey{% else %}Hey{% endif %}",
+            "{% if true %}1{% elif a %}2{% elif b %}3{% else %}4{% endif %}",
             vec![
                 SpecificNode::If {
                     condition_nodes: vec![
                         Box::new(Node::new(6, SpecificNode::Conditional {
                             condition: Box::new(Node::new(6, SpecificNode::Bool(true))),
                             body: Box::new(Node::new(13, SpecificNode::List(vec![
-                                Box::new(Node::new(13, SpecificNode::Text("Hey".to_owned()))),
+                                Box::new(Node::new(13, SpecificNode::Text("1".to_owned()))),
                             ])))
                         })),
-                        Box::new(Node::new(24, SpecificNode::Conditional {
-                            condition: Box::new(Node::new(24, SpecificNode::Identifier("a".to_owned()))),
-                            body: Box::new(Node::new(28, SpecificNode::List(vec![
-                                Box::new(Node::new(28, SpecificNode::Text("Hey".to_owned()))),
+                        Box::new(Node::new(22, SpecificNode::Conditional {
+                            condition: Box::new(Node::new(22, SpecificNode::Identifier("a".to_owned()))),
+                            body: Box::new(Node::new(26, SpecificNode::List(vec![
+                                Box::new(Node::new(26, SpecificNode::Text("2".to_owned()))),
                             ])))
                         })),
-                        Box::new(Node::new(39, SpecificNode::Conditional {
-                            condition: Box::new(Node::new(39, SpecificNode::Identifier("b".to_owned()))),
-                            body: Box::new(Node::new(42, SpecificNode::List(vec![
-                                Box::new(Node::new(42, SpecificNode::Text("Hey".to_owned()))),
+                        Box::new(Node::new(35, SpecificNode::Conditional {
+                            condition: Box::new(Node::new(35, SpecificNode::Identifier("b".to_owned()))),
+                            body: Box::new(Node::new(39, SpecificNode::List(vec![
+                                Box::new(Node::new(39, SpecificNode::Text("3".to_owned()))),
                             ])))
                         })),
                     ],
-                    else_node: Some(Box::new(Node::new(55, SpecificNode::List(vec![
-                        Box::new(Node::new(55, SpecificNode::Text("Hey".to_owned()))),
+                    else_node: Some(Box::new(Node::new(50, SpecificNode::List(vec![
+                        Box::new(Node::new(50, SpecificNode::Text("4".to_owned()))),
                     ]))))
                 },
             ]
@@ -767,24 +667,24 @@ mod tests {
                         Box::new(Node::new(6, SpecificNode::Conditional {
                             condition: Box::new(Node::new(6, SpecificNode::Bool(true))),
                             body: Box::new(Node::new(13, SpecificNode::List(vec![
-                                Box::new(Node::new(13, SpecificNode::Text("Hey".to_owned()))),
-                            ])))
-                        })),
-                        Box::new(Node::new(24, SpecificNode::Conditional {
-                            condition: Box::new(Node::new(24, SpecificNode::Identifier("a".to_owned()))),
-                            body: Box::new(Node::new(28, SpecificNode::List(vec![
-                                Box::new(Node::new(28, SpecificNode::Text("Hey".to_owned()))),
-                            ])))
-                        })),
-                        Box::new(Node::new(39, SpecificNode::Conditional {
-                            condition: Box::new(Node::new(39, SpecificNode::Identifier("b".to_owned()))),
-                            body: Box::new(Node::new(42, SpecificNode::List(vec![
-                                Box::new(Node::new(42, SpecificNode::Text("Hey".to_owned()))),
+                                Box::new(Node::new(13, SpecificNode::Text("parent".to_owned()))),
+                                Box::new(Node::new(19, SpecificNode::If {
+                                    condition_nodes: vec![
+                                        Box::new(Node::new(25, SpecificNode::Conditional {
+                                            condition: Box::new(Node::new(25, SpecificNode::Identifier("a".to_owned()))),
+                                            body: Box::new(Node::new(29, SpecificNode::List(vec![
+                                                Box::new(Node::new(29, SpecificNode::Text("nested".to_owned()))),
+                                            ])))
+                                        }))
+                                    ],
+                                    else_node: None,
+                                })),
                             ])))
                         })),
                     ],
                     else_node: None
                 },
+                SpecificNode::Text(" hey".to_owned())
             ]
         );
     }
