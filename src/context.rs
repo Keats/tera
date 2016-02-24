@@ -39,7 +39,7 @@ pub trait JsonRender {
 impl JsonRender for Json {
     fn render(&self) -> String {
         match *self {
-            Json::String(ref s) => s.to_string(),
+            Json::String(ref s) => s.clone(),
             Json::I64(i) => i.to_string(),
             Json::U64(i) => i.to_string(),
             Json::F64(f) => f.to_string(),
@@ -90,9 +90,9 @@ impl JsonTruthy for Json {
             Json::F64(i) => i != 0.0 || ! i.is_nan(),
             Json::Bool (ref i) => *i,
             Json::Null => false,
-            Json::String (ref i) => i.len() > 0,
-            Json::Array (ref i) => i.len() > 0,
-            Json::Object (ref i) => i.len() > 0
+            Json::String (ref i) => !i.is_empty(),
+            Json::Array (ref i) => !i.is_empty(),
+            Json::Object (ref i) => !i.is_empty()
         }
     }
 }

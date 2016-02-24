@@ -55,7 +55,7 @@ impl Renderer {
             Identifier(ref n) => {
                 // TODO: no unwrap here
                 let value = self.context.get(n).unwrap();
-                return value.is_truthy();
+                value.is_truthy()
             },
             _ => panic!("Got {:?}", node)
         }
@@ -78,34 +78,33 @@ impl Renderer {
     }
 
     // evaluates conditions and render bodies accordingly
-    fn render_if(&mut self, condition_nodes: &Vec<Box<Node>>, else_node: Option<Box<Node>>) {
+    fn render_if(&mut self, condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>) {
         for node in condition_nodes {
             match node.specific {
                 Conditional {ref condition, ref body } => {
                     if self.eval_condition(condition) {
-                        self.render_node(body.clone());
+                        self.render_node(*body.clone());
                     }
                 },
                 _ => unreachable!()
             }
         }
 
-        match else_node {
-            Some(e) => self.render_node(e),
-            None => ()
+        if let Some(e) = else_node {
+            self.render_node(*e)
         };
     }
 
-    pub fn render_node(&mut self, node: Box<Node>) {
+    pub fn render_node(&mut self, node: Node) {
         match node.specific {
             Text(ref s) => self.output.push_str(s),
             VariableBlock(s) => self.render_variable_block(*s),
             If {ref condition_nodes, ref else_node} => {
-                self.render_if(condition_nodes, else_node.clone());
+                self.render_if(condition_nodes.clone(), else_node.clone());
             },
-            List(s) => {
-                for _node in s {
-                    self.render_node(_node);
+            List(body) => {
+                for n in body {
+                    self.render_node(*n);
                 }
             },
             _ => panic!("woo {:?}", node)
@@ -114,7 +113,7 @@ impl Renderer {
 
     pub fn render(&mut self) -> String {
         for node in self.ast.get_children() {
-            self.render_node(node);
+            self.render_node(*node);
         }
 
         self.output.clone()
@@ -158,6 +157,15 @@ mod tests {
 
     #[test]
     fn test_render_if_simple() {
+        let mut d = BTreeMap::new();
+        d.insert("is_admin".to_owned(), true);
+
+        let result = Template::new("", "{% if is_admin %}Admin{% endif %}").render(&d);
+        assert_eq!(result, "Admin".to_owned());
+    }
+
+    #[test]
+    fn test_render_if_complex_conditions() {
         let mut d = BTreeMap::new();
         d.insert("is_admin".to_owned(), true);
 

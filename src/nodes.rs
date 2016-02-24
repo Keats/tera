@@ -40,8 +40,9 @@ impl Node {
         match self.specific {
             SpecificNode::List(ref mut l) => l.push(specific),
             SpecificNode::If {ref mut condition_nodes, ..} => condition_nodes.push(specific),
-            SpecificNode::Conditional {ref mut body, ..} => body.push(specific),
-            SpecificNode::For {ref mut body, ..} => body.push(specific),
+            SpecificNode::Conditional {ref mut body, ..} | SpecificNode::For {ref mut body, ..} => {
+                body.push(specific)
+            },
             _ => panic!("tried to push on a non list node")
         }
     }
@@ -50,10 +51,7 @@ impl Node {
     pub fn push_to_else(&mut self, node: Box<Node>) {
         match self.specific {
             SpecificNode::If {ref mut else_node, ..} => {
-                match else_node.as_mut() {
-                    Some(e) => e.push(node),
-                    None => ()
-                }
+                if let Some(e) = else_node.as_mut() { e.push(node); }
             },
             _ => panic!("tried to push_to_else on a non-if node")
         }

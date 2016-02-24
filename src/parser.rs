@@ -121,7 +121,7 @@ impl Parser {
     }
 
     fn add_node(&mut self, node: Node) {
-        if self.tag_nodes.len() == 0 {
+        if self.tag_nodes.is_empty() {
             self.root.push(Box::new(node));
             return;
         }
@@ -382,8 +382,8 @@ impl Parser {
         }
 
         match token.kind {
-            TokenType::Identifier => return self.parse_identifier(),
-            TokenType::Float | TokenType::Int | TokenType::Bool => return self.parse_literal(),
+            TokenType::Identifier => self.parse_identifier(),
+            TokenType::Float | TokenType::Int | TokenType::Bool => self.parse_literal(),
             _ => panic!("unexpected token type: {:?}", token.kind)
         }
     }
