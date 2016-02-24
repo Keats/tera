@@ -134,7 +134,9 @@ impl Parser {
             InsideBlock::Else => {
                 self.tag_nodes.last_mut().unwrap().push_to_else(Box::new(node));
             },
-            _ => unreachable!()
+            InsideBlock::For => {
+                self.tag_nodes.last_mut().unwrap().push(Box::new(node));
+            }
         };
 
     }
@@ -163,12 +165,21 @@ impl Parser {
             TokenType::If => self.parse_if(token.position),
             TokenType::Elif => self.parse_elif(),
             TokenType::Else => self.parse_else(),
+            TokenType::For => self.parse_for(token.position),
             TokenType::Endif => {
                 self.expect(TokenType::Endif);
                 self.expect(TokenType::TagEnd);
                 let tag = self.tag_nodes.pop().unwrap();
+                self.currently_in.pop();
                 self.add_node(tag);
             },
+            TokenType::Endfor => {
+                self.expect(TokenType::Endfor);
+                self.expect(TokenType::TagEnd);
+                let tag = self.tag_nodes.pop().unwrap();
+                self.currently_in.pop();
+                self.add_node(tag);
+            }
             _ => unreachable!()
         };
     }
@@ -191,6 +202,22 @@ impl Parser {
         )
     }
 
+    fn parse_for(&mut self, start_position: usize) {
+        self.currently_in.push(InsideBlock::For);
+        self.expect(TokenType::For);
+        let local = self.parse_single_expression(&TokenType::TagEnd);
+        self.expect(TokenType::In);
+        let array = self.parse_single_expression(&TokenType::TagEnd);
+        self.expect(TokenType::TagEnd);
+
+        let body = Node::new(self.peek().position, SpecificNode::List(vec![]));
+        let for_node = Node::new(
+            start_position,
+            SpecificNode::For {local: local, array: array, body: Box::new(body)}
+        );
+        self.tag_nodes.push(for_node);
+    }
+
     fn parse_if(&mut self, start_position: usize) {
         let mut if_node = Node::new(
             start_position,
@@ -198,6 +225,7 @@ impl Parser {
         );
         let node = self.parse_conditional_node();
         if_node.push(Box::new(node));
+
         self.tag_nodes.push(if_node);
     }
 
@@ -685,6 +713,34 @@ mod tests {
                     else_node: None
                 },
                 SpecificNode::Text(" hey".to_owned())
+            ]
+        );
+    }
+
+    #[test]
+    fn test_for() {
+        test_parser(
+            "{% for x in items %}{% if x.show %}{{x}}{% endif %}{% endfor %}",
+            vec![
+                SpecificNode::For {
+                    local: Box::new(Node::new(7, SpecificNode::Identifier("x".to_owned()))),
+                    array: Box::new(Node::new(12, SpecificNode::Identifier("items".to_owned()))),
+                    body: Box::new(Node::new(20, SpecificNode::List(vec![
+                        Box::new(Node::new(20, SpecificNode::If {
+                            condition_nodes: vec![
+                                Box::new(Node::new(26, SpecificNode::Conditional {
+                                    condition: Box::new(Node::new(26, SpecificNode::Identifier("x.show".to_owned()))),
+                                    body: Box::new(Node::new(35, SpecificNode::List(vec![
+                                        Box::new(Node::new(35, SpecificNode::VariableBlock(
+                                            Box::new(Node::new(37, SpecificNode::Identifier("x".to_owned())))
+                                        ))),
+                                    ])))
+                                }))
+                            ],
+                            else_node: None,
+                        })),
+                    ]))),
+                }
             ]
         );
     }

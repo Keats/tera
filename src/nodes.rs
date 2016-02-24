@@ -18,7 +18,8 @@ pub enum SpecificNode {
     Logic {lhs: Box<Node>, rhs: Box<Node>, operator: TokenType},
     If {condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>},
     // represents a if/elif block and its body (body is a List)
-    Conditional {condition: Box<Node>, body: Box<Node>}
+    Conditional {condition: Box<Node>, body: Box<Node>},
+    For {local: Box<Node>, array: Box<Node>, body: Box<Node>}
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -40,10 +41,12 @@ impl Node {
             SpecificNode::List(ref mut l) => l.push(specific),
             SpecificNode::If {ref mut condition_nodes, ..} => condition_nodes.push(specific),
             SpecificNode::Conditional {ref mut body, ..} => body.push(specific),
+            SpecificNode::For {ref mut body, ..} => body.push(specific),
             _ => panic!("tried to push on a non list node")
         }
     }
 
+    // Only used by If
     pub fn push_to_else(&mut self, node: Box<Node>) {
         match self.specific {
             SpecificNode::If {ref mut else_node, ..} => {
@@ -109,7 +112,7 @@ impl fmt::Display for Node {
             },
             SpecificNode::Text(ref s) => write!(f, "{}", s),
             SpecificNode::VariableBlock(ref s) => write!(f, "{{ {} }}", s),
-            SpecificNode::Identifier(ref s) => write!(f, "{}", s),
+            SpecificNode::Identifier(ref s) => write!(f, "[{}]", s),
             SpecificNode::Int(ref s) => write!(f, "<{}>", s),
             SpecificNode::Float(ref s) => write!(f, "<{}>", s),
             SpecificNode::Bool(ref s) => write!(f, "<{}>", s),
@@ -135,6 +138,9 @@ impl fmt::Display for Node {
             },
             SpecificNode::Conditional {ref condition, ref body } => {
                 write!(f, "{} ? => {}", condition, body)
+            },
+            SpecificNode::For {ref local, ref array, ref body } => {
+                write!(f, "for {} in {} ? => {}", local, array, body)
             }
         }
     }
