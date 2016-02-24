@@ -1,7 +1,7 @@
 use lexer::TokenType;
 use nodes::Node;
 use nodes::SpecificNode::*;
-use context::{Context, JsonRender, JsonNumber};
+use context::{Context, JsonRender, JsonNumber, JsonTruthy};
 
 
 #[derive(Debug)]
@@ -46,7 +46,18 @@ impl Renderer {
                 }
                 result
             }
-            _ => panic!("Unexpected node")
+            _ => unreachable!()
+        }
+    }
+
+    fn eval_condition(&self, node: &Node) -> bool {
+        match node.specific {
+            Identifier(ref n) => {
+                // TODO: no unwrap here
+                let value = self.context.get(n).unwrap();
+                return value.is_truthy();
+            },
+            _ => panic!("Got {:?}", node)
         }
     }
 
@@ -62,17 +73,48 @@ impl Renderer {
                 let result = self.eval_math(&node);
                 self.output.push_str(&result.to_string());
             }
-            _ => panic!("Unexpected node in variable block: {}", node)
+            _ => unreachable!()
+        }
+    }
+
+    // evaluates conditions and render bodies accordingly
+    fn render_if(&mut self, condition_nodes: &Vec<Box<Node>>, else_node: Option<Box<Node>>) {
+        for node in condition_nodes {
+            match node.specific {
+                Conditional {ref condition, ref body } => {
+                    if self.eval_condition(condition) {
+                        self.render_node(body.clone());
+                    }
+                },
+                _ => unreachable!()
+            }
+        }
+
+        match else_node {
+            Some(e) => self.render_node(e),
+            None => ()
+        };
+    }
+
+    pub fn render_node(&mut self, node: Box<Node>) {
+        match node.specific {
+            Text(ref s) => self.output.push_str(s),
+            VariableBlock(s) => self.render_variable_block(*s),
+            If {ref condition_nodes, ref else_node} => {
+                self.render_if(condition_nodes, else_node.clone());
+            },
+            List(s) => {
+                for _node in s {
+                    self.render_node(_node);
+                }
+            },
+            _ => panic!("woo {:?}", node)
         }
     }
 
     pub fn render(&mut self) -> String {
         for node in self.ast.get_children() {
-            match node.specific {
-                Text(ref s) => self.output.push_str(s),
-                VariableBlock(s) => self.render_variable_block(*s),
-                _ => panic!("woo")
-            }
+            self.render_node(node);
         }
 
         self.output.clone()
@@ -112,5 +154,14 @@ mod tests {
 
         let result = Template::new("", "Vat: £{{ 100 * vat_rate }}.").render(&d);
         assert_eq!(result, "Vat: £20.".to_owned());
+    }
+
+    #[test]
+    fn test_render_if_simple() {
+        let mut d = BTreeMap::new();
+        d.insert("is_admin".to_owned(), true);
+
+        let result = Template::new("", "{% if is_admin %}Admin{% endif %}").render(&d);
+        assert_eq!(result, "Admin".to_owned());
     }
 }

@@ -66,6 +66,7 @@ pub trait JsonNumber {
 }
 
 // Needed for all the maths
+// Convert everything to f32, seems like a terrible idea
 impl JsonNumber for Json {
     fn to_number(&self) -> Result<f32, ()> {
         match *self {
@@ -73,6 +74,25 @@ impl JsonNumber for Json {
             Json::U64(i) => Ok(i as f32),
             Json::F64(f) => Ok(f as f32),
             _ => Err(())
+        }
+    }
+}
+
+// From handlebars-rust
+pub trait JsonTruthy {
+    fn is_truthy(&self) -> bool;
+}
+impl JsonTruthy for Json {
+    fn is_truthy(&self) -> bool {
+        match *self {
+            Json::I64(i) => i != 0,
+            Json::U64(i) => i != 0,
+            Json::F64(i) => i != 0.0 || ! i.is_nan(),
+            Json::Bool (ref i) => *i,
+            Json::Null => false,
+            Json::String (ref i) => i.len() > 0,
+            Json::Array (ref i) => i.len() > 0,
+            Json::Object (ref i) => i.len() > 0
         }
     }
 }
