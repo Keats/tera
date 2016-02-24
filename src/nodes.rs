@@ -17,7 +17,7 @@ pub enum SpecificNode {
     Math {lhs: Box<Node>, rhs: Box<Node>, operator: TokenType},
     Logic {lhs: Box<Node>, rhs: Box<Node>, operator: TokenType},
     If {condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>},
-    // represents a if/elif block and its body
+    // represents a if/elif block and its body (body is a List)
     Conditional {condition: Box<Node>, body: Box<Node>}
 }
 
@@ -35,12 +35,24 @@ impl Node {
         }
     }
 
-    // Only used by SpecificNode::List/If
     pub fn push(&mut self, specific: Box<Node>) {
         match self.specific {
             SpecificNode::List(ref mut l) => l.push(specific),
             SpecificNode::If {ref mut condition_nodes, ..} => condition_nodes.push(specific),
+            SpecificNode::Conditional {ref mut body, ..} => body.push(specific),
             _ => panic!("tried to push on a non list node")
+        }
+    }
+
+    pub fn push_to_else(&mut self, node: Box<Node>) {
+        match self.specific {
+            SpecificNode::If {ref mut else_node, ..} => {
+                match else_node.as_mut() {
+                    Some(e) => e.push(node),
+                    None => ()
+                }
+            },
+            _ => panic!("tried to push_to_else on a non-if node")
         }
     }
 
@@ -73,6 +85,16 @@ impl Node {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+
+    // Only used by SpecificNode::If
+    pub fn append_to_last_conditional(&mut self, node: Box<Node>) {
+        match self.specific {
+            SpecificNode::If {ref mut condition_nodes, ..} => {
+                condition_nodes.last_mut().unwrap().push(node);
+            },
+            _ => panic!("tried to append_to_last_conditional on a non-if node")
+        }
+    }
 }
 
 impl fmt::Display for Node {
@@ -85,9 +107,9 @@ impl fmt::Display for Node {
                 }
                 write!(f, "{}", stringified)
             },
-            SpecificNode::Text(ref s) => write!(f, "<Text> {}", s),
+            SpecificNode::Text(ref s) => write!(f, "{}", s),
             SpecificNode::VariableBlock(ref s) => write!(f, "{{ {} }}", s),
-            SpecificNode::Identifier(ref s) => write!(f, "<{}>", s),
+            SpecificNode::Identifier(ref s) => write!(f, "{}", s),
             SpecificNode::Int(ref s) => write!(f, "<{}>", s),
             SpecificNode::Float(ref s) => write!(f, "<{}>", s),
             SpecificNode::Bool(ref s) => write!(f, "<{}>", s),
@@ -112,7 +134,7 @@ impl fmt::Display for Node {
                 write!(f, "{}", stringified)
             },
             SpecificNode::Conditional {ref condition, ref body } => {
-                write!(f, "{}? =>\n {}", condition, body)
+                write!(f, "{} ? => {}", condition, body)
             }
         }
     }
