@@ -263,6 +263,7 @@ impl Parser {
 
     // Parse a block/tag until we get to the terminator
     // Also handles all the precedence
+    // AKA magic and dragons
     fn parse_whole_expression(&mut self, stack: Option<Node>, terminator: TokenType) -> Box<Node> {
         let token = self.peek_non_space();
 
@@ -329,6 +330,11 @@ impl Parser {
                 },
                 TokenType::Equal | TokenType::NotEqual | TokenType::GreaterOrEqual
                 | TokenType::Greater | TokenType::Lower | TokenType::LowerOrEqual => {
+                    // Interrupt arithmetic when we meet one of those
+                    if node_stack.len() > 1 {
+                        return node_stack.pop();
+                    }
+
                     // consume the operator
                     self.next_non_space();
                     // Those have the highest precedence in term of logic
@@ -741,6 +747,34 @@ mod tests {
                         })),
                     ]))),
                 }
+            ]
+        );
+    }
+
+    #[test]
+    fn test_if_math_condition() {
+        test_parser(
+            "{% if age + 1 > 18 %}Adult{% endif %}",
+            vec![
+                SpecificNode::If {
+                    condition_nodes: vec![
+                        Box::new(Node::new(6, SpecificNode::Conditional {
+                            condition: Box::new(Node::new(6, SpecificNode::Logic {
+                                lhs: Box::new(Node::new(6, SpecificNode::Math {
+                                    lhs: Box::new(Node::new(6, SpecificNode::Identifier("age".to_owned()))),
+                                    rhs: Box::new(Node::new(12, SpecificNode::Int(1))),
+                                    operator: TokenType::Add
+                                })),
+                                rhs: Box::new(Node::new(16, SpecificNode::Int(18))),
+                                operator: TokenType::Greater
+                            })),
+                            body: Box::new(Node::new(21, SpecificNode::List(vec![
+                                Box::new(Node::new(21, SpecificNode::Text("Adult".to_owned()))),
+                            ])))
+                        })),
+                    ],
+                    else_node: None
+                },
             ]
         );
     }

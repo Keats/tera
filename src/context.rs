@@ -34,8 +34,8 @@ impl Default for Context {
 pub trait JsonRender {
     fn render(&self) -> String;
 }
-
 // Needed to render variables
+// From handlebars-rust
 impl JsonRender for Json {
     fn render(&self) -> String {
         match *self {
@@ -64,7 +64,6 @@ impl JsonRender for Json {
 pub trait JsonNumber {
     fn to_number(&self) -> Result<f32, ()>;
 }
-
 // Needed for all the maths
 // Convert everything to f32, seems like a terrible idea
 impl JsonNumber for Json {
