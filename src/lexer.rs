@@ -3,7 +3,7 @@ use std::fmt;
 // Still missing strings, () and []
 // List of token types to emit to the parser.
 // Different from the state enum despite some identical members
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TokenType {
     Text, // HTML text
     Space,

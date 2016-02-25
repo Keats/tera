@@ -1,0 +1,21 @@
+<html>
+  <head>
+    <title>{{ product.name }}</title>
+  </head>
+  <body>
+    <h1>{{ product.name }} - {{ product.manufacturer }}</h1>
+    <p>{{ product.summary }}</p>
+    <p>£{{ product.price * 1.20 }} (VAT inc.)</p>
+    {% if friend_reviewed %}
+      <p>Look at reviews from your friends {{ username }}</p>
+      {% if number_reviews > 10 || show_more %}
+        <p>See all reviews</p>
+      {% elif number_reviews == 1 %}
+        <p>Only one review</p>
+      {% endif %}
+    {% else %}
+      <p>None of your friend reviewed this product</p>
+    {% endif %}
+    <button>Buy!</button>
+  </body>
+</html>

@@ -63,12 +63,20 @@ fn assert_template_eq(template: &Template, expected: String) {
     let mut data: BTreeMap<String, Json> = BTreeMap::new();
     data.insert("product".to_owned(), to_value(&Product::new()));
     data.insert("username".to_owned(), to_value(&"bob"));
+    data.insert("friend_reviewed".to_owned(), to_value(&true));
+    data.insert("number_reviews".to_owned(), to_value(&2));
+    data.insert("show_more".to_owned(), to_value(&true));
 
     let rendered = template.render(&data);
     if rendered != expected {
         println!("Template {:?} was rendered incorrectly", template.name);
         println!("Got: \n {:#?}", rendered);
         println!("Expected: \n {:#?}", expected);
+        // Uncomment below to save ouput to html file since
+        // we don't ignore whitespace right now it's a bit tricky to get
+        // the exact \n and spacing
+        // let mut file = File::create("out.html").unwrap();
+        // file.write_all(rendered.as_bytes()).unwrap();
         assert!(false);
     }
 }
@@ -78,19 +86,10 @@ fn test_templates() {
     let tera = Tera::new("./tests/templates/");
     let expected = read_all_expected("./tests/expected/");
 
-    for tpl in vec!["basic.html", "variables.html"] {
+    for tpl in vec!["basic.html", "variables.html", "conditions.html"] {
         assert_template_eq(
             tera.get_template(tpl).unwrap(),
             expected.get(tpl).unwrap().clone()
         );
     }
-    // assert_template_eq(
-    //     tera.get_template("basic.html").unwrap(),
-    //     expected.get("basic.html").unwrap().clone()
-    // );
-
-    // assert_template_eq(
-    //     tera.get_template("variables.html").unwrap(),
-    //     expected.get("variables.html").unwrap().clone()
-    // );
 }

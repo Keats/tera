@@ -1,3 +1,5 @@
+use serde_json::value::{from_value};
+
 use lexer::TokenType;
 use nodes::Node;
 use nodes::SpecificNode::*;
@@ -50,14 +52,121 @@ impl Renderer {
         }
     }
 
+    // TODO: clean up this, too ugly right now for the == and != nodes
     fn eval_condition(&self, node: &Node) -> bool {
         match node.specific {
+            // Simple truthiness check
             Identifier(ref n) => {
                 // TODO: no unwrap here
                 let value = self.context.get(n).unwrap();
                 value.is_truthy()
             },
-            _ => panic!("Got {:?}", node)
+            Logic { ref lhs, ref rhs, ref operator } => {
+                match *operator {
+                    TokenType::Or => {
+                        return self.eval_condition(lhs) || self.eval_condition(rhs);
+                    },
+                    TokenType::And => {
+                        return self.eval_condition(lhs) && self.eval_condition(rhs);
+                    },
+                    TokenType::GreaterOrEqual | TokenType::Greater
+                    | TokenType::LowerOrEqual | TokenType::Lower => {
+                        let l = self.eval_math(lhs);
+                        let r = self.eval_math(rhs);
+                        let result = match *operator {
+                            TokenType::GreaterOrEqual => l >= r,
+                            TokenType::Greater => l > r,
+                            TokenType::LowerOrEqual => l <= r,
+                            TokenType::Lower => l < r,
+                            _ => unreachable!()
+                        };
+                        return result;
+                    },
+                    // This is quite different from the other operators
+                    // TODO: clean this up, this is ugly
+                    TokenType::Equal | TokenType::NotEqual => {
+                        match lhs.specific {
+                            Logic { .. } => {
+                                // let l = self.eval_condition(lhs);
+                                // TODO: rhs MUST be bool like
+                                panic!("Unimplemented");
+                            },
+                            Identifier(ref n) => {
+                                let l = self.context.get(n).unwrap();
+                                // who knows what rhs is
+                                // Here goes a whole new level of ugliness
+                                match rhs.specific {
+                                    Identifier(ref i) => {
+                                        let r = self.context.get(i).unwrap();
+                                        let result = match *operator {
+                                            TokenType::Equal => l == r,
+                                            TokenType::NotEqual => l != r,
+                                            _ => unreachable!()
+                                        };
+                                        return result;
+                                    },
+                                    Int(r) => {
+                                        // TODO: error handling
+                                        let l2: i32 = from_value(l.clone()).unwrap();
+                                        let result = match *operator {
+                                            TokenType::Equal => l2 == r,
+                                            TokenType::NotEqual => l2 != r,
+                                            _ => unreachable!()
+                                        };
+                                        return result;
+                                    },
+                                    Float(r) => {
+                                        let l2: f32 = from_value(l.clone()).unwrap();
+                                        let result = match *operator {
+                                            TokenType::Equal => l2 == r,
+                                            TokenType::NotEqual => l2 != r,
+                                            _ => unreachable!()
+                                        };
+                                        return result;
+                                    },
+                                    _ => unreachable!()
+                                }
+                            },
+                            Int(n) => {
+                                // rhs MUST be a number
+                                let l = n as f32; // TODO: that's going to cause issues
+                                let r = self.eval_math(rhs);
+                                let result = match *operator {
+                                    TokenType::Equal => l == r,
+                                    TokenType::NotEqual => l != r,
+                                    _ => unreachable!()
+                                };
+                                return result;
+                            },
+                            Float(l) => {
+                                // rhs MUST be a number
+                                let r = self.eval_math(rhs);
+                                let result = match *operator {
+                                    TokenType::Equal => l == r,
+                                    TokenType::NotEqual => l != r,
+                                    _ => unreachable!()
+                                };
+                                return result;
+                            },
+                            Math { .. } => {
+                                // rhs MUST be a number
+                                let l = self.eval_math(lhs);
+                                let r = self.eval_math(rhs);
+                                let result = match *operator {
+                                    TokenType::Equal => l == r,
+                                    TokenType::NotEqual => l != r,
+                                    _ => unreachable!()
+                                };
+                                return result;
+                            },
+                            _ => unreachable!()
+                        }
+                    },
+                    _ => unreachable!()
+                }
+                false
+            },
+            _ => panic!("Got in eval_condition {:?}", node)
         }
     }
 
@@ -79,15 +188,21 @@ impl Renderer {
 
     // evaluates conditions and render bodies accordingly
     fn render_if(&mut self, condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>) {
+        let mut skip_else = false;
         for node in condition_nodes {
             match node.specific {
                 Conditional {ref condition, ref body } => {
                     if self.eval_condition(condition) {
+                        skip_else = true;
                         self.render_node(*body.clone());
                     }
                 },
                 _ => unreachable!()
             }
+        }
+
+        if skip_else {
+            return;
         }
 
         if let Some(e) = else_node {
@@ -124,6 +239,7 @@ impl Renderer {
 mod tests {
     use template::Template;
     use std::collections::BTreeMap;
+    use serde_json::value::{to_value};
 
     #[test]
     fn test_render_simple_string() {
@@ -165,11 +281,22 @@ mod tests {
     }
 
     #[test]
-    fn test_render_if_complex_conditions() {
+    fn test_render_if_or_conditions() {
         let mut d = BTreeMap::new();
-        d.insert("is_admin".to_owned(), true);
+        d.insert("is_adult".to_owned(), to_value(&false));
+        d.insert("age".to_owned(), to_value(&18));
 
-        let result = Template::new("", "{% if is_admin %}Admin{% endif %}").render(&d);
-        assert_eq!(result, "Admin".to_owned());
+        let result = Template::new("", "{% if is_adult || age + 1 > 18 %}Adult{% endif %}").render(&d);
+        assert_eq!(result, "Adult".to_owned());
+    }
+
+    #[test]
+    fn test_render_if_and_conditions_with_equality() {
+        let mut d = BTreeMap::new();
+        d.insert("is_adult".to_owned(), to_value(&true));
+        d.insert("age".to_owned(), to_value(&18));
+
+        let result = Template::new("", "{% if is_adult && age == 18 %}Adult{% endif %}").render(&d);
+        assert_eq!(result, "Adult".to_owned());
     }
 }
