@@ -4,7 +4,6 @@
 
 
 Roadmap:
-- for rendering
 - inherit/block tags & rendering
 - make it work on stable (while still using serde rather than rustc-serialize)
 - error handling
