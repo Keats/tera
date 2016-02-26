@@ -51,6 +51,32 @@ impl Renderer {
         }
     }
 
+    // Lookup a variable name from the context and takes into
+    // account for loops variables
+    fn lookup_variable(&self, key: &str) -> Json {
+        if self.for_loops.is_empty() {
+            // TODO: no unwrap here
+            return self.context.lookup(key).cloned().unwrap();
+        }
+
+        for for_loop in self.for_loops.iter().rev() {
+            if key.starts_with(&for_loop.variable_name) {
+                // TODO: no unwrap
+                let value = for_loop.get();
+                // might be a struct or some nested structure
+                if key.contains(".") {
+                    let new_key = key.split_terminator(".").skip(1).collect::<Vec<&str>>().join(".");
+                    return value.lookup(&new_key).cloned().unwrap();
+                } else {
+                    return value.clone();
+                }
+            }
+        }
+
+        // TODO: no unwrap here
+        return self.context.lookup(key).cloned().unwrap();
+    }
+
     fn eval_math(&self, node: &Node) -> f32 {
         match node.specific {
             Identifier(ref s) => {
@@ -203,21 +229,8 @@ impl Renderer {
     fn render_variable_block(&mut self, node: Node) {
         match node.specific {
             Identifier(ref s) => {
-                if self.for_loops.is_empty() {
-                    // TODO: no unwrap here
-                    let value = self.context.lookup(s).unwrap();
-                    self.output.push_str(&value.render());
-                    return;
-                }
-
-                let for_loop = self.for_loops.last().unwrap();
-                if *s == for_loop.variable_name {
-                    self.output.push_str(&for_loop.get().render())
-                } else {
-                    // TODO: no unwrap here
-                    let value = self.context.lookup(s).unwrap();
-                    self.output.push_str(&value.render());
-                }
+                let value = self.lookup_variable(s);
+                self.output.push_str(&value.render());
             },
             Math { .. } => {
                 let result = self.eval_math(&node);
@@ -261,7 +274,9 @@ impl Renderer {
             _ => unreachable!()
         };
         // TODO: no unwrap
-        let list = self.context.lookup(&array_name).cloned().unwrap();
+        println!("{:?}", array_name);
+        let list = self.lookup_variable(&array_name);
+
         if !list.is_array() {
             panic!("{:?} is not an array! can't iterate on it", list);
         }
@@ -375,7 +390,7 @@ mod tests {
     }
 
     #[test]
-    fn test_render_for() {
+    fn test_render_basic_for() {
         let mut context = Context::new();
         context.add("data", &vec![1,2,3]);
 

@@ -57,6 +57,21 @@ impl Product {
     }
 }
 
+#[derive(Debug, Serialize)]
+struct Review {
+    title: String,
+    paragraphs: Vec<String>
+}
+impl Review {
+    pub fn new() -> Review {
+        Review {
+            title: "My review".to_owned(),
+            paragraphs: vec![
+                "A".to_owned(), "B".to_owned(), "C".to_owned()
+            ]
+        }
+    }
+}
 
 fn assert_template_eq(template: &Template, expected: String) {
     let mut context = Context::new();
@@ -65,6 +80,7 @@ fn assert_template_eq(template: &Template, expected: String) {
     context.add("friend_reviewed", &true);
     context.add("number_reviews", &2);
     context.add("show_more", &true);
+    context.add("reviews", &vec![Review::new(), Review::new()]);
 
     let rendered = template.render(context);
     if rendered != expected {
@@ -85,7 +101,9 @@ fn test_templates() {
     let tera = Tera::new("./tests/templates/");
     let expected = read_all_expected("./tests/expected/");
 
-    for tpl in vec!["basic.html", "variables.html", "conditions.html"] {
+    for tpl in vec![
+        "basic.html", "variables.html", "conditions.html", "loops.html"
+    ] {
         assert_template_eq(
             tera.get_template(tpl).unwrap(),
             expected.get(tpl).unwrap().clone()
