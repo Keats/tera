@@ -11,9 +11,8 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::collections::BTreeMap;
 
-use tera::{Tera, Template};
+use tera::{Tera, Template, Context};
 use walkdir::WalkDir;
-use serde_json::value::{Value as Json, to_value};
 
 
 
@@ -32,7 +31,7 @@ fn read_all_expected(dir: &str) -> BTreeMap<String, String> {
             let mut f = File::open(path).unwrap();
             let mut input = String::new();
             f.read_to_string(&mut input).unwrap();
-            expected.insert(filepath.to_owned(), input);
+            expected.insert(filepath, input);
         }
     }
 
@@ -60,14 +59,14 @@ impl Product {
 
 
 fn assert_template_eq(template: &Template, expected: String) {
-    let mut data: BTreeMap<String, Json> = BTreeMap::new();
-    data.insert("product".to_owned(), to_value(&Product::new()));
-    data.insert("username".to_owned(), to_value(&"bob"));
-    data.insert("friend_reviewed".to_owned(), to_value(&true));
-    data.insert("number_reviews".to_owned(), to_value(&2));
-    data.insert("show_more".to_owned(), to_value(&true));
+    let mut context = Context::new();
+    context.add("product", &Product::new());
+    context.add("username", &"bob");
+    context.add("friend_reviewed", &true);
+    context.add("number_reviews", &2);
+    context.add("show_more", &true);
 
-    let rendered = template.render(&data);
+    let rendered = template.render(context);
     if rendered != expected {
         println!("Template {:?} was rendered incorrectly", template.name);
         println!("Got: \n {:#?}", rendered);

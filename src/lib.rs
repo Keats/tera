@@ -28,8 +28,9 @@ use std::fs::File;
 use serde::ser::Serialize;
 use walkdir::WalkDir;
 
-// Re-export templates
+// Re-export templates and context
 pub use template::Template;
+pub use context::Context;
 
 #[derive(Debug)]
 pub struct Tera {
@@ -71,7 +72,7 @@ impl Tera {
         }
     }
 
-    pub fn render<T: Serialize>(&self, template_name: &str, data: &T) -> String {
+    pub fn render(&self, template_name: &str, data: Context) -> String {
         let template = self.templates.get(template_name).unwrap(); // TODO error handling
 
         template.render(data)

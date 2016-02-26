@@ -8,26 +8,26 @@ pub type TemplateContext = BTreeMap<String, Json>;
 
 #[derive(Debug)]
 pub struct Context {
-    data: Json
+    data: BTreeMap<String, Json>,
 }
 
 impl Context {
-    pub fn new<T: Serialize>(d: &T) -> Context {
+    pub fn new() -> Context {
         Context {
-            data: to_value(d)
+            data: BTreeMap::new()
         }
     }
 
-    pub fn get(&self, path: &str) -> Option<&Json> {
-        self.data.lookup(path)
-    }
-}
+    // pub fn get(&self, path: &str) -> Option<&Json> {
+    //     self.data.lookup(path)
+    // }
 
-impl Default for Context {
-    fn default() -> Context {
-        Context {
-            data: Json::Null
-        }
+    pub fn add<T: Serialize>(&mut self, key: &str, d: &T) {
+        self.data.insert(key.to_owned(), to_value(d));
+    }
+
+    pub fn as_json(&self) -> Json {
+        to_value(&self.data)
     }
 }
 
@@ -93,58 +93,5 @@ impl JsonTruthy for Json {
             Json::Array (ref i) => !i.is_empty(),
             Json::Object (ref i) => !i.is_empty()
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{Context};
-    use std::collections::BTreeMap;
-
-    #[derive(Debug, Serialize, Clone)]
-    pub struct Score {
-        rank: i64,
-        username: String,
-    }
-
-    impl Default for Score {
-        fn default() -> Score {
-            Score {
-                rank: 42,
-                username: "Billy".to_owned()
-            }
-        }
-    }
-
-    #[test]
-    fn test_get_top_level() {
-        let mut d = BTreeMap::new();
-        d.insert("url".to_owned(), "https://wearewizards.io");
-        let context = Context::new(&d);
-
-        assert_eq!(context.get("url").unwrap().as_string().unwrap(), "https://wearewizards.io".to_owned());
-    }
-
-    #[test]
-    fn test_get_in_deep() {
-        let mut d = BTreeMap::new();
-        let score = Score::default();
-        d.insert("user".to_owned(), score.clone());
-        let context = Context::new(&d);
-        let score_rank = context.get("user.rank").unwrap().as_i64();
-
-        assert_eq!(score_rank, Some(score.rank));
-    }
-
-
-    #[test]
-    fn test_get_inexistent() {
-        let mut d = BTreeMap::new();
-        let score = Score::default();
-        d.insert("user".to_owned(), score.clone());
-        let context = Context::new(&d);
-        let score_rank = context.get("user.position");
-
-        assert_eq!(score_rank, None);
     }
 }

@@ -1,4 +1,4 @@
-use serde_json::value::{from_value};
+use serde_json::value::{Value as Json, from_value};
 
 use lexer::TokenType;
 use nodes::Node;
@@ -9,7 +9,7 @@ use context::{Context, JsonRender, JsonNumber, JsonTruthy};
 #[derive(Debug)]
 pub struct Renderer {
     output: String,
-    context: Context,
+    context: Json,
     ast: Node,
 }
 
@@ -18,7 +18,7 @@ impl Renderer {
         Renderer {
             output: String::new(),
             ast: ast,
-            context: context
+            context: context.as_json()
         }
     }
 
@@ -26,7 +26,7 @@ impl Renderer {
         match node.specific {
             Identifier(ref s) => {
                 // TODO: no unwrap here
-                let value = self.context.get(s).unwrap();
+                let value = self.context.lookup(s).unwrap();
                 value.to_number().unwrap()
             },
             Int(s) => s as f32,
@@ -58,7 +58,7 @@ impl Renderer {
             // Simple truthiness check
             Identifier(ref n) => {
                 // TODO: no unwrap here
-                let value = self.context.get(n).unwrap();
+                let value = self.context.lookup(n).unwrap();
                 value.is_truthy()
             },
             Logic { ref lhs, ref rhs, ref operator } => {
@@ -92,12 +92,12 @@ impl Renderer {
                                 panic!("Unimplemented");
                             },
                             Identifier(ref n) => {
-                                let l = self.context.get(n).unwrap();
+                                let l = self.context.lookup(n).unwrap();
                                 // who knows what rhs is
                                 // Here goes a whole new level of ugliness
                                 match rhs.specific {
                                     Identifier(ref i) => {
-                                        let r = self.context.get(i).unwrap();
+                                        let r = self.context.lookup(i).unwrap();
                                         let result = match *operator {
                                             TokenType::Equal => l == r,
                                             TokenType::NotEqual => l != r,
@@ -175,7 +175,7 @@ impl Renderer {
         match node.specific {
             Identifier(ref s) => {
                 // TODO: no unwrap here
-                let value = self.context.get(s).unwrap();
+                let value = self.context.lookup(s).unwrap();
                 self.output.push_str(&value.render());
             },
             Math { .. } => {
@@ -210,6 +210,17 @@ impl Renderer {
         };
     }
 
+    fn render_for(&mut self, local: Box<Node>, array: Box<Node>, body: Box<Node>) {
+        let local_name = match local.specific {
+            Identifier(s) => s,
+            _ => unreachable!()
+        };
+        let array_name = match array.specific {
+            Identifier(s) => s,
+            _ => unreachable!()
+        };
+    }
+
     pub fn render_node(&mut self, node: Node) {
         match node.specific {
             Text(ref s) => self.output.push_str(s),
@@ -221,6 +232,9 @@ impl Renderer {
                 for n in body {
                     self.render_node(*n);
                 }
+            },
+            For {local, array, body} => {
+                self.render_for(local, array, body);
             },
             _ => panic!("woo {:?}", node)
         }
@@ -240,63 +254,77 @@ mod tests {
     use template::Template;
     use std::collections::BTreeMap;
     use serde_json::value::{to_value};
+    use context::Context;
 
     #[test]
     fn test_render_simple_string() {
-        let result = Template::new("", "<h1>Hello world</h1>").render(&"");
+        let result = Template::new("", "<h1>Hello world</h1>").render(Context::new());
         assert_eq!(result, "<h1>Hello world</h1>".to_owned());
     }
 
     #[test]
     fn test_render_math() {
-        let result = Template::new("", "This is {{ 2000 + 16 }}.").render(&"");
+        let result = Template::new("", "This is {{ 2000 + 16 }}.").render(Context::new());
         assert_eq!(result, "This is 2016.".to_owned());
     }
 
     #[test]
     fn test_render_basic_variable() {
-        let mut d = BTreeMap::new();
-        d.insert("name".to_owned(), "Vincent");
+        let mut context = Context::new();
+        context.add("name", &"Vincent");
 
-        let result = Template::new("", "My name is {{ name }}.").render(&d);
+        let result = Template::new("", "My name is {{ name }}.").render(context);
         assert_eq!(result, "My name is Vincent.".to_owned());
     }
 
     #[test]
     fn test_render_math_with_variable() {
-        let mut d = BTreeMap::new();
-        d.insert("vat_rate".to_owned(), 0.20);
+        let mut context = Context::new();
+        context.add("vat_rate", &0.20);
 
-        let result = Template::new("", "Vat: £{{ 100 * vat_rate }}.").render(&d);
+        let result = Template::new("", "Vat: £{{ 100 * vat_rate }}.").render(context);
         assert_eq!(result, "Vat: £20.".to_owned());
     }
 
     #[test]
     fn test_render_if_simple() {
-        let mut d = BTreeMap::new();
-        d.insert("is_admin".to_owned(), true);
+        let mut context = Context::new();
+        context.add("is_admin", &true);
 
-        let result = Template::new("", "{% if is_admin %}Admin{% endif %}").render(&d);
+        let result = Template::new("", "{% if is_admin %}Admin{% endif %}").render(context);
         assert_eq!(result, "Admin".to_owned());
     }
 
     #[test]
     fn test_render_if_or_conditions() {
-        let mut d = BTreeMap::new();
-        d.insert("is_adult".to_owned(), to_value(&false));
-        d.insert("age".to_owned(), to_value(&18));
+        let mut context = Context::new();
+        context.add("is_adult", &false);
+        context.add("age", &18);
 
-        let result = Template::new("", "{% if is_adult || age + 1 > 18 %}Adult{% endif %}").render(&d);
+        let result = Template::new(
+            "",
+            "{% if is_adult || age + 1 > 18 %}Adult{% endif %}"
+        ).render(context);
         assert_eq!(result, "Adult".to_owned());
     }
 
     #[test]
     fn test_render_if_and_conditions_with_equality() {
-        let mut d = BTreeMap::new();
-        d.insert("is_adult".to_owned(), to_value(&true));
-        d.insert("age".to_owned(), to_value(&18));
+        let mut context = Context::new();
+        context.add("is_adult", &true);
+        context.add("age", &18);
 
-        let result = Template::new("", "{% if is_adult && age == 18 %}Adult{% endif %}").render(&d);
+        let result = Template::new("", "{% if is_adult && age == 18 %}Adult{% endif %}").render(context);
         assert_eq!(result, "Adult".to_owned());
     }
+
+    #[test]
+    fn test_render_for() {
+        let mut context = Context::new();
+        context.add("data", &vec![1,2,3]);
+
+        let result = Template::new("", "{% for i in data %}{{i}}{% endfor %}").render(context);
+        assert_eq!(result, "123".to_owned());
+    }
+
 }

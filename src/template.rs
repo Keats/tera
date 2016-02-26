@@ -25,8 +25,8 @@ impl Template {
         }
     }
 
-    pub fn render<T: Serialize>(&self, data: &T) -> String {
-        let mut renderer = Renderer::new(self.ast.clone(), Context::new(data));
+    pub fn render(&self, context: Context) -> String {
+        let mut renderer = Renderer::new(self.ast.clone(), context);
 
         renderer.render()
     }
