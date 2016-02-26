@@ -1,5 +1,3 @@
-use serde::ser::Serialize;
-
 use context::Context;
 use nodes::Node;
 use parser::Parser;

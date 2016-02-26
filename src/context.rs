@@ -18,10 +18,6 @@ impl Context {
         }
     }
 
-    // pub fn get(&self, path: &str) -> Option<&Json> {
-    //     self.data.lookup(path)
-    // }
-
     pub fn add<T: Serialize>(&mut self, key: &str, d: &T) {
         self.data.insert(key.to_owned(), to_value(d));
     }

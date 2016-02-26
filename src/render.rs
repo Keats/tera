@@ -6,11 +6,39 @@ use nodes::SpecificNode::*;
 use context::{Context, JsonRender, JsonNumber, JsonTruthy};
 
 
+// we need to have some data in the renderer for when we are in a ForLoop
+// For example, accessing the local variable would fail when
+// looking it up in the context
+#[derive(Debug)]
+struct ForLoop {
+    variable_name: String,
+    current: usize,
+    values: Vec<Json>
+}
+impl ForLoop {
+    pub fn new(local: String, values: Vec<Json>) -> ForLoop {
+        ForLoop {
+            variable_name: local,
+            current: 0,
+            values: values
+        }
+    }
+
+    pub fn increment(&mut self) {
+        self.current += 1;
+    }
+
+    pub fn get(&self) -> &Json {
+        self.values.get(self.current).unwrap()
+    }
+}
+
 #[derive(Debug)]
 pub struct Renderer {
     output: String,
     context: Json,
     ast: Node,
+    for_loops: Vec<ForLoop>
 }
 
 impl Renderer {
@@ -18,7 +46,8 @@ impl Renderer {
         Renderer {
             output: String::new(),
             ast: ast,
-            context: context.as_json()
+            context: context.as_json(),
+            for_loops: vec![],
         }
     }
 
@@ -174,9 +203,21 @@ impl Renderer {
     fn render_variable_block(&mut self, node: Node) {
         match node.specific {
             Identifier(ref s) => {
-                // TODO: no unwrap here
-                let value = self.context.lookup(s).unwrap();
-                self.output.push_str(&value.render());
+                if self.for_loops.is_empty() {
+                    // TODO: no unwrap here
+                    let value = self.context.lookup(s).unwrap();
+                    self.output.push_str(&value.render());
+                    return;
+                }
+
+                let for_loop = self.for_loops.last().unwrap();
+                if *s == for_loop.variable_name {
+                    self.output.push_str(&for_loop.get().render())
+                } else {
+                    // TODO: no unwrap here
+                    let value = self.context.lookup(s).unwrap();
+                    self.output.push_str(&value.render());
+                }
             },
             Math { .. } => {
                 let result = self.eval_math(&node);
@@ -219,6 +260,24 @@ impl Renderer {
             Identifier(s) => s,
             _ => unreachable!()
         };
+        // TODO: no unwrap
+        let list = self.context.lookup(&array_name).cloned().unwrap();
+        if !list.is_array() {
+            panic!("{:?} is not an array! can't iterate on it", list);
+        }
+        let deserialized = list.as_array().unwrap();
+        let length = deserialized.len();
+        self.for_loops.push(ForLoop::new(local_name, deserialized.clone()));
+        let mut i = 0;
+        loop {
+            self.render_node(*body.clone());
+            self.for_loops.last_mut().unwrap().increment();
+
+            if i == length - 1 {
+                break;
+            }
+            i += 1;
+        }
     }
 
     pub fn render_node(&mut self, node: Node) {
@@ -252,8 +311,6 @@ impl Renderer {
 #[cfg(test)]
 mod tests {
     use template::Template;
-    use std::collections::BTreeMap;
-    use serde_json::value::{to_value};
     use context::Context;
 
     #[test]

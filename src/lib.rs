@@ -25,7 +25,6 @@ use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::fs::File;
 
-use serde::ser::Serialize;
 use walkdir::WalkDir;
 
 // Re-export templates and context
