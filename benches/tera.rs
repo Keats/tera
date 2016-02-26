@@ -5,10 +5,7 @@ extern crate tera;
 extern crate serde;
 extern crate serde_json;
 
-
-use std::collections::BTreeMap;
-use serde_json::value::{Value as Json, to_value};
-use tera::Template;
+use tera::{Template, Context};
 
 
 static TEMPLATE: &'static str = "
@@ -52,9 +49,9 @@ fn bench_parsing(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering(b: &mut test::Bencher) {
     let template = Template::new("bench", TEMPLATE);
-    let mut data: BTreeMap<String, Json> = BTreeMap::new();
-    data.insert("product".to_owned(), to_value(&Product::new()));
-    data.insert("username".to_owned(), to_value(&"bob"));
+    let mut context = Context::new();
+    context.add("product", &Product::new());
+    context.add("username", &"bob");
 
-    b.iter(|| template.render(&data));
+    b.iter(|| template.render(context.clone()));
 }

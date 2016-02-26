@@ -272,7 +272,6 @@ impl Renderer {
         loop {
             self.render_node(*body.clone());
             self.for_loops.last_mut().unwrap().increment();
-
             if i == length - 1 {
                 break;
             }

@@ -6,7 +6,7 @@ use serde_json::value::{Value as Json, to_value};
 
 pub type TemplateContext = BTreeMap<String, Json>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Context {
     data: BTreeMap<String, Json>,
 }
