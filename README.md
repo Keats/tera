@@ -1,6 +1,18 @@
-# Tera
+# Tera (NOT READY)
 
 [![Build Status](https://travis-ci.org/Keats/tera.svg)](https://travis-ci.org/Keats/tera)
+
+## TODOs:
+- inherit/block tags & rendering
+- make it work on stable (while still using serde rather than rustc-serialize)
+- error handling
+- filters
+- ignore whitespace/newlines on tags
+- add {{forloop.index}} etc
+
+Other:
+- move to gitlab once CI is figured out
+
 
 ## Introduction
 Tera is a template engine based on [Jinja2](http://jinja.pocoo.org/) and the [Django template language](https://docs.djangoproject.com/en/1.9/topics/templates/).
@@ -11,7 +23,7 @@ While Tera is inspired by the engines above, it doesn't have the backward compat
 
 Example of a template file:
 
-```j2
+```jinja
 <html>
   <head>
     <title>{{ product.name }}</title>
@@ -64,7 +76,7 @@ let tera = Tera::new("./templates/");
 ```
 
 Tera will panic on invalid templates which means you should add template compilation as a build step when compiling. TODO: explain in details.
-This step is also meant to only be ran once, so you can use something like (lazy_static)[https://crates.io/crates/lazy_static] to have the `tera` variable as a global static.
+This step is also meant to only be ran once, so you can use something like [lazy_static](https://crates.io/crates/lazy_static) to have the `tera` variable as a global static.
 
 If no errors happened while parsing any of the files, you can now render a template like so:
 
@@ -79,15 +91,3 @@ tera.render("products/product.html", context);
 ```
 Notice that the name of the template is based on the root of the template directory given to the Tera instance.
 `Context` takes any primitive value or a struct that implements the `Serialize` trait from `serde_json`. 
-
-
-## TODOs:
-- inherit/block tags & rendering
-- make it work on stable (while still using serde rather than rustc-serialize)
-- error handling
-- filters
-- ignore whitespace/newlines on tags
-- add {{forloop.index}} etc
-
-Other:
-- move to gitlab once CI is figured out
