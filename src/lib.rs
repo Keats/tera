@@ -30,6 +30,7 @@ use walkdir::WalkDir;
 // Re-export templates and context
 pub use template::Template;
 pub use context::Context;
+pub use render::{RenderError};
 
 #[derive(Debug)]
 pub struct Tera {
@@ -71,7 +72,7 @@ impl Tera {
         }
     }
 
-    pub fn render(&self, template_name: &str, data: Context) -> String {
+    pub fn render(&self, template_name: &str, data: Context) -> Result<String, RenderError> {
         let template = self.templates.get(template_name).unwrap(); // TODO error handling
 
         template.render(data)

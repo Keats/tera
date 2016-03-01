@@ -1,7 +1,7 @@
 use context::Context;
 use nodes::Node;
 use parser::Parser;
-use render::Renderer;
+use render::{Renderer, RenderError};
 
 
 // This is the parsed equivalent of a html template file
@@ -23,7 +23,7 @@ impl Template {
         }
     }
 
-    pub fn render(&self, context: Context) -> String {
+    pub fn render(&self, context: Context) -> Result<String, RenderError> {
         let mut renderer = Renderer::new(self.ast.clone(), context);
 
         renderer.render()

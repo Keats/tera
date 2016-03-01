@@ -35,28 +35,34 @@ impl ForLoop {
 
 #[derive(Debug)]
 pub struct Renderer {
-    output: String,
     context: Json,
     ast: Node,
-    for_loops: Vec<ForLoop>
+    for_loops: Vec<ForLoop>,
+    render_error: Option<RenderError>
 }
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct RenderError {
+    pub message : String 
+}
+
 
 impl Renderer {
     pub fn new(ast: Node, context: Context) -> Renderer {
         Renderer {
-            output: String::new(),
             ast: ast,
             context: context.as_json(),
             for_loops: vec![],
+            render_error: None
         }
     }
 
     // Lookup a variable name from the context and takes into
     // account for loops variables
-    fn lookup_variable(&self, key: &str) -> Json {
+    fn lookup_variable(&self, key: &str) -> Option<Json> {
         if self.for_loops.is_empty() {
             // TODO: no unwrap here
-            return self.context.lookup(key).cloned().unwrap();
+            return self.context.lookup(key).cloned();
         }
 
         for for_loop in self.for_loops.iter().rev() {
@@ -66,15 +72,15 @@ impl Renderer {
                 // might be a struct or some nested structure
                 if key.contains(".") {
                     let new_key = key.split_terminator(".").skip(1).collect::<Vec<&str>>().join(".");
-                    return value.lookup(&new_key).cloned().unwrap();
+                    return value.lookup(&new_key).cloned();
                 } else {
-                    return value.clone();
+                    return Some(value.clone());
                 }
             }
         }
 
         // TODO: no unwrap here
-        return self.context.lookup(key).cloned().unwrap();
+        return self.context.lookup(key).cloned();
     }
 
     fn eval_math(&self, node: &Node) -> f32 {
@@ -226,29 +232,39 @@ impl Renderer {
     }
 
     // eval all the values in a  {{ }} block
-    fn render_variable_block(&mut self, node: Node) {
+    fn render_variable_block(&mut self, node: Node) -> Result<String, RenderError> {
         match node.specific {
             Identifier(ref s) => {
-                let value = self.lookup_variable(s);
-                self.output.push_str(&value.render());
+                if let Some(value) = self.lookup_variable(s)  {
+                    let v = value.render();   
+                    Ok(v)
+                }
+                else {
+                    Err(RenderError {
+                        message : format!("Identifier not initialized: {}", s)
+                    })
+                }
+                
             },
             Math { .. } => {
-                let result = self.eval_math(&node);
-                self.output.push_str(&result.to_string());
+                let result_string = self.eval_math(&node).to_string();
+                Ok(result_string)
             }
             _ => unreachable!()
         }
     }
 
     // evaluates conditions and render bodies accordingly
-    fn render_if(&mut self, condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>) {
+    fn render_if(&mut self, condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>) 
+        -> Result<String, RenderError> {
         let mut skip_else = false;
+        let mut output = String::new();
         for node in condition_nodes {
             match node.specific {
                 Conditional {ref condition, ref body } => {
                     if self.eval_condition(condition) {
                         skip_else = true;
-                        self.render_node(*body.clone());
+                        output.push_str(&try!(self.render_node(*body.clone())));
                     }
                 },
                 _ => unreachable!()
@@ -256,15 +272,20 @@ impl Renderer {
         }
 
         if skip_else {
-            return;
+            return Ok(output);
         }
 
         if let Some(e) = else_node {
-            self.render_node(*e)
+            output.push_str(&try!(self.render_node(*e)));
         };
+
+        Ok(output)
     }
 
-    fn render_for(&mut self, local: Box<Node>, array: Box<Node>, body: Box<Node>) {
+    fn render_for(&mut self, local: Box<Node>, array: Box<Node>, body: Box<Node>) 
+        -> Result<String, RenderError> {
+        let mut output = String::new();
+
         let local_name = match local.specific {
             Identifier(s) => s,
             _ => unreachable!()
@@ -275,50 +296,57 @@ impl Renderer {
         };
         // TODO: no unwrap
         println!("{:?}", array_name);
-        let list = self.lookup_variable(&array_name);
+        let list = self.lookup_variable(&array_name).unwrap();
+
 
         if !list.is_array() {
-            panic!("{:?} is not an array! can't iterate on it", list);
+            return Err(RenderError { 
+                message : format!("{:?} is not an array! can't iterate on it", 
+            list) });
         }
         let deserialized = list.as_array().unwrap();
         let length = deserialized.len();
         self.for_loops.push(ForLoop::new(local_name, deserialized.clone()));
         let mut i = 0;
         loop {
-            self.render_node(*body.clone());
+            output.push_str(&try!(self.render_node(*body.clone())));
             self.for_loops.last_mut().unwrap().increment();
             if i == length - 1 {
                 break;
             }
             i += 1;
         }
+        Ok(output)
     }
 
-    pub fn render_node(&mut self, node: Node) {
+    pub fn render_node(&mut self, node: Node) -> Result<String, RenderError> {
         match node.specific {
-            Text(ref s) => self.output.push_str(s),
+            Text(ref s) => Ok(s.to_string()),
             VariableBlock(s) => self.render_variable_block(*s),
             If {ref condition_nodes, ref else_node} => {
-                self.render_if(condition_nodes.clone(), else_node.clone());
+                self.render_if(condition_nodes.clone(), else_node.clone())
             },
             List(body) => {
+                let mut output = String::new();
                 for n in body {
-                    self.render_node(*n);
+                    output.push_str(&try!(self.render_node(*n)));
                 }
+                Ok(output)
             },
             For {local, array, body} => {
-                self.render_for(local, array, body);
+                self.render_for(local, array, body)
             },
-            _ => panic!("woo {:?}", node)
+            n => Err(RenderError {message : format!("Unknown node {:?}", n)})
         }
     }
 
-    pub fn render(&mut self) -> String {
+    pub fn render(&mut self) -> Result<String, RenderError> {
+        let mut output = String::new();
         for node in self.ast.get_children() {
-            self.render_node(*node);
+            output.push_str(&try!(self.render_node(*node)));
         }
 
-        self.output.clone()
+        Ok(output)
     }
 }
 
@@ -330,13 +358,25 @@ mod tests {
     #[test]
     fn test_render_simple_string() {
         let result = Template::new("", "<h1>Hello world</h1>").render(Context::new());
-        assert_eq!(result, "<h1>Hello world</h1>".to_owned());
+        assert_eq!(result, Ok("<h1>Hello world</h1>".to_owned()));
     }
 
     #[test]
-    fn test_render_math() {
+    fn test_render_missing_variable_error() {
+        let result = Template::new("", "<h1>{{ product }}</h1>").render(Context::new());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_render_missing_variable_and_field_error() {
+        let result = Template::new("", "<h1>{{ product.nonexistent_field }}</h1>").render(Context::new());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_render_math_addition() {
         let result = Template::new("", "This is {{ 2000 + 16 }}.").render(Context::new());
-        assert_eq!(result, "This is 2016.".to_owned());
+        assert_eq!(result, Ok("This is 2016.".to_owned()));
     }
 
     #[test]
@@ -345,7 +385,7 @@ mod tests {
         context.add("name", &"Vincent");
 
         let result = Template::new("", "My name is {{ name }}.").render(context);
-        assert_eq!(result, "My name is Vincent.".to_owned());
+        assert_eq!(result, Ok("My name is Vincent.".to_owned()));
     }
 
     #[test]
@@ -354,7 +394,7 @@ mod tests {
         context.add("vat_rate", &0.20);
 
         let result = Template::new("", "Vat: £{{ 100 * vat_rate }}.").render(context);
-        assert_eq!(result, "Vat: £20.".to_owned());
+        assert_eq!(result, Ok("Vat: £20.".to_owned()));
     }
 
     #[test]
@@ -363,7 +403,7 @@ mod tests {
         context.add("is_admin", &true);
 
         let result = Template::new("", "{% if is_admin %}Admin{% endif %}").render(context);
-        assert_eq!(result, "Admin".to_owned());
+        assert_eq!(result, Ok("Admin".to_owned()));
     }
 
     #[test]
@@ -376,7 +416,7 @@ mod tests {
             "",
             "{% if is_adult || age + 1 > 18 %}Adult{% endif %}"
         ).render(context);
-        assert_eq!(result, "Adult".to_owned());
+        assert_eq!(result, Ok("Adult".to_owned()));
     }
 
     #[test]
@@ -386,7 +426,7 @@ mod tests {
         context.add("age", &18);
 
         let result = Template::new("", "{% if is_adult && age == 18 %}Adult{% endif %}").render(context);
-        assert_eq!(result, "Adult".to_owned());
+        assert_eq!(result, Ok("Adult".to_owned()));
     }
 
     #[test]
@@ -395,7 +435,7 @@ mod tests {
         context.add("data", &vec![1,2,3]);
 
         let result = Template::new("", "{% for i in data %}{{i}}{% endfor %}").render(context);
-        assert_eq!(result, "123".to_owned());
+        assert_eq!(result, Ok("123".to_owned()));
     }
 
 }
