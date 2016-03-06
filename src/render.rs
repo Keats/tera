@@ -5,7 +5,6 @@ use nodes::Node;
 use nodes::SpecificNode::*;
 use context::{Context, JsonRender, JsonNumber, JsonTruthy};
 
-
 // we need to have some data in the renderer for when we are in a ForLoop
 // For example, accessing the local variable would fail when
 // looking it up in the context
@@ -38,16 +37,18 @@ pub struct Renderer {
     output: String,
     context: Json,
     ast: Node,
-    for_loops: Vec<ForLoop>
+    for_loops: Vec<ForLoop>,
+    ignore_missing: bool
 }
 
 impl Renderer {
-    pub fn new(ast: Node, context: Context) -> Renderer {
+    pub fn new(ast: Node, context: Context, ignore_missing: bool) -> Renderer {
         Renderer {
             output: String::new(),
             ast: ast,
             context: context.as_json(),
             for_loops: vec![],
+            ignore_missing: ignore_missing
         }
     }
 
@@ -56,7 +57,17 @@ impl Renderer {
     fn lookup_variable(&self, key: &str) -> Json {
         if self.for_loops.is_empty() {
             // TODO: no unwrap here
-            return self.context.lookup(key).cloned().unwrap();
+
+            return match self.context.lookup(key).cloned() {
+                Some(value) => value,
+                None => {
+                    if self.ignore_missing {
+                        return Json::String([ "TERA_UNRESOLVED:", key ].concat())
+                    } else {
+                        panic!("Renderer could not resolve {:?}", key)
+                    }
+                }
+            }
         }
 
         for for_loop in self.for_loops.iter().rev() {

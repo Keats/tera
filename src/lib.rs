@@ -70,11 +70,23 @@ impl Tera {
             templates: templates
         }
     }
+    pub fn once(file: &str) -> Tera {
+        let mut templates = BTreeMap::new();
+
+        let mut f = File::open(file).unwrap();
+        let mut input = String::new();
+        f.read_to_string(&mut input).unwrap();
+        templates.insert(file.to_owned(), Template::new(&file, &input));
+
+        Tera {
+            templates: templates
+        }
+    }
 
     pub fn render(&self, template_name: &str, data: Context) -> String {
         let template = self.templates.get(template_name).unwrap(); // TODO error handling
 
-        template.render(data)
+        template.render(data, false)
     }
 
     pub fn get_template(&self, template_name: &str) -> Option<&Template> {

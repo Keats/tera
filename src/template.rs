@@ -23,8 +23,8 @@ impl Template {
         }
     }
 
-    pub fn render(&self, context: Context) -> String {
-        let mut renderer = Renderer::new(self.ast.clone(), context);
+    pub fn render(&self, context: Context, ignore_missing: bool) -> String {
+        let mut renderer = Renderer::new(self.ast.clone(), context, ignore_missing);
 
         renderer.render()
     }
