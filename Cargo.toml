@@ -1,22 +1,26 @@
 [package]
+authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
 name = "tera"
 version = "0.1.0"
-authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
 
 [dependencies]
-walkdir = "0.1"
+glob = "0.2.11"
 serde = "0.7"
 serde_json = "0.7"
 serde_macros = "0.7"
-clippy = {version = "~0.0.35", optional = true}
+# walkdir = "0.1"
 
+[dependencies.clippy]
+optional = true
+version = "~0.0.35"
 
 [features]
 default = []
 dev = ["clippy"]
 
+[profile]
 
 [profile.bench]
-lto = true
 codegen-units = 1
+lto = true
 opt-level = 3

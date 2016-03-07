@@ -8,7 +8,7 @@
 #![plugin(serde_macros)]
 extern crate serde;
 extern crate serde_json;
-extern crate walkdir;
+extern crate glob;
 
 mod lexer;
 mod nodes;
@@ -24,8 +24,7 @@ mod template;
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::fs::File;
-
-use walkdir::WalkDir;
+use glob::glob;
 
 // Re-export templates and context
 pub use template::Template;
@@ -51,8 +50,8 @@ impl Tera {
         let mut templates = BTreeMap::new();
 
         // We are parsing all the templates on instantiation
-        for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
-            let path = entry.path();
+        for entry in glob(dir).unwrap().filter_map(|e| e.ok()) {
+            let path = entry.as_path();
             // We only care about actual files
             if path.is_file() {
                 // We clean the filename by removing the dir given
