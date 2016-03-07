@@ -37,8 +37,7 @@ impl ForLoop {
 pub struct Renderer {
     context: Json,
     ast: Node,
-    for_loops: Vec<ForLoop>,
-    render_error: Option<RenderError>
+    for_loops: Vec<ForLoop>
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -52,8 +51,7 @@ impl Renderer {
         Renderer {
             ast: ast,
             context: context.as_json(),
-            for_loops: vec![],
-            render_error: None
+            for_loops: vec![]
         }
     }
 
