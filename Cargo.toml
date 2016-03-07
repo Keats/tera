@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
 
 [dependencies]
-walkdir = "0.1"
+glob = "0.2"
 serde = "0.7"
 serde_json = "0.7"
 serde_macros = "0.7"

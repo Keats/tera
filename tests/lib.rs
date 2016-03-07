@@ -5,14 +5,14 @@
 extern crate serde;
 extern crate serde_json;
 extern crate tera;
-extern crate walkdir;
+extern crate glob;
 
 use std::io::prelude::*;
 use std::fs::File;
 use std::collections::BTreeMap;
 
 use tera::{Tera, Template, Context};
-use walkdir::WalkDir;
+use glob::glob;
 
 
 
@@ -20,13 +20,14 @@ use walkdir::WalkDir;
 fn read_all_expected(dir: &str) -> BTreeMap<String, String> {
     let mut expected = BTreeMap::new();
 
-    for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
-        let path = entry.path();
+    for entry in glob(dir).unwrap().filter_map(|e| e.ok()) {
+        let path = entry.as_path();
         // We only care about actual files
         if path.is_file() {
             // We clean the filename by removing the dir given
             // to Tera so users don't have to prefix everytime
-            let filepath = path.to_string_lossy().replace(dir, "");
+            let parent_dir = dir.split_at(dir.find("*").unwrap()).0;
+            let filepath = path.to_string_lossy().replace(parent_dir, "");
             // we know the file exists so unwrap all the things
             let mut f = File::open(path).unwrap();
             let mut input = String::new();
@@ -98,8 +99,8 @@ fn assert_template_eq(template: &Template, expected: String) {
 
 #[test]
 fn test_templates() {
-    let tera = Tera::new("./tests/templates/");
-    let expected = read_all_expected("./tests/expected/");
+    let tera = Tera::new("tests/templates/**/*");
+    let expected = read_all_expected("tests/expected/**/*");
 
     for tpl in vec![
         "basic.html", "variables.html", "conditions.html", "loops.html"

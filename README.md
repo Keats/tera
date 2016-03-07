@@ -72,7 +72,8 @@ Assuming the rust file is at the same level as the `templates` folder, we would 
 ```rust
 use tera::Tera;
 
-let tera = Tera::new("./templates/");
+// Use globbing
+let tera = Tera::new("templates/**/*");
 ```
 
 Tera will panic on invalid templates which means you should add template compilation as a build step when compiling. TODO: explain in details.
