@@ -12,6 +12,8 @@ pub enum TokenType {
     Identifier, // variable name for example
     TagStart, // {%
     TagEnd, // %}
+    TagStartLStrip, // {%-
+    TagEndLStrip, // -%}
     Int,
     Float,
     Bool,
@@ -269,8 +271,14 @@ impl Lexer {
         self.position += 2;
         match self.current_block_type {
             BlockType::Block => match side {
-                DelimiterSide::Left => self.add_token(TokenType::TagStart),
-                DelimiterSide::Right => self.add_token(TokenType::TagEnd),
+                DelimiterSide::Left => {
+                    self.add_token(TokenType::TagStart);
+                    self.add_token(TokenType::TagStartLStrip);
+                },
+                DelimiterSide::Right => {
+                    self.add_token(TokenType::TagEnd);
+                    self.add_token(TokenType::TagEndLStrip)
+                },
             },
             BlockType::Variable => match side {
                 DelimiterSide::Left => self.add_token(TokenType::VariableStart),
@@ -295,6 +303,10 @@ fn lex_text(lexer: &mut Lexer) -> StateFn {
                 if lexer.starts_with("{{") {
                     lexer.add_text_token();
                     lexer.current_block_type = BlockType::Variable;
+                    return lexer.add_delimiter(DelimiterSide::Left);
+                } else if lexer.starts_with("{%-") {
+                    lexer.add_text_token();
+                    lexer.current_block_type = BlockType::Block;
                     return lexer.add_delimiter(DelimiterSide::Left);
                 } else if lexer.starts_with("{%") {
                     lexer.add_text_token();
@@ -376,7 +388,7 @@ fn lex_identifier(lexer: &mut Lexer) -> StateFn {
 fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
     while !lexer.is_over() {
         // Check if we are at the end of the block
-        if lexer.starts_with("}}") || lexer.starts_with("%}") {
+        if lexer.starts_with("}}") || lexer.starts_with("%}") || lexer.starts_with("-%}"){
             return lexer.add_delimiter(DelimiterSide::Right);
         }
 
@@ -455,6 +467,8 @@ mod tests {
     }
     const T_TAG_START: TokenTest<'static> = TokenTest { kind: TagStart, value: "{%"};
     const T_TAG_END: TokenTest<'static> = TokenTest { kind: TagEnd, value: "%}"};
+    const T_TAG_START_LSTRIP: TokenTest<'static> = TokenTest { kind: TagStartLStrip, value: "{%-"};
+    const T_TAG_END_LSTRIP: TokenTest<'static> = TokenTest { kind: TagEndLStrip, value: "-%}"};
     const T_VARIABLE_START: TokenTest<'static> = TokenTest { kind: VariableStart, value: "{{"};
     const T_VARIABLE_END: TokenTest<'static> = TokenTest { kind: VariableEnd, value: "}}"};
     const T_EOF: TokenTest<'static> = TokenTest { kind: Eof, value: ""};
