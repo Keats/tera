@@ -16,7 +16,7 @@ mod parser;
 mod context;
 mod render;
 mod template;
-
+mod error;
 
 
 // The actual api
@@ -30,6 +30,7 @@ use glob::glob;
 // Re-export templates and context
 pub use template::Template;
 pub use context::Context;
+pub use error::{TemplateError, ErrorKind};
 
 #[derive(Debug)]
 pub struct Tera {
@@ -68,7 +69,9 @@ impl Tera {
                 let mut f = File::open(path).unwrap();
                 let mut input = String::new();
                 f.read_to_string(&mut input).unwrap();
-                templates.insert(filepath.to_owned(), Template::new(&filepath, &input));
+                if let Ok(new_template) = Template::new(&filepath, &input) {
+                    templates.insert(filepath.to_owned(), new_template);
+                }
             }
         }
 
@@ -77,7 +80,7 @@ impl Tera {
         }
     }
 
-    pub fn render(&self, template_name: &str, data: Context) -> String {
+    pub fn render(&self, template_name: &str, data: Context) -> Result<String, TemplateError> {
         let template = self.templates.get(template_name).unwrap(); // TODO error handling
 
         template.render(data)
