@@ -1,6 +1,23 @@
 use lexer::{Lexer, TokenType, Token};
 use nodes::{Node, SpecificNode};
 
+#[derive(Debug)]
+pub struct ParseError {
+    pub message : String, 
+    pub line : usize,
+    pub column : usize
+}
+
+impl ParseError {
+    pub fn new(message : &str, line : usize, column : usize) -> ParseError {
+        ParseError {
+            message : message.to_string(),
+            line : line,
+            column: column
+        }
+    }
+}
+
 // TODO: vec![block_type]
 
 // Keeps track of which tag we are currently in
@@ -28,7 +45,7 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(name: &str, text: &str) -> Parser {
+    pub fn new(name: &str, text: &str) -> Result<Parser, ParseError> {
         let mut lexer = Lexer::new(name, text);
         lexer.run();
 
@@ -42,9 +59,10 @@ impl Parser {
             currently_in: vec![],
             tag_nodes: vec![],
         };
+
         parser.parse();
 
-        parser
+        Ok(parser)
     }
 
     // Main loop of the parser, stops when we are at EOF or
@@ -446,14 +464,14 @@ mod tests {
     }
 
     fn test_parser(input: &str, expected: Vec<SpecificNode>) {
-        let parser = Parser::new("dummy", input);
+        let parser = Parser::new("dummy", input).unwrap();
         let children = parser.root.get_children();
         compared_expected(expected, children)
     }
 
     #[test]
     fn test_empty() {
-        let parser = Parser::new("empty", "");
+        let parser = Parser::new("empty", "").unwrap();
         assert_eq!(0, parser.root.len());
     }
 

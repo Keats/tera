@@ -355,25 +355,25 @@ mod tests {
 
     #[test]
     fn test_render_simple_string() {
-        let result = Template::new("", "<h1>Hello world</h1>").render(Context::new());
+        let result = Template::new("", "<h1>Hello world</h1>").unwrap().render(Context::new());
         assert_eq!(result, Ok("<h1>Hello world</h1>".to_owned()));
     }
 
     #[test]
     fn test_render_missing_variable_error() {
-        let result = Template::new("", "<h1>{{ product }}</h1>").render(Context::new());
+        let result = Template::new("", "<h1>{{ product }}</h1>").unwrap().render(Context::new());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_render_missing_variable_and_field_error() {
-        let result = Template::new("", "<h1>{{ product.nonexistent_field }}</h1>").render(Context::new());
+        let result = Template::new("", "<h1>{{ product.nonexistent_field }}</h1>").unwrap().render(Context::new());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_render_math_addition() {
-        let result = Template::new("", "This is {{ 2000 + 16 }}.").render(Context::new());
+        let result = Template::new("", "This is {{ 2000 + 16 }}.").unwrap().render(Context::new());
         assert_eq!(result, Ok("This is 2016.".to_owned()));
     }
 
@@ -382,7 +382,7 @@ mod tests {
         let mut context = Context::new();
         context.add("name", &"Vincent");
 
-        let result = Template::new("", "My name is {{ name }}.").render(context);
+        let result = Template::new("", "My name is {{ name }}.").unwrap().render(context);
         assert_eq!(result, Ok("My name is Vincent.".to_owned()));
     }
 
@@ -391,7 +391,7 @@ mod tests {
         let mut context = Context::new();
         context.add("vat_rate", &0.20);
 
-        let result = Template::new("", "Vat: £{{ 100 * vat_rate }}.").render(context);
+        let result = Template::new("", "Vat: £{{ 100 * vat_rate }}.").unwrap().render(context);
         assert_eq!(result, Ok("Vat: £20.".to_owned()));
     }
 
@@ -400,7 +400,7 @@ mod tests {
         let mut context = Context::new();
         context.add("is_admin", &true);
 
-        let result = Template::new("", "{% if is_admin %}Admin{% endif %}").render(context);
+        let result = Template::new("", "{% if is_admin %}Admin{% endif %}").unwrap().render(context);
         assert_eq!(result, Ok("Admin".to_owned()));
     }
 
@@ -413,7 +413,7 @@ mod tests {
         let result = Template::new(
             "",
             "{% if is_adult || age + 1 > 18 %}Adult{% endif %}"
-        ).render(context);
+        ).unwrap().render(context);
         assert_eq!(result, Ok("Adult".to_owned()));
     }
 
@@ -423,7 +423,7 @@ mod tests {
         context.add("is_adult", &true);
         context.add("age", &18);
 
-        let result = Template::new("", "{% if is_adult && age == 18 %}Adult{% endif %}").render(context);
+        let result = Template::new("", "{% if is_adult && age == 18 %}Adult{% endif %}").unwrap().render(context);
         assert_eq!(result, Ok("Adult".to_owned()));
     }
 
@@ -432,7 +432,7 @@ mod tests {
         let mut context = Context::new();
         context.add("data", &vec![1,2,3]);
 
-        let result = Template::new("", "{% for i in data %}{{i}}{% endfor %}").render(context);
+        let result = Template::new("", "{% for i in data %}{{i}}{% endfor %}").unwrap().render(context);
         assert_eq!(result, Ok("123".to_owned()));
     }
 

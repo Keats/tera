@@ -1,6 +1,6 @@
 use context::Context;
 use nodes::Node;
-use parser::Parser;
+use parser::{Parser, ParseError};
 use render::{Renderer, RenderError};
 
 
@@ -14,13 +14,13 @@ pub struct Template {
 }
 
 impl Template {
-    pub fn new(name: &str, input: &str) -> Template {
-        let parser = Parser::new(&name, input);
+    pub fn new(name: &str, input: &str) -> Result<Template, ParseError> {
+        let parser = try!(Parser::new(&name, input));
 
-        Template {
+        Ok(Template {
             name: name.to_owned(),
             ast: parser.root
-        }
+        })
     }
 
     pub fn render(&self, context: Context) -> Result<String, RenderError> {

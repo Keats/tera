@@ -63,7 +63,9 @@ impl Tera {
                 let mut f = File::open(path).unwrap();
                 let mut input = String::new();
                 f.read_to_string(&mut input).unwrap();
-                templates.insert(filepath.to_owned(), Template::new(&filepath, &input));
+                if let Ok(new_template) = Template::new(&filepath, &input) {
+                    templates.insert(filepath.to_owned(), new_template);
+                }
             }
         }
 
