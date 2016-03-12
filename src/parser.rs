@@ -1,23 +1,6 @@
 use lexer::{Lexer, TokenType, Token};
 use nodes::{Node, SpecificNode};
-
-#[derive(Debug)]
-pub struct ParseError {
-    pub message : String, 
-    pub line : usize,
-    pub column : usize
-}
-
-impl ParseError {
-    pub fn new(message : &str, line : usize, column : usize) -> ParseError {
-        ParseError {
-            message : message.to_string(),
-            line : line,
-            column: column
-        }
-    }
-}
-
+use error::{TemplateError};
 // TODO: vec![block_type]
 
 // Keeps track of which tag we are currently in
@@ -45,7 +28,7 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(name: &str, text: &str) -> Result<Parser, ParseError> {
+    pub fn new(name: &str, text: &str) -> Result<Parser, TemplateError> {
         let mut lexer = Lexer::new(name, text);
         lexer.run();
 

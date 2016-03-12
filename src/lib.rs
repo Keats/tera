@@ -16,7 +16,7 @@ mod parser;
 mod context;
 mod render;
 mod template;
-
+mod error;
 
 
 // The actual api
@@ -30,7 +30,7 @@ use walkdir::WalkDir;
 // Re-export templates and context
 pub use template::Template;
 pub use context::Context;
-pub use render::{RenderError};
+pub use error::{TemplateError, ErrorKind};
 
 #[derive(Debug)]
 pub struct Tera {
@@ -74,7 +74,7 @@ impl Tera {
         }
     }
 
-    pub fn render(&self, template_name: &str, data: Context) -> Result<String, RenderError> {
+    pub fn render(&self, template_name: &str, data: Context) -> Result<String, TemplateError> {
         let template = self.templates.get(template_name).unwrap(); // TODO error handling
 
         template.render(data)

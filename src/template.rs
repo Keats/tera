@@ -1,7 +1,8 @@
 use context::Context;
 use nodes::Node;
-use parser::{Parser, ParseError};
-use render::{Renderer, RenderError};
+use parser::{Parser};
+use render::{Renderer};
+use error::{TemplateError};
 
 
 // This is the parsed equivalent of a html template file
@@ -14,7 +15,7 @@ pub struct Template {
 }
 
 impl Template {
-    pub fn new(name: &str, input: &str) -> Result<Template, ParseError> {
+    pub fn new(name: &str, input: &str) -> Result<Template, TemplateError> {
         let parser = try!(Parser::new(&name, input));
 
         Ok(Template {
@@ -23,7 +24,7 @@ impl Template {
         })
     }
 
-    pub fn render(&self, context: Context) -> Result<String, RenderError> {
+    pub fn render(&self, context: Context) -> Result<String, TemplateError> {
         let mut renderer = Renderer::new(self.ast.clone(), context);
 
         renderer.render()

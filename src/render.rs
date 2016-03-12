@@ -4,7 +4,7 @@ use lexer::TokenType;
 use nodes::Node;
 use nodes::SpecificNode::*;
 use context::{Context, JsonRender, JsonNumber, JsonTruthy};
-
+use error::{TemplateError, ErrorKind};
 
 // we need to have some data in the renderer for when we are in a ForLoop
 // For example, accessing the local variable would fail when
@@ -38,11 +38,6 @@ pub struct Renderer {
     context: Json,
     ast: Node,
     for_loops: Vec<ForLoop>
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct RenderError {
-    pub message : String 
 }
 
 
@@ -230,7 +225,7 @@ impl Renderer {
     }
 
     // eval all the values in a  {{ }} block
-    fn render_variable_block(&mut self, node: Node) -> Result<String, RenderError> {
+    fn render_variable_block(&mut self, node: Node) -> Result<String, TemplateError> {
         match node.specific {
             Identifier(ref s) => {
                 if let Some(value) = self.lookup_variable(s)  {
@@ -238,8 +233,9 @@ impl Renderer {
                     Ok(v)
                 }
                 else {
-                    Err(RenderError {
-                        message : format!("Identifier not initialized: {}", s)
+                    Err(TemplateError {
+                        message : format!("This variable has not been initialised: {}", s),
+                        kind: ErrorKind::IdentifierUndefined
                     })
                 }
                 
@@ -254,7 +250,7 @@ impl Renderer {
 
     // evaluates conditions and render bodies accordingly
     fn render_if(&mut self, condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>) 
-        -> Result<String, RenderError> {
+        -> Result<String, TemplateError> {
         let mut skip_else = false;
         let mut output = String::new();
         for node in condition_nodes {
@@ -281,7 +277,7 @@ impl Renderer {
     }
 
     fn render_for(&mut self, local: Box<Node>, array: Box<Node>, body: Box<Node>) 
-        -> Result<String, RenderError> {
+        -> Result<String, TemplateError> {
         let mut output = String::new();
 
         let local_name = match local.specific {
@@ -298,9 +294,10 @@ impl Renderer {
 
 
         if !list.is_array() {
-            return Err(RenderError { 
-                message : format!("{:?} is not an array! can't iterate on it", 
-            list) });
+            return Err(TemplateError { 
+                message : format!("{:?} is not an array so cannot iterate on it", list),
+                kind: ErrorKind::ObjectNotIterable
+            });
         }
         let deserialized = list.as_array().unwrap();
         let length = deserialized.len();
@@ -317,7 +314,7 @@ impl Renderer {
         Ok(output)
     }
 
-    pub fn render_node(&mut self, node: Node) -> Result<String, RenderError> {
+    pub fn render_node(&mut self, node: Node) -> Result<String, TemplateError> {
         match node.specific {
             Text(ref s) => Ok(s.to_string()),
             VariableBlock(s) => self.render_variable_block(*s),
@@ -334,11 +331,14 @@ impl Renderer {
             For {local, array, body} => {
                 self.render_for(local, array, body)
             },
-            n => Err(RenderError {message : format!("Unknown node {:?}", n)})
+            n => Err(TemplateError { 
+                message : format!("Unexpected node {:?}", n),
+                kind: ErrorKind::Internal
+            })
         }
     }
 
-    pub fn render(&mut self) -> Result<String, RenderError> {
+    pub fn render(&mut self) -> Result<String, TemplateError> {
         let mut output = String::new();
         for node in self.ast.get_children() {
             output.push_str(&try!(self.render_node(*node)));
