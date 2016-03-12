@@ -238,7 +238,6 @@ impl Renderer {
                         kind: ErrorKind::IdentifierUndefined
                     })
                 }
-                
             },
             Math { .. } => {
                 let result_string = self.eval_math(&node).to_string();
@@ -316,7 +315,7 @@ impl Renderer {
 
     pub fn render_node(&mut self, node: Node) -> Result<String, TemplateError> {
         match node.specific {
-            Text(ref s) => Ok(s.to_string()),
+            Text(ref s) => Ok(s.to_owned()),
             VariableBlock(s) => self.render_variable_block(*s),
             If {ref condition_nodes, ref else_node} => {
                 self.render_if(condition_nodes.clone(), else_node.clone())
