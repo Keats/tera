@@ -12,6 +12,7 @@ pub enum TokenType {
     Identifier, // variable name for example
     TagStart, // {%
     TagEnd, // %}
+    String,
     Int,
     Float,
     Bool,
@@ -38,6 +39,9 @@ pub enum TokenType {
     For,
     In,
     Endfor,
+    Block,
+    Endblock,
+    Extends
 }
 
 impl fmt::Display for TokenType {
@@ -364,11 +368,23 @@ fn lex_identifier(lexer: &mut Lexer) -> StateFn {
                     "in" => lexer.add_token(TokenType::In),
                     "endfor" => lexer.add_token(TokenType::Endfor),
                     "true" | "false" => lexer.add_token(TokenType::Bool),
+                    "block" => lexer.add_token(TokenType::Block),
+                    "endblock" => lexer.add_token(TokenType::Endblock),
+                    "extends" => lexer.add_token(TokenType::Extends),
                     _ => lexer.add_token(TokenType::Identifier)
                 }
 
                 return StateFn(Some(lex_inside_block));
             }
+        }
+    }
+}
+
+fn lex_string(lexer: &mut Lexer) -> StateFn {
+    loop {
+        if lexer.next_char() == '"' {
+            lexer.add_token(TokenType::String);
+            return StateFn(Some(lex_inside_block));
         }
     }
 }
@@ -384,6 +400,7 @@ fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
             x if x.is_whitespace() => { return StateFn(Some(lex_space)); }
             x if x.is_numeric() => { return StateFn(Some(lex_number)); }
             x if x.is_alphabetic() || x == '_' || x == '.' => { return StateFn(Some(lex_identifier)); }
+            '"' => { return StateFn(Some(lex_string)); },
             '-' => lexer.add_token(TokenType::Substract),
             '+' => lexer.add_token(TokenType::Add),
             '*' => lexer.add_token(TokenType::Multiply),
@@ -470,6 +487,9 @@ mod tests {
     const T_FOR: TokenTest<'static> = TokenTest { kind: For, value: "for"};
     const T_IN: TokenTest<'static> = TokenTest { kind: In, value: "in"};
     const T_ENDFOR: TokenTest<'static> = TokenTest { kind: Endfor, value: "endfor"};
+    const T_BLOCK: TokenTest<'static> = TokenTest { kind: Block, value: "block"};
+    const T_ENDBLOCK: TokenTest<'static> = TokenTest { kind: Endblock, value: "endblock"};
+    const T_EXTENDS: TokenTest<'static> = TokenTest { kind: Extends, value: "extends"};
     const T_GREATER: TokenTest<'static> = TokenTest { kind: Greater, value: ">"};
     const T_GREATER_OR_EQUAL: TokenTest<'static> = TokenTest { kind: GreaterOrEqual, value: ">="};
     const T_LOWER: TokenTest<'static> = TokenTest { kind: Lower, value: "<"};
@@ -481,6 +501,10 @@ mod tests {
 
     fn identifier_token(ident: &str) -> TokenTest {
         TokenTest::new(Identifier, ident)
+    }
+
+    fn string_token(string: &str) -> TokenTest {
+        TokenTest::new(String, string)
     }
 
     fn text_token(text: &str) -> TokenTest {
@@ -606,7 +630,7 @@ mod tests {
     }
 
     #[test]
-    fn test_block() {
+    fn test_tag() {
         let expected = vec![
             text_token("Hello "),
             T_TAG_START, T_SPACE,
@@ -642,5 +666,42 @@ mod tests {
     fn test_invalid_number() {
         let expected = vec![T_VARIABLE_START, error_token("Two dots in a number")];
         test_tokens("{{1.2.2", expected);
+    }
+
+    #[test]
+    fn test_block() {
+        let expected = vec![
+            T_TAG_START,
+            T_SPACE,
+            T_BLOCK,
+            T_SPACE,
+            identifier_token("hello"),
+            T_SPACE,
+            T_TAG_END,
+            T_TAG_START,
+            T_SPACE,
+            T_ENDBLOCK,
+            T_SPACE,
+            identifier_token("hello"),
+            T_SPACE,
+            T_TAG_END,
+            T_EOF
+        ];
+        test_tokens("{% block hello %}{% endblock hello %}", expected);
+    }
+
+    #[test]
+    fn test_extends() {
+        let expected = vec![
+            T_TAG_START,
+            T_SPACE,
+            T_EXTENDS,
+            T_SPACE,
+            string_token("\"main.html\""),
+            T_SPACE,
+            T_TAG_END,
+            T_EOF
+        ];
+        test_tokens("{% extends \"main.html\" %}", expected);
     }
 }
