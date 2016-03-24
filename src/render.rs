@@ -274,8 +274,7 @@ impl Renderer {
             Identifier(s) => s,
             _ => unreachable!()
         };
-        // TODO: no unwrap
-        println!("{:?}", array_name);
+
         let list = self.lookup_variable(&array_name);
 
         if !list.is_array() {
