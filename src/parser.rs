@@ -414,7 +414,7 @@ impl Parser {
                 Box::new(Node::new(literal.position, SpecificNode::Float(value)))
             },
             TokenType::Bool => {
-                let value = if literal.value == "false" { false } else { true };
+                let value = literal.value == "true";
                 Box::new(Node::new(literal.position, SpecificNode::Bool(value)))
             },
             _ => unreachable!()
