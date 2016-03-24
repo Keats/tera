@@ -27,6 +27,12 @@ impl Context {
     }
 }
 
+impl Default for Context {
+    fn default() -> Context {
+        Context::new()
+    }
+}
+
 pub trait JsonRender {
     fn render(&self) -> String;
 }

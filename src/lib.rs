@@ -49,7 +49,7 @@ pub struct Tera {
 impl Tera {
     pub fn new(dir: &str) -> Tera {
         // TODO: add tests
-        if dir.find("*").is_none() {
+        if dir.find('*').is_none() {
             panic!("Tera expects a glob as input, no * were found in {}", dir);
         }
 
@@ -62,7 +62,7 @@ impl Tera {
             if path.is_file() {
                 // We clean the filename by removing the dir given
                 // to Tera so users don't have to prefix everytime
-                let parent_dir = dir.split_at(dir.find("*").unwrap()).0;
+                let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
                 let filepath = path.to_string_lossy().replace(parent_dir, "");
                 // we know the file exists so unwrap all the things
                 let mut f = File::open(path).unwrap();

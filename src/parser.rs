@@ -292,14 +292,14 @@ impl Parser {
                         continue;
                     }
 
-                    let rhs = self.parse_whole_expression(Some(node_stack.clone()), terminator.clone());
+                    let rhs = self.parse_whole_expression(Some(node_stack.clone()), terminator);
 
                     // Now for + - we need to know if the next token has a higher
                     // precedence (ie * or /)
                     let next_token = self.peek_non_space();
                     if next_token.precedence() > token.precedence() {
                         node_stack.push(rhs);
-                        return self.parse_whole_expression(Some(node_stack.clone()), terminator.clone());
+                        return self.parse_whole_expression(Some(node_stack.clone()), terminator);
                     } else {
                         // Or the next thing has lower precedence and we just
                         // add the node to the stack
@@ -348,7 +348,7 @@ impl Parser {
 
                     if next_token.precedence() > token.precedence() {
                         node_stack.push(rhs);
-                        return self.parse_whole_expression(Some(node_stack.clone()), terminator.clone());
+                        return self.parse_whole_expression(Some(node_stack.clone()), terminator);
                     } else {
                         let lhs = node_stack.pop();
                         let node = Node::new(
@@ -365,7 +365,7 @@ impl Parser {
                         panic!("Unexpected logic token"); // TODO details
                     }
                     let lhs = node_stack.pop();
-                    let rhs = self.parse_whole_expression(Some(node_stack.clone()), terminator.clone());
+                    let rhs = self.parse_whole_expression(Some(node_stack.clone()), terminator);
                     let node = Node::new(
                         lhs.position,
                         SpecificNode::Logic{lhs: lhs, rhs: rhs, operator: token.kind}

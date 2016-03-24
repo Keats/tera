@@ -1,3 +1,4 @@
+use std::f32::EPSILON;
 use serde_json::value::{Value as Json, from_value};
 
 use lexer::TokenType;
@@ -64,8 +65,8 @@ impl Renderer {
                 // TODO: no unwrap
                 let value = for_loop.get();
                 // might be a struct or some nested structure
-                if key.contains(".") {
-                    let new_key = key.split_terminator(".").skip(1).collect::<Vec<&str>>().join(".");
+                if key.contains('.') {
+                    let new_key = key.split_terminator('.').skip(1).collect::<Vec<&str>>().join(".");
                     return value.lookup(&new_key).cloned().unwrap();
                 } else {
                     return value.clone();
@@ -74,7 +75,7 @@ impl Renderer {
         }
 
         // TODO: no unwrap here
-        return self.context.lookup(key).cloned().unwrap();
+        self.context.lookup(key).cloned().unwrap()
     }
 
     fn eval_math(&self, node: &Node) -> f32 {
@@ -173,8 +174,8 @@ impl Renderer {
                                     Float(r) => {
                                         let l2: f32 = from_value(l.clone()).unwrap();
                                         let result = match *operator {
-                                            TokenType::Equal => l2 == r,
-                                            TokenType::NotEqual => l2 != r,
+                                            TokenType::Equal => (l2 - r).abs() < EPSILON,
+                                            TokenType::NotEqual => (l2 - r).abs() > EPSILON,
                                             _ => unreachable!()
                                         };
                                         return result;
@@ -187,8 +188,8 @@ impl Renderer {
                                 let l = n as f32; // TODO: that's going to cause issues
                                 let r = self.eval_math(rhs);
                                 let result = match *operator {
-                                    TokenType::Equal => l == r,
-                                    TokenType::NotEqual => l != r,
+                                    TokenType::Equal => (l - r).abs() < EPSILON,
+                                    TokenType::NotEqual => (l - r).abs() > EPSILON,
                                     _ => unreachable!()
                                 };
                                 return result;
@@ -197,8 +198,8 @@ impl Renderer {
                                 // rhs MUST be a number
                                 let r = self.eval_math(rhs);
                                 let result = match *operator {
-                                    TokenType::Equal => l == r,
-                                    TokenType::NotEqual => l != r,
+                                    TokenType::Equal => (l - r).abs() < EPSILON,
+                                    TokenType::NotEqual => (l - r).abs() > EPSILON,
                                     _ => unreachable!()
                                 };
                                 return result;
@@ -208,8 +209,8 @@ impl Renderer {
                                 let l = self.eval_math(lhs);
                                 let r = self.eval_math(rhs);
                                 let result = match *operator {
-                                    TokenType::Equal => l == r,
-                                    TokenType::NotEqual => l != r,
+                                    TokenType::Equal => (l - r).abs() < EPSILON,
+                                    TokenType::NotEqual => (l - r).abs() > EPSILON,
                                     _ => unreachable!()
                                 };
                                 return result;
