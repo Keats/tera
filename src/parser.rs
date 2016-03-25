@@ -166,6 +166,7 @@ impl Parser {
             TokenType::Else => self.parse_else(),
             TokenType::For => self.parse_for(token.position),
             TokenType::Block => self.parse_block(token.position),
+            TokenType::Extends => self.parse_extends(token.position),
             TokenType::Endif | TokenType::Endfor | TokenType::Endblock => {
                 match self.peek_non_space().kind {
                     TokenType::Endif => { self.expect(TokenType::Endif); },
@@ -194,6 +195,14 @@ impl Parser {
             },
             _ => unreachable!()
         };
+    }
+
+    fn parse_extends(&mut self, start_position: usize) {
+        self.expect(TokenType::Extends);
+        let name = self.next_non_space();
+        self.expect(TokenType::TagEnd);
+
+        self.add_node(Node::new(start_position, SpecificNode::Extends(name.value)));
     }
 
     // Parse a block tag (inheritance one)
@@ -817,6 +826,16 @@ mod tests {
                         Box::new(Node::new(17, SpecificNode::Text("Hello".to_owned()))),
                     ])))
                 },
+            ]
+        );
+    }
+
+    #[test]
+    fn test_extends() {
+        test_parser(
+            "{% extends \"main.html\" %}",
+            vec![
+                SpecificNode::Extends("\"main.html\"".to_owned())
             ]
         );
     }
