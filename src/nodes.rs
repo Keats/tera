@@ -19,7 +19,8 @@ pub enum SpecificNode {
     If {condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>},
     // represents a if/elif block and its body (body is a List)
     Conditional {condition: Box<Node>, body: Box<Node>},
-    For {local: Box<Node>, array: Box<Node>, body: Box<Node>}
+    For {local: Box<Node>, array: Box<Node>, body: Box<Node>},
+    Block {name: String, body: Box<Node>}
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -40,7 +41,8 @@ impl Node {
         match self.specific {
             SpecificNode::List(ref mut l) => l.push(specific),
             SpecificNode::If {ref mut condition_nodes, ..} => condition_nodes.push(specific),
-            SpecificNode::Conditional {ref mut body, ..} | SpecificNode::For {ref mut body, ..} => {
+            SpecificNode::Conditional {ref mut body, ..} | SpecificNode::For {ref mut body, ..}
+            | SpecificNode::Block {ref mut body, ..} => {
                 body.push(specific)
             },
             _ => panic!("tried to push on a non list node")
@@ -139,6 +141,9 @@ impl fmt::Display for Node {
             },
             SpecificNode::For {ref local, ref array, ref body } => {
                 write!(f, "for {} in {} ? => {}", local, array, body)
+            },
+            SpecificNode::Block { ref name, ref body } => {
+                write!(f, "block {} => {}", name, body)
             }
         }
     }

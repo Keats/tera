@@ -16,74 +16,12 @@ mod parser;
 mod context;
 mod render;
 mod template;
+mod tera;
 
 
-
-// The actual api
-// TODO: move it to another file?
-use std::collections::BTreeMap;
-use std::io::prelude::*;
-use std::fs::File;
-
-use glob::glob;
-
-// Re-export templates and context
+// Library exports
+// Template is not meant to be used in your code, only there for bench/test of
+// tera itself
 pub use template::Template;
 pub use context::Context;
-
-#[derive(Debug)]
-pub struct Tera {
-    templates: BTreeMap<String, Template>,
-}
-
-
-// Wanted api:
-// let mut tera = Tera::new("templates/");
-// tera.register_filter(Capitalize);
-// ^ the above can panic as it should be run in compile or first time
-// ^ it will have run lexer + parser so we only need to render
-// ...
-// tera.render("dashboard/index.html", &someData) (-> Result<String>)
-
-
-impl Tera {
-    pub fn new(dir: &str) -> Tera {
-        // TODO: add tests
-        if dir.find("*").is_none() {
-            panic!("Tera expects a glob as input, no * were found in {}", dir);
-        }
-
-        let mut templates = BTreeMap::new();
-
-        // We are parsing all the templates on instantiation
-        for entry in glob(dir).unwrap().filter_map(|e| e.ok()) {
-            let path = entry.as_path();
-            // We only care about actual files
-            if path.is_file() {
-                // We clean the filename by removing the dir given
-                // to Tera so users don't have to prefix everytime
-                let parent_dir = dir.split_at(dir.find("*").unwrap()).0;
-                let filepath = path.to_string_lossy().replace(parent_dir, "");
-                // we know the file exists so unwrap all the things
-                let mut f = File::open(path).unwrap();
-                let mut input = String::new();
-                f.read_to_string(&mut input).unwrap();
-                templates.insert(filepath.to_owned(), Template::new(&filepath, &input));
-            }
-        }
-
-        Tera {
-            templates: templates
-        }
-    }
-
-    pub fn render(&self, template_name: &str, data: Context) -> String {
-        let template = self.templates.get(template_name).unwrap(); // TODO error handling
-
-        template.render(data)
-    }
-
-    pub fn get_template(&self, template_name: &str) -> Option<&Template> {
-        self.templates.get(template_name)
-    }
-}
+pub use tera::Tera;

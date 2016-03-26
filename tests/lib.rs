@@ -7,9 +7,9 @@ extern crate serde_json;
 extern crate tera;
 extern crate glob;
 
+use std::collections::HashMap;
 use std::io::prelude::*;
 use std::fs::File;
-use std::collections::BTreeMap;
 
 use tera::{Tera, Template, Context};
 use glob::glob;
@@ -17,8 +17,8 @@ use glob::glob;
 
 
 // Almost a copy paste of the Tera constructor
-fn read_all_expected(dir: &str) -> BTreeMap<String, String> {
-    let mut expected = BTreeMap::new();
+fn read_all_expected(dir: &str) -> HashMap<String, String> {
+    let mut expected = HashMap::new();
 
     for entry in glob(dir).unwrap().filter_map(|e| e.ok()) {
         let path = entry.as_path();
@@ -74,7 +74,7 @@ impl Review {
     }
 }
 
-fn assert_template_eq(template: &Template, expected: String) {
+fn assert_template_eq(template: &Template, expected: String, all_templates: HashMap<String, Template>) {
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -83,7 +83,7 @@ fn assert_template_eq(template: &Template, expected: String) {
     context.add("show_more", &true);
     context.add("reviews", &vec![Review::new(), Review::new()]);
 
-    let rendered = template.render(context);
+    let rendered = template.render(context, all_templates);
     if rendered != expected {
         println!("Template {:?} was rendered incorrectly", template.name);
         println!("Got: \n {:#?}", rendered);
@@ -103,11 +103,13 @@ fn test_templates() {
     let expected = read_all_expected("tests/expected/**/*");
 
     for tpl in vec![
-        "basic.html", "variables.html", "conditions.html", "loops.html"
+        "basic.html", "variables.html", "conditions.html", "loops.html",
+        "basic_inheritance.html"
     ] {
         assert_template_eq(
             tera.get_template(tpl).unwrap(),
-            expected.get(tpl).unwrap().clone()
+            expected.get(tpl).unwrap().clone(),
+            tera.templates.clone()
         );
     }
 }

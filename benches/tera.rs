@@ -5,6 +5,7 @@ extern crate tera;
 extern crate serde;
 extern crate serde_json;
 
+use std::collections::HashMap;
 use tera::{Template, Context};
 
 
@@ -53,5 +54,5 @@ fn bench_rendering(b: &mut test::Bencher) {
     context.add("product", &Product::new());
     context.add("username", &"bob");
 
-    b.iter(|| template.render(context.clone()));
+    b.iter(|| template.render(context.clone(), HashMap::new()));
 }
