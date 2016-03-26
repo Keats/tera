@@ -76,11 +76,20 @@ impl Node {
         }
     }
 
-    // Only used by SpecificNode::List
     pub fn len(&self) -> usize {
         match self.specific {
             SpecificNode::List(ref l) => l.len(),
-            _ => panic!("tried to len() on a non list node")
+            SpecificNode::If {ref condition_nodes, ..} => {
+                condition_nodes.last().unwrap().len()
+            },
+            SpecificNode::Conditional {ref body, ..} | SpecificNode::For {ref body, ..}
+            | SpecificNode::Block {ref body, ..} => {
+                match body.specific {
+                    SpecificNode::List(ref l2) => { return l2.len(); },
+                    _ => unreachable!()
+                }
+            },
+            _ => panic!("tried to len() on a non list node: {:?}", self.specific)
         }
     }
 

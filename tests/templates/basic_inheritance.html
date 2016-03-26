@@ -1,5 +1,11 @@
 {% extends "base.html" %}
 
+{% block extrahead %}
+  <script>
+    console.log("Hello");
+  </script>
+{% endblock extrahead %}
+
 {% block content %}
   <h1>{{ product.name }} - {{ product.manufacturer }}</h1>
 {% endblock content %}

@@ -294,6 +294,10 @@ impl<'a> Renderer<'a> {
             }
             i += 1;
         }
+        // Trim right at the end of the loop.
+        // Can't be done in the parser as it would remove all newlines between
+        // loops
+        self.output = self.output.trim_right().to_owned();
     }
 
     pub fn render_node(&mut self, node: Node) {
