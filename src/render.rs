@@ -267,7 +267,7 @@ impl<'a> Renderer<'a> {
         };
     }
 
-    fn render_for(&mut self, local: Box<Node>, array: Box<Node>, body: Box<Node>) {
+    fn render_for(&mut self, local: Node, array: Node, body: Box<Node>) {
         let local_name = match local.specific {
             Identifier(s) => s,
             _ => unreachable!()
@@ -309,7 +309,7 @@ impl<'a> Renderer<'a> {
                 }
             },
             For {local, array, body} => {
-                self.render_for(local, array, body);
+                self.render_for(*local, *array, body);
             },
             Block {ref name, ref body} => {
                 match self.current.blocks.get(name) {
