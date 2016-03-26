@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use lexer::{Lexer, TokenType, Token};
 use nodes::{Node, SpecificNode};
 
@@ -24,6 +26,8 @@ pub struct Parser {
     // The ones below are needed for nested if/for blocks
     currently_in: Vec<InsideBlock>,
     tag_nodes: Vec<Node>, // if/for nodes
+    pub blocks: HashMap<String, Node>,
+    pub extends: Option<String>
 }
 
 impl Parser {
@@ -40,6 +44,8 @@ impl Parser {
 
             currently_in: vec![],
             tag_nodes: vec![],
+            blocks: HashMap::new(),
+            extends: None
         };
         parser.parse();
 
@@ -121,7 +127,20 @@ impl Parser {
 
     fn add_node(&mut self, node: Node) {
         if self.tag_nodes.is_empty() {
-            self.root.push(Box::new(node));
+            // TODO: check if we are in a extends and if so if we need to
+            match node.specific {
+                SpecificNode::Block {ref name, ..} => {
+                    if self.blocks.contains_key(name) {
+                        panic!("Block {} is duplicated in template {}", name, self.name)
+                    }
+                    self.blocks.insert(name.to_owned(), node.clone());
+                    // Render block is there is no extend
+                    if self.extends.is_none() {
+                        self.root.push(Box::new(node.clone()));
+                    }
+                },
+                _ => { self.root.push(Box::new(node)); }
+            }
             return;
         }
 
@@ -198,11 +217,13 @@ impl Parser {
     }
 
     fn parse_extends(&mut self, start_position: usize) {
+        if start_position > 0 {
+            panic!("Found extends block not at beginning of file in {}", self.name);
+        }
         self.expect(TokenType::Extends);
         let name = self.next_non_space();
         self.expect(TokenType::TagEnd);
-
-        self.add_node(Node::new(start_position, SpecificNode::Extends(name.value)));
+        self.extends = Some(name.value);
     }
 
     // Parse a block tag (inheritance one)
@@ -832,11 +853,7 @@ mod tests {
 
     #[test]
     fn test_extends() {
-        test_parser(
-            "{% extends \"main.html\" %}",
-            vec![
-                SpecificNode::Extends("\"main.html\"".to_owned())
-            ]
-        );
+        let parser = Parser::new("dummy", "{% extends \"main.html\" %}");
+        assert_eq!(parser.extends, Some("main.html".to_owned()));
     }
 }

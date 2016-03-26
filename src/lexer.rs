@@ -233,8 +233,11 @@ impl Lexer {
 
     fn add_token(&mut self, kind: TokenType) {
         let line = self.get_line_number();
-        let substring = self.get_substring(self.start, self.position);
-
+        let mut substring = self.get_substring(self.start, self.position);
+        if kind == TokenType::String {
+            // Remove the extra \"
+            substring = substring.replace("\"", "");
+        }
         self.tokens.push(Token::new(kind, &substring, line, self.start));
         self.start = self.position;
     }
@@ -697,7 +700,7 @@ mod tests {
             T_SPACE,
             T_EXTENDS,
             T_SPACE,
-            string_token("\"main.html\""),
+            string_token("main.html"),
             T_SPACE,
             T_TAG_END,
             T_EOF

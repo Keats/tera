@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use context::Context;
 use nodes::Node;
 use parser::Parser;
@@ -7,10 +9,12 @@ use render::Renderer;
 // This is the parsed equivalent of a html template file
 // also handles rendering a template
 // It really ties the library together
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Template {
     pub name: String, // filename
-    ast: Node // will always be a ListNode
+    pub ast: Node, // will always be a ListNode
+    pub blocks: HashMap<String, Node>,
+    parent: Option<String>
 }
 
 impl Template {
@@ -19,12 +23,20 @@ impl Template {
 
         Template {
             name: name.to_owned(),
-            ast: parser.root
+            ast: parser.root,
+            blocks: parser.blocks,
+            parent: parser.extends
         }
     }
 
-    pub fn render(&self, context: Context) -> String {
-        let mut renderer = Renderer::new(self.ast.clone(), context);
+    pub fn render(&self, context: Context, templates: HashMap<String, Template>) -> String {
+        let parent = match self.parent {
+            Some(ref n) => templates.get(n),
+            None => None
+        };
+
+        // TODO: return a TemplateResult if there is a TemplateNotFound
+        let mut renderer = Renderer::new(self, parent, context);
 
         renderer.render()
     }
