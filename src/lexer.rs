@@ -359,7 +359,7 @@ fn lex_number(lexer: &mut Lexer) -> StateFn {
 fn lex_identifier(lexer: &mut Lexer) -> StateFn {
     loop {
         match lexer.next_char() {
-            x if x.is_alphabetic() || x == '_' || x == '.' => continue,
+            x if x.is_alphanumeric() || x == '_' || x == '.' => continue,
             _ => {
                 lexer.backup();
                 match lexer.get_substring(lexer.start, lexer.position).as_ref() {

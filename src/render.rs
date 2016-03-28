@@ -1,5 +1,5 @@
 use std::f32::EPSILON;
-use serde_json::value::{Value as Json, from_value};
+use serde_json::value::{Value as Json, from_value, to_value};
 
 use context::{Context, JsonRender, JsonNumber, JsonTruthy};
 use lexer::TokenType;
@@ -31,6 +31,10 @@ impl ForLoop {
 
     pub fn get(&self) -> &Json {
         self.values.get(self.current).unwrap()
+    }
+
+    pub fn len(&self) -> usize {
+        return self.values.len();
     }
 }
 
@@ -73,6 +77,14 @@ impl<'a> Renderer<'a> {
                 } else {
                     return value.clone();
                 }
+            } else {
+                match key {
+                    "loop.index" => { return to_value(&(for_loop.current + 1)); },
+                    "loop.index0" => { return to_value(&for_loop.current); },
+                    "loop.first" => { return to_value(&(for_loop.current == 0)); },
+                    "loop.last" => { return to_value(&(for_loop.current == for_loop.len() - 1)); },
+                    _ => ()
+                };
             }
         }
 
@@ -430,4 +442,16 @@ mod tests {
         assert_eq!(result, "123".to_owned());
     }
 
+    #[test]
+    fn test_render_loop_variables() {
+        let mut context = Context::new();
+        context.add("data", &vec![1,2,3]);
+
+        let result = Template::new(
+            "",
+            "{% for i in data %}{{loop.index}}{{loop.index0}}{{loop.first}}{{loop.last}}{% endfor %}"
+        ).render(context, HashMap::new());
+
+        assert_eq!(result, "10truefalse21falsefalse32falsetrue".to_owned());
+    }
 }

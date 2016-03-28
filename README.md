@@ -3,7 +3,6 @@
 [![Build Status](https://travis-ci.org/Keats/tera.svg)](https://travis-ci.org/Keats/tera)
 
 ## TODOs:
-- add {{forloop.index}} etc
 - error handling
 - make it work on stable (while still using serde rather than rustc-serialize)
 - filters
