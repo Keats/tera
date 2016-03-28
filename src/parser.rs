@@ -6,7 +6,7 @@ use nodes::{Node, SpecificNode};
 // Keeps track of which tag we are currently in
 // Needed to parse inside if/for for example and keep track on when to stop
 // those nodes
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum InsideBlock {
     If,
     Elif,
@@ -127,14 +127,14 @@ impl Parser {
 
     fn add_node(&mut self, node: Node) {
         if self.tag_nodes.is_empty() {
-            // TODO: check if we are in a extends and if so if we need to
+            // Blocks are aside from the AST if we are in a child template
             match node.specific {
                 SpecificNode::Block {ref name, ..} => {
                     if self.blocks.contains_key(name) {
                         panic!("Block {} is duplicated in template {}", name, self.name)
                     }
                     self.blocks.insert(name.to_owned(), node.clone());
-                    // Render block is there is no extend
+                    // Blocks are rendered if there is no extend
                     if self.extends.is_none() {
                         self.root.push(Box::new(node.clone()));
                     }
@@ -156,13 +156,34 @@ impl Parser {
                 self.tag_nodes.last_mut().unwrap().push(Box::new(node));
             }
         };
-
     }
 
     // Parse some html text
     fn parse_text(&mut self) {
         let token = self.next_token();
-        self.add_node(Node::new(token.position, SpecificNode::Text(token.value)));
+        // Need to check if first in if/for to left trim
+        let mut string = match self.tag_nodes.last() {
+            Some(n) => {
+                // The value in unwrap_or is just a dummy, different from Block
+                let currently_in = self.currently_in.last().cloned().unwrap_or(InsideBlock::For);
+                if n.len() == 0 && currently_in != InsideBlock::Block {
+                    token.value.trim_left().to_owned()
+                } else {
+                    token.value
+                }
+            },
+            None => token.value
+        };
+        // And to right trim if next token is {%
+        if self.peek_non_space().kind == TokenType::TagStart {
+            match self.peek_tag_name() {
+                TokenType::Endif | TokenType::Elif | TokenType::Else => {
+                    string = string.trim_right().to_owned();
+                }
+                _ => ()
+            }
+        }
+        self.add_node(Node::new(token.position, SpecificNode::Text(string)));
     }
 
     // Parse the content of a {{ }} block

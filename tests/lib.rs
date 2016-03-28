@@ -91,8 +91,8 @@ fn assert_template_eq(template: &Template, expected: String, all_templates: Hash
         // Uncomment below to save ouput to html file since
         // we don't ignore whitespace right now it's a bit tricky to get
         // the exact \n and spacing
-        // let mut file = File::create("out.html").unwrap();
-        // file.write_all(rendered.as_bytes()).unwrap();
+        let mut file = File::create("out.html").unwrap();
+        file.write_all(rendered.as_bytes()).unwrap();
         assert!(false);
     }
 }
