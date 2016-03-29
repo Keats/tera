@@ -7,9 +7,10 @@ authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
 glob = "0.2"
 serde = "0.7"
 serde_json = "0.7"
-serde_macros = "0.7"
 clippy = {version = "~0.0.35", optional = true}
 
+[dev-dependencies]
+serde_macros = "0.7"
 
 [features]
 default = []

@@ -4,7 +4,6 @@
 
 ## TODOs:
 - error handling for rendering
-- make it work on stable (while still using serde rather than rustc-serialize)
 - filters
 
 Other:
