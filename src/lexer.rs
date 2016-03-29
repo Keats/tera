@@ -417,14 +417,16 @@ fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
                 if lexer.accept('=') {
                     lexer.add_token(TokenType::Equal);
                 } else {
-                    lexer.error("Unknown token");
+                    let got = lexer.peek();
+                    lexer.error(&format!("Expected `=` after =, got {}", got));
                 }
             },
             '&' =>  {
                 if lexer.accept('&') {
                     lexer.add_token(TokenType::And);
                 } else {
-                    lexer.error("Unknown token");
+                    let got = lexer.peek();
+                    lexer.error(&format!("Expected `&` after &, got {}", got));
                 }
             },
             '|' =>  {
@@ -438,7 +440,8 @@ fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
                 if lexer.accept('=') {
                     lexer.add_token(TokenType::NotEqual);
                 } else {
-                    lexer.error("Unknown token");
+                    let got = lexer.peek();
+                    lexer.error(&format!("Expected `=` after !, got {}", got));
                 }
             },
             '<' =>  {

@@ -165,3 +165,21 @@ fn test_error_parser_invalid_else() {
 fn test_error_parser_unterminated_variable_tag() {
     assert_fail_parsing("unterminated", "tests/failures/unterminated.html");
 }
+
+#[should_panic(expected = "Error: Two dots in a number at line 1 of template invalid_number")]
+#[test]
+fn test_error_parser_invalid_number() {
+    assert_fail_parsing("invalid_number", "tests/failures/invalid_number.html");
+}
+
+#[should_panic(expected = "Error: Expected `=` after =, got ! at line 1 of template invalid_operator")]
+#[test]
+fn test_error_parser_invalid_operator() {
+    assert_fail_parsing("invalid_operator", "tests/failures/invalid_operator.html");
+}
+
+#[should_panic(expected = "Terminator `}}` is too early at line 1 in template unexpected_terminator")]
+#[test]
+fn test_error_parser_unexpected_terminator() {
+    assert_fail_parsing("unexpected_terminator", "tests/failures/unexpected_terminator.html");
+}

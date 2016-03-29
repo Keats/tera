@@ -60,7 +60,7 @@ impl Parser {
                 TokenType::VariableStart => self.parse_variable_block(),
                 TokenType::Text => self.parse_text(),
                 TokenType::Eof => break,
-                _ => panic!("Unexpected token when parsing: {:?}", self.peek())
+                _ => unreachable!()
             };
         }
     }
@@ -119,12 +119,14 @@ impl Parser {
     fn expect(&mut self, kind: TokenType) -> Token {
         let token = self.peek_non_space();
         if token.kind != kind {
-            panic!("Unexpected token: {:?}, expected: {:?}", token, kind);
+            panic!("Unexpected token: {:?}, expected: {:?} at \
+                line {} of template {}", token, kind, token.line, self.name);
         }
 
         self.next_non_space()
     }
 
+    // Panics and use a TokenType::Error as input for the error message
     fn throw_lexer_error(&self, token: &Token) -> ! {
         panic!("Error: {} at line {} of template {}", token.value, token.line, self.name);
     }
@@ -374,7 +376,8 @@ impl Parser {
             let token = self.peek_non_space();
             if token.kind == terminator {
                 if node_stack.is_empty() {
-                    panic!("Unexpected terminator");
+                    panic!("Unexpected terminator {} at line {} in template {}",
+                        token.value, token.line, self.name);
                 }
                 return node_stack.pop();
             }
@@ -411,10 +414,6 @@ impl Parser {
                 TokenType::Divide | TokenType::Multiply => {
                     // consume the operator
                     self.next_non_space();
-                    if node_stack.is_empty() {
-                        panic!("Unexpected division or multiplication"); // TODO details
-                    }
-
                     // * and / have the highest precedence so no need to check
                     // the following operators precedences
                     let rhs = self.parse_single_expression(&terminator);
@@ -436,10 +435,6 @@ impl Parser {
                     self.next_non_space();
                     // Those have the highest precedence in term of logic
                     // (higher than && and ||)
-                    if node_stack.is_empty() {
-                        panic!("Unexpected logic token"); // TODO details
-                    }
-
                     let rhs = self.parse_single_expression(&terminator);
                     let next_token = self.peek_non_space();
 
@@ -458,9 +453,6 @@ impl Parser {
                 TokenType::And | TokenType::Or => {
                     // consume the operator
                     self.next_non_space();
-                    if node_stack.is_empty() {
-                        panic!("Unexpected logic token"); // TODO details
-                    }
                     let lhs = node_stack.pop();
                     let rhs = self.parse_whole_expression(Some(node_stack.clone()), terminator);
                     let node = Node::new(
@@ -481,14 +473,15 @@ impl Parser {
         let token = self.peek_non_space();
 
         if token.kind == *terminator {
-            panic!("Unexpected terminator");
+            panic!("Terminator `{}` is too early at line {} in template {}",
+                token.value, token.line, self.name);
         }
 
         match token.kind {
             TokenType::Error => self.throw_lexer_error(&token),
             TokenType::Identifier => self.parse_identifier(),
             TokenType::Float | TokenType::Int | TokenType::Bool => self.parse_literal(),
-            _ => panic!("unexpected token type: {:?}", token.kind)
+            _ => unreachable!()
         }
     }
 

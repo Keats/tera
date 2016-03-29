@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/Keats/tera.svg)](https://travis-ci.org/Keats/tera)
 
 ## TODOs:
-- error handling
+- error handling for rendering
 - make it work on stable (while still using serde rather than rustc-serialize)
 - filters
 
