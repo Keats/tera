@@ -125,13 +125,17 @@ impl Parser {
         self.next_non_space()
     }
 
+    fn throw_lexer_error(&self, token: &Token) -> ! {
+        panic!("Error: {} at line {} of template {}", token.value, token.line, self.name);
+    }
+
     fn add_node(&mut self, node: Node) {
         if self.tag_nodes.is_empty() {
             // Blocks are aside from the AST if we are in a child template
             match node.specific {
                 SpecificNode::Block {ref name, ..} => {
                     if self.blocks.contains_key(name) {
-                        panic!("Block {} is duplicated in template {}", name, self.name)
+                        panic!("Block `{}` is duplicated in template `{}`", name, self.name)
                     }
                     self.blocks.insert(name.to_owned(), node.clone());
                     // Blocks are rendered if there is no extend
@@ -216,9 +220,17 @@ impl Parser {
                         let next_node = self.peek_non_space();
                         match self.tag_nodes.last_mut().unwrap().specific {
                             SpecificNode::Block {ref name, ..} => {
+                                if next_node.kind == TokenType::TagEnd {
+                                    panic!("Missing endblock name at line {} of \
+                                        template `{}`. It should be `{}`.",
+                                        next_node.line, self.name, name);
+                                }
+
                                 let end_name = next_node.value;
                                 if end_name != name.clone() {
-                                    panic!("Found endblock {} while we were hoping for {}", end_name, name);
+                                    panic!("Found endblock `{}` while we were \
+                                        hoping for `{}` at line {} of template `{}`",
+                                        end_name, name, next_node.line, self.name);
                                 }
                             },
                             _ => unreachable!()
@@ -239,7 +251,8 @@ impl Parser {
 
     fn parse_extends(&mut self, start_position: usize) {
         if start_position > 0 {
-            panic!("Found extends block not at beginning of file in {}", self.name);
+            panic!("{{% extends %}} tag need to be the first thing \
+                in a template. It is not the case in `{}`", self.name);
         }
         self.expect(TokenType::Extends);
         let name = self.next_non_space();
@@ -311,8 +324,10 @@ impl Parser {
         let currently_in = self.currently_in.last().cloned().unwrap();
         match currently_in {
             InsideBlock::If | InsideBlock::Elif => self.currently_in.pop(),
-            InsideBlock::Else | InsideBlock::For | InsideBlock::Block => panic!("Got a else/for/block
-             in a else")
+            InsideBlock::Else | InsideBlock::For | InsideBlock::Block => {
+                panic!("Found a elif in a {:?} block at line {} of template `{}`, \
+                 which is impossible.", currently_in, self.peek_non_space().line, self.name);
+            }
         };
         let node = Box::new(self.parse_conditional_node());
         self.tag_nodes.last_mut().unwrap().push(node);
@@ -322,7 +337,10 @@ impl Parser {
         let currently_in = self.currently_in.last().cloned().unwrap();
         match currently_in {
             InsideBlock::If | InsideBlock::Elif => self.currently_in.pop(),
-            InsideBlock::Else | InsideBlock::For | InsideBlock::Block => panic!("Got a else/for/block in a else")
+            InsideBlock::Else | InsideBlock::For | InsideBlock::Block => {
+                panic!("Found a else in a {:?} block at line {} of template `{}`, \
+                 which is impossible.", currently_in, self.peek_non_space().line, self.name);
+            }
         };
         self.expect(TokenType::Else);
         self.expect(TokenType::TagEnd);
@@ -363,6 +381,7 @@ impl Parser {
 
             // TODO: this whole thing can probably be refactored and simplified
             match token.kind {
+                TokenType::Error => self.throw_lexer_error(&token),
                 TokenType::Add | TokenType::Substract => {
                     // consume it
                     self.next_non_space();
@@ -466,6 +485,7 @@ impl Parser {
         }
 
         match token.kind {
+            TokenType::Error => self.throw_lexer_error(&token),
             TokenType::Identifier => self.parse_identifier(),
             TokenType::Float | TokenType::Int | TokenType::Bool => self.parse_literal(),
             _ => panic!("unexpected token type: {:?}", token.kind)

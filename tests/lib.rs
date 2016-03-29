@@ -98,7 +98,7 @@ fn assert_template_eq(template: &Template, expected: String, all_templates: Hash
 }
 
 #[test]
-fn test_templates() {
+fn test_valid_templates() {
     let tera = Tera::new("tests/templates/**/*");
     let expected = read_all_expected("tests/expected/**/*");
 
@@ -112,4 +112,56 @@ fn test_templates() {
             tera.templates.clone()
         );
     }
+}
+
+
+// Loads a file and parse it
+fn assert_fail_parsing(filename: &str, path: &str) {
+    let mut f = File::open(path).unwrap();
+    let mut input = String::new();
+    f.read_to_string(&mut input).unwrap();
+    // should panic
+    Template::new(filename, &input);
+}
+
+#[should_panic(expected = "Block `hello` is duplicated in template `duplicate`")]
+#[test]
+fn test_error_parser_duplicate_block() {
+    assert_fail_parsing("duplicate", "tests/failures/duplicate_block.html");
+}
+
+#[should_panic(expected = "Found endblock `goodbye` while we were hoping for `hello` at line 3 of template `wrong_endblock`")]
+#[test]
+fn test_error_parser_wrong_endblock() {
+    assert_fail_parsing("wrong_endblock", "tests/failures/wrong_endblock.html");
+}
+
+#[should_panic(expected = "Missing endblock name at line 3 of template `missing_name`. It should be `hello`.")]
+#[test]
+fn test_error_parser_missing_endblock_name() {
+    assert_fail_parsing("missing_name", "tests/failures/missing_endblock_name.html");
+}
+
+#[should_panic(expected = "{% extends %} tag need to be the first thing in a template. It is not the case in `extends`")]
+#[test]
+fn test_error_parser_extends_not_at_beginning() {
+    assert_fail_parsing("extends", "tests/failures/invalid_extends.html");
+}
+
+#[should_panic(expected = "Found a elif in a Else block at line 3 of template `elif`, which is impossible.")]
+#[test]
+fn test_error_parser_invalid_elif() {
+    assert_fail_parsing("elif", "tests/failures/invalid_elif.html");
+}
+
+#[should_panic(expected = "Found a else in a Else block at line 3 of template `else`, which is impossible.")]
+#[test]
+fn test_error_parser_invalid_else() {
+    assert_fail_parsing("else", "tests/failures/invalid_else.html");
+}
+
+#[should_panic(expected = "Error: Found EOF while lexing spaces at line 1 of template unterminated")]
+#[test]
+fn test_error_parser_unterminated_variable_tag() {
+    assert_fail_parsing("unterminated", "tests/failures/unterminated.html");
 }

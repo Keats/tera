@@ -209,7 +209,6 @@ impl Lexer {
 
     // Get the line number of the position by counting the number
     // of '\n' in it
-    // TODO: actually check if that works
     fn get_line_number(&self) -> usize {
         1 + self.get_substring(0, self.last_position)
               .chars()
@@ -239,6 +238,7 @@ impl Lexer {
             substring = substring.replace("\"", "");
         }
         self.tokens.push(Token::new(kind, &substring, line, self.start));
+
         self.start = self.position;
     }
 
@@ -324,6 +324,9 @@ fn lex_text(lexer: &mut Lexer) -> StateFn {
 }
 
 fn lex_space(lexer: &mut Lexer) -> StateFn {
+    if lexer.peek() == EOF {
+        return lexer.error("Found EOF while lexing spaces");
+    }
     while lexer.peek().is_whitespace() {
         lexer.next_char();
     }
@@ -360,6 +363,7 @@ fn lex_identifier(lexer: &mut Lexer) -> StateFn {
     loop {
         match lexer.next_char() {
             x if x.is_alphanumeric() || x == '_' || x == '.' => continue,
+            EOF => { return lexer.error("EOF while reading identifier");},
             _ => {
                 lexer.backup();
                 match lexer.get_substring(lexer.start, lexer.position).as_ref() {
@@ -400,6 +404,7 @@ fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
         }
 
         match lexer.next_char() {
+            EOF => { return lexer.error("EOF while parsing a tag"); },
             x if x.is_whitespace() => { return StateFn(Some(lex_space)); }
             x if x.is_numeric() => { return StateFn(Some(lex_number)); }
             x if x.is_alphabetic() || x == '_' || x == '.' => { return StateFn(Some(lex_identifier)); }
@@ -706,5 +711,17 @@ mod tests {
             T_EOF
         ];
         test_tokens("{% extends \"main.html\" %}", expected);
+    }
+
+    #[test]
+    fn test_unterminated_with_newline() {
+        let expected = vec![
+            T_VARIABLE_START,
+            T_SPACE,
+            identifier_token("hello"),
+            T_SPACE,
+            error_token("Found EOF while lexing spaces")
+        ];
+        test_tokens("{{ hello \n", expected);
     }
 }
