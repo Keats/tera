@@ -1,6 +1,3 @@
-#![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
-
 /// Tests Tera with a variety of real templates
 extern crate serde;
 extern crate serde_json;
@@ -40,7 +37,7 @@ fn read_all_expected(dir: &str) -> HashMap<String, String> {
 }
 
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 struct Product {
     name: String,
     manufacturer: String,
@@ -57,8 +54,52 @@ impl Product {
         }
     }
 }
+// Impl Serialize by hand so tests pass on stable and beta
+impl serde::Serialize for Product {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+        where S: serde::Serializer
+    {
+        serializer.serialize_struct("Product", ProductMapVisitor {
+            value: self,
+            state: 0,
+        })
+    }
+}
 
-#[derive(Debug, Serialize)]
+struct ProductMapVisitor<'a> {
+    value: &'a Product,
+    state: u8,
+}
+
+impl<'a> serde::ser::MapVisitor for ProductMapVisitor<'a> {
+    fn visit<S>(&mut self, serializer: &mut S) -> Result<Option<()>, S::Error>
+        where S: serde::Serializer
+    {
+        match self.state {
+            0 => {
+                self.state += 1;
+                Ok(Some(try!(serializer.serialize_struct_elt("name", &self.value.name))))
+            },
+            1 => {
+                self.state += 1;
+                Ok(Some(try!(serializer.serialize_struct_elt("manufacturer", &self.value.manufacturer))))
+            },
+            2 => {
+                self.state += 1;
+                Ok(Some(try!(serializer.serialize_struct_elt("price", &self.value.price))))
+            },
+            3 => {
+                self.state += 1;
+                Ok(Some(try!(serializer.serialize_struct_elt("summary", &self.value.summary))))
+            },
+            _ => {
+                Ok(None)
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
 struct Review {
     title: String,
     paragraphs: Vec<String>
@@ -70,6 +111,42 @@ impl Review {
             paragraphs: vec![
                 "A".to_owned(), "B".to_owned(), "C".to_owned()
             ]
+        }
+    }
+}
+// Impl Serialize by hand so tests pass on stable and beta
+impl serde::Serialize for Review {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+        where S: serde::Serializer
+    {
+        serializer.serialize_struct("Review", ReviewMapVisitor {
+            value: self,
+            state: 0,
+        })
+    }
+}
+
+struct ReviewMapVisitor<'a> {
+    value: &'a Review,
+    state: u8,
+}
+
+impl<'a> serde::ser::MapVisitor for ReviewMapVisitor<'a> {
+    fn visit<S>(&mut self, serializer: &mut S) -> Result<Option<()>, S::Error>
+        where S: serde::Serializer
+    {
+        match self.state {
+            0 => {
+                self.state += 1;
+                Ok(Some(try!(serializer.serialize_struct_elt("title", &self.value.title))))
+            },
+            1 => {
+                self.state += 1;
+                Ok(Some(try!(serializer.serialize_struct_elt("paragraphs", &self.value.paragraphs))))
+            },
+            _ => {
+                Ok(None)
+            }
         }
     }
 }
