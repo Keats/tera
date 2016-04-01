@@ -360,7 +360,7 @@ impl<'a> Renderer<'a> {
         let children = if self.parent.is_none() {
             self.current.ast.get_children()
         } else {
-            // Return err here instead of unwrap
+            // unwrap is safe here as we checked the template exists beforehand
             self.parent.unwrap().ast.get_children()
         };
 

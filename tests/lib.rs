@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::io::prelude::*;
 use std::fs::File;
 
-use tera::{Tera, Template, Context};
+use tera::{Tera, Template, Context, TeraErrorType, TeraResult};
 use glob::glob;
 
 
@@ -191,6 +191,8 @@ fn test_valid_templates() {
     }
 }
 
+// FAILURE TESTING
+// TODO: can that be split in several files instead?
 
 // Loads a file and parse it
 fn assert_fail_parsing(filename: &str, path: &str) {
@@ -204,59 +206,84 @@ fn assert_fail_parsing(filename: &str, path: &str) {
 #[should_panic(expected = "Block `hello` is duplicated in template `duplicate`")]
 #[test]
 fn test_error_parser_duplicate_block() {
-    assert_fail_parsing("duplicate", "tests/failures/duplicate_block.html");
+    assert_fail_parsing("duplicate", "tests/parser-failures/duplicate_block.html");
 }
 
 #[should_panic(expected = "Found endblock `goodbye` while we were hoping for `hello` at line 3 of template `wrong_endblock`")]
 #[test]
 fn test_error_parser_wrong_endblock() {
-    assert_fail_parsing("wrong_endblock", "tests/failures/wrong_endblock.html");
+    assert_fail_parsing("wrong_endblock", "tests/parser-failures/wrong_endblock.html");
 }
 
 #[should_panic(expected = "Missing endblock name at line 3 of template `missing_name`. It should be `hello`.")]
 #[test]
 fn test_error_parser_missing_endblock_name() {
-    assert_fail_parsing("missing_name", "tests/failures/missing_endblock_name.html");
+    assert_fail_parsing("missing_name", "tests/parser-failures/missing_endblock_name.html");
 }
 
 #[should_panic(expected = "{% extends %} tag need to be the first thing in a template. It is not the case in `extends`")]
 #[test]
 fn test_error_parser_extends_not_at_beginning() {
-    assert_fail_parsing("extends", "tests/failures/invalid_extends.html");
+    assert_fail_parsing("extends", "tests/parser-failures/invalid_extends.html");
 }
 
 #[should_panic(expected = "Found a elif in a Else block at line 3 of template `elif`, which is impossible.")]
 #[test]
 fn test_error_parser_invalid_elif() {
-    assert_fail_parsing("elif", "tests/failures/invalid_elif.html");
+    assert_fail_parsing("elif", "tests/parser-failures/invalid_elif.html");
 }
 
 #[should_panic(expected = "Found a else in a Else block at line 3 of template `else`, which is impossible.")]
 #[test]
 fn test_error_parser_invalid_else() {
-    assert_fail_parsing("else", "tests/failures/invalid_else.html");
+    assert_fail_parsing("else", "tests/parser-failures/invalid_else.html");
 }
 
 #[should_panic(expected = "Error: Found EOF while lexing spaces at line 1 of template unterminated")]
 #[test]
 fn test_error_parser_unterminated_variable_tag() {
-    assert_fail_parsing("unterminated", "tests/failures/unterminated.html");
+    assert_fail_parsing("unterminated", "tests/parser-failures/unterminated.html");
 }
 
 #[should_panic(expected = "Error: Two dots in a number at line 1 of template invalid_number")]
 #[test]
 fn test_error_parser_invalid_number() {
-    assert_fail_parsing("invalid_number", "tests/failures/invalid_number.html");
+    assert_fail_parsing("invalid_number", "tests/parser-failures/invalid_number.html");
 }
 
 #[should_panic(expected = "Error: Expected `=` after =, got ! at line 1 of template invalid_operator")]
 #[test]
 fn test_error_parser_invalid_operator() {
-    assert_fail_parsing("invalid_operator", "tests/failures/invalid_operator.html");
+    assert_fail_parsing("invalid_operator", "tests/parser-failures/invalid_operator.html");
 }
 
 #[should_panic(expected = "Terminator `}}` is too early at line 1 in template unexpected_terminator")]
 #[test]
 fn test_error_parser_unexpected_terminator() {
-    assert_fail_parsing("unexpected_terminator", "tests/failures/unexpected_terminator.html");
+    assert_fail_parsing("unexpected_terminator", "tests/parser-failures/unexpected_terminator.html");
+}
+
+
+// RENDERING FAILURES
+// TODO: different file
+
+fn render_tpl(tpl_name: &str) -> TeraResult<String> {
+    let tera = Tera::new("tests/render-failures/**/*");
+    let mut context = Context::new();
+    context.add("product", &Product::new());
+    context.add("username", &"bob");
+    context.add("friend_reviewed", &true);
+    context.add("number_reviews", &2);
+    context.add("show_more", &true);
+    context.add("reviews", &vec![Review::new(), Review::new()]);
+
+    tera.render(tpl_name, context)
+}
+
+#[test]
+fn test_error_render_parent_inexistent() {
+    let result = render_tpl("inexisting-parent.html");
+
+    assert_eq!(result.is_err(), true);
+    assert_eq!(result.unwrap_err().error_type, TeraErrorType::TemplateNotFound);
 }

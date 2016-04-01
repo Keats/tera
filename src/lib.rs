@@ -24,3 +24,4 @@ mod tera;
 pub use template::Template;
 pub use context::Context;
 pub use tera::Tera;
+pub use errors::{TeraResult, TeraErrorType};
