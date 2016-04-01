@@ -160,7 +160,7 @@ fn assert_template_eq(template: &Template, expected: String, all_templates: Hash
     context.add("show_more", &true);
     context.add("reviews", &vec![Review::new(), Review::new()]);
 
-    let rendered = template.render(context, all_templates);
+    let rendered = template.render(context, all_templates).unwrap();
     if rendered != expected {
         println!("Template {:?} was rendered incorrectly", template.name);
         println!("Got: \n {:#?}", rendered);

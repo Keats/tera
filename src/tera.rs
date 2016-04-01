@@ -4,9 +4,11 @@ use std::fs::File;
 
 use glob::glob;
 
-// Re-export templates and context
+
 use template::Template;
 use context::Context;
+use errors::TeraResult;
+
 
 #[derive(Debug)]
 pub struct Tera {
@@ -52,10 +54,10 @@ impl Tera {
         }
     }
 
-    pub fn render(&self, template_name: &str, data: Context) -> String {
+    pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
         let template = self.templates.get(template_name).unwrap(); // TODO error handling
 
-        // TODO: avoid cloning
+        // TODO: avoid cloning?
         template.render(data, self.templates.clone())
     }
 

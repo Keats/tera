@@ -6,6 +6,8 @@ use lexer::TokenType;
 use nodes::Node;
 use nodes::SpecificNode::*;
 use template::Template;
+use errors::TeraResult;
+
 
 // we need to have some data in the renderer for when we are in a ForLoop
 // For example, accessing the local variable would fail when
@@ -40,7 +42,6 @@ impl ForLoop {
 
 #[derive(Debug)]
 pub struct Renderer<'a> {
-    output: String,
     context: Json,
     current: &'a Template,
     parent: Option<&'a Template>,
@@ -50,7 +51,6 @@ pub struct Renderer<'a> {
 impl<'a> Renderer<'a> {
     pub fn new(current: &'a Template, parent: Option<&'a Template>, context: Context) -> Renderer<'a> {
         Renderer {
-            output: String::new(),
             current: current,
             parent: parent,
             context: context.as_json(),
@@ -241,29 +241,31 @@ impl<'a> Renderer<'a> {
     }
 
     // eval all the values in a  {{ }} block
-    fn render_variable_block(&mut self, node: Node) {
+    fn render_variable_block(&mut self, node: Node) -> TeraResult<String>  {
         match node.specific {
             Identifier(ref s) => {
+                // TODO: return error if value not found
                 let value = self.lookup_variable(s);
-                self.output.push_str(&value.render());
+                Ok(value.render())
             },
             Math { .. } => {
                 let result = self.eval_math(&node);
-                self.output.push_str(&result.to_string());
+                Ok(result.to_string())
             }
             _ => unreachable!()
         }
     }
 
     // evaluates conditions and render bodies accordingly
-    fn render_if(&mut self, condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>) {
+    fn render_if(&mut self, condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>) -> TeraResult<String> {
         let mut skip_else = false;
+        let mut output = String::new();
         for node in condition_nodes {
             match node.specific {
                 Conditional {ref condition, ref body } => {
                     if self.eval_condition(condition) {
                         skip_else = true;
-                        self.render_node(*body.clone());
+                        output.push_str(&&try!(self.render_node(*body.clone())));
                     }
                 },
                 _ => unreachable!()
@@ -271,15 +273,17 @@ impl<'a> Renderer<'a> {
         }
 
         if skip_else {
-            return;
+            return Ok(output);
         }
 
         if let Some(e) = else_node {
-            self.render_node(*e)
+            output.push_str(&&try!(self.render_node(*e)));
         };
+
+        Ok(output)
     }
 
-    fn render_for(&mut self, local: Node, array: Node, body: Box<Node>) {
+    fn render_for(&mut self, local: Node, array: Node, body: Box<Node>) -> TeraResult<String> {
         let local_name = match local.specific {
             Identifier(s) => s,
             _ => unreachable!()
@@ -289,6 +293,7 @@ impl<'a> Renderer<'a> {
             _ => unreachable!()
         };
 
+        // TODO: error if variable not found
         let list = self.lookup_variable(&array_name);
 
         if !list.is_array() {
@@ -298,8 +303,9 @@ impl<'a> Renderer<'a> {
         let length = deserialized.len();
         self.for_loops.push(ForLoop::new(local_name, deserialized.clone()));
         let mut i = 0;
+        let mut output = String::new();
         loop {
-            self.render_node(*body.clone());
+            output.push_str(&&try!(self.render_node(*body.clone())));
             self.for_loops.last_mut().unwrap().increment();
             if i == length - 1 {
                 break;
@@ -309,54 +315,62 @@ impl<'a> Renderer<'a> {
         // Trim right at the end of the loop.
         // Can't be done in the parser as it would remove all newlines between
         // loops
-        self.output = self.output.trim_right().to_owned();
+        output = output.trim_right().to_owned();
+
+        Ok(output)
     }
 
-    pub fn render_node(&mut self, node: Node) {
+    pub fn render_node(&mut self, node: Node) -> TeraResult<String> {
         match node.specific {
-            Text(ref s) => self.output.push_str(s),
+            Text(s) => Ok(s),
             VariableBlock(s) => self.render_variable_block(*s),
             If {ref condition_nodes, ref else_node} => {
-                self.render_if(condition_nodes.clone(), else_node.clone());
+                self.render_if(condition_nodes.clone(), else_node.clone())
             },
             List(body) => {
+                let mut output = String::new();
                 for n in body {
-                    self.render_node(*n);
+                    output.push_str(&&try!(self.render_node(*n)));
                 }
+                Ok(output)
             },
             For {local, array, body} => {
-                self.render_for(*local, *array, body);
+                self.render_for(*local, *array, body)
             },
             Block {ref name, ref body} => {
                 match self.current.blocks.get(name) {
                     Some(b) => {
                         match b.specific {
                             Block {ref body, ..} => {
-                                self.render_node(*body.clone());
+                                return self.render_node(*body.clone());
                             },
                             _ => unreachable!()
                         }
                     },
                     None => {
-                        self.render_node(*body.clone());
+                        return self.render_node(*body.clone());
                     }
                 };
             },
-            _ => panic!("woo unexpected node {:?}", node)
+            _ => unreachable!()
         }
     }
 
-    pub fn render(&mut self) -> String {
+    pub fn render(&mut self) -> TeraResult<String> {
         let children = if self.parent.is_none() {
             self.current.ast.get_children()
         } else {
+            // Return err here instead of unwrap
             self.parent.unwrap().ast.get_children()
         };
 
+        let mut output = String::new();
         for node in children {
-            self.render_node(*node);
+            // TODO: not entirely sure why i need to && instead of &
+            output.push_str(&&try!(self.render_node(*node)));
         }
-        self.output.clone()
+
+        Ok(output)
     }
 }
 
@@ -370,13 +384,13 @@ mod tests {
     #[test]
     fn test_render_simple_string() {
         let result = Template::new("", "<h1>Hello world</h1>").render(Context::new(), HashMap::new());
-        assert_eq!(result, "<h1>Hello world</h1>".to_owned());
+        assert_eq!(result.unwrap(), "<h1>Hello world</h1>".to_owned());
     }
 
     #[test]
     fn test_render_math() {
         let result = Template::new("", "This is {{ 2000 + 16 }}.").render(Context::new(), HashMap::new());
-        assert_eq!(result, "This is 2016.".to_owned());
+        assert_eq!(result.unwrap(), "This is 2016.".to_owned());
     }
 
     #[test]
@@ -385,7 +399,7 @@ mod tests {
         context.add("name", &"Vincent");
 
         let result = Template::new("", "My name is {{ name }}.").render(context, HashMap::new());
-        assert_eq!(result, "My name is Vincent.".to_owned());
+        assert_eq!(result.unwrap(), "My name is Vincent.".to_owned());
     }
 
     #[test]
@@ -394,7 +408,7 @@ mod tests {
         context.add("vat_rate", &0.20);
 
         let result = Template::new("", "Vat: £{{ 100 * vat_rate }}.").render(context, HashMap::new());
-        assert_eq!(result, "Vat: £20.".to_owned());
+        assert_eq!(result.unwrap(), "Vat: £20.".to_owned());
     }
 
     #[test]
@@ -403,7 +417,7 @@ mod tests {
         context.add("is_admin", &true);
 
         let result = Template::new("", "{% if is_admin %}Admin{% endif %}").render(context, HashMap::new());
-        assert_eq!(result, "Admin".to_owned());
+        assert_eq!(result.unwrap(), "Admin".to_owned());
     }
 
     #[test]
@@ -416,7 +430,7 @@ mod tests {
             "",
             "{% if is_adult || age + 1 > 18 %}Adult{% endif %}"
         ).render(context, HashMap::new());
-        assert_eq!(result, "Adult".to_owned());
+        assert_eq!(result.unwrap(), "Adult".to_owned());
     }
 
     #[test]
@@ -428,7 +442,7 @@ mod tests {
         let result = Template::new(
             "", "{% if is_adult && age == 18 %}Adult{% endif %}"
         ).render(context, HashMap::new());
-        assert_eq!(result, "Adult".to_owned());
+        assert_eq!(result.unwrap(), "Adult".to_owned());
     }
 
     #[test]
@@ -439,7 +453,7 @@ mod tests {
         let result = Template::new(
             "", "{% for i in data %}{{i}}{% endfor %}"
         ).render(context, HashMap::new());
-        assert_eq!(result, "123".to_owned());
+        assert_eq!(result.unwrap(), "123".to_owned());
     }
 
     #[test]
@@ -452,6 +466,6 @@ mod tests {
             "{% for i in data %}{{loop.index}}{{loop.index0}}{{loop.first}}{{loop.last}}{% endfor %}"
         ).render(context, HashMap::new());
 
-        assert_eq!(result, "10truefalse21falsefalse32falsetrue".to_owned());
+        assert_eq!(result.unwrap(), "10truefalse21falsefalse32falsetrue".to_owned());
     }
 }

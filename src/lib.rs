@@ -8,6 +8,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate glob;
 
+mod errors;
 mod lexer;
 mod nodes;
 mod parser;
