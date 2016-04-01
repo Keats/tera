@@ -9,6 +9,8 @@ pub type TeraResult<T> = Result<T, TeraError>;
 pub enum TeraErrorType {
     /// Template doesn't exist
     TemplateNotFound,
+    /// Field not found in context
+    FieldNotFound
 }
 
 /// Our actual error
@@ -41,7 +43,14 @@ impl fmt::Display for TeraError {
 
 pub fn template_not_found(name: &str) -> TeraError {
     TeraError {
-        error: format!("Template {} not found", name),
+        error: format!("Template `{}` not found", name),
         error_type: TeraErrorType::TemplateNotFound
+    }
+}
+
+pub fn field_not_found(key: &str) -> TeraError {
+    TeraError {
+        error: format!("Field `{}` not found in context", key),
+        error_type: TeraErrorType::FieldNotFound
     }
 }

@@ -159,6 +159,8 @@ fn assert_template_eq(template: &Template, expected: String, all_templates: Hash
     context.add("number_reviews", &2);
     context.add("show_more", &true);
     context.add("reviews", &vec![Review::new(), Review::new()]);
+    let empty: Vec<Review> = Vec::new();
+    context.add("empty", &empty);
 
     let rendered = template.render(context, all_templates).unwrap();
     if rendered != expected {
@@ -180,8 +182,12 @@ fn test_valid_templates() {
     let expected = read_all_expected("tests/expected/**/*");
 
     for tpl in vec![
-        "basic.html", "variables.html", "conditions.html", "loops.html",
-        "basic_inheritance.html"
+        "basic.html",
+        "variables.html",
+        "conditions.html",
+        "loops.html",
+        "basic_inheritance.html",
+        "empty_loop.html"
     ] {
         assert_template_eq(
             tera.get_template(tpl).unwrap(),
@@ -282,8 +288,24 @@ fn render_tpl(tpl_name: &str) -> TeraResult<String> {
 
 #[test]
 fn test_error_render_parent_inexistent() {
-    let result = render_tpl("inexisting-parent.html");
+    let result = render_tpl("inexisting_parent.html");
 
     assert_eq!(result.is_err(), true);
     assert_eq!(result.unwrap_err().error_type, TeraErrorType::TemplateNotFound);
+}
+
+#[test]
+fn test_error_render_field_unknown() {
+    let result = render_tpl("field_unknown.html");
+
+    assert_eq!(result.is_err(), true);
+    assert_eq!(result.unwrap_err().error_type, TeraErrorType::FieldNotFound);
+}
+
+#[test]
+fn test_error_render_field_unknown_in_forloop() {
+    let result = render_tpl("field_unknown_forloop.html");
+
+    assert_eq!(result.is_err(), true);
+    assert_eq!(result.unwrap_err().error_type, TeraErrorType::FieldNotFound);
 }

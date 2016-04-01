@@ -6,7 +6,7 @@ use lexer::TokenType;
 use nodes::Node;
 use nodes::SpecificNode::*;
 use template::Template;
-use errors::TeraResult;
+use errors::{TeraResult, field_not_found};
 
 
 // we need to have some data in the renderer for when we are in a ForLoop
@@ -31,8 +31,8 @@ impl ForLoop {
         self.current += 1;
     }
 
-    pub fn get(&self) -> &Json {
-        self.values.get(self.current).unwrap()
+    pub fn get(&self) -> Option<&Json> {
+        self.values.get(self.current)
     }
 
     pub fn len(&self) -> usize {
@@ -60,36 +60,39 @@ impl<'a> Renderer<'a> {
 
     // Lookup a variable name from the context and takes into
     // account for loops variables
-    fn lookup_variable(&self, key: &str) -> Json {
+    fn lookup_variable(&self, key: &str) -> TeraResult<Json> {
+        // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
-            // TODO: no unwrap here
-            return self.context.lookup(key).cloned().unwrap();
+            return self.context.lookup(key).cloned().ok_or_else(|| field_not_found(key));
         }
 
         for for_loop in self.for_loops.iter().rev() {
             if key.starts_with(&for_loop.variable_name) {
-                // TODO: no unwrap
-                let value = for_loop.get();
+                let value = match for_loop.get() {
+                    Some(f) => f,
+                    None => { continue; }
+                };
+                println!("{:?} - {:?}", for_loop, value);
                 // might be a struct or some nested structure
                 if key.contains('.') {
                     let new_key = key.split_terminator('.').skip(1).collect::<Vec<&str>>().join(".");
-                    return value.lookup(&new_key).cloned().unwrap();
+                    return value.lookup(&new_key).cloned().ok_or_else(|| field_not_found(key));
                 } else {
-                    return value.clone();
+                    return Ok(value.clone());
                 }
             } else {
                 match key {
-                    "loop.index" => { return to_value(&(for_loop.current + 1)); },
-                    "loop.index0" => { return to_value(&for_loop.current); },
-                    "loop.first" => { return to_value(&(for_loop.current == 0)); },
-                    "loop.last" => { return to_value(&(for_loop.current == for_loop.len() - 1)); },
+                    "loop.index" => { return Ok(to_value(&(for_loop.current + 1))); },
+                    "loop.index0" => { return Ok(to_value(&for_loop.current)); },
+                    "loop.first" => { return Ok(to_value(&(for_loop.current == 0))); },
+                    "loop.last" => { return Ok(to_value(&(for_loop.current == for_loop.len() - 1))); },
                     _ => ()
                 };
             }
         }
 
-        // TODO: no unwrap here
-        self.context.lookup(key).cloned().unwrap()
+        Ok(to_value(&""))
+        // Err(field_not_found(key))
     }
 
     fn eval_math(&self, node: &Node) -> f32 {
@@ -245,7 +248,7 @@ impl<'a> Renderer<'a> {
         match node.specific {
             Identifier(ref s) => {
                 // TODO: return error if value not found
-                let value = self.lookup_variable(s);
+                let value = try!(self.lookup_variable(s));
                 Ok(value.render())
             },
             Math { .. } => {
@@ -293,8 +296,7 @@ impl<'a> Renderer<'a> {
             _ => unreachable!()
         };
 
-        // TODO: error if variable not found
-        let list = self.lookup_variable(&array_name);
+        let list = try!(self.lookup_variable(&array_name));
 
         if !list.is_array() {
             panic!("{:?} is not an array! can't iterate on it", list);
@@ -307,7 +309,7 @@ impl<'a> Renderer<'a> {
         loop {
             output.push_str(&&try!(self.render_node(*body.clone())));
             self.for_loops.last_mut().unwrap().increment();
-            if i == length - 1 {
+            if length == 0 || i == length - 1 {
                 break;
             }
             i += 1;
