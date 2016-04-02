@@ -6,7 +6,7 @@ use lexer::TokenType;
 use nodes::Node;
 use nodes::SpecificNode::*;
 use template::Template;
-use errors::{TeraResult, field_not_found, not_a_number};
+use errors::{TeraResult, field_not_found, not_a_number, not_an_array};
 
 
 // we need to have some data in the renderer for when we are in a ForLoop
@@ -61,7 +61,6 @@ impl<'a> Renderer<'a> {
     // Lookup a variable name from the context and takes into
     // account for loops variables
     fn lookup_variable(&self, key: &str) -> TeraResult<Json> {
-        println!("Looking for {:?}", key);
         // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
             return self.context.lookup(key).cloned().ok_or_else(|| field_not_found(key));
@@ -116,7 +115,7 @@ impl<'a> Renderer<'a> {
                     TokenType::Divide => l / r,
                     TokenType::Add => l + r,
                     TokenType::Substract => l - r,
-                    _ => panic!("unexpected operator: {:?}", operator)
+                    _ => unreachable!()
                 };
                 // TODO: fix properly
                 // TODO: add tests for float maths arithmetics
@@ -171,7 +170,6 @@ impl<'a> Renderer<'a> {
                             },
                             Identifier(ref n) => {
                                 let l = try!(self.lookup_variable(n));
-                                println!("{:?} {:?}", l, n);
                                 // who knows what rhs is
                                 // Here goes a whole new level of ugliness
                                 match rhs.specific {
@@ -185,8 +183,10 @@ impl<'a> Renderer<'a> {
                                         return Ok(result);
                                     },
                                     Int(r) => {
-                                        // TODO: no unwrap here
-                                        let l2: i32 = from_value(l.clone()).unwrap();
+                                        let l2: i32 = match from_value(l.clone()) {
+                                            Ok(k) => k,
+                                            Err(_) => { return Err(not_a_number(n)); }
+                                        };
                                         let result = match *operator {
                                             TokenType::Equal => l2 == r,
                                             TokenType::NotEqual => l2 != r,
@@ -195,8 +195,10 @@ impl<'a> Renderer<'a> {
                                         return Ok(result);
                                     },
                                     Float(r) => {
-                                        // TODO: no unwrap here
-                                        let l2: f32 = from_value(l.clone()).unwrap();
+                                        let l2: f32 = match from_value(l.clone()) {
+                                            Ok(k) => k,
+                                            Err(_) => { return Err(not_a_number(n)); }
+                                        };
                                         let result = match *operator {
                                             TokenType::Equal => (l2 - r).abs() < EPSILON,
                                             TokenType::NotEqual => (l2 - r).abs() > EPSILON,
@@ -246,7 +248,7 @@ impl<'a> Renderer<'a> {
                 }
                 Ok(false)
             },
-            _ => panic!("Got in eval_condition {:?}", node) // can that happen?
+            _ => unreachable!()
         }
     }
 
@@ -254,9 +256,7 @@ impl<'a> Renderer<'a> {
     fn render_variable_block(&mut self, node: Node) -> TeraResult<String>  {
         match node.specific {
             Identifier(ref s) => {
-                // TODO: return error if value not found
                 let value = try!(self.lookup_variable(s));
-                println!("{:?}", value.render());
                 Ok(value.render())
             },
             Math { .. } => {
@@ -306,11 +306,12 @@ impl<'a> Renderer<'a> {
         };
 
         let list = try!(self.lookup_variable(&array_name));
-        println!("{:?} - {:?}", array_name, list);
+
         if !list.is_array() {
-            panic!("{:?} is not an array! can't iterate on it", list);
+            return Err(not_an_array(&array_name));
         }
-        // TODO: no unwrap here
+
+        // Safe unwrap
         let deserialized = list.as_array().unwrap();
         let length = deserialized.len();
         self.for_loops.push(ForLoop::new(local_name, deserialized.clone()));

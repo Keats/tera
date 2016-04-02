@@ -12,7 +12,9 @@ pub enum TeraErrorType {
     /// Field not found in context
     FieldNotFound,
     /// Tried to do math on something that isn't a number
-    NotANumber
+    NotANumber,
+    /// Tried to iterate on a non-array field
+    NotAnArray
 }
 
 /// Our actual error
@@ -61,6 +63,14 @@ pub fn field_not_found(key: &str) -> TeraError {
 pub fn not_a_number(key: &str) -> TeraError {
     TeraError {
         error: format!("Field `{}` was used in a math operation but is not a number", key),
-        error_type: TeraErrorType::FieldNotFound
+        error_type: TeraErrorType::NotANumber
+    }
+}
+
+
+pub fn not_an_array(key: &str) -> TeraError {
+    TeraError {
+        error: format!("Field `{}` is not an array but was used as iterator in forloop", key),
+        error_type: TeraErrorType::NotAnArray
     }
 }

@@ -309,3 +309,19 @@ fn test_error_render_field_unknown_in_forloop() {
     assert_eq!(result.is_err(), true);
     assert_eq!(result.unwrap_err().error_type, TeraErrorType::FieldNotFound);
 }
+
+#[test]
+fn test_error_render_non_math() {
+    let result = render_tpl("non_math_operation.html");
+
+    assert_eq!(result.is_err(), true);
+    assert_eq!(result.unwrap_err().error_type, TeraErrorType::NotANumber);
+}
+
+#[test]
+fn test_error_render_iterate_non_array() {
+    let result = render_tpl("iterate_on_non_array.html");
+
+    assert_eq!(result.is_err(), true);
+    assert_eq!(result.unwrap_err().error_type, TeraErrorType::NotAnArray);
+}
