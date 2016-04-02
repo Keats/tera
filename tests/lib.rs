@@ -186,8 +186,8 @@ fn test_valid_templates() {
         "variables.html",
         "conditions.html",
         "loops.html",
+        "empty_loop.html",
         "basic_inheritance.html",
-        "empty_loop.html"
     ] {
         assert_template_eq(
             tera.get_template(tpl).unwrap(),

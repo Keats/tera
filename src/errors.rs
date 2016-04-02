@@ -10,7 +10,9 @@ pub enum TeraErrorType {
     /// Template doesn't exist
     TemplateNotFound,
     /// Field not found in context
-    FieldNotFound
+    FieldNotFound,
+    /// Tried to do math on something that isn't a number
+    NotANumber
 }
 
 /// Our actual error
@@ -51,6 +53,14 @@ pub fn template_not_found(name: &str) -> TeraError {
 pub fn field_not_found(key: &str) -> TeraError {
     TeraError {
         error: format!("Field `{}` not found in context", key),
+        error_type: TeraErrorType::FieldNotFound
+    }
+}
+
+
+pub fn not_a_number(key: &str) -> TeraError {
+    TeraError {
+        error: format!("Field `{}` was used in a math operation but is not a number", key),
         error_type: TeraErrorType::FieldNotFound
     }
 }

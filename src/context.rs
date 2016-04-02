@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 use serde::ser::Serialize;
 use serde_json::value::{Value as Json, to_value};
 
-
 pub type TemplateContext = BTreeMap<String, Json>;
 
 #[derive(Debug, Clone)]
