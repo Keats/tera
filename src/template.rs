@@ -4,6 +4,7 @@ use context::Context;
 use nodes::Node;
 use parser::Parser;
 use render::Renderer;
+use errors::{TeraResult, template_not_found};
 
 
 // This is the parsed equivalent of a html template file
@@ -29,9 +30,12 @@ impl Template {
         }
     }
 
-    pub fn render(&self, context: Context, templates: HashMap<String, Template>) -> String {
+    pub fn render(&self, context: Context, templates: HashMap<String, Template>) -> TeraResult<String> {
         let parent = match self.parent {
-            Some(ref n) => templates.get(n),
+            Some(ref n) => match templates.get(n) {
+                Some(p) => Some(p),
+                None => { return Err(template_not_found(n)); }
+            },
             None => None
         };
 

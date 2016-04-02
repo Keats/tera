@@ -6,6 +6,8 @@ use lexer::TokenType;
 use nodes::Node;
 use nodes::SpecificNode::*;
 use template::Template;
+use errors::{TeraResult, field_not_found, not_a_number, not_an_array};
+
 
 // we need to have some data in the renderer for when we are in a ForLoop
 // For example, accessing the local variable would fail when
@@ -29,8 +31,8 @@ impl ForLoop {
         self.current += 1;
     }
 
-    pub fn get(&self) -> &Json {
-        self.values.get(self.current).unwrap()
+    pub fn get(&self) -> Option<&Json> {
+        self.values.get(self.current)
     }
 
     pub fn len(&self) -> usize {
@@ -40,7 +42,6 @@ impl ForLoop {
 
 #[derive(Debug)]
 pub struct Renderer<'a> {
-    output: String,
     context: Json,
     current: &'a Template,
     parent: Option<&'a Template>,
@@ -50,7 +51,6 @@ pub struct Renderer<'a> {
 impl<'a> Renderer<'a> {
     pub fn new(current: &'a Template, parent: Option<&'a Template>, context: Context) -> Renderer<'a> {
         Renderer {
-            output: String::new(),
             current: current,
             parent: parent,
             context: context.as_json(),
@@ -60,89 +60,96 @@ impl<'a> Renderer<'a> {
 
     // Lookup a variable name from the context and takes into
     // account for loops variables
-    fn lookup_variable(&self, key: &str) -> Json {
+    fn lookup_variable(&self, key: &str) -> TeraResult<Json> {
+        // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
-            // TODO: no unwrap here
-            return self.context.lookup(key).cloned().unwrap();
+            return self.context.lookup(key).cloned().ok_or_else(|| field_not_found(key));
         }
 
         for for_loop in self.for_loops.iter().rev() {
             if key.starts_with(&for_loop.variable_name) {
-                // TODO: no unwrap
-                let value = for_loop.get();
+                let value = match for_loop.get() {
+                    Some(f) => f,
+                    None => { return Ok(to_value(&"")); }
+                };
+
                 // might be a struct or some nested structure
                 if key.contains('.') {
                     let new_key = key.split_terminator('.').skip(1).collect::<Vec<&str>>().join(".");
-                    return value.lookup(&new_key).cloned().unwrap();
+                    return value.lookup(&new_key).cloned().ok_or_else(|| field_not_found(key));
                 } else {
-                    return value.clone();
+                    return Ok(value.clone());
                 }
             } else {
                 match key {
-                    "loop.index" => { return to_value(&(for_loop.current + 1)); },
-                    "loop.index0" => { return to_value(&for_loop.current); },
-                    "loop.first" => { return to_value(&(for_loop.current == 0)); },
-                    "loop.last" => { return to_value(&(for_loop.current == for_loop.len() - 1)); },
+                    "loop.index" => { return Ok(to_value(&(for_loop.current + 1))); },
+                    "loop.index0" => { return Ok(to_value(&for_loop.current)); },
+                    "loop.first" => { return Ok(to_value(&(for_loop.current == 0))); },
+                    "loop.last" => { return Ok(to_value(&(for_loop.current == for_loop.len() - 1))); },
                     _ => ()
                 };
             }
         }
 
-        // TODO: no unwrap here
-        self.context.lookup(key).cloned().unwrap()
+        // dummy statement to satisfy the compiler
+        // TODO: make it so that's not needed
+        self.context.lookup(key).cloned().ok_or_else(|| field_not_found(key))
     }
 
-    fn eval_math(&self, node: &Node) -> f32 {
+    fn eval_math(&self, node: &Node) -> TeraResult<f32> {
         match node.specific {
             Identifier(ref s) => {
-                // TODO: no unwrap here
-                let value = self.context.lookup(s).unwrap();
-                value.to_number().unwrap()
+                let value = try!(self.lookup_variable(s));
+                match value.to_number() {
+                    Ok(v) =>  Ok(v),
+                    Err(_) => Err(not_a_number(s))
+                }
             },
-            Int(s) => s as f32,
-            Float(s) => s,
+            Int(s) => Ok(s as f32),
+            Float(s) => Ok(s),
             Math { ref lhs, ref rhs, ref operator } => {
-                let l = self.eval_math(lhs);
-                let r = self.eval_math(rhs);
+                let l = try!(self.eval_math(lhs));
+                let r = try!(self.eval_math(rhs));
                 let mut result = match *operator {
                     TokenType::Multiply => l * r,
                     TokenType::Divide => l / r,
                     TokenType::Add => l + r,
                     TokenType::Substract => l - r,
-                    _ => panic!("unexpected operator: {:?}", operator)
+                    _ => unreachable!()
                 };
                 // TODO: fix properly
                 // TODO: add tests for float maths arithmetics
                 if result.fract() < 0.01 {
                     result = result.round();
                 }
-                result
+                Ok(result)
             }
             _ => unreachable!()
         }
     }
 
     // TODO: clean up this, too ugly right now for the == and != nodes
-    fn eval_condition(&self, node: &Node) -> bool {
+    fn eval_condition(&self, node: &Node) -> TeraResult<bool> {
         match node.specific {
             // Simple truthiness check
             Identifier(ref n) => {
-                // TODO: no unwrap here
-                let value = self.context.lookup(n).unwrap();
-                value.is_truthy()
+                let value = try!(self.lookup_variable(n));
+                Ok(value.is_truthy())
             },
             Logic { ref lhs, ref rhs, ref operator } => {
                 match *operator {
                     TokenType::Or => {
-                        return self.eval_condition(lhs) || self.eval_condition(rhs);
+                        let result = try!(self.eval_condition(lhs)) || try!(self.eval_condition(rhs));
+                        return Ok(result);
                     },
                     TokenType::And => {
-                        return self.eval_condition(lhs) && self.eval_condition(rhs);
+                        let result = try!(self.eval_condition(lhs)) && try!(self.eval_condition(rhs));
+                        return Ok(result);
                     },
                     TokenType::GreaterOrEqual | TokenType::Greater
                     | TokenType::LowerOrEqual | TokenType::Lower => {
-                        let l = self.eval_math(lhs);
-                        let r = self.eval_math(rhs);
+                        let l = try!(self.eval_math(lhs));
+                        let r = try!(self.eval_math(rhs));
                         let result = match *operator {
                             TokenType::GreaterOrEqual => l >= r,
                             TokenType::Greater => l > r,
@@ -150,7 +157,7 @@ impl<'a> Renderer<'a> {
                             TokenType::Lower => l < r,
                             _ => unreachable!()
                         };
-                        return result;
+                        return Ok(result);
                     },
                     // This is quite different from the other operators
                     // TODO: clean this up, this is ugly
@@ -162,37 +169,42 @@ impl<'a> Renderer<'a> {
                                 panic!("Unimplemented");
                             },
                             Identifier(ref n) => {
-                                let l = self.context.lookup(n).unwrap();
+                                let l = try!(self.lookup_variable(n));
                                 // who knows what rhs is
                                 // Here goes a whole new level of ugliness
                                 match rhs.specific {
                                     Identifier(ref i) => {
-                                        let r = self.context.lookup(i).unwrap();
+                                        let r = try!(self.lookup_variable(i));
                                         let result = match *operator {
                                             TokenType::Equal => l == r,
                                             TokenType::NotEqual => l != r,
                                             _ => unreachable!()
                                         };
-                                        return result;
+                                        return Ok(result);
                                     },
                                     Int(r) => {
-                                        // TODO: error handling
-                                        let l2: i32 = from_value(l.clone()).unwrap();
+                                        let l2: i32 = match from_value(l.clone()) {
+                                            Ok(k) => k,
+                                            Err(_) => { return Err(not_a_number(n)); }
+                                        };
                                         let result = match *operator {
                                             TokenType::Equal => l2 == r,
                                             TokenType::NotEqual => l2 != r,
                                             _ => unreachable!()
                                         };
-                                        return result;
+                                        return Ok(result);
                                     },
                                     Float(r) => {
-                                        let l2: f32 = from_value(l.clone()).unwrap();
+                                        let l2: f32 = match from_value(l.clone()) {
+                                            Ok(k) => k,
+                                            Err(_) => { return Err(not_a_number(n)); }
+                                        };
                                         let result = match *operator {
                                             TokenType::Equal => (l2 - r).abs() < EPSILON,
                                             TokenType::NotEqual => (l2 - r).abs() > EPSILON,
                                             _ => unreachable!()
                                         };
-                                        return result;
+                                        return Ok(result);
                                     },
                                     _ => unreachable!()
                                 }
@@ -200,86 +212,90 @@ impl<'a> Renderer<'a> {
                             Int(n) => {
                                 // rhs MUST be a number
                                 let l = n as f32; // TODO: that's going to cause issues
-                                let r = self.eval_math(rhs);
+                                let r = try!(self.eval_math(rhs));
                                 let result = match *operator {
                                     TokenType::Equal => (l - r).abs() < EPSILON,
                                     TokenType::NotEqual => (l - r).abs() > EPSILON,
                                     _ => unreachable!()
                                 };
-                                return result;
+                                return Ok(result);
                             },
                             Float(l) => {
                                 // rhs MUST be a number
-                                let r = self.eval_math(rhs);
+                                let r = try!(self.eval_math(rhs));
                                 let result = match *operator {
                                     TokenType::Equal => (l - r).abs() < EPSILON,
                                     TokenType::NotEqual => (l - r).abs() > EPSILON,
                                     _ => unreachable!()
                                 };
-                                return result;
+                                return Ok(result);
                             },
                             Math { .. } => {
                                 // rhs MUST be a number
-                                let l = self.eval_math(lhs);
-                                let r = self.eval_math(rhs);
+                                let l = try!(self.eval_math(lhs));
+                                let r = try!(self.eval_math(rhs));
                                 let result = match *operator {
                                     TokenType::Equal => (l - r).abs() < EPSILON,
                                     TokenType::NotEqual => (l - r).abs() > EPSILON,
                                     _ => unreachable!()
                                 };
-                                return result;
+                                return Ok(result);
                             },
                             _ => unreachable!()
                         }
                     },
                     _ => unreachable!()
                 }
-                false
+                Ok(false)
             },
-            _ => panic!("Got in eval_condition {:?}", node)
+            _ => unreachable!()
         }
     }
 
     // eval all the values in a  {{ }} block
-    fn render_variable_block(&mut self, node: Node) {
+    fn render_variable_block(&mut self, node: Node) -> TeraResult<String>  {
         match node.specific {
             Identifier(ref s) => {
-                let value = self.lookup_variable(s);
-                self.output.push_str(&value.render());
+                let value = try!(self.lookup_variable(s));
+                Ok(value.render())
             },
             Math { .. } => {
-                let result = self.eval_math(&node);
-                self.output.push_str(&result.to_string());
+                let result = try!(self.eval_math(&node));
+                Ok(result.to_string())
             }
             _ => unreachable!()
         }
     }
 
     // evaluates conditions and render bodies accordingly
-    fn render_if(&mut self, condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>) {
+    fn render_if(&mut self, condition_nodes: Vec<Box<Node>>, else_node: Option<Box<Node>>) -> TeraResult<String> {
         let mut skip_else = false;
+        let mut output = String::new();
         for node in condition_nodes {
             match node.specific {
                 Conditional {ref condition, ref body } => {
-                    if self.eval_condition(condition) {
+                    if try!(self.eval_condition(condition)) {
                         skip_else = true;
-                        self.render_node(*body.clone());
+                        output.push_str(&&try!(self.render_node(*body.clone())));
                     }
                 },
                 _ => unreachable!()
             }
         }
 
+
         if skip_else {
-            return;
+            return Ok(output);
         }
 
         if let Some(e) = else_node {
-            self.render_node(*e)
+            output.push_str(&&try!(self.render_node(*e)));
         };
+
+        Ok(output)
     }
 
-    fn render_for(&mut self, local: Node, array: Node, body: Box<Node>) {
+    fn render_for(&mut self, local: Node, array: Node, body: Box<Node>) -> TeraResult<String> {
         let local_name = match local.specific {
             Identifier(s) => s,
             _ => unreachable!()
@@ -289,19 +305,23 @@ impl<'a> Renderer<'a> {
             _ => unreachable!()
         };
 
-        let list = self.lookup_variable(&array_name);
+        let list = try!(self.lookup_variable(&array_name));
 
         if !list.is_array() {
-            panic!("{:?} is not an array! can't iterate on it", list);
+            return Err(not_an_array(&array_name));
         }
+
+        // Safe unwrap
         let deserialized = list.as_array().unwrap();
         let length = deserialized.len();
         self.for_loops.push(ForLoop::new(local_name, deserialized.clone()));
         let mut i = 0;
+        let mut output = String::new();
         loop {
-            self.render_node(*body.clone());
+            output.push_str(&&try!(self.render_node(*body.clone())));
+            // Safe unwrap
             self.for_loops.last_mut().unwrap().increment();
-            if i == length - 1 {
+            if length == 0 || i == length - 1 {
                 break;
             }
             i += 1;
@@ -309,54 +329,62 @@ impl<'a> Renderer<'a> {
         // Trim right at the end of the loop.
         // Can't be done in the parser as it would remove all newlines between
         // loops
-        self.output = self.output.trim_right().to_owned();
+        output = output.trim_right().to_owned();
+
+        Ok(output)
     }
 
-    pub fn render_node(&mut self, node: Node) {
+    pub fn render_node(&mut self, node: Node) -> TeraResult<String> {
         match node.specific {
-            Text(ref s) => self.output.push_str(s),
+            Text(s) => Ok(s),
             VariableBlock(s) => self.render_variable_block(*s),
             If {ref condition_nodes, ref else_node} => {
-                self.render_if(condition_nodes.clone(), else_node.clone());
+                self.render_if(condition_nodes.clone(), else_node.clone())
             },
             List(body) => {
+                let mut output = String::new();
                 for n in body {
-                    self.render_node(*n);
+                    output.push_str(&&try!(self.render_node(*n)));
                 }
+                Ok(output)
             },
             For {local, array, body} => {
-                self.render_for(*local, *array, body);
+                self.render_for(*local, *array, body)
             },
             Block {ref name, ref body} => {
                 match self.current.blocks.get(name) {
                     Some(b) => {
                         match b.specific {
                             Block {ref body, ..} => {
-                                self.render_node(*body.clone());
+                                return self.render_node(*body.clone());
                             },
                             _ => unreachable!()
                         }
                     },
                     None => {
-                        self.render_node(*body.clone());
+                        return self.render_node(*body.clone());
                     }
                 };
             },
-            _ => panic!("woo unexpected node {:?}", node)
+            _ => unreachable!()
         }
     }
 
-    pub fn render(&mut self) -> String {
+    pub fn render(&mut self) -> TeraResult<String> {
         let children = if self.parent.is_none() {
             self.current.ast.get_children()
         } else {
+            // unwrap is safe here as we checked the template exists beforehand
             self.parent.unwrap().ast.get_children()
         };
 
+        let mut output = String::new();
         for node in children {
-            self.render_node(*node);
+            // TODO: not entirely sure why i need to && instead of &
+            output.push_str(&&try!(self.render_node(*node)));
         }
-        self.output.clone()
+
+        Ok(output)
     }
 }
 
@@ -370,13 +398,13 @@ mod tests {
     #[test]
     fn test_render_simple_string() {
         let result = Template::new("", "<h1>Hello world</h1>").render(Context::new(), HashMap::new());
-        assert_eq!(result, "<h1>Hello world</h1>".to_owned());
+        assert_eq!(result.unwrap(), "<h1>Hello world</h1>".to_owned());
     }
 
     #[test]
     fn test_render_math() {
         let result = Template::new("", "This is {{ 2000 + 16 }}.").render(Context::new(), HashMap::new());
-        assert_eq!(result, "This is 2016.".to_owned());
+        assert_eq!(result.unwrap(), "This is 2016.".to_owned());
     }
 
     #[test]
@@ -385,7 +413,7 @@ mod tests {
         context.add("name", &"Vincent");
 
         let result = Template::new("", "My name is {{ name }}.").render(context, HashMap::new());
-        assert_eq!(result, "My name is Vincent.".to_owned());
+        assert_eq!(result.unwrap(), "My name is Vincent.".to_owned());
     }
 
     #[test]
@@ -394,7 +422,7 @@ mod tests {
         context.add("vat_rate", &0.20);
 
         let result = Template::new("", "Vat: £{{ 100 * vat_rate }}.").render(context, HashMap::new());
-        assert_eq!(result, "Vat: £20.".to_owned());
+        assert_eq!(result.unwrap(), "Vat: £20.".to_owned());
     }
 
     #[test]
@@ -403,7 +431,7 @@ mod tests {
         context.add("is_admin", &true);
 
         let result = Template::new("", "{% if is_admin %}Admin{% endif %}").render(context, HashMap::new());
-        assert_eq!(result, "Admin".to_owned());
+        assert_eq!(result.unwrap(), "Admin".to_owned());
     }
 
     #[test]
@@ -416,7 +444,7 @@ mod tests {
             "",
             "{% if is_adult || age + 1 > 18 %}Adult{% endif %}"
         ).render(context, HashMap::new());
-        assert_eq!(result, "Adult".to_owned());
+        assert_eq!(result.unwrap(), "Adult".to_owned());
     }
 
     #[test]
@@ -428,7 +456,7 @@ mod tests {
         let result = Template::new(
             "", "{% if is_adult && age == 18 %}Adult{% endif %}"
         ).render(context, HashMap::new());
-        assert_eq!(result, "Adult".to_owned());
+        assert_eq!(result.unwrap(), "Adult".to_owned());
     }
 
     #[test]
@@ -439,7 +467,7 @@ mod tests {
         let result = Template::new(
             "", "{% for i in data %}{{i}}{% endfor %}"
         ).render(context, HashMap::new());
-        assert_eq!(result, "123".to_owned());
+        assert_eq!(result.unwrap(), "123".to_owned());
     }
 
     #[test]
@@ -452,6 +480,6 @@ mod tests {
             "{% for i in data %}{{loop.index}}{{loop.index0}}{{loop.first}}{{loop.last}}{% endfor %}"
         ).render(context, HashMap::new());
 
-        assert_eq!(result, "10truefalse21falsefalse32falsetrue".to_owned());
+        assert_eq!(result.unwrap(), "10truefalse21falsefalse32falsetrue".to_owned());
     }
 }

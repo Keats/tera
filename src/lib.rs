@@ -8,6 +8,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate glob;
 
+mod errors;
 mod lexer;
 mod nodes;
 mod parser;
@@ -23,3 +24,4 @@ mod tera;
 pub use template::Template;
 pub use context::Context;
 pub use tera::Tera;
+pub use errors::{TeraResult, TeraErrorType};
