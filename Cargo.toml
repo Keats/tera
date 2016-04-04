@@ -19,7 +19,6 @@ clippy = {version = "~0.0.35", optional = true}
 default = []
 dev = ["clippy"]
 
-
 [profile.bench]
 lto = true
 codegen-units = 1
