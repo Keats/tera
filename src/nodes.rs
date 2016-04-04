@@ -85,7 +85,7 @@ impl Node {
             SpecificNode::Conditional {ref body, ..} | SpecificNode::For {ref body, ..}
             | SpecificNode::Block {ref body, ..} => {
                 match body.specific {
-                    SpecificNode::List(ref l2) => { return l2.len(); },
+                    SpecificNode::List(ref l2) => l2.len(),
                     _ => unreachable!()
                 }
             },

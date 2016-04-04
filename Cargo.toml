@@ -2,6 +2,12 @@
 name = "tera"
 version = "0.1.0"
 authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
+license = "MIT"
+readme = "README.md"
+description = "Jinja2/Django templates in pure Rust"
+homepage = "https://github.com/Keats/tera"
+repository = "https://github.com/Keats/tera"
+keywords = ["template", "html", "jinja", "django", "markup"]
 
 [dependencies]
 glob = "0.2"

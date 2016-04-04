@@ -36,7 +36,11 @@ impl ForLoop {
     }
 
     pub fn len(&self) -> usize {
-        return self.values.len();
+        self.values.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 

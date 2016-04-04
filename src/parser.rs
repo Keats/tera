@@ -172,7 +172,7 @@ impl Parser {
             Some(n) => {
                 // The value in unwrap_or is just a dummy, different from Block
                 let currently_in = self.currently_in.last().cloned().unwrap_or(InsideBlock::For);
-                if n.len() == 0 && currently_in != InsideBlock::Block {
+                if n.is_empty() && currently_in != InsideBlock::Block {
                     token.value.trim_left().to_owned()
                 } else {
                     token.value
