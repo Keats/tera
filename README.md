@@ -94,7 +94,82 @@ You can access variables of the context by using the `{{ my_variable_name }}` co
 You can also do some maths: `{{ product.price + 10 }}`. If `product.price` is not a number type, the `render` method will return an error.
 
 ### If
+Similar to the if in Rust, you can have several conditions and also use `elif` and `else`:
+
+```jinja`
+{% if price < 10 || always_show %}
+   Price is {{ price }}.
+{% elif price > 1000 %}
+   That's expensive!
+{% else %}
+    N/A
+{% endif %}
+```
+The `if` statement has to end with a `endif` tag.
 
 ### For
+Loop over items in a array:
+```jinja
+{% for product in products %}
+  {{loop.index}}. {{product.name}}
+{% endfor %}
+```
+A few special variables are available inside for loops like in jinja2:
+
+- `loop.index`: current iteration 1-indexed
+- `loop.index0`: current iteration 0-indexed
+- `loop.first`: whether this is the first iteration
+- `loop.last`: whether this is the last iteration
+
+The `for` statement has to end with a `endfor` tag.
 
 ### Inheritance
+Tera uses the same kind of inheritance as Jinja2 and django templates: you define a base template and extends it in child templates.
+
+#### Base template
+A base template typically contains the basic html structure as well as several `blocks` that can contain placeholders.
+For example, here's a `base.html` almost copied from the jinja documentation:
+
+```jinja
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% block head %}
+    <link rel="stylesheet" href="style.css" />
+    <title>{% block title %}{% endblock title %} - My Webpage</title>
+    {% endblock head %}
+</head>
+<body>
+    <div id="content">{% block content %}{% endblock content %}</div>
+    <div id="footer">
+        {% block footer %}
+        &copy; Copyright 2008 by <a href="http://domain.invalid/">you</a>.
+        {% endblock fotter %}
+    </div>
+</body>
+</html>
+```
+The difference with Jinja being that `endblock` tags must be named.
+This defines 4 `block` tag that child templates can override. The `head` and `footer` block contains some html already which will be rendered if they are not overrident.
+
+#### Child template
+Again, straight from jinja2 docs:
+
+```jinja
+{% extends "base.html" %}
+{% block title %}Index{% endblock title %}
+{% block head %}
+    {{ super() }}
+    <style type="text/css">
+        .important { color: #336699; }
+    </style>
+{% endblock head %}
+{% block content %}
+    <h1>Index</h1>
+    <p class="important">
+      Welcome to my awesome homepage.
+    </p>
+{% endblock content %}
+```
+
+When trying to render that template, Tera will see that it depends on a parent template and will render it first, filling the blocks as it encounters them in the base template.
