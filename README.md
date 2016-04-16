@@ -144,7 +144,7 @@ For example, here's a `base.html` almost copied from the jinja documentation:
     <div id="footer">
         {% block footer %}
         &copy; Copyright 2008 by <a href="http://domain.invalid/">you</a>.
-        {% endblock fotter %}
+        {% endblock footer %}
     </div>
 </body>
 </html>
