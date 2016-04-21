@@ -22,6 +22,7 @@ mod tera;
 // Template is not meant to be used in your code, only there for bench/test of
 // tera itself
 pub use template::Template;
+
 pub use context::Context;
 pub use tera::Tera;
 pub use errors::{TeraResult, TeraErrorType};

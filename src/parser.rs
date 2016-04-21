@@ -520,7 +520,7 @@ mod tests {
     use lexer::TokenType;
     use nodes::{Node, SpecificNode};
 
-    fn compared_expected(expected: Vec<SpecificNode>, got: Vec<Box<Node>>) {
+    fn compare_expected(expected: Vec<SpecificNode>, got: Vec<Box<Node>>) {
         if expected.len() != got.len() {
             println!("Got: {:#?}", got);
             assert!(false);
@@ -539,7 +539,7 @@ mod tests {
     fn test_parser(input: &str, expected: Vec<SpecificNode>) {
         let parser = Parser::new("dummy", input);
         let children = parser.root.get_children();
-        compared_expected(expected, children)
+        compare_expected(expected, children)
     }
 
     #[test]
