@@ -1,4 +1,4 @@
-/tera.iml
+/*.iml
 /.idea
 target/
 Cargo.lock
