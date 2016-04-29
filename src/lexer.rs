@@ -12,6 +12,7 @@ pub enum TokenType {
     Identifier, // variable name for example
     TagStart, // {%
     TagEnd, // %}
+    Comment,
     String,
     Int,
     Float,
@@ -110,7 +111,8 @@ impl fmt::Debug for StateFn {
 }
 
 /// which kind of block are we currently in (to know which type of token type to emit)
-/// We only have 2 types (3 if we add comments): {{ }} and {% %}
+/// We only have 2 types: {{ }} and {% %}
+/// The comment block {# #} is not parsed as a block, and ignored completely
 #[derive(Debug)]
 enum BlockType {
     Variable,
@@ -307,6 +309,17 @@ fn lex_text(lexer: &mut Lexer) -> StateFn {
                     lexer.add_text_token();
                     lexer.current_block_type = BlockType::Block;
                     return lexer.add_delimiter(DelimiterSide::Left);
+                } else if lexer.starts_with("{#") {
+                    lexer.add_text_token();
+                    loop {
+                        lexer.next_char();
+                        if lexer.starts_with("#}")  {
+                            lexer.next_char();
+                            lexer.next_char();
+                            lexer.add_token(TokenType::Comment);
+                            return StateFn(Some(lex_text));
+                        }
+                    }
                 }
             },
             _ => {
@@ -534,6 +547,10 @@ mod tests {
         TokenTest::new(Error, msg)
     }
 
+    fn comment_token(text: &str) -> TokenTest {
+        TokenTest::new(Comment, text)
+    }
+
     fn test_tokens(input: &str, test_tokens: Vec<TokenTest>) {
         let mut lexer = Lexer::new("test", input);
         lexer.run();
@@ -586,6 +603,16 @@ mod tests {
             T_EOF
         ];
         test_tokens("{{ greeting }} 世界", expected);
+    }
+
+    #[test]
+    fn test_comment_block_and_text() {
+        let expected = vec![
+            comment_token("{# greeting #}"),
+            text_token(" 世界"),
+            T_EOF
+        ];
+        test_tokens("{# greeting #} 世界", expected);
     }
 
     #[test]
