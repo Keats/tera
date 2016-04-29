@@ -295,8 +295,15 @@ impl Lexer {
         self.start = self.position;
         self.current_char += 2;
 
-        match side {
-            DelimiterSide::Left => StateFn(Some(lex_inside_block)),
+		match side {
+            DelimiterSide::Left => {
+				match self.current_block_type {
+					BlockType::Comment => {
+						StateFn(Some(lex_inside_comment))
+					},
+					_ => StateFn(Some(lex_inside_block))
+				}
+			},
             DelimiterSide::Right => StateFn(Some(lex_text)),
         }
     }
@@ -408,12 +415,12 @@ fn lex_string(lexer: &mut Lexer) -> StateFn {
     }
 }
 
-fn lex_comment(lexer: &mut Lexer) -> StateFn {
+fn lex_inside_comment(lexer: &mut Lexer) -> StateFn {
     loop {
         lexer.next_char();
         if lexer.starts_with("#}")  {
             lexer.add_token(TokenType::Comment);
-            return StateFn(Some(lex_inside_block));
+            return lexer.add_delimiter(DelimiterSide::Right);
         }
     }
 }
@@ -421,16 +428,9 @@ fn lex_comment(lexer: &mut Lexer) -> StateFn {
 fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
     while !lexer.is_over() {
         // Check if we are at the end of the block
-        if lexer.starts_with("}}") || lexer.starts_with("%}") || lexer.starts_with("#}") {
+        if lexer.starts_with("}}") || lexer.starts_with("%}") {
             return lexer.add_delimiter(DelimiterSide::Right);
         }
-
-        match lexer.current_block_type {
-            BlockType::Comment => {
-                return StateFn(Some(lex_comment));
-            },
-            _ => {}
-        };
 
         match lexer.next_char() {
             EOF => { return lexer.error("EOF while parsing a tag"); },
