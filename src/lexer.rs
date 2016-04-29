@@ -113,7 +113,7 @@ impl fmt::Debug for StateFn {
 }
 
 /// which kind of block are we currently in (to know which type of token type to emit)
-/// We only have 2 types (3 if we add comments): {{ }} and {% %}
+/// We only have 3 types: {{ }} , {% %} and {# #}
 #[derive(Debug)]
 enum BlockType {
     Variable,
