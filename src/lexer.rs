@@ -295,15 +295,15 @@ impl Lexer {
         self.start = self.position;
         self.current_char += 2;
 
-		match side {
+        match side {
             DelimiterSide::Left => {
-				match self.current_block_type {
-					BlockType::Comment => {
-						StateFn(Some(lex_inside_comment))
-					},
-					_ => StateFn(Some(lex_inside_block))
-				}
-			},
+                match self.current_block_type {
+                    BlockType::Comment => {
+                        StateFn(Some(lex_inside_comment))
+                    },
+                    _ => StateFn(Some(lex_inside_block))
+                }
+            },
             DelimiterSide::Right => StateFn(Some(lex_text)),
         }
     }

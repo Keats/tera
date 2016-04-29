@@ -58,7 +58,7 @@ impl Parser {
             match self.peek().kind {
                 TokenType::TagStart => self.parse_tag_block(),
                 TokenType::VariableStart => self.parse_variable_block(),
-				TokenType::CommentStart => self.parse_comment_block(),
+                TokenType::CommentStart => self.parse_comment_block(),
                 TokenType::Text => self.parse_text(),
                 TokenType::Eof => break,
                 _ => unreachable!()
@@ -203,13 +203,13 @@ impl Parser {
         self.add_node(node);
     }
 
-	fn parse_comment_block(&mut self)  {
-		let _ = self.expect(TokenType::CommentStart);
-		let _ = self.next_token();
-		self.expect(TokenType::CommentEnd);
-	}
+    fn parse_comment_block(&mut self)  {
+        let _ = self.expect(TokenType::CommentStart);
+        let _ = self.next_token();
+        self.expect(TokenType::CommentEnd);
+    }
 
-	// Parse the content of a {% %} block
+    // Parse the content of a {% %} block
     fn parse_tag_block(&mut self) {
         let token = self.expect(TokenType::TagStart);
 
