@@ -58,6 +58,7 @@ impl Parser {
             match self.peek().kind {
                 TokenType::TagStart => self.parse_tag_block(),
                 TokenType::VariableStart => self.parse_variable_block(),
+                TokenType::Comment => { self.next_non_space(); },
                 TokenType::Text => self.parse_text(),
                 TokenType::Eof => break,
                 _ => unreachable!()
