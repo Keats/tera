@@ -308,6 +308,9 @@ fn lex_text(lexer: &mut Lexer) -> StateFn {
                     lexer.current_block_type = BlockType::Block;
                     return lexer.add_delimiter(DelimiterSide::Left);
                 }
+                if lexer.next_char() == EOF {
+                    break;
+                }
             },
             _ => {
                 if lexer.next_char() == EOF {
@@ -726,5 +729,14 @@ mod tests {
             error_token("Found EOF while lexing spaces")
         ];
         test_tokens("{{ hello \n", expected);
+    }
+
+    #[test]
+    fn test_parse_text_with_curly_braces() {
+        let expected = vec![
+            text_token("{color:red}"),
+            T_EOF
+        ];
+        test_tokens("{color:red}", expected);
     }
 }
