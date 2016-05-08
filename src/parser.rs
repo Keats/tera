@@ -204,8 +204,8 @@ impl Parser {
     }
 
     fn parse_comment_block(&mut self)  {
-        let _ = self.expect(TokenType::CommentStart);
-        let _ = self.next_token();
+        self.expect(TokenType::CommentStart);
+        self.next_token();
         self.expect(TokenType::CommentEnd);
     }
 
