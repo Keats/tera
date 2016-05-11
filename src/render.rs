@@ -280,7 +280,7 @@ impl<'a> Renderer<'a> {
                 Conditional {ref condition, ref body } => {
                     if try!(self.eval_condition(condition)) {
                         skip_else = true;
-                        output.push_str(&&try!(self.render_node(*body.clone())));
+                        output.push_str(&try!(self.render_node(*body.clone())));
                     }
                 },
                 _ => unreachable!()
@@ -293,7 +293,7 @@ impl<'a> Renderer<'a> {
         }
 
         if let Some(e) = else_node {
-            output.push_str(&&try!(self.render_node(*e)));
+            output.push_str(&try!(self.render_node(*e)));
         };
 
         Ok(output)
@@ -322,7 +322,7 @@ impl<'a> Renderer<'a> {
         let mut i = 0;
         let mut output = String::new();
         loop {
-            output.push_str(&&try!(self.render_node(*body.clone())));
+            output.push_str(&try!(self.render_node(*body.clone())));
             // Safe unwrap
             self.for_loops.last_mut().unwrap().increment();
             if length == 0 || i == length - 1 {
@@ -348,7 +348,7 @@ impl<'a> Renderer<'a> {
             List(body) => {
                 let mut output = String::new();
                 for n in body {
-                    output.push_str(&&try!(self.render_node(*n)));
+                    output.push_str(&try!(self.render_node(*n)));
                 }
                 Ok(output)
             },
@@ -384,8 +384,7 @@ impl<'a> Renderer<'a> {
 
         let mut output = String::new();
         for node in children {
-            // TODO: not entirely sure why i need to && instead of &
-            output.push_str(&&try!(self.render_node(*node)));
+            output.push_str(&try!(self.render_node(*node)));
         }
 
         Ok(output)

@@ -20,7 +20,7 @@ pub struct Template {
 
 impl Template {
     pub fn new(name: &str, input: &str) -> Template {
-        let parser = Parser::new(&name, input);
+        let parser = Parser::new(name, input);
 
         Template {
             name: name.to_owned(),

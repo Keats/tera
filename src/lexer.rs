@@ -133,7 +133,7 @@ enum DelimiterSide {
 /// we don't use Option (U+058D)
 const EOF: char = '֍';
 
-/// Lexer based on the one used in go templates (https://www.youtube.com/watch?v=HxaD_trXwRE)
+// Lexer based on the one used in go templates (https://www.youtube.com/watch?v=HxaD_trXwRE)
 #[derive(Debug)]
 pub struct Lexer {
     name: String, // name of input, to report errors
@@ -791,6 +791,7 @@ mod tests {
             T_EOF
         ];
         test_tokens("{color:red}", expected);
+    }
 
     #[test]
     fn test_string() {
