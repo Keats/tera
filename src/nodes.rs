@@ -1,4 +1,7 @@
+use std::collections::HashMap;
 use std::fmt;
+
+use serde_json::value::{Value as Json, to_value};
 
 use lexer::TokenType;
 
@@ -20,7 +23,15 @@ pub enum SpecificNode {
     // represents a if/elif block and its body (body is a List)
     Conditional {condition: Box<Node>, body: Box<Node>},
     For {local: Box<Node>, array: Box<Node>, body: Box<Node>},
-    Block {name: String, body: Box<Node>}
+    Block {name: String, body: Box<Node>},
+    // we need 2 hashmaps as we might have variables in kwargs so we can't
+    // have a single one with a Json value
+    Function {
+        name: String,
+        args: Vec<Box<Node>>,
+        kwargs: HashMap<String, Json>,
+        kwargs_var: HashMap<String, String>,
+    }
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -34,6 +45,16 @@ impl Node {
         Node {
             position: position,
             specific: specific
+        }
+    }
+
+    // Get the value of a literal node
+    pub fn get_value(&self) -> Json {
+        match self.specific {
+            SpecificNode::Int(ref s) => to_value(s),
+            SpecificNode::Float(ref s) => to_value(s),
+            SpecificNode::Bool(ref s) => to_value(s),
+            _ => unreachable!()
         }
     }
 
@@ -109,6 +130,7 @@ impl Node {
     }
 }
 
+// TODO: do we even need that? never used it yet and annoying to maintain
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.specific {
@@ -153,7 +175,11 @@ impl fmt::Display for Node {
             },
             SpecificNode::Block { ref name, ref body } => {
                 write!(f, "block {} => {}", name, body)
-            }
+            },
+            _ => unreachable!()
+            // SpecificNode::Function { ref name, ref args, ref kwargs } => {
+            //     write!(f, "{}({}, {})", name, args, kwargs)
+            // }
         }
     }
 }

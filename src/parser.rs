@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde_json::value::{Value as Json, to_value};
+
 use lexer::{Lexer, TokenType, Token};
 use nodes::{Node, SpecificNode};
 
@@ -82,6 +84,17 @@ impl Parser {
         self.current_token -= 1;
 
         token
+    }
+
+    // Find out what's the token after the next non space one?
+    // Very similar to peek_tag_name, TODO: see if we can replace it
+    fn peek_two_non_space(&mut self) -> Token {
+        let before_peeking = self.current_token;
+        self.next_non_space();
+        let token_after = self.peek_non_space();
+        self.current_token = before_peeking;
+
+        token_after
     }
 
     // Get the next token
@@ -481,8 +494,73 @@ impl Parser {
             TokenType::Error => self.throw_lexer_error(&token),
             TokenType::Identifier => self.parse_identifier(),
             TokenType::Float | TokenType::Int | TokenType::Bool => self.parse_literal(),
+            TokenType::Function => self.parse_function(),
             _ => unreachable!()
         }
+    }
+
+    fn parse_function(&mut self) -> Box<Node> {
+        let function = self.next_non_space();
+        self.expect(TokenType::LeftParenthesis);
+        let mut args = Vec::new();
+        let mut kwargs: HashMap<String, Json> = HashMap::new();
+        let mut kwargs_var = HashMap::new();
+
+        loop {
+            if self.peek_non_space().kind == TokenType::RightParenthesis {
+                break;
+            }
+            println!("{:?}", self.peek_non_space());
+
+            match self.peek_non_space().kind {
+                TokenType::Float | TokenType::Int | TokenType::Bool => {
+                    args.push(self.parse_literal());
+                },
+                TokenType::Identifier => {
+                    // if the token after is Assign then it's a kwargs, otherwise just arg
+                    match self.peek_two_non_space().kind {
+                        TokenType::Comma | TokenType::RightParenthesis => {
+                            args.push(self.parse_identifier());
+                        },
+                        TokenType::Assign => {
+                            // kwargs!
+                            let kwarg = self.next_non_space();
+                            if kwargs.contains_key(&kwarg.value) || kwargs_var.contains_key(&kwarg.value) {
+                                return self.throw_lexer_error(&kwarg);
+                            }
+
+                            self.expect(TokenType::Assign);
+                            match self.peek_non_space().kind {
+                                TokenType::Float | TokenType::Int | TokenType::Bool => {
+                                    let literal = self.parse_literal();
+                                    kwargs.insert(kwarg.value, literal.get_value());
+                                },
+                                TokenType::String => {
+                                    kwargs.insert(kwarg.value, to_value(&self.next_non_space().value));
+                                },
+                                TokenType::Identifier => {
+                                    let ident = self.next_non_space();
+                                    kwargs_var.insert(kwarg.value, ident.value);
+                                },
+                                _ => unreachable!()
+                            };
+                        },
+                        _ => unreachable!()
+                    };
+                },
+                TokenType::Comma => { self.next_non_space(); },
+                _ => unreachable!()
+            };
+        }
+
+        self.expect(TokenType::RightParenthesis);
+
+        Box::new(Node::new(function.position, SpecificNode::Function {
+            name: function.value,
+            args: args,
+            kwargs: kwargs,
+            kwargs_var: kwargs_var,
+        }))
     }
 
     // Parse an identifier (variable name or keyword)
@@ -516,6 +594,10 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use serde_json::value::{to_value};
+
     use super::{Parser};
     use lexer::TokenType;
     use nodes::{Node, SpecificNode};
@@ -889,5 +971,30 @@ mod tests {
     fn test_extends() {
         let parser = Parser::new("dummy", "{% extends \"main.html\" %}");
         assert_eq!(parser.extends, Some("main.html".to_owned()));
+    }
+
+    #[test]
+    fn test_function() {
+        let mut kwargs = HashMap::new();
+        kwargs.insert("format".to_owned(), to_value("YYYY-MM-DD"));
+
+        let mut kwargs_var = HashMap::new();
+        kwargs_var.insert("extra".to_owned(), "extra".to_owned());
+
+        test_parser(
+            "{{ format_date(birthday, format=\"YYYY-MM-DD\", extra=extra) }}",
+            vec![
+                SpecificNode::VariableBlock(
+                    Box::new(Node::new(3, SpecificNode::Function {
+                        name: "format_date".to_owned(),
+                        args: vec![
+                            Box::new(Node::new(15, SpecificNode::Identifier("birthday".to_owned())))
+                        ],
+                        kwargs: kwargs,
+                        kwargs_var: kwargs_var
+                    }))
+                )
+            ]
+        );
     }
 }

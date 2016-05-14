@@ -10,7 +10,8 @@ pub enum TokenType {
     VariableStart, // {{
     VariableEnd, // }}
     Function, // the name of a function called in a {{ }} block
-    Parenthesis, // ( or )
+    LeftParenthesis, // (
+    RightParenthesis, // )
     Comma,
     Identifier, // variable name for example
     TagStart, // {%
@@ -379,9 +380,9 @@ fn lex_function(lexer: &mut Lexer) -> StateFn {
             x if x.is_alphabetic() || x == '_' || x == '.' => { return StateFn(Some(lex_identifier)); }
             '=' => lexer.add_token(TokenType::Assign),
             ',' => lexer.add_token(TokenType::Comma),
-            '(' => lexer.add_token(TokenType::Parenthesis),
+            '(' => lexer.add_token(TokenType::LeftParenthesis),
             ')' => {
-                lexer.add_token(TokenType::Parenthesis);
+                lexer.add_token(TokenType::RightParenthesis);
                 lexer.in_function = false;
                 return StateFn(Some(lex_inside_block));
             },
@@ -560,6 +561,8 @@ mod tests {
     const T_AND: TokenTest<'static> = TokenTest { kind: And, value: "&&"};
     const T_OR: TokenTest<'static> = TokenTest { kind: Or, value: "||"};
     const T_COMMA: TokenTest<'static> = TokenTest { kind: Comma, value: ","};
+    const T_LEFTPARA: TokenTest<'static> = TokenTest { kind: LeftParenthesis, value: "("};
+    const T_RIGHTPARA: TokenTest<'static> = TokenTest { kind: RightParenthesis, value: ")"};
     const T_ASSIGN: TokenTest<'static> = TokenTest { kind: Assign, value: "="};
 
     fn identifier_token(ident: &str) -> TokenTest {
@@ -588,10 +591,6 @@ mod tests {
 
     fn function_token(name: &str) -> TokenTest {
         TokenTest::new(Function, name)
-    }
-
-    fn parenthesis_token(side: &str) -> TokenTest {
-        TokenTest::new(Parenthesis, side)
     }
 
     fn test_tokens(input: &str, test_tokens: Vec<TokenTest>) {
@@ -813,12 +812,12 @@ mod tests {
             T_VARIABLE_START,
             T_SPACE,
             function_token("url_for"),
-            parenthesis_token("("),
+            T_LEFTPARA,
             string_token("profile"),
             T_COMMA,
             T_SPACE,
             int_token("1"),
-            parenthesis_token(")"),
+            T_RIGHTPARA,
             T_SPACE,
             T_VARIABLE_END,
             T_EOF
@@ -832,19 +831,19 @@ mod tests {
             T_VARIABLE_START,
             T_SPACE,
             function_token("format_date"),
-            parenthesis_token("("),
-            string_token("birthday"),
+            T_LEFTPARA,
+            identifier_token("birthday"),
             T_COMMA,
             T_SPACE,
             identifier_token("format"),
             T_ASSIGN,
             string_token("YYYY-MM-DD"),
-            parenthesis_token(")"),
+            T_RIGHTPARA,
             T_SPACE,
             T_VARIABLE_END,
             T_EOF
         ];
-        test_tokens("{{ format_date(\"birthday\", format=\"YYYY-MM-DD\") }}", expected);
+        test_tokens("{{ format_date(birthday, format=\"YYYY-MM-DD\") }}", expected);
     }
 
     #[test]
@@ -853,7 +852,7 @@ mod tests {
             T_VARIABLE_START,
             T_SPACE,
             function_token("url_for"),
-            parenthesis_token("("),
+            T_LEFTPARA,
             string_token("profile"),
             error_token("EOF while reading function")
         ];
