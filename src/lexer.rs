@@ -32,6 +32,7 @@ pub enum TokenType {
     And, // &&
     Or, // ||
     Pipe, // |
+    Assign, // single =
     Error, // errors uncountered while lexing, such as 1.2.3 number
     Eof,
     // And now tera keywords
@@ -62,6 +63,7 @@ impl fmt::Display for TokenType {
             TokenType::LowerOrEqual => write!(f, "<="),
             TokenType::And => write!(f, "&&"),
             TokenType::Or => write!(f, "||"),
+            TokenType::Assign => write!(f, "="),
             _ => unreachable!()
         }
     }
@@ -375,6 +377,7 @@ fn lex_function(lexer: &mut Lexer) -> StateFn {
             x if x.is_whitespace() => { return StateFn(Some(lex_space)); }
             x if x.is_numeric() => { return StateFn(Some(lex_number)); }
             x if x.is_alphabetic() || x == '_' || x == '.' => { return StateFn(Some(lex_identifier)); }
+            '=' => lexer.add_token(TokenType::Assign),
             ',' => lexer.add_token(TokenType::Comma),
             '(' => lexer.add_token(TokenType::Parenthesis),
             ')' => {
@@ -557,6 +560,7 @@ mod tests {
     const T_AND: TokenTest<'static> = TokenTest { kind: And, value: "&&"};
     const T_OR: TokenTest<'static> = TokenTest { kind: Or, value: "||"};
     const T_COMMA: TokenTest<'static> = TokenTest { kind: Comma, value: ","};
+    const T_ASSIGN: TokenTest<'static> = TokenTest { kind: Assign, value: "="};
 
     fn identifier_token(ident: &str) -> TokenTest {
         TokenTest::new(Identifier, ident)
@@ -820,6 +824,27 @@ mod tests {
             T_EOF
         ];
         test_tokens("{{ url_for(\"profile\", 1) }}", expected);
+    }
+
+    #[test]
+    fn test_function_call_with_kwargs() {
+        let expected = vec![
+            T_VARIABLE_START,
+            T_SPACE,
+            function_token("format_date"),
+            parenthesis_token("("),
+            string_token("birthday"),
+            T_COMMA,
+            T_SPACE,
+            identifier_token("format"),
+            T_ASSIGN,
+            string_token("YYYY-MM-DD"),
+            parenthesis_token(")"),
+            T_SPACE,
+            T_VARIABLE_END,
+            T_EOF
+        ];
+        test_tokens("{{ format_date(\"birthday\", format=\"YYYY-MM-DD\") }}", expected);
     }
 
     #[test]
