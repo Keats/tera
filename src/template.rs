@@ -5,6 +5,7 @@ use nodes::Node;
 use parser::Parser;
 use render::Renderer;
 use errors::{TeraResult, template_not_found};
+use tera::Tera;
 
 
 // This is the parsed equivalent of a html template file
@@ -20,7 +21,7 @@ pub struct Template {
 
 impl Template {
     pub fn new(name: &str, input: &str) -> Template {
-        let parser = Parser::new(&name, input);
+        let parser = Parser::new(name, input);
 
         Template {
             name: name.to_owned(),
@@ -30,9 +31,9 @@ impl Template {
         }
     }
 
-    pub fn render(&self, context: Context, templates: HashMap<String, Template>) -> TeraResult<String> {
+    pub fn render(&self, context: Context, tera: &Tera) -> TeraResult<String> {
         let parent = match self.parent {
-            Some(ref n) => match templates.get(n) {
+            Some(ref n) => match tera.get_template(n) {
                 Some(p) => Some(p),
                 None => { return Err(template_not_found(n)); }
             },
@@ -40,7 +41,7 @@ impl Template {
         };
 
         // TODO: return a TemplateResult if there is a TemplateNotFound
-        let mut renderer = Renderer::new(self, parent, context);
+        let mut renderer = Renderer::new(self, parent, tera.functions.clone(), context);
 
         renderer.render()
     }

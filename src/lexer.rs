@@ -9,6 +9,10 @@ pub enum TokenType {
     Space,
     VariableStart, // {{
     VariableEnd, // }}
+    Function, // the name of a function called in a {{ }} block
+    LeftParenthesis, // (
+    RightParenthesis, // )
+    Comma,
     Identifier, // variable name for example
     TagStart, // {%
     TagEnd, // %}
@@ -29,6 +33,7 @@ pub enum TokenType {
     And, // &&
     Or, // ||
     Pipe, // |
+    Assign, // single =
     Error, // errors uncountered while lexing, such as 1.2.3 number
     Eof,
     // And now tera keywords
@@ -59,6 +64,7 @@ impl fmt::Display for TokenType {
             TokenType::LowerOrEqual => write!(f, "<="),
             TokenType::And => write!(f, "&&"),
             TokenType::Or => write!(f, "||"),
+            TokenType::Assign => write!(f, "="),
             _ => unreachable!()
         }
     }
@@ -130,7 +136,7 @@ enum DelimiterSide {
 /// we don't use Option (U+058D)
 const EOF: char = '֍';
 
-/// Lexer based on the one used in go templates (https://www.youtube.com/watch?v=HxaD_trXwRE)
+// Lexer based on the one used in go templates (https://www.youtube.com/watch?v=HxaD_trXwRE)
 #[derive(Debug)]
 pub struct Lexer {
     name: String, // name of input, to report errors
@@ -142,6 +148,7 @@ pub struct Lexer {
     current_char: usize, // current index in the chars vec
     state: StateFn, // current state fn
     current_block_type: BlockType, // whether we are in a {{ or {% block
+    in_function: bool, // whether we are currently lexing a function
     pub tokens: Vec<Token> // tokens found
 }
 
@@ -157,6 +164,7 @@ impl Lexer {
             current_char: 0,
             tokens: vec![],
             current_block_type: BlockType::Variable, // we don't care about default one
+            in_function: false,
             state: StateFn(Some(lex_text))
         }
     }
@@ -191,7 +199,6 @@ impl Lexer {
         self.last_position = self.position;
         self.position += width;
         self.current_char += 1;
-
         current_char.1
     }
 
@@ -233,12 +240,12 @@ impl Lexer {
     fn add_token(&mut self, kind: TokenType) {
         let line = self.get_line_number();
         let mut substring = self.get_substring(self.start, self.position);
+
         if kind == TokenType::String {
             // Remove the extra \"
             substring = substring.replace("\"", "");
         }
         self.tokens.push(Token::new(kind, &substring, line, self.start));
-
         self.start = self.position;
     }
 
@@ -354,8 +361,33 @@ fn lex_number(lexer: &mut Lexer) -> StateFn {
             _ => {
                 lexer.backup();
                 lexer.add_token(token_type);
+                if lexer.in_function {
+                    return StateFn(Some(lex_function));
+                }
                 return StateFn(Some(lex_inside_block));
             }
+        }
+    }
+}
+
+// Lex inside a function, tokens separated by , and ended by )
+fn lex_function(lexer: &mut Lexer) -> StateFn {
+    loop {
+        match lexer.next_char() {
+            EOF => { return lexer.error("EOF while reading function"); },
+            x if x.is_whitespace() => { return StateFn(Some(lex_space)); }
+            x if x.is_numeric() => { return StateFn(Some(lex_number)); }
+            x if x.is_alphabetic() || x == '_' || x == '.' => { return StateFn(Some(lex_identifier)); }
+            '=' => lexer.add_token(TokenType::Assign),
+            ',' => lexer.add_token(TokenType::Comma),
+            '(' => lexer.add_token(TokenType::LeftParenthesis),
+            ')' => {
+                lexer.add_token(TokenType::RightParenthesis);
+                lexer.in_function = false;
+                return StateFn(Some(lex_inside_block));
+            },
+            '"' => { return StateFn(Some(lex_string)); },
+            _ => unreachable!()
         }
     }
 }
@@ -367,6 +399,13 @@ fn lex_identifier(lexer: &mut Lexer) -> StateFn {
         match lexer.next_char() {
             x if x.is_alphanumeric() || x == '_' || x == '.' => continue,
             EOF => { return lexer.error("EOF while reading identifier");},
+            '(' => {
+                // Backup first so we don't get the ( in the function name
+                lexer.backup();
+                lexer.in_function = true;
+                lexer.add_token(TokenType::Function);
+                return StateFn(Some(lex_function));
+            }
             _ => {
                 lexer.backup();
                 match lexer.get_substring(lexer.start, lexer.position).as_ref() {
@@ -383,7 +422,9 @@ fn lex_identifier(lexer: &mut Lexer) -> StateFn {
                     "extends" => lexer.add_token(TokenType::Extends),
                     _ => lexer.add_token(TokenType::Identifier)
                 }
-
+                if lexer.in_function {
+                    return StateFn(Some(lex_function));
+                }
                 return StateFn(Some(lex_inside_block));
             }
         }
@@ -392,9 +433,16 @@ fn lex_identifier(lexer: &mut Lexer) -> StateFn {
 
 fn lex_string(lexer: &mut Lexer) -> StateFn {
     loop {
-        if lexer.next_char() == '"' {
-            lexer.add_token(TokenType::String);
-            return StateFn(Some(lex_inside_block));
+        match lexer.next_char() {
+            EOF => { return lexer.error("Unterminated string");},
+            '"' => {
+                lexer.add_token(TokenType::String);
+                if lexer.in_function {
+                    return StateFn(Some(lex_function));
+                }
+                return StateFn(Some(lex_inside_block));
+            },
+            _ => continue
         }
     }
 }
@@ -512,6 +560,10 @@ mod tests {
     const T_NOTEQUAL: TokenTest<'static> = TokenTest { kind: NotEqual, value: "!="};
     const T_AND: TokenTest<'static> = TokenTest { kind: And, value: "&&"};
     const T_OR: TokenTest<'static> = TokenTest { kind: Or, value: "||"};
+    const T_COMMA: TokenTest<'static> = TokenTest { kind: Comma, value: ","};
+    const T_LEFTPARA: TokenTest<'static> = TokenTest { kind: LeftParenthesis, value: "("};
+    const T_RIGHTPARA: TokenTest<'static> = TokenTest { kind: RightParenthesis, value: ")"};
+    const T_ASSIGN: TokenTest<'static> = TokenTest { kind: Assign, value: "="};
 
     fn identifier_token(ident: &str) -> TokenTest {
         TokenTest::new(Identifier, ident)
@@ -535,6 +587,10 @@ mod tests {
 
     fn error_token(msg: &str) -> TokenTest {
         TokenTest::new(Error, msg)
+    }
+
+    fn function_token(name: &str) -> TokenTest {
+        TokenTest::new(Function, name)
     }
 
     fn test_tokens(input: &str, test_tokens: Vec<TokenTest>) {
@@ -738,5 +794,68 @@ mod tests {
             T_EOF
         ];
         test_tokens("{color:red}", expected);
+    }
+
+    #[test]
+    fn test_string() {
+        let expected = vec![
+            T_VARIABLE_START,
+            T_SPACE,
+            error_token("Unterminated string")
+        ];
+        test_tokens("{{ \"hello", expected);
+    }
+
+    #[test]
+    fn test_function_call() {
+        let expected = vec![
+            T_VARIABLE_START,
+            T_SPACE,
+            function_token("url_for"),
+            T_LEFTPARA,
+            string_token("profile"),
+            T_COMMA,
+            T_SPACE,
+            int_token("1"),
+            T_RIGHTPARA,
+            T_SPACE,
+            T_VARIABLE_END,
+            T_EOF
+        ];
+        test_tokens("{{ url_for(\"profile\", 1) }}", expected);
+    }
+
+    #[test]
+    fn test_function_call_with_kwargs() {
+        let expected = vec![
+            T_VARIABLE_START,
+            T_SPACE,
+            function_token("format_date"),
+            T_LEFTPARA,
+            identifier_token("birthday"),
+            T_COMMA,
+            T_SPACE,
+            identifier_token("format"),
+            T_ASSIGN,
+            string_token("YYYY-MM-DD"),
+            T_RIGHTPARA,
+            T_SPACE,
+            T_VARIABLE_END,
+            T_EOF
+        ];
+        test_tokens("{{ format_date(birthday, format=\"YYYY-MM-DD\") }}", expected);
+    }
+
+    #[test]
+    fn test_unterminated_function_call() {
+        let expected = vec![
+            T_VARIABLE_START,
+            T_SPACE,
+            function_token("url_for"),
+            T_LEFTPARA,
+            string_token("profile"),
+            error_token("EOF while reading function")
+        ];
+        test_tokens("{{ url_for(\"profile\"", expected);
     }
 }

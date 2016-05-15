@@ -14,7 +14,13 @@ pub enum TeraErrorType {
     /// Tried to do math on something that isn't a number
     NotANumber,
     /// Tried to iterate on a non-array field
-    NotAnArray
+    NotAnArray,
+    /// Tried to call a function that wasn't added to Tera
+    FunctionNotFound,
+    /// Function errored when called
+    FunctionError,
+    /// Function was missing args or they had the wrong type when called
+    FunctionIncorrectArgs
 }
 
 /// Our actual error
@@ -72,5 +78,12 @@ pub fn not_an_array(key: &str) -> TeraError {
     TeraError {
         error: format!("Field `{}` is not an array but was used as iterator in forloop", key),
         error_type: TeraErrorType::NotAnArray
+    }
+}
+
+pub fn function_not_found(name: &str) -> TeraError {
+    TeraError {
+        error: format!("Function `{}` not found in Tera", name),
+        error_type: TeraErrorType::FunctionNotFound
     }
 }

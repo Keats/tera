@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::f32::EPSILON;
+
 use serde_json::value::{Value as Json, from_value, to_value};
 
 use context::{Context, JsonRender, JsonNumber, JsonTruthy};
@@ -6,7 +8,8 @@ use lexer::TokenType;
 use nodes::Node;
 use nodes::SpecificNode::*;
 use template::Template;
-use errors::{TeraResult, field_not_found, not_a_number, not_an_array};
+use errors::{TeraResult, field_not_found, not_a_number, not_an_array, function_not_found};
+use tera::TeraFunction;
 
 
 // we need to have some data in the renderer for when we are in a ForLoop
@@ -44,21 +47,30 @@ impl ForLoop {
     }
 }
 
+// TODO: pass Tera instance to the renderer?
+// that would simplify a bit and allow multiple inheritance
 #[derive(Debug)]
 pub struct Renderer<'a> {
     context: Json,
     current: &'a Template,
     parent: Option<&'a Template>,
-    for_loops: Vec<ForLoop>
+    for_loops: Vec<ForLoop>,
+    functions: HashMap<String, TeraFunction>,
 }
 
 impl<'a> Renderer<'a> {
-    pub fn new(current: &'a Template, parent: Option<&'a Template>, context: Context) -> Renderer<'a> {
+    pub fn new(
+        current: &'a Template,
+        parent: Option<&'a Template>,
+        functions: HashMap<String, TeraFunction>,
+        context: Context
+    ) -> Renderer<'a> {
         Renderer {
             current: current,
             parent: parent,
             context: context.as_json(),
             for_loops: vec![],
+            functions: functions
         }
     }
 
@@ -130,6 +142,34 @@ impl<'a> Renderer<'a> {
             }
             _ => unreachable!()
         }
+    }
+
+    fn eval_function(
+        &self,
+        name: String,
+        args: Vec<String>,
+        kwargs: HashMap<String, Json>,
+        kwargs_var: HashMap<String, String>,
+    ) -> TeraResult<String> {
+        // 1. check if fn exists in tera
+        let function = self.functions.get(&name);
+        if function.is_none() {
+            return Err(function_not_found(&name));
+        }
+        // 2. get args values
+        let mut args_values: Vec<Json> = Vec::new();
+        // TODO: convert all to string?
+        for arg in args {
+            args_values.push(try!(self.lookup_variable(&arg)));
+        }
+        // 3. add kwargs_var to kwargs
+        let mut kwargs_values = kwargs.clone();
+        for (key, value) in kwargs_var {
+            kwargs_values.insert(key.to_owned(), try!(self.lookup_variable(&value)));
+        }
+
+        // 3. return the function call result
+        return function.unwrap()(args_values, kwargs_values);
     }
 
     // TODO: clean up this, too ugly right now for the == and != nodes
@@ -266,7 +306,11 @@ impl<'a> Renderer<'a> {
             Math { .. } => {
                 let result = try!(self.eval_math(&node));
                 Ok(result.to_string())
-            }
+            },
+            Function { name, args, kwargs, kwargs_var } => {
+                let result = try!(self.eval_function(name, args, kwargs, kwargs_var));
+                Ok(result.to_string())
+            },
             _ => unreachable!()
         }
     }
@@ -280,7 +324,7 @@ impl<'a> Renderer<'a> {
                 Conditional {ref condition, ref body } => {
                     if try!(self.eval_condition(condition)) {
                         skip_else = true;
-                        output.push_str(&&try!(self.render_node(*body.clone())));
+                        output.push_str(&try!(self.render_node(*body.clone())));
                     }
                 },
                 _ => unreachable!()
@@ -293,7 +337,7 @@ impl<'a> Renderer<'a> {
         }
 
         if let Some(e) = else_node {
-            output.push_str(&&try!(self.render_node(*e)));
+            output.push_str(&try!(self.render_node(*e)));
         };
 
         Ok(output)
@@ -322,7 +366,7 @@ impl<'a> Renderer<'a> {
         let mut i = 0;
         let mut output = String::new();
         loop {
-            output.push_str(&&try!(self.render_node(*body.clone())));
+            output.push_str(&try!(self.render_node(*body.clone())));
             // Safe unwrap
             self.for_loops.last_mut().unwrap().increment();
             if length == 0 || i == length - 1 {
@@ -348,7 +392,7 @@ impl<'a> Renderer<'a> {
             List(body) => {
                 let mut output = String::new();
                 for n in body {
-                    output.push_str(&&try!(self.render_node(*n)));
+                    output.push_str(&try!(self.render_node(*n)));
                 }
                 Ok(output)
             },
@@ -384,30 +428,39 @@ impl<'a> Renderer<'a> {
 
         let mut output = String::new();
         for node in children {
-            // TODO: not entirely sure why i need to && instead of &
-            output.push_str(&&try!(self.render_node(*node)));
+            output.push_str(&try!(self.render_node(*node)));
         }
 
         Ok(output)
     }
 }
 
+// Are those tests useful compared to the ones in the tests directory with actual
+// templates?
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
     use template::Template;
+    use tera::Tera;
     use context::Context;
+
+    fn get_empty_tera() -> Tera {
+        Tera {
+            templates: HashMap::new(),
+            functions: HashMap::new(),
+        }
+    }
 
     #[test]
     fn test_render_simple_string() {
-        let result = Template::new("", "<h1>Hello world</h1>").render(Context::new(), HashMap::new());
+        let result = Template::new("", "<h1>Hello world</h1>").render(Context::new(), &get_empty_tera());
         assert_eq!(result.unwrap(), "<h1>Hello world</h1>".to_owned());
     }
 
     #[test]
     fn test_render_math() {
-        let result = Template::new("", "This is {{ 2000 + 16 }}.").render(Context::new(), HashMap::new());
+        let result = Template::new("", "This is {{ 2000 + 16 }}.").render(Context::new(), &get_empty_tera());
         assert_eq!(result.unwrap(), "This is 2016.".to_owned());
     }
 
@@ -416,7 +469,7 @@ mod tests {
         let mut context = Context::new();
         context.add("name", &"Vincent");
 
-        let result = Template::new("", "My name is {{ name }}.").render(context, HashMap::new());
+        let result = Template::new("", "My name is {{ name }}.").render(context, &get_empty_tera());
         assert_eq!(result.unwrap(), "My name is Vincent.".to_owned());
     }
 
@@ -425,7 +478,7 @@ mod tests {
         let mut context = Context::new();
         context.add("vat_rate", &0.20);
 
-        let result = Template::new("", "Vat: £{{ 100 * vat_rate }}.").render(context, HashMap::new());
+        let result = Template::new("", "Vat: £{{ 100 * vat_rate }}.").render(context, &get_empty_tera());
         assert_eq!(result.unwrap(), "Vat: £20.".to_owned());
     }
 
@@ -434,7 +487,7 @@ mod tests {
         let mut context = Context::new();
         context.add("is_admin", &true);
 
-        let result = Template::new("", "{% if is_admin %}Admin{% endif %}").render(context, HashMap::new());
+        let result = Template::new("", "{% if is_admin %}Admin{% endif %}").render(context, &get_empty_tera());
         assert_eq!(result.unwrap(), "Admin".to_owned());
     }
 
@@ -447,7 +500,7 @@ mod tests {
         let result = Template::new(
             "",
             "{% if is_adult || age + 1 > 18 %}Adult{% endif %}"
-        ).render(context, HashMap::new());
+        ).render(context, &get_empty_tera());
         assert_eq!(result.unwrap(), "Adult".to_owned());
     }
 
@@ -459,7 +512,7 @@ mod tests {
 
         let result = Template::new(
             "", "{% if is_adult && age == 18 %}Adult{% endif %}"
-        ).render(context, HashMap::new());
+        ).render(context, &get_empty_tera());
         assert_eq!(result.unwrap(), "Adult".to_owned());
     }
 
@@ -470,7 +523,7 @@ mod tests {
 
         let result = Template::new(
             "", "{% for i in data %}{{i}}{% endfor %}"
-        ).render(context, HashMap::new());
+        ).render(context, &get_empty_tera());
         assert_eq!(result.unwrap(), "123".to_owned());
     }
 
@@ -482,7 +535,7 @@ mod tests {
         let result = Template::new(
             "",
             "{% for i in data %}{{loop.index}}{{loop.index0}}{{loop.first}}{{loop.last}}{% endfor %}"
-        ).render(context, HashMap::new());
+        ).render(context, &get_empty_tera());
 
         assert_eq!(result.unwrap(), "10truefalse21falsefalse32falsetrue".to_owned());
     }
