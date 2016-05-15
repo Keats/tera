@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use std::io::prelude::*;
 use std::fs::File;
 
+use serde_json::value::{Value as Json, from_value};
+
 use tera::{Tera, Template, Context, TeraErrorType, TeraResult};
 use glob::glob;
 
@@ -151,10 +153,11 @@ impl<'a> serde::ser::MapVisitor for ReviewMapVisitor<'a> {
     }
 }
 
-fn assert_template_eq(template: &Template, expected: String, all_templates: HashMap<String, Template>) {
+fn assert_template_eq(template: &Template, expected: String, tera: &Tera) {
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
+    context.add("currency", &"£");
     context.add("friend_reviewed", &true);
     context.add("number_reviews", &2);
     context.add("show_more", &true);
@@ -162,7 +165,7 @@ fn assert_template_eq(template: &Template, expected: String, all_templates: Hash
     let empty: Vec<Review> = Vec::new();
     context.add("empty", &empty);
 
-    let rendered = template.render(context, all_templates).unwrap();
+    let rendered = template.render(context, tera).unwrap();
     if rendered != expected {
         println!("Template {:?} was rendered incorrectly", template.name);
         println!("Got: \n {:#?}", rendered);
@@ -176,23 +179,55 @@ fn assert_template_eq(template: &Template, expected: String, all_templates: Hash
     }
 }
 
+// fn with kwargs
+// TODO: error handling
+    // TODO: provide a helper to get_or_default/Err for kwargs and args?
+fn format_price(args: Vec<Json>, kwargs: HashMap<String, Json>) -> TeraResult<String> {
+    let price: i32 = from_value(args.get(0).cloned().unwrap()).unwrap();
+    // Defaults to €
+    let currency: String = kwargs.get("currency").map(|c| from_value(c.clone()).unwrap()).unwrap_or("€".to_owned());
+    let do_conversion: bool = kwargs.get("do_conversion").map(|d| from_value(d.clone()).unwrap()).unwrap_or(false);
+
+    if do_conversion {
+        // imagine you're converting the price which defaults to € to £ for example
+        // instead of just showing the price with another currency.
+    }
+
+    // In practice you would actually format the price
+    Ok(format!("{} {}", currency, price))
+}
+
+// Simple fn
+// TODO: error handling
+fn uppercase(args: Vec<Json>, _: HashMap<String, Json>) -> TeraResult<String> {
+    let text = args.get(0).cloned().unwrap();
+    let str_text: String = from_value(text).unwrap();
+
+    Ok(str_text.to_uppercase())
+}
+
 #[test]
 fn test_valid_templates() {
-    let tera = Tera::new("tests/templates/**/*");
+    let mut tera = Tera::new("tests/templates/**/*");
+    tera.add_function("uppercase", uppercase);
+    tera.add_function("format_price", format_price);
+
     let expected = read_all_expected("tests/expected/**/*");
 
+    // TODO: separate that in different tests for better results
     for tpl in vec![
-        "basic.html",
-        "variables.html",
-        "conditions.html",
-        "loops.html",
-        "empty_loop.html",
-        "basic_inheritance.html",
+        // "basic.html",
+        // "variables.html",
+        // "conditions.html",
+        // "loops.html",
+        // "empty_loop.html",
+        // "basic_inheritance.html",
+        "functions.html",
     ] {
         assert_template_eq(
             tera.get_template(tpl).unwrap(),
             expected.get(tpl).unwrap().clone(),
-            tera.templates.clone()
+            &tera
         );
     }
 }

@@ -28,7 +28,7 @@ pub enum SpecificNode {
     // have a single one with a Json value
     Function {
         name: String,
-        args: Vec<Box<Node>>,
+        args: Vec<String>,
         kwargs: HashMap<String, Json>,
         kwargs_var: HashMap<String, String>,
     }

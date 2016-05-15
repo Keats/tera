@@ -507,20 +507,18 @@ impl Parser {
         let mut kwargs_var = HashMap::new();
 
         loop {
+            // this whole peeking matching is quite ugly
+            // TODO: clean up that
             if self.peek_non_space().kind == TokenType::RightParenthesis {
                 break;
             }
-            println!("{:?}", self.peek_non_space());
 
             match self.peek_non_space().kind {
-                TokenType::Float | TokenType::Int | TokenType::Bool => {
-                    args.push(self.parse_literal());
-                },
                 TokenType::Identifier => {
                     // if the token after is Assign then it's a kwargs, otherwise just arg
                     match self.peek_two_non_space().kind {
                         TokenType::Comma | TokenType::RightParenthesis => {
-                            args.push(self.parse_identifier());
+                            args.push(self.next_non_space().value);
                         },
                         TokenType::Assign => {
                             // kwargs!
@@ -545,7 +543,10 @@ impl Parser {
                                 _ => unreachable!()
                             };
                         },
-                        _ => unreachable!()
+                        _ => {
+                            panic!("Tried to use a function with a literal as an argument. \
+                                   Use kwargs instead, args is only for variables.");
+                        }
                     };
                 },
                 TokenType::Comma => { self.next_non_space(); },
@@ -988,7 +989,7 @@ mod tests {
                     Box::new(Node::new(3, SpecificNode::Function {
                         name: "format_date".to_owned(),
                         args: vec![
-                            Box::new(Node::new(15, SpecificNode::Identifier("birthday".to_owned())))
+                            "birthday".to_owned(),
                         ],
                         kwargs: kwargs,
                         kwargs_var: kwargs_var

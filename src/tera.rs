@@ -3,6 +3,7 @@ use std::io::prelude::*;
 use std::fs::File;
 
 use glob::glob;
+use serde_json::value::{Value as Json};
 
 
 use template::Template;
@@ -10,18 +11,13 @@ use context::Context;
 use errors::TeraResult;
 
 
+pub type TeraFunction = fn(Vec<Json>, HashMap<String, Json>) -> TeraResult<String>;
+
 #[derive(Debug)]
 pub struct Tera {
     pub templates: HashMap<String, Template>,
+    pub functions: HashMap<String, TeraFunction>
 }
-
-// Wanted api:
-// let mut tera = Tera::new("templates/");
-// tera.register_filter(Capitalize);
-// ^ the above can panic as it should be run in compile or first time
-// ^ it will have run lexer + parser so we only need to render
-// ...
-// tera.render("dashboard/index.html", &someData) (-> Result<String>)
 
 impl Tera {
     pub fn new(dir: &str) -> Tera {
@@ -50,18 +46,26 @@ impl Tera {
         }
 
         Tera {
-            templates: templates
+            templates: templates,
+            functions: HashMap::new()
         }
     }
 
     pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
-        let template = self.templates.get(template_name).unwrap(); // TODO error handling
-
-        // TODO: avoid cloning?
-        template.render(data, self.templates.clone())
+        // TODO error handling if template not found
+        let template = self.templates.get(template_name).unwrap();
+        template.render(data, self)
     }
 
     pub fn get_template(&self, template_name: &str) -> Option<&Template> {
         self.templates.get(template_name)
+    }
+
+    pub fn add_function(&mut self, name: &str, function: TeraFunction) {
+        self.functions.insert(name.to_owned(), function);
+    }
+
+    fn get_function(&self, name: &str) -> Option<&TeraFunction> {
+        self.functions.get(name)
     }
 }
