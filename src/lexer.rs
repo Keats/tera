@@ -304,7 +304,19 @@ impl Lexer {
                     _ => StateFn(Some(lex_inside_block))
                 }
             },
-            DelimiterSide::Right => StateFn(Some(lex_text)),
+            DelimiterSide::Right => {
+                match self.current_block_type {
+                    BlockType::Comment => {
+                        if !self.is_over() && self.peek() == '\n' {
+                            self.start += 1;
+                            self.current_char += 1;
+                            self.position += 1;
+                        }
+                    },
+                    _ => {}
+                };
+                StateFn(Some(lex_text))
+            }
         }
     }
 }
