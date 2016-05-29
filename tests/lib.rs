@@ -184,6 +184,7 @@ fn test_valid_templates() {
     for tpl in vec![
         "basic.html",
         "comment.html",
+        "comment_alignment.html",
         "variables.html",
         "conditions.html",
         "loops.html",
