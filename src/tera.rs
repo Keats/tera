@@ -42,7 +42,8 @@ impl Tera {
                 // We clean the filename by removing the dir given
                 // to Tera so users don't have to prefix everytime
                 let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
-                let filepath = path.to_string_lossy().replace(parent_dir, "");
+                let filepath = path.to_string_lossy().replace(parent_dir, "")
+                                   .replace(r"\\", r"/");
                 // we know the file exists so unwrap all the things
                 let mut f = File::open(path).unwrap();
                 let mut input = String::new();
