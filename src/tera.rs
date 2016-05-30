@@ -36,6 +36,7 @@ impl Tera {
         // We are parsing all the templates on instantiation
         for entry in glob(dir).unwrap().filter_map(|e| e.ok()) {
             let path = entry.as_path();
+            println!("{:?}", path);
             // We only care about actual files
             if path.is_file() {
                 // We clean the filename by removing the dir given
@@ -49,6 +50,8 @@ impl Tera {
                 templates.insert(filepath.to_owned(), Template::new(&filepath, &input));
             }
         }
+
+        println!("templates {:?}", templates);
 
         Tera {
             templates: templates
