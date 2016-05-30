@@ -8,7 +8,6 @@ use glob::glob;
 use template::Template;
 use context::Context;
 use errors::TeraResult;
-use errors::TeraError;
 use errors;
 
 #[derive(Debug)]
@@ -36,17 +35,17 @@ impl Tera {
         // We are parsing all the templates on instantiation
         for entry in glob(dir).unwrap().filter_map(|e| e.ok()) {
             let path = entry.as_path();
-            println!("{:?}", path);
+            // println!("{:?}", path);
             // We only care about actual files
             if path.is_file() {
                 // We clean the filename by removing the dir given
                 // to Tera so users don't have to prefix everytime
                 let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
-                println!(" parent dir {:?}", parent_dir);
+                // println!(" parent dir {:?}", parent_dir);
                 let filepath = path.to_string_lossy().replace("\\", "/");
-                println!(" filepath {:?}", filepath);
+                // println!(" filepath {:?}", filepath);
                 let filepath = filepath.replace(parent_dir, "");
-                println!(" filepath {:?}", filepath);
+                // println!(" filepath {:?}", filepath);
                 // we know the file exists so unwrap all the things
                 let mut f = File::open(path).unwrap();
                 let mut input = String::new();
@@ -55,7 +54,7 @@ impl Tera {
             }
         }
 
-        println!("templates {:?}", templates);
+        // println!("templates {:?}", templates);
 
         Tera {
             templates: templates
