@@ -43,7 +43,7 @@ impl Tera {
                 // to Tera so users don't have to prefix everytime
                 let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
                 println!(" parent dir {:?}", parent_dir);
-                let filepath = path.to_string_lossy().replace(r"\\", r"/");
+                let filepath = path.to_string_lossy().replace(r"\\\\", r"/");
                 println!(" filepath {:?}", filepath);
                 let filepath = filepath.replace(parent_dir, "");
                 println!(" filepath {:?}", filepath);
