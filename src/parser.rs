@@ -58,6 +58,7 @@ impl Parser {
             match self.peek().kind {
                 TokenType::TagStart => self.parse_tag_block(),
                 TokenType::VariableStart => self.parse_variable_block(),
+                TokenType::CommentStart => self.parse_comment_block(),
                 TokenType::Text => self.parse_text(),
                 TokenType::Eof => break,
                 _ => unreachable!()
@@ -200,6 +201,12 @@ impl Parser {
         self.expect(TokenType::VariableEnd);
 
         self.add_node(node);
+    }
+
+    fn parse_comment_block(&mut self)  {
+        self.expect(TokenType::CommentStart);
+        self.next_token();
+        self.expect(TokenType::CommentEnd);
     }
 
     // Parse the content of a {% %} block

@@ -430,6 +430,27 @@ mod tests {
     }
 
     #[test]
+    fn test_render_comment() {
+        let result = Template::new("", "<h1>Hello {# comment #} world</h1>").render(Context::new(), HashMap::new());
+        assert_eq!(result.unwrap(), "<h1>Hello  world</h1>".to_owned());
+    }
+
+    #[test]
+    fn test_render_nested_comment() {
+        let result = Template::new("", "<h1>Hello {# comment {# nested #} world</h1>").render(Context::new(), HashMap::new());
+        assert_eq!(result.unwrap(), "<h1>Hello  world</h1>".to_owned());
+    }
+
+    #[test]
+    fn test_ignore_variable_in_comment() {
+        let mut context = Context::new();
+        context.add("name", &"Vincent");
+
+        let result = Template::new("", "My name {# was {{ name }} #} is No One.").render(context, HashMap::new());
+        assert_eq!(result.unwrap(), "My name  is No One.".to_owned());
+    }
+
+    #[test]
     fn test_render_if_simple() {
         let mut context = Context::new();
         context.add("is_admin", &true);

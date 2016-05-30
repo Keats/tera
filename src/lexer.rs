@@ -12,6 +12,9 @@ pub enum TokenType {
     Identifier, // variable name for example
     TagStart, // {%
     TagEnd, // %}
+    CommentStart, // {#
+    CommentEnd, // #}
+    Comment,
     String,
     Int,
     Float,
@@ -110,11 +113,12 @@ impl fmt::Debug for StateFn {
 }
 
 /// which kind of block are we currently in (to know which type of token type to emit)
-/// We only have 2 types (3 if we add comments): {{ }} and {% %}
+/// We only have 3 types: {{ }} , {% %} and {# #}
 #[derive(Debug)]
 enum BlockType {
     Variable,
     Block,
+    Comment,
 }
 
 /// We need to keep track of which side of a delimiter we need to add
@@ -282,13 +286,24 @@ impl Lexer {
             BlockType::Variable => match side {
                 DelimiterSide::Left => self.add_token(TokenType::VariableStart),
                 DelimiterSide::Right => self.add_token(TokenType::VariableEnd),
+            },
+            BlockType::Comment => match side {
+                DelimiterSide::Left => self.add_token(TokenType::CommentStart),
+                DelimiterSide::Right => self.add_token(TokenType::CommentEnd),
             }
         }
         self.start = self.position;
         self.current_char += 2;
 
         match side {
-            DelimiterSide::Left => StateFn(Some(lex_inside_block)),
+            DelimiterSide::Left => {
+                match self.current_block_type {
+                    BlockType::Comment => {
+                        StateFn(Some(lex_inside_comment))
+                    },
+                    _ => StateFn(Some(lex_inside_block))
+                }
+            },
             DelimiterSide::Right => StateFn(Some(lex_text)),
         }
     }
@@ -306,6 +321,10 @@ fn lex_text(lexer: &mut Lexer) -> StateFn {
                 } else if lexer.starts_with("{%") {
                     lexer.add_text_token();
                     lexer.current_block_type = BlockType::Block;
+                    return lexer.add_delimiter(DelimiterSide::Left);
+                } else if lexer.starts_with("{#") {
+                    lexer.add_text_token();
+                    lexer.current_block_type = BlockType::Comment;
                     return lexer.add_delimiter(DelimiterSide::Left);
                 }
                 if lexer.next_char() == EOF {
@@ -399,6 +418,16 @@ fn lex_string(lexer: &mut Lexer) -> StateFn {
     }
 }
 
+fn lex_inside_comment(lexer: &mut Lexer) -> StateFn {
+    loop {
+        lexer.next_char();
+        if lexer.starts_with("#}")  {
+            lexer.add_token(TokenType::Comment);
+            return lexer.add_delimiter(DelimiterSide::Right);
+        }
+    }
+}
+
 fn lex_inside_block(lexer: &mut Lexer) -> StateFn {
     while !lexer.is_over() {
         // Check if we are at the end of the block
@@ -488,6 +517,8 @@ mod tests {
     const T_TAG_END: TokenTest<'static> = TokenTest { kind: TagEnd, value: "%}"};
     const T_VARIABLE_START: TokenTest<'static> = TokenTest { kind: VariableStart, value: "{{"};
     const T_VARIABLE_END: TokenTest<'static> = TokenTest { kind: VariableEnd, value: "}}"};
+    const T_COMMENT_START: TokenTest<'static> = TokenTest { kind: CommentStart, value: "{#"};
+    const T_COMMENT_END: TokenTest<'static> = TokenTest { kind: CommentEnd, value: "#}"};
     const T_EOF: TokenTest<'static> = TokenTest { kind: Eof, value: ""};
     const T_ADD: TokenTest<'static> = TokenTest { kind: Add, value: "+"};
     const T_SUBSTRACT: TokenTest<'static> = TokenTest { kind: Substract, value: "-"};
@@ -535,6 +566,10 @@ mod tests {
 
     fn error_token(msg: &str) -> TokenTest {
         TokenTest::new(Error, msg)
+    }
+
+    fn comment_token(text: &str) -> TokenTest {
+        TokenTest::new(Comment, text)
     }
 
     fn test_tokens(input: &str, test_tokens: Vec<TokenTest>) {
@@ -589,6 +624,18 @@ mod tests {
             T_EOF
         ];
         test_tokens("{{ greeting }} 世界", expected);
+    }
+
+    #[test]
+    fn test_comment_block_and_text() {
+        let expected = vec![
+            T_COMMENT_START,
+            comment_token(" greeting "),
+            T_COMMENT_END,
+            text_token(" 世界"),
+            T_EOF
+        ];
+        test_tokens("{# greeting #} 世界", expected);
     }
 
     #[test]
