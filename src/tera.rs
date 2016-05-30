@@ -8,7 +8,8 @@ use glob::glob;
 use template::Template;
 use context::Context;
 use errors::TeraResult;
-
+use errors::TeraError;
+use errors;
 
 #[derive(Debug)]
 pub struct Tera {
@@ -55,7 +56,14 @@ impl Tera {
     }
 
     pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
-        let template = self.templates.get(template_name).unwrap(); // TODO error handling
+        //let template = self.templates.get(template_name).unwrap(); // TODO error handling
+        let template = match self.templates.get(template_name) {
+            Some(tmpl) => tmpl,
+            None => {
+                println!("error in render {}", template_name);
+                return Err(errors::template_not_found(template_name));
+            }
+        };
 
         // TODO: avoid cloning?
         template.render(data, self.templates.clone())
