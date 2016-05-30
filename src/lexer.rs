@@ -298,9 +298,7 @@ impl Lexer {
         match side {
             DelimiterSide::Left => {
                 match self.current_block_type {
-                    BlockType::Comment => {
-                        StateFn(Some(lex_inside_comment))
-                    },
+                    BlockType::Comment => StateFn(Some(lex_inside_comment)),
                     _ => StateFn(Some(lex_inside_block))
                 }
             },
