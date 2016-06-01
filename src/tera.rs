@@ -7,7 +7,7 @@ use glob::glob;
 
 use template::Template;
 use context::Context;
-use errors::TeraResult;
+use errors::{TeraResult, template_not_found};
 
 
 #[derive(Debug)]
@@ -40,7 +40,9 @@ impl Tera {
                 // We clean the filename by removing the dir given
                 // to Tera so users don't have to prefix everytime
                 let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
-                let filepath = path.to_string_lossy().replace(parent_dir, "");
+                let filepath = path.to_string_lossy()
+                    .replace("\\", "/") // change windows slash to forward slash
+                    .replace(parent_dir, "");
                 // we know the file exists so unwrap all the things
                 let mut f = File::open(path).unwrap();
                 let mut input = String::new();
@@ -55,7 +57,10 @@ impl Tera {
     }
 
     pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
-        let template = self.templates.get(template_name).unwrap(); // TODO error handling
+        let template = match self.templates.get(template_name) {
+            Some(tmpl) => tmpl,
+            None => { return Err(template_not_found(template_name)); }
+        };
 
         // TODO: avoid cloning?
         template.render(data, self.templates.clone())
