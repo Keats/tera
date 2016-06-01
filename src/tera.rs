@@ -51,15 +51,12 @@ impl Tera {
             }
         }
 
-        // println!("templates {:?}", templates);
-
         Tera {
             templates: templates
         }
     }
 
     pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
-        //let template = self.templates.get(template_name).unwrap(); // TODO error handling
         let template = match self.templates.get(template_name) {
             Some(tmpl) => tmpl,
             None => {
