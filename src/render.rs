@@ -321,19 +321,21 @@ impl<'a> Renderer<'a> {
         self.for_loops.push(ForLoop::new(local_name, deserialized.clone()));
         let mut i = 0;
         let mut output = String::new();
-        loop {
-            output.push_str(&&try!(self.render_node(*body.clone())));
-            // Safe unwrap
-            self.for_loops.last_mut().unwrap().increment();
-            if length == 0 || i == length - 1 {
-                break;
+        if length > 0 {
+            loop {
+                output.push_str(&&try!(self.render_node(*body.clone())));
+                // Safe unwrap
+                self.for_loops.last_mut().unwrap().increment();
+                if i == length - 1 {
+                    break;
+                }
+                i += 1;
             }
-            i += 1;
+            // Trim right at the end of the loop.
+            // Can't be done in the parser as it would remove all newlines between
+            // loops
+            output = output.trim_right().to_owned();
         }
-        // Trim right at the end of the loop.
-        // Can't be done in the parser as it would remove all newlines between
-        // loops
-        output = output.trim_right().to_owned();
 
         Ok(output)
     }
