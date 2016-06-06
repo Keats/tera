@@ -4,6 +4,28 @@ use std::fmt;
 
 /// Library generic result type.
 pub type TeraResult<T> = Result<T, TeraError>;
+pub type TeraResult2<T> = Result<T, TeraError2>;
+
+quick_error! {
+    #[derive(PartialEq, Debug, Clone)]
+    pub enum TeraError2 {
+        MismatchingEndBlock(line_no: usize, col_no: usize, expected: String, found: String) {
+            display("Was expecting block {:?} to be closed,
+                but {:?} is closing at line {:?}, column {:?}",
+expected, found, line_no, col_no)
+            description("unexpected endblock name")
+        }
+        InvalidSyntax (line_no: usize, col_no: usize) {
+            display("invalid Tera syntax at line {:?}, column {:?}", line_no, col_no)
+            description("invalid Tera syntax")
+        }
+        DeprecatedSyntax (line_no: usize, col_no: usize, message: String) {
+            display("deprecated syntax at line {:?}, column {:?} in {:?}:", line_no, col_no, message)
+            description("deprecated syntax")
+        }
+    }
+}
+
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum TeraErrorType {
