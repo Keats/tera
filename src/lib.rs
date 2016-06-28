@@ -6,7 +6,7 @@
 
 #![cfg_attr(feature = "dev", feature(plugin))]
 #![cfg_attr(feature = "dev", plugin(clippy))]
-#![cfg_attr(feature = "dev", allow(block_in_if_condition_stmt))]
+#![cfg_attr(feature = "dev", allow(block_in_if_condition_stmt, linkedlist))]
 
 extern crate serde;
 extern crate serde_json;
@@ -18,16 +18,11 @@ extern crate quick_error;
 
 
 mod errors;
-mod lexer;
-mod nodes;
 mod parser;
 mod context;
 mod render;
 mod template;
 mod tera;
-
-// tmp
-mod parser2;
 
 
 // Library exports
@@ -36,4 +31,4 @@ mod parser2;
 pub use template::Template;
 pub use context::Context;
 pub use tera::Tera;
-pub use errors::{TeraResult, TeraErrorType};
+pub use errors::{TeraResult, TeraError};

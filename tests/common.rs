@@ -1,29 +1,8 @@
-#![feature(test)]
-extern crate test;
-extern crate tera;
 extern crate serde;
 extern crate serde_json;
 
-use tera::{Tera, Template, Context};
-
-
-static TEMPLATE: &'static str = "
-<html>
-  <head>
-    <title>{{ product.name }}</title>
-  </head>
-  <body>
-    <h1>{{ product.name }} - {{ product.manufacturer }}</h1>
-    <p>{{ product.summary }}</p>
-    <p>£{{ product.price * 1.20 }} (VAT inc.)</p>
-    <p>Look at reviews from your friends {{ username }}</p>
-    <button>Buy!</button>
-  </body>
-</html>
-";
-
 #[derive(Debug)]
-struct Product {
+pub struct Product {
     name: String,
     manufacturer: String,
     price: i32,
@@ -84,18 +63,54 @@ impl<'a> serde::ser::MapVisitor for ProductMapVisitor<'a> {
     }
 }
 
-#[bench]
-fn bench_parsing(b: &mut test::Bencher) {
-    b.iter(|| Template::new("bench", TEMPLATE));
+#[derive(Debug)]
+pub struct Review {
+    title: String,
+    paragraphs: Vec<String>
+}
+impl Review {
+    pub fn new() -> Review {
+        Review {
+            title: "My review".to_owned(),
+            paragraphs: vec![
+                "A".to_owned(), "B".to_owned(), "C".to_owned()
+            ]
+        }
+    }
+}
+// Impl Serialize by hand so tests pass on stable and beta
+impl serde::Serialize for Review {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+        where S: serde::Serializer
+    {
+        serializer.serialize_struct("Review", ReviewMapVisitor {
+            value: self,
+            state: 0,
+        })
+    }
 }
 
-#[bench]
-fn bench_rendering(b: &mut test::Bencher) {
-    let mut tera = Tera::default();
-    tera.add_template("bench", TEMPLATE);
-    let mut context = Context::new();
-    context.add("product", &Product::new());
-    context.add("username", &"bob");
+struct ReviewMapVisitor<'a> {
+    value: &'a Review,
+    state: u8,
+}
 
-    b.iter(|| tera.render("bench", context.clone()));
+impl<'a> serde::ser::MapVisitor for ReviewMapVisitor<'a> {
+    fn visit<S>(&mut self, serializer: &mut S) -> Result<Option<()>, S::Error>
+        where S: serde::Serializer
+    {
+        match self.state {
+            0 => {
+                self.state += 1;
+                Ok(Some(try!(serializer.serialize_struct_elt("title", &self.value.title))))
+            },
+            1 => {
+                self.state += 1;
+                Ok(Some(try!(serializer.serialize_struct_elt("paragraphs", &self.value.paragraphs))))
+            },
+            _ => {
+                Ok(None)
+            }
+        }
+    }
 }

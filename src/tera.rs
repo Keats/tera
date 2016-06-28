@@ -4,24 +4,16 @@ use std::fs::File;
 
 use glob::glob;
 
-
 use template::Template;
 use context::Context;
-use errors::{TeraResult, template_not_found};
+use errors::{TeraResult, TeraError};
+use render::Renderer;
 
 
 #[derive(Debug)]
 pub struct Tera {
     pub templates: HashMap<String, Template>,
 }
-
-// Wanted api:
-// let mut tera = Tera::new("templates/");
-// tera.register_filter(Capitalize);
-// ^ the above can panic as it should be run in compile or first time
-// ^ it will have run lexer + parser so we only need to render
-// ...
-// tera.render("dashboard/index.html", &someData) (-> Result<String>)
 
 impl Tera {
     pub fn new(dir: &str) -> Tera {
@@ -47,26 +39,41 @@ impl Tera {
                 let mut f = File::open(path).unwrap();
                 let mut input = String::new();
                 f.read_to_string(&mut input).unwrap();
-                templates.insert(filepath.to_owned(), Template::new(&filepath, &input));
+                templates.insert(filepath.to_string(), Template::new(&filepath, &input));
             }
         }
 
         Tera {
             templates: templates
         }
+
     }
 
     pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
-        let template = match self.templates.get(template_name) {
-            Some(tmpl) => tmpl,
-            None => { return Err(template_not_found(template_name)); }
-        };
+        let template = try!(self.get_template(template_name));
+        let mut renderer = Renderer::new(template, self, data);
 
-        // TODO: avoid cloning?
-        template.render(data, self.templates.clone())
+        renderer.render()
     }
 
-    pub fn get_template(&self, template_name: &str) -> Option<&Template> {
-        self.templates.get(template_name)
+    pub fn get_template(&self, template_name: &str) -> TeraResult<&Template> {
+        match self.templates.get(template_name) {
+            Some(tmpl) => Ok(tmpl),
+            None => Err(TeraError::TemplateNotFound(template_name.to_string()))
+        }
+    }
+
+    // Can panic!
+    // Only for internal tests, do not use publicly for now
+    pub fn add_template(&mut self, name: &str, content: &str) {
+        self.templates.insert(name.to_string(), Template::new(name, content));
+    }
+}
+
+impl Default for Tera {
+    fn default() -> Tera {
+        Tera {
+            templates: HashMap::new()
+        }
     }
 }

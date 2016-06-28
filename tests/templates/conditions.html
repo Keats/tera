@@ -8,7 +8,7 @@
     <p>£{{ product.price * 1.20 }} (VAT inc.)</p>
     {% if friend_reviewed %}
       <p>Look at reviews from your friends {{ username }}</p>
-      {% if number_reviews > 10 || show_more %}
+      {% if number_reviews > 10 or show_more %}
         <p>See all reviews</p>
       {% elif number_reviews == 1 %}
         <p>Only one review</p>

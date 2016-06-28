@@ -1,6 +1,4 @@
 /// Tests Tera with a variety of real templates
-extern crate serde;
-extern crate serde_json;
 extern crate tera;
 extern crate glob;
 
@@ -8,9 +6,11 @@ use std::collections::HashMap;
 use std::io::prelude::*;
 use std::fs::File;
 
-use tera::{Tera, Template, Context, TeraErrorType, TeraResult};
+use tera::{Tera, Context};
 use glob::glob;
 
+mod common;
+use common::{Product, Review};
 
 
 // Almost a copy paste of the Tera constructor
@@ -36,122 +36,7 @@ fn read_all_expected(dir: &str) -> HashMap<String, String> {
     expected
 }
 
-
-#[derive(Debug)]
-struct Product {
-    name: String,
-    manufacturer: String,
-    price: i32,
-    summary: String
-}
-impl Product {
-    pub fn new() -> Product {
-        Product {
-            name: "Moto G".to_owned(),
-            manufacturer: "Motorala".to_owned(),
-            summary: "A phone".to_owned(),
-            price: 100
-        }
-    }
-}
-// Impl Serialize by hand so tests pass on stable and beta
-impl serde::Serialize for Product {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
-        where S: serde::Serializer
-    {
-        serializer.serialize_struct("Product", ProductMapVisitor {
-            value: self,
-            state: 0,
-        })
-    }
-}
-
-struct ProductMapVisitor<'a> {
-    value: &'a Product,
-    state: u8,
-}
-
-impl<'a> serde::ser::MapVisitor for ProductMapVisitor<'a> {
-    fn visit<S>(&mut self, serializer: &mut S) -> Result<Option<()>, S::Error>
-        where S: serde::Serializer
-    {
-        match self.state {
-            0 => {
-                self.state += 1;
-                Ok(Some(try!(serializer.serialize_struct_elt("name", &self.value.name))))
-            },
-            1 => {
-                self.state += 1;
-                Ok(Some(try!(serializer.serialize_struct_elt("manufacturer", &self.value.manufacturer))))
-            },
-            2 => {
-                self.state += 1;
-                Ok(Some(try!(serializer.serialize_struct_elt("price", &self.value.price))))
-            },
-            3 => {
-                self.state += 1;
-                Ok(Some(try!(serializer.serialize_struct_elt("summary", &self.value.summary))))
-            },
-            _ => {
-                Ok(None)
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
-struct Review {
-    title: String,
-    paragraphs: Vec<String>
-}
-impl Review {
-    pub fn new() -> Review {
-        Review {
-            title: "My review".to_owned(),
-            paragraphs: vec![
-                "A".to_owned(), "B".to_owned(), "C".to_owned()
-            ]
-        }
-    }
-}
-// Impl Serialize by hand so tests pass on stable and beta
-impl serde::Serialize for Review {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
-        where S: serde::Serializer
-    {
-        serializer.serialize_struct("Review", ReviewMapVisitor {
-            value: self,
-            state: 0,
-        })
-    }
-}
-
-struct ReviewMapVisitor<'a> {
-    value: &'a Review,
-    state: u8,
-}
-
-impl<'a> serde::ser::MapVisitor for ReviewMapVisitor<'a> {
-    fn visit<S>(&mut self, serializer: &mut S) -> Result<Option<()>, S::Error>
-        where S: serde::Serializer
-    {
-        match self.state {
-            0 => {
-                self.state += 1;
-                Ok(Some(try!(serializer.serialize_struct_elt("title", &self.value.title))))
-            },
-            1 => {
-                self.state += 1;
-                Ok(Some(try!(serializer.serialize_struct_elt("paragraphs", &self.value.paragraphs))))
-            },
-            _ => {
-                Ok(None)
-            }
-        }
-    }
-}
-
-fn assert_template_eq(template: &Template, expected: String, all_templates: HashMap<String, Template>) {
+fn assert_template_eq(tera: &Tera, tpl_name: &str, expected: String) {
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -162,9 +47,9 @@ fn assert_template_eq(template: &Template, expected: String, all_templates: Hash
     let empty: Vec<Review> = Vec::new();
     context.add("empty", &empty);
 
-    let rendered = template.render(context, all_templates).unwrap();
+    let rendered = tera.render(tpl_name, context).unwrap();
     if rendered != expected {
-        println!("Template {:?} was rendered incorrectly", template.name);
+        println!("Template {:?} was rendered incorrectly", tpl_name);
         println!("Got: \n {:#?}", rendered);
         println!("Expected: \n {:#?}", expected);
         // Uncomment below to save ouput to html file since
@@ -192,138 +77,10 @@ fn test_valid_templates() {
         "basic_inheritance.html",
     ] {
         assert_template_eq(
-            tera.get_template(tpl).unwrap(),
+            &tera,
+            tpl,
             expected.get(tpl).unwrap().clone(),
-            tera.templates.clone()
         );
     }
 }
 
-// FAILURE TESTING
-// TODO: can that be split in several files instead?
-
-// Loads a file and parse it
-fn assert_fail_parsing(filename: &str, path: &str) {
-    let mut f = File::open(path).unwrap();
-    let mut input = String::new();
-    f.read_to_string(&mut input).unwrap();
-    // should panic
-    Template::new(filename, &input);
-}
-
-#[should_panic(expected = "Block `hello` is duplicated in template `duplicate`")]
-#[test]
-fn test_error_parser_duplicate_block() {
-    assert_fail_parsing("duplicate", "tests/parser-failures/duplicate_block.html");
-}
-
-#[should_panic(expected = "Found endblock `goodbye` while we were hoping for `hello` at line 3 of template `wrong_endblock`")]
-#[test]
-fn test_error_parser_wrong_endblock() {
-    assert_fail_parsing("wrong_endblock", "tests/parser-failures/wrong_endblock.html");
-}
-
-#[should_panic(expected = "Missing endblock name at line 3 of template `missing_name`. It should be `hello`.")]
-#[test]
-fn test_error_parser_missing_endblock_name() {
-    assert_fail_parsing("missing_name", "tests/parser-failures/missing_endblock_name.html");
-}
-
-#[should_panic(expected = "{% extends %} tag need to be the first thing in a template. It is not the case in `extends`")]
-#[test]
-fn test_error_parser_extends_not_at_beginning() {
-    assert_fail_parsing("extends", "tests/parser-failures/invalid_extends.html");
-}
-
-#[should_panic(expected = "Found a elif in a Else block at line 3 of template `elif`, which is impossible.")]
-#[test]
-fn test_error_parser_invalid_elif() {
-    assert_fail_parsing("elif", "tests/parser-failures/invalid_elif.html");
-}
-
-#[should_panic(expected = "Found a else in a Else block at line 3 of template `else`, which is impossible.")]
-#[test]
-fn test_error_parser_invalid_else() {
-    assert_fail_parsing("else", "tests/parser-failures/invalid_else.html");
-}
-
-#[should_panic(expected = "Error: Found EOF while lexing spaces at line 1 of template unterminated")]
-#[test]
-fn test_error_parser_unterminated_variable_tag() {
-    assert_fail_parsing("unterminated", "tests/parser-failures/unterminated.html");
-}
-
-#[should_panic(expected = "Error: Two dots in a number at line 1 of template invalid_number")]
-#[test]
-fn test_error_parser_invalid_number() {
-    assert_fail_parsing("invalid_number", "tests/parser-failures/invalid_number.html");
-}
-
-#[should_panic(expected = "Error: Expected `=` after =, got ! at line 1 of template invalid_operator")]
-#[test]
-fn test_error_parser_invalid_operator() {
-    assert_fail_parsing("invalid_operator", "tests/parser-failures/invalid_operator.html");
-}
-
-#[should_panic(expected = "Terminator `}}` is too early at line 1 in template unexpected_terminator")]
-#[test]
-fn test_error_parser_unexpected_terminator() {
-    assert_fail_parsing("unexpected_terminator", "tests/parser-failures/unexpected_terminator.html");
-}
-
-
-// RENDERING FAILURES
-// TODO: different file
-
-fn render_tpl(tpl_name: &str) -> TeraResult<String> {
-    let tera = Tera::new("tests/render-failures/**/*");
-    let mut context = Context::new();
-    context.add("product", &Product::new());
-    context.add("username", &"bob");
-    context.add("friend_reviewed", &true);
-    context.add("number_reviews", &2);
-    context.add("show_more", &true);
-    context.add("reviews", &vec![Review::new(), Review::new()]);
-
-    tera.render(tpl_name, context)
-}
-
-#[test]
-fn test_error_render_parent_inexistent() {
-    let result = render_tpl("inexisting_parent.html");
-
-    assert_eq!(result.is_err(), true);
-    assert_eq!(result.unwrap_err().error_type, TeraErrorType::TemplateNotFound);
-}
-
-#[test]
-fn test_error_render_field_unknown() {
-    let result = render_tpl("field_unknown.html");
-
-    assert_eq!(result.is_err(), true);
-    assert_eq!(result.unwrap_err().error_type, TeraErrorType::FieldNotFound);
-}
-
-#[test]
-fn test_error_render_field_unknown_in_forloop() {
-    let result = render_tpl("field_unknown_forloop.html");
-
-    assert_eq!(result.is_err(), true);
-    assert_eq!(result.unwrap_err().error_type, TeraErrorType::FieldNotFound);
-}
-
-#[test]
-fn test_error_render_non_math() {
-    let result = render_tpl("non_math_operation.html");
-
-    assert_eq!(result.is_err(), true);
-    assert_eq!(result.unwrap_err().error_type, TeraErrorType::NotANumber);
-}
-
-#[test]
-fn test_error_render_iterate_non_array() {
-    let result = render_tpl("iterate_on_non_array.html");
-
-    assert_eq!(result.is_err(), true);
-    assert_eq!(result.unwrap_err().error_type, TeraErrorType::NotAnArray);
-}
