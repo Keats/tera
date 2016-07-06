@@ -1,900 +1,823 @@
-use std::collections::HashMap;
+use std::collections::LinkedList;
 
-use lexer::{Lexer, TokenType, Token};
-use nodes::{Node, SpecificNode};
+use pest::prelude::*;
 
-// Keeps track of which tag we are currently in
-// Needed to parse inside if/for for example and keep track on when to stop
-// those nodes
-#[derive(Debug, Clone, PartialEq)]
-enum InsideBlock {
-    If,
-    Elif,
-    Else,
-    For,
-    Block
+use errors::{TeraResult, TeraError};
+
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Node {
+    List(LinkedList<Node>),
+
+    Text(String),
+    Int(i32),
+    Float(f32),
+    Bool(bool),
+
+    Math {lhs: Box<Node>, rhs: Box<Node>, operator: String},
+    Logic {lhs: Box<Node>, rhs: Box<Node>, operator: String},
+
+    If {condition_nodes: LinkedList<Node>, else_node: Option<Box<Node>>},
+    // represents a if/elif block and its body (body is a List)
+    Conditional {condition: Box<Node>, body: Box<Node>},
+
+    For {variable: String, array: String, body: Box<Node>},
+    Block {name: String, body: Box<Node>},
+
+    Identifier(String),
+    Extends(String),
+    VariableBlock(Box<Node>),
 }
 
-#[derive(Debug)]
-pub struct Parser {
-    name: String,
-    text: String,
-    lexer: Lexer,
-    pub root: Node,
-    current_token: usize, // where we are in the parsing of the tokens
-
-    // The ones below are needed for nested if/for blocks
-    currently_in: Vec<InsideBlock>,
-    tag_nodes: Vec<Node>, // if/for nodes
-    pub blocks: HashMap<String, Node>,
-    pub extends: Option<String>
+impl Node {
+    pub fn get_children(&self) -> LinkedList<Node> {
+        match *self {
+            Node::List(ref l) => l.clone(),
+            Node::If {ref condition_nodes, ..} => condition_nodes.clone(),
+            _ => panic!("tried to get_children on a non-list/if node")
+        }
+    }
 }
 
-impl Parser {
-    pub fn new(name: &str, text: &str) -> Parser {
-        let mut lexer = Lexer::new(name, text);
-        lexer.run();
+impl_rdp! {
+    grammar! {
+        whitespace = _{ [" "] | ["\t"] | ["\r"] | ["\n"] }
 
-        let mut parser = Parser {
-            name: name.to_owned(),
-            text: text.to_owned(),
-            root: Node::new(0, SpecificNode::List(vec![])),
-            lexer: lexer,
-            current_token: 0,
+        // basic blocks of the language
+        op_or        = { ["or"] }
+        op_wrong_or  = { ["||"] }
+        op_and       = { ["and"] }
+        op_wrong_and = { ["&&"] }
+        op_lte       = { ["<="] }
+        op_gte       = { [">="] }
+        op_lt        = { ["<"] }
+        op_gt        = { [">"] }
+        op_eq        = { ["=="] }
+        op_ineq      = { ["!="] }
+        op_plus      = { ["+"] }
+        op_minus     = { ["-"] }
+        op_times     = { ["*"] }
+        op_slash     = { ["/"] }
+        op_true      = { ["true"] }
+        op_false     = { ["false"] }
+        boolean      = _{ op_true | op_false }
 
-            currently_in: vec![],
-            tag_nodes: vec![],
-            blocks: HashMap::new(),
-            extends: None
-        };
-        parser.parse();
-
-        parser
-    }
-
-    // Main loop of the parser, stops when we are at EOF or
-    pub fn parse(&mut self) {
-        loop {
-            match self.peek().kind {
-                TokenType::TagStart => self.parse_tag_block(),
-                TokenType::VariableStart => self.parse_variable_block(),
-                TokenType::CommentStart => self.parse_comment_block(),
-                TokenType::Text => self.parse_text(),
-                TokenType::Eof => break,
-                _ => unreachable!()
-            };
-        }
-    }
-
-    // Look at the next token
-    fn peek(&self) -> Token {
-        self.lexer.tokens.get(self.current_token).unwrap().clone()
-    }
-
-    // Look at the next token that isn't space
-    fn peek_non_space(&mut self) -> Token {
-        let mut token = self.next_token();
-        loop {
-            if token.kind != TokenType::Space {
-                break;
-            }
-            token = self.next_token();
-        }
-        self.current_token -= 1;
-
-        token
-    }
-
-    // Get the next token
-    fn next_token(&mut self) -> Token {
-        let token = self.peek();
-        self.current_token += 1;
-
-        token
-    }
-
-    // Get the next token that isn't space
-    fn next_non_space(&mut self) -> Token {
-        let mut token = self.next_token();
-        loop {
-            if token.kind != TokenType::Space {
-                break;
-            }
-            token = self.next_token();
+        int   = @{ ["-"]? ~ (["0"] | ['1'..'9'] ~ ['0'..'9']*) }
+        float = @{
+            ["-"]? ~
+                ["0"] ~ ["."] ~ ['0'..'9']+ |
+                ['1'..'9'] ~ ['0'..'9']* ~ ["."] ~ ['0'..'9']+
         }
 
-        token
-    }
+        identifier = @{
+            (['a'..'z'] | ['A'..'Z'] | ["_"]) ~
+            (['a'..'z'] | ['A'..'Z'] | ["_"] | ["."] | ['0'..'9'])*
+        }
+        // matches anything between 2 double quotes
+        string = @{ ["\""] ~ (!(["\""]) ~ any )* ~ ["\""]}
 
-    // Used at a {% token to know the tag name
-    fn peek_tag_name(&mut self) -> TokenType {
-        let before_peeking = self.current_token;
-        self.next_token();
-        let tag_name = self.peek_non_space();
-        self.current_token = before_peeking;
-
-        tag_name.kind
-    }
-
-    // Panics if the expected token isn't found
-    fn expect(&mut self, kind: TokenType) -> Token {
-        let token = self.peek_non_space();
-        if token.kind != kind {
-            panic!("Unexpected token: {:?}, expected: {:?} at \
-                line {} of template {}", token, kind, token.line, self.name);
+        // Precedence climbing
+        expression = _{
+            // boolean first so they are not caught as identifiers
+            { boolean | identifier | float | int }
+            or          = { op_or | op_wrong_or }
+            and         = { op_and | op_wrong_and }
+            comparison  = { op_gt | op_lt | op_eq | op_ineq | op_lte | op_gte }
+            add_sub     = { op_plus | op_minus }
+            mul_div     = { op_times | op_slash }
         }
 
-        self.next_non_space()
-    }
+        // Tera specific things
 
-    // Panics and use a TokenType::Error as input for the error message
-    fn throw_lexer_error(&self, token: &Token) -> ! {
-        panic!("Error: {} at line {} of template {}", token.value, token.line, self.name);
-    }
+        // different types of blocks
+        variable_start = _{ ["{{"] }
+        variable_end   = _{ ["}}"] }
+        tag_start      = _{ ["{%"] }
+        tag_end        = _{ ["%}"] }
+        comment_start  = _{ ["{#"] }
+        comment_end    = _{ ["#}"] }
+        block_start    = _{ variable_start | tag_start | comment_start }
 
-    fn add_node(&mut self, node: Node) {
-        if self.tag_nodes.is_empty() {
-            // Blocks are aside from the AST if we are in a child template
-            match node.specific {
-                SpecificNode::Block {ref name, ..} => {
-                    if self.blocks.contains_key(name) {
-                        panic!("Block `{}` is duplicated in template `{}`", name, self.name)
-                    }
-                    self.blocks.insert(name.to_owned(), node.clone());
-                    // Blocks are rendered if there is no extend
-                    if self.extends.is_none() {
-                        self.root.push(Box::new(node.clone()));
-                    }
-                },
-                _ => { self.root.push(Box::new(node)); }
-            }
-            return;
+        // Actual tags
+        extends_tag  = { tag_start ~ ["extends"] ~ string ~ tag_end }
+
+        variable_tag    = { variable_start ~ expression ~ variable_end }
+        comment_tag     = { comment_start ~ (!comment_end ~ any )* ~ comment_end }
+        block_tag       = { tag_start ~ ["block"] ~ identifier ~ tag_end }
+        if_tag          = { tag_start ~ ["if"] ~ expression ~ tag_end }
+        elif_tag        = { tag_start ~ ["elif"] ~ expression ~ tag_end }
+        else_tag        = { tag_start ~ ["else"] ~ tag_end }
+        for_tag         = { tag_start ~ ["for"] ~ identifier ~ ["in"] ~ identifier ~ tag_end }
+        endblock_tag    = { tag_start ~ ["endblock"] ~ identifier ~ tag_end }
+        endif_tag       = { tag_start ~ ["endif"] ~ tag_end }
+        endfor_tag      = { tag_start ~ ["endfor"] ~ tag_end }
+
+        elif_block = { elif_tag ~ content* }
+
+        text = @{ (!(block_start) ~ any )+ }
+        content = {
+            variable_tag |
+            comment_tag |
+            block_tag ~ content* ~ endblock_tag |
+            if_tag ~ content* ~ elif_block* ~ (else_tag ~ content*)? ~ endif_tag |
+            for_tag ~ content* ~ endfor_tag |
+            text
         }
 
-        let currently_in = self.currently_in.last().cloned().unwrap();
-        match currently_in {
-            InsideBlock::If | InsideBlock::Elif => {
-                self.tag_nodes.last_mut().unwrap().append_to_last_conditional(Box::new(node));
-            },
-            InsideBlock::Else => {
-                self.tag_nodes.last_mut().unwrap().push_to_else(Box::new(node));
-            },
-            InsideBlock::For | InsideBlock::Block => {
-                self.tag_nodes.last_mut().unwrap().push(Box::new(node));
-            }
-        };
+        // top level node
+        template = _{ extends_tag? ~ content* ~ eoi }
     }
 
-    // Parse some html text
-    fn parse_text(&mut self) {
-        let token = self.next_token();
-        // Need to check if first in if/for to left trim
-        let mut string = match self.tag_nodes.last() {
-            Some(n) => {
-                // The value in unwrap_or is just a dummy, different from Block
-                let currently_in = self.currently_in.last().cloned().unwrap_or(InsideBlock::For);
-                if n.is_empty() && currently_in != InsideBlock::Block {
-                    token.value.trim_left().to_owned()
-                } else {
-                    token.value
+    process! {
+        main(&self) -> TeraResult<Node> {
+            (tpl: _template()) => {
+                match tpl {
+                    Ok(t) => Ok(Node::List(t)),
+                    Err(e) => Err(e)
                 }
-            },
-            None => token.value
-        };
-        // And to right trim if next token is {%
-        if self.peek_non_space().kind == TokenType::TagStart {
-            match self.peek_tag_name() {
-                TokenType::Endif | TokenType::Elif | TokenType::Else => {
-                    string = string.trim_right().to_owned();
-                }
-                _ => ()
             }
         }
-        self.add_node(Node::new(token.position, SpecificNode::Text(string)));
-    }
 
-    // Parse the content of a {{ }} block
-    fn parse_variable_block(&mut self)  {
-        let token = self.expect(TokenType::VariableStart);
-        let contained = self.parse_whole_expression(None, TokenType::VariableEnd);
-        let node = Node::new(token.position, SpecificNode::VariableBlock(contained));
-        self.expect(TokenType::VariableEnd);
-
-        self.add_node(node);
-    }
-
-    fn parse_comment_block(&mut self)  {
-        self.expect(TokenType::CommentStart);
-        self.next_token();
-        self.expect(TokenType::CommentEnd);
-    }
-
-    // Parse the content of a {% %} block
-    fn parse_tag_block(&mut self) {
-        let token = self.expect(TokenType::TagStart);
-
-        match self.peek_non_space().kind {
-            TokenType::If => self.parse_if(token.position),
-            TokenType::Elif => self.parse_elif(),
-            TokenType::Else => self.parse_else(),
-            TokenType::For => self.parse_for(token.position),
-            TokenType::Block => self.parse_block(token.position),
-            TokenType::Extends => self.parse_extends(token.position),
-            TokenType::Endif | TokenType::Endfor | TokenType::Endblock => {
-                match self.peek_non_space().kind {
-                    TokenType::Endif => { self.expect(TokenType::Endif); },
-                    TokenType::Endfor => { self.expect(TokenType::Endfor); },
-                    TokenType::Endblock => {
-                        self.expect(TokenType::Endblock);
-                        let next_node = self.peek_non_space();
-                        match self.tag_nodes.last_mut().unwrap().specific {
-                            SpecificNode::Block {ref name, ..} => {
-                                if next_node.kind == TokenType::TagEnd {
-                                    panic!("Missing endblock name at line {} of \
-                                        template `{}`. It should be `{}`.",
-                                        next_node.line, self.name, name);
-                                }
-
-                                let end_name = next_node.value;
-                                if end_name != name.clone() {
-                                    panic!("Found endblock `{}` while we were \
-                                        hoping for `{}` at line {} of template `{}`",
-                                        end_name, name, next_node.line, self.name);
-                                }
-                            },
-                            _ => unreachable!()
-                        }
-
-                        self.next_non_space();
-                    },
-                    _ => unreachable!()
+        _template(&self) -> TeraResult<LinkedList<Node>> {
+            (_: extends_tag, &name: string, tail: _template()) => {
+                let mut tail2 = try!(tail);
+                tail2.push_front(Node::Extends(name.replace("\"", "").to_string()));
+                Ok(tail2)
+            },
+            (_: extends_tag, &name: string) => {
+                let mut body = LinkedList::new();
+                body.push_front(Node::Extends(name.replace("\"", "").to_string()));
+                Ok(body)
+            },
+            (_: content, node: _content(), tail: _template()) => {
+                let mut tail2 = try!(tail);
+                match try!(node) {
+                    Some(n) => { tail2.push_front(n); }
+                    None => ()
                 };
-                self.expect(TokenType::TagEnd);
-                let tag = self.tag_nodes.pop().unwrap();
-                self.currently_in.pop();
-                self.add_node(tag);
+                Ok(tail2)
             },
-            _ => unreachable!()
-        };
-    }
-
-    fn parse_extends(&mut self, start_position: usize) {
-        if start_position > 0 {
-            panic!("{{% extends %}} tag need to be the first thing \
-                in a template. It is not the case in `{}`", self.name);
+            () => Ok(LinkedList::new())
         }
-        self.expect(TokenType::Extends);
-        let name = self.next_non_space();
-        self.expect(TokenType::TagEnd);
-        self.extends = Some(name.value);
-    }
 
-    // Parse a block tag (inheritance one)
-    fn parse_block(&mut self, start_position: usize) {
-        self.currently_in.push(InsideBlock::Block);
-        self.expect(TokenType::Block);
-        let name = self.next_non_space();
-        self.expect(TokenType::TagEnd);
-        let body = Node::new(self.peek().position, SpecificNode::List(vec![]));
-
-        let block_node = Node::new(
-            start_position,
-            SpecificNode::Block {name: name.value, body: Box::new(body)}
-        );
-        self.tag_nodes.push(block_node);
-    }
-
-    // Parse if/elif condition and setups the body
-    fn parse_conditional_node(&mut self) -> Node {
-        // consume the tag name
-        match self.next_non_space().kind {
-            TokenType::If => self.currently_in.push(InsideBlock::If),
-            TokenType::Elif => self.currently_in.push(InsideBlock::Elif),
-            _ => unreachable!()
-        };
-        let condition = self.parse_whole_expression(None, TokenType::TagEnd);
-        self.expect(TokenType::TagEnd);
-        let body = Node::new(self.peek().position, SpecificNode::List(vec![]));
-
-        Node::new(
-            condition.position,
-            SpecificNode::Conditional {condition: condition, body: Box::new(body)}
-        )
-    }
-
-    fn parse_for(&mut self, start_position: usize) {
-        self.currently_in.push(InsideBlock::For);
-        self.expect(TokenType::For);
-        let local = self.parse_single_expression(&TokenType::TagEnd);
-        self.expect(TokenType::In);
-        let array = self.parse_single_expression(&TokenType::TagEnd);
-        self.expect(TokenType::TagEnd);
-
-        let body = Node::new(self.peek().position, SpecificNode::List(vec![]));
-        let for_node = Node::new(
-            start_position,
-            SpecificNode::For {local: local, array: array, body: Box::new(body)}
-        );
-        self.tag_nodes.push(for_node);
-    }
-
-    fn parse_if(&mut self, start_position: usize) {
-        let mut if_node = Node::new(
-            start_position,
-            SpecificNode::If {condition_nodes: vec![], else_node: None}
-        );
-        let node = self.parse_conditional_node();
-        if_node.push(Box::new(node));
-
-        self.tag_nodes.push(if_node);
-    }
-
-    fn parse_elif(&mut self) {
-        let currently_in = self.currently_in.last().cloned().unwrap();
-        match currently_in {
-            InsideBlock::If | InsideBlock::Elif => self.currently_in.pop(),
-            InsideBlock::Else | InsideBlock::For | InsideBlock::Block => {
-                panic!("Found a elif in a {:?} block at line {} of template `{}`, \
-                 which is impossible.", currently_in, self.peek_non_space().line, self.name);
-            }
-        };
-        let node = Box::new(self.parse_conditional_node());
-        self.tag_nodes.last_mut().unwrap().push(node);
-    }
-
-    fn parse_else(&mut self) {
-        let currently_in = self.currently_in.last().cloned().unwrap();
-        match currently_in {
-            InsideBlock::If | InsideBlock::Elif => self.currently_in.pop(),
-            InsideBlock::Else | InsideBlock::For | InsideBlock::Block => {
-                panic!("Found a else in a {:?} block at line {} of template `{}`, \
-                 which is impossible.", currently_in, self.peek_non_space().line, self.name);
-            }
-        };
-        self.expect(TokenType::Else);
-        self.expect(TokenType::TagEnd);
-        self.currently_in.push(InsideBlock::Else);
-
-        let if_node = self.tag_nodes.pop().unwrap();
-        let list = Node::new(self.peek().position, SpecificNode::List(vec![]));
-        self.tag_nodes.push(Node::new(
-            if_node.position,
-            SpecificNode::If {
-                condition_nodes: if_node.get_children(),
-                else_node: Some(Box::new(list))
-            }
-        ));
-    }
-
-    // Parse a block/tag until we get to the terminator
-    // Also handles all the precedence
-    // AKA magic and dragons
-    fn parse_whole_expression(&mut self, stack: Option<Node>, terminator: TokenType) -> Box<Node> {
-        let token = self.peek_non_space();
-
-        let mut node_stack = stack.unwrap_or_else(||
-            Node::new(token.position, SpecificNode::List(vec![]))
-        );
-
-        let next = self.parse_single_expression(&terminator);
-        node_stack.push(next);
-
-        loop {
-            let token = self.peek_non_space();
-            if token.kind == terminator {
-                if node_stack.is_empty() {
-                    panic!("Unexpected terminator {} at line {} in template {}",
-                        token.value, token.line, self.name);
+        // Option since we don't want comments in the AST
+        _content(&self) -> TeraResult<Option<Node>> {
+            (&head: text) => {
+                Ok(Some(Node::Text(head.to_string())))
+            },
+            (_: variable_tag, exp: _expression()) => {
+                Ok(Some(Node::VariableBlock(Box::new(try!(exp)))))
+            },
+            (_: block_tag, &name: identifier, body: _template(), _: endblock_tag, &end_name: identifier) => {
+                if name != end_name {
+                    let (line_no, col_no) = self.input().line_col(self.input.pos());
+                    return Err(
+                        TeraError::MismatchingEndBlock(
+                            line_no, col_no, name.to_string(), end_name.to_string()
+                        )
+                    );
                 }
-                return node_stack.pop();
-            }
+                Ok(Some(Node::Block {
+                    name: name.to_string(),
+                    body: Box::new(Node::List(try!(body)))
+                }))
+            },
+            (_: for_tag, &variable: identifier, &array: identifier, body: _template(), _: endfor_tag) => {
+                Ok(Some(Node::For {
+                    variable: variable.to_string(),
+                    array: array.to_string(),
+                    body: Box::new(Node::List(try!(body)))
+                }))
+            },
+            // only if
+            (_: if_tag, exp: _expression(), body: _template(), _: endif_tag) => {
+                let mut condition_nodes = LinkedList::new();
+                condition_nodes.push_front(Node::Conditional {
+                    condition: Box::new(try!(exp)),
+                    body: Box::new(Node::List(try!(body))),
+                });
 
-            // TODO: this whole thing can probably be refactored and simplified
-            match token.kind {
-                TokenType::Error => self.throw_lexer_error(&token),
-                TokenType::Add | TokenType::Substract => {
-                    // consume it
-                    self.next_non_space();
-                    if node_stack.is_empty() {
-                        continue;
-                    }
+                Ok(Some(Node::If {
+                    condition_nodes: condition_nodes,
+                    else_node: None,
+                }))
+            },
+            // if/elifs/else
+            (_: if_tag, exp: _expression(), body: _template(), elifs: _elifs(), _: else_tag, else_body: _template(), _: endif_tag) => {
+                let mut condition_nodes = LinkedList::new();
+                condition_nodes.push_front(Node::Conditional {
+                    condition: Box::new(try!(exp)),
+                    body: Box::new(Node::List(try!(body))),
+                });
 
-                    let rhs = self.parse_whole_expression(Some(node_stack.clone()), terminator);
+                for elif in try!(elifs) {
+                    condition_nodes.push_back(elif)
+                }
 
-                    // Now for + - we need to know if the next token has a higher
-                    // precedence (ie * or /)
-                    let next_token = self.peek_non_space();
-                    if next_token.precedence() > token.precedence() {
-                        node_stack.push(rhs);
-                        return self.parse_whole_expression(Some(node_stack.clone()), terminator);
-                    } else {
-                        // Or the next thing has lower precedence and we just
-                        // add the node to the stack
-                        let lhs = node_stack.pop();
-                        let node = Node::new(
-                            lhs.position,
-                            SpecificNode::Math{lhs: lhs, rhs: rhs, operator: token.kind}
-                        );
-                        node_stack.push(Box::new(node));
-                    }
-                },
-                TokenType::Divide | TokenType::Multiply => {
-                    // consume the operator
-                    self.next_non_space();
-                    // * and / have the highest precedence so no need to check
-                    // the following operators precedences
-                    let rhs = self.parse_single_expression(&terminator);
-                    let lhs = node_stack.pop();
-                    let node = Node::new(
-                        lhs.position,
-                        SpecificNode::Math{lhs: lhs, rhs: rhs, operator: token.kind}
-                    );
-                    node_stack.push(Box::new(node));
-                },
-                TokenType::Equal | TokenType::NotEqual | TokenType::GreaterOrEqual
-                | TokenType::Greater | TokenType::Lower | TokenType::LowerOrEqual => {
-                    // Interrupt arithmetic when we meet one of those
-                    if node_stack.len() > 1 {
-                        return node_stack.pop();
-                    }
+                Ok(Some(Node::If {
+                    condition_nodes: condition_nodes,
+                    else_node: Some(Box::new(Node::List(try!(else_body)))),
+                }))
+            },
+            // if/elifs
+            (_: if_tag, exp: _expression(), body: _template(), elifs: _elifs(), _: endif_tag) => {
+                let mut condition_nodes = LinkedList::new();
+                condition_nodes.push_front(Node::Conditional {
+                    condition: Box::new(try!(exp)),
+                    body: Box::new(Node::List(try!(body))),
+                });
 
-                    // consume the operator
-                    self.next_non_space();
-                    // Those have the highest precedence in term of logic
-                    // (higher than && and ||)
-                    let rhs = self.parse_single_expression(&terminator);
-                    let next_token = self.peek_non_space();
+                for elif in try!(elifs) {
+                    condition_nodes.push_back(elif)
+                }
 
-                    if next_token.precedence() > token.precedence() {
-                        node_stack.push(rhs);
-                        return self.parse_whole_expression(Some(node_stack.clone()), terminator);
-                    } else {
-                        let lhs = node_stack.pop();
-                        let node = Node::new(
-                            lhs.position,
-                            SpecificNode::Logic{lhs: lhs, rhs: rhs, operator: token.kind}
-                        );
-                        node_stack.push(Box::new(node));
-                    }
-                },
-                TokenType::And | TokenType::Or => {
-                    // consume the operator
-                    self.next_non_space();
-                    let lhs = node_stack.pop();
-                    let rhs = self.parse_whole_expression(Some(node_stack.clone()), terminator);
-                    let node = Node::new(
-                        lhs.position,
-                        SpecificNode::Logic{lhs: lhs, rhs: rhs, operator: token.kind}
-                    );
-                    node_stack.push(Box::new(node));
+                Ok(Some(Node::If {
+                    condition_nodes: condition_nodes,
+                    else_node: None,
+                }))
+            },
+            // if/else
+            (_: if_tag, exp: _expression(), body: _template(), _: else_tag, else_body: _template(), _: endif_tag) => {
+                let mut condition_nodes = LinkedList::new();
+                condition_nodes.push_front(Node::Conditional {
+                    condition: Box::new(try!(exp)),
+                    body: Box::new(Node::List(try!(body))),
+                });
 
-                },
-                _ => unreachable!()
+                Ok(Some(Node::If {
+                    condition_nodes: condition_nodes,
+                    else_node: Some(Box::new(Node::List(try!(else_body)))),
+                }))
+            },
+            (_: comment_tag) => {
+                Ok(None)
             }
         }
-    }
 
-    // Parses the next non-space token as a simple expression
-    // Used when parsing inside a block/tag and we want to get the next value
-    fn parse_single_expression(&mut self, terminator: &TokenType) -> Box<Node> {
-        let token = self.peek_non_space();
-
-        if token.kind == *terminator {
-            panic!("Terminator `{}` is too early at line {} in template {}",
-                token.value, token.line, self.name);
+        _elifs(&self) -> TeraResult<LinkedList<Node>> {
+            (_: elif_block, node: _if(), tail: _elifs()) => {
+                let mut tail2 = try!(tail);
+                tail2.push_front(try!(node));
+                Ok(tail2)
+            },
+            () => Ok(LinkedList::new())
         }
 
-        match token.kind {
-            TokenType::Error => self.throw_lexer_error(&token),
-            TokenType::Identifier => self.parse_identifier(),
-            TokenType::Float | TokenType::Int | TokenType::Bool => self.parse_literal(),
-            _ => unreachable!()
+        _if(&self) -> TeraResult<Node> {
+            (_: if_tag, exp: _expression(), body: _template()) => {
+                Ok(Node::Conditional {
+                    condition: Box::new(try!(exp)),
+                    body: Box::new(Node::List(try!(body))),
+                })
+            },
+            (_: elif_tag, exp: _expression(), body: _template()) => {
+                Ok(Node::Conditional {
+                    condition: Box::new(try!(exp)),
+                    body: Box::new(Node::List(try!(body))),
+                })
+            },
         }
-    }
 
-    // Parse an identifier (variable name or keyword)
-    fn parse_identifier(&mut self) -> Box<Node> {
-        let ident = self.next_non_space();
-        Box::new(Node::new(ident.position, SpecificNode::Identifier(ident.value)))
-    }
-
-    // Parse a bool/int/float
-    fn parse_literal(&mut self) -> Box<Node> {
-        let literal = self.next_non_space();
-
-        match literal.kind {
-            TokenType::Int => {
-                let value = literal.value.parse::<i32>().unwrap();
-                Box::new(Node::new(literal.position, SpecificNode::Int(value)))
+        _expression(&self) -> TeraResult<Node> {
+            (_: add_sub, left: _expression(), sign, right: _expression()) => {
+                Ok(Node::Math {
+                    lhs: Box::new(try!(left)),
+                    rhs: Box::new(try!(right)),
+                    operator: match sign.rule {
+                        Rule::op_plus => "+".to_string(),
+                        Rule::op_minus => "-".to_string(),
+                        _ => unreachable!()
+                    }
+                })
             },
-            TokenType::Float => {
-                let value = literal.value.parse::<f32>().unwrap();
-                Box::new(Node::new(literal.position, SpecificNode::Float(value)))
+            (_: mul_div, left: _expression(), sign, right: _expression()) => {
+                Ok(Node::Math {
+                    lhs: Box::new(try!(left)),
+                    rhs: Box::new(try!(right)),
+                    operator: match sign.rule {
+                        Rule::op_times => "*".to_string(),
+                        Rule::op_slash => "/".to_string(),
+                        _ => unreachable!()
+                    }
+                })
             },
-            TokenType::Bool => {
-                let value = literal.value == "true";
-                Box::new(Node::new(literal.position, SpecificNode::Bool(value)))
+            (_: comparison, left: _expression(), sign, right: _expression()) => {
+                Ok(Node::Logic {
+                    lhs: Box::new(try!(left)),
+                    rhs: Box::new(try!(right)),
+                    operator: match sign.rule {
+                        Rule::op_gt => ">".to_string(),
+                        Rule::op_lt => "<".to_string(),
+                        Rule::op_eq => "==".to_string(),
+                        Rule::op_ineq => "!=".to_string(),
+                        Rule::op_lte => "<=".to_string(),
+                        Rule::op_gte => ">=".to_string(),
+                        _ => unreachable!()
+                    }
+                })
             },
-            _ => unreachable!()
+            (_: and, left: _expression(), _, right: _expression()) => {
+                Ok(Node::Logic {
+                    lhs: Box::new(try!(left)),
+                    rhs: Box::new(try!(right)),
+                    operator: "and".to_string()
+                })
+            },
+            (_: or, left: _expression(), _, right: _expression()) => {
+                Ok(Node::Logic {
+                    lhs: Box::new(try!(left)),
+                    rhs: Box::new(try!(right)),
+                    operator: "or".to_string()
+                })
+            },
+            (&ident: identifier) => {
+                Ok(Node::Identifier(ident.to_string()))
+            },
+            (&number: int) => {
+                Ok(Node::Int(number.parse::<i32>().unwrap()))
+            },
+            (&number: float) => {
+                Ok(Node::Float(number.parse::<f32>().unwrap()))
+            },
+            (_: op_true) => {
+                Ok(Node::Bool(true))
+            },
+            (_: op_false) => {
+                Ok(Node::Bool(false))
+            },
+            (&text: text) => {
+                Ok(Node::Text(text.to_string()))
+            },
         }
     }
 }
 
+// We need to preserve whitespace and count whitespace as text, which
+// pest doesn't allow easily so we have a custom step before processing
+// to add all/fix all our text tokens if necessary
+pub fn parse(input: &str) -> TeraResult<Node> {
+    let mut parser = Rdp::new(StringInput::new(input));
+
+    if !parser.template() {
+        let (_, pos) = parser.expected();
+        let (line_no, col_no) = parser.input().line_col(pos);
+        return Err(TeraError::InvalidSyntax(line_no, col_no));
+    }
+
+    // We need to create text tokens to fill the whitespace in between content
+    // that is not picked up as text by the grammar
+    // Tuples of (position_to_insert, token)
+    let mut space_tokens = vec![];
+    let mut previous_token: Option<Token<Rule>> = None;
+    // We want to retain our whitespace in texts
+    let mut previous_position = 0;
+    // Loop index, easier than enumerate() to keep the mutability
+    let mut i = 0;
+    for token in parser.queue_mut() {
+        // println!("{:?} - {:?}", i, token);
+        // Adding back leading/trailing whitespace to text tokens
+        if token.rule == Rule::text {
+            if previous_position > 0 {
+                token.start = previous_position;
+            } else {
+                // Initial whitespace
+                token.start = 0;
+            }
+        }
+
+        match token.rule {
+            Rule::variable_tag | Rule::comment_tag | Rule::if_tag | Rule::else_tag | Rule::text
+            | Rule::endif_tag | Rule::endblock_tag | Rule::endfor_tag
+            | Rule::elif_tag | Rule::block_tag | Rule::for_tag | Rule::extends_tag => {
+                previous_position = token.end;
+
+                if previous_token.is_some() {
+                    let prev = previous_token.unwrap();
+                    // println!("> {} - {:?} - {:?}", i, previous_token, token);
+                    let insert_at = match token.rule {
+                        Rule::endif_tag | Rule::endblock_tag | Rule::endfor_tag => i,
+                        _ => i - 1
+                    };
+                    if prev.end < token.start {
+                        space_tokens.push((
+                            insert_at,
+                            Token::new(Rule::text, prev.end, token.start)
+                        ));
+                    }
+                }
+                previous_token = Some(*token);
+            },
+            _ => ()
+        };
+        i += 1;
+    }
+
+    // second iteration on tokens, not really efficient but can't access
+    // parser.input() while iterating on the mutable queue above
+    // this loop only looks for errors
+    for token in parser.queue() {
+        if token.rule == Rule::op_wrong_and {
+            let (line_no, col_no) = parser.input().line_col(token.start);
+            return Err(
+                TeraError::DeprecatedSyntax(line_no, col_no, "Use `and` instead of `&&`".to_string())
+            );
+        }
+        if token.rule == Rule::op_wrong_or {
+            let (line_no, col_no) = parser.input().line_col(token.start);
+            return Err(
+                TeraError::DeprecatedSyntax(line_no, col_no, "Use `or` instead of `||`".to_string())
+            );
+        }
+    }
+
+    // println!("{:?}", parser.queue());
+    // println!("{:?}", space_tokens);
+    // Next the space tokens we need to insert
+    let mut number_inserted = 0;
+    for (i, token) in space_tokens {
+        parser.queue_mut().insert(i + number_inserted, token);
+        // process! expect text to be wrapped in a Token::content
+        parser.queue_mut().insert(i + number_inserted, Token {
+            rule: Rule::content,
+            start: token.start,
+            end: token.end
+        });
+        number_inserted += 2;
+    }
+    // println!("{:?}", parser.queue());
+    parser.main()
+}
 
 #[cfg(test)]
 mod tests {
-    use super::{Parser};
-    use lexer::TokenType;
-    use nodes::{Node, SpecificNode};
+    use std::collections::LinkedList;
 
-    fn compared_expected(expected: Vec<SpecificNode>, got: Vec<Box<Node>>) {
-        if expected.len() != got.len() {
-            println!("Got: {:#?}", got);
-            assert!(false);
-        }
+    use pest::prelude::*;
+    use super::{Rdp, Node, parse};
+    use errors::TeraError;
 
-        for (i, node) in got.iter().enumerate() {
-            let expected_node = expected.get(i).unwrap().clone();
-            if expected_node != node.specific {
-                println!("Expected: {:#?}", expected_node);
-                println!("Got: {:#?}", node.specific);
-            }
-            assert_eq!(expected_node, node.specific);
-        }
-    }
-
-    fn test_parser(input: &str, expected: Vec<SpecificNode>) {
-        let parser = Parser::new("dummy", input);
-        let children = parser.root.get_children();
-        compared_expected(expected, children)
+    #[test]
+    fn test_int() {
+        let mut parser = Rdp::new(StringInput::new("123"));
+        assert!(parser.int());
+        assert!(parser.end());
     }
 
     #[test]
-    fn test_empty() {
-        let parser = Parser::new("empty", "");
-        assert_eq!(0, parser.root.len());
+    fn test_float() {
+        let mut parser = Rdp::new(StringInput::new("123.5"));
+        assert!(parser.float());
+        assert!(parser.end());
     }
 
     #[test]
-    fn test_plain_string() {
-        test_parser(
-            "Hello world",
-            vec![SpecificNode::Text("Hello world".to_owned())]
+    fn test_identifier() {
+        let mut parser = Rdp::new(StringInput::new("client.phone_number"));
+        assert!(parser.identifier());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_text() {
+        let mut parser = Rdp::new(StringInput::new("Hello\n 世界"));
+        assert!(parser.text());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_string() {
+        let mut parser = Rdp::new(StringInput::new("\"Blabla\""));
+        assert!(parser.string());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_extends_tag() {
+        let mut parser = Rdp::new(StringInput::new("{% extends \"base.html\" %}"));
+        assert!(parser.extends_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_comment_tag() {
+        let mut parser = Rdp::new(StringInput::new("{# some text {{}} #}"));
+        assert!(parser.comment_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_block_tag() {
+        let mut parser = Rdp::new(StringInput::new("{% block hello %}"));
+        assert!(parser.block_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_endblock_tag() {
+        let mut parser = Rdp::new(StringInput::new("{% endblock hello %}"));
+        assert!(parser.endblock_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_for_tag() {
+        let mut parser = Rdp::new(StringInput::new("{% for client in clients %}"));
+        assert!(parser.for_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_endfor_tag() {
+        let mut parser = Rdp::new(StringInput::new("{% endfor %}"));
+        assert!(parser.endfor_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_expression_math() {
+        let mut parser = Rdp::new(StringInput::new("1 + 2 + 3 * 9/2 + 2"));
+        assert!(parser.expression());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_expression_identifier_logic_simple() {
+        let mut parser = Rdp::new(StringInput::new("index + 1 > 1"));
+        assert!(parser.expression());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_expression_identifier_logic_complex() {
+        let mut parser = Rdp::new(StringInput::new("1 > 2 or 3 == 4 and admin"));
+        assert!(parser.expression());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_if_tag() {
+        let mut parser = Rdp::new(StringInput::new("{% if true or show == false %}"));
+        assert!(parser.if_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_variable_tag() {
+        let mut parser = Rdp::new(StringInput::new("{{loop.index + 1}}"));
+        assert!(parser.variable_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_content() {
+        let mut parser = Rdp::new(StringInput::new("{% if i18n %}世界{% else %}world{% endif %}"));
+        assert!(parser.content());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_template() {
+        let mut parser = Rdp::new(StringInput::new("
+            {# Greeter template #}
+            Hello {% if i18n %}世界{% else %}world{% endif %}
+            {% for country in countries %}
+                {{ loop.index }}.{{ country }}
+            {% endfor %}
+        "));
+        assert!(parser.template());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_invalid_syntax() {
+        let parsed_ast = parse("{% block hey ");
+        assert!(parsed_ast.is_err());
+        assert_eq!(
+            parsed_ast.err().unwrap(),
+            TeraError::InvalidSyntax(1, 1)
         );
     }
 
     #[test]
-    fn test_variable_block_and_text() {
-        test_parser(
-            "{{ greeting }} 世界",
-            vec![
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(3, SpecificNode::Identifier("greeting".to_owned())))
-                ),
-                SpecificNode::Text(" 世界".to_owned()),
-            ]
+    fn test_invalid_extends() {
+        let parsed_ast = parse("{% extends \"base.html\" %} {% extends \"base.html\" %}");
+        assert!(parsed_ast.is_err());
+        assert_eq!(
+            parsed_ast.err().unwrap(),
+            TeraError::InvalidSyntax(1, 27)
         );
     }
 
     #[test]
-    fn test_basic_math() {
-        test_parser(
-            "{{1+3.41}}{{1-42}}{{1*42}}{{1/42}}{{test+1}}",
-            vec![
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(2, SpecificNode::Math {
-                        lhs: Box::new(Node::new(2, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(4, SpecificNode::Float(3.41))),
-                        operator: TokenType::Add
-                    }))
-                ),
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(12, SpecificNode::Math {
-                        lhs: Box::new(Node::new(12, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(14, SpecificNode::Int(42))),
-                        operator: TokenType::Substract
-                    }))
-                ),
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(20, SpecificNode::Math {
-                        lhs: Box::new(Node::new(20, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(22, SpecificNode::Int(42))),
-                        operator: TokenType::Multiply
-                    }))
-                ),
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(28, SpecificNode::Math {
-                        lhs: Box::new(Node::new(28, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(30, SpecificNode::Int(42))),
-                        operator: TokenType::Divide
-                    }))
-                ),
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(36, SpecificNode::Math {
-                        lhs: Box::new(Node::new(36, SpecificNode::Identifier("test".to_owned()))),
-                        rhs: Box::new(Node::new(41, SpecificNode::Int(1))),
-                        operator: TokenType::Add
-                    }))
-                ),
-            ]
+    fn test_ast_basic() {
+        let parsed_ast = parse(" Hello {{ count + 1 * 2.5 }} {{ true or false and 1 }}");
+        let mut ast = LinkedList::new();
+        ast.push_front(Node::VariableBlock(
+            Box::new(Node::Logic {
+                lhs: Box::new(Node::Bool(true)),
+                rhs: Box::new(Node::Logic {
+                    lhs: Box::new(Node::Bool(false)),
+                    rhs: Box::new(Node::Int(1)),
+                    operator: "and".to_string()
+                }),
+                operator: "or".to_string()
+            })
+        ));
+        ast.push_front(Node::Text(" ".to_string()));
+        ast.push_front(Node::VariableBlock(
+            Box::new(Node::Math {
+                lhs: Box::new(Node::Identifier("count".to_string())),
+                rhs: Box::new(Node::Math {
+                    lhs: Box::new(Node::Int(1)),
+                    rhs: Box::new(Node::Float(2.5)),
+                    operator: "*".to_string()
+                }),
+                operator: "+".to_string()
+            })
+        ));
+        ast.push_front(Node::Text(" Hello ".to_string()));
+
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_block() {
+        let parsed_ast = parse("{% block content %}Hello{% endblock content %}");
+        let mut ast = LinkedList::new();
+        let mut inner_content = LinkedList::new();
+        inner_content.push_front(Node::Text("Hello".to_string()));
+        ast.push_front(Node::Block {
+            name: "content".to_string(),
+            body: Box::new(Node::List(inner_content))
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_for() {
+        let parsed_ast = parse("{% for user in users %}{{user.email}}{% endfor %}");
+        let mut ast = LinkedList::new();
+        let mut inner_content = LinkedList::new();
+        inner_content.push_front(Node::VariableBlock(
+            Box::new(Node::Identifier("user.email".to_string()))
+        ));
+        ast.push_front(Node::For {
+            variable: "user".to_string(),
+            array: "users".to_string(),
+            body: Box::new(Node::List(inner_content))
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_extends() {
+        let parsed_ast = parse("{% extends \"base.html\" %}");
+        let mut ast = LinkedList::new();
+        ast.push_front(Node::Extends("base.html".to_string()));
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_if() {
+        let parsed_ast = parse("{% if superadmin %}Hey{% endif %}");
+        let mut ast = LinkedList::new();
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hey".to_string()));
+
+        let mut condition_nodes = LinkedList::new();
+        condition_nodes.push_front(Node::Conditional {
+            condition: Box::new(Node::Identifier("superadmin".to_string())),
+            body: Box::new(Node::List(body.clone()))
+        });
+
+        ast.push_front(Node::If {
+            condition_nodes: condition_nodes,
+            else_node: None,
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_if_else() {
+        let parsed_ast = parse("{% if superadmin %}Hey{% else %}Hey{% endif %}");
+        let mut ast = LinkedList::new();
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hey".to_string()));
+
+        let mut condition_nodes = LinkedList::new();
+        condition_nodes.push_front(Node::Conditional {
+            condition: Box::new(Node::Identifier("superadmin".to_string())),
+            body: Box::new(Node::List(body.clone()))
+        });
+
+        ast.push_front(Node::If {
+            condition_nodes: condition_nodes,
+            else_node: Some(Box::new(Node::List(body.clone()))),
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_if_elif() {
+        let parsed_ast = parse("{% if superadmin %}Hey{% elif admin %}Hey{% endif %}");
+        let mut ast = LinkedList::new();
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hey".to_string()));
+
+        let mut condition_nodes = LinkedList::new();
+        condition_nodes.push_front(Node::Conditional {
+            condition: Box::new(Node::Identifier("superadmin".to_string())),
+            body: Box::new(Node::List(body.clone()))
+        });
+        condition_nodes.push_back(Node::Conditional {
+            condition: Box::new(Node::Identifier("admin".to_string())),
+            body: Box::new(Node::List(body.clone()))
+        });
+
+        ast.push_front(Node::If {
+            condition_nodes: condition_nodes,
+            else_node: None,
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_if_elifs_else() {
+        let parsed_ast = parse("{% if superadmin %}Hey{% elif admin %}Hey{% else %}Hey{% endif %}");
+        let mut ast = LinkedList::new();
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hey".to_string()));
+
+        let mut condition_nodes = LinkedList::new();
+        condition_nodes.push_back(Node::Conditional {
+            condition: Box::new(Node::Identifier("admin".to_string())),
+            body: Box::new(Node::List(body.clone()))
+        });
+        condition_nodes.push_front(Node::Conditional {
+            condition: Box::new(Node::Identifier("superadmin".to_string())),
+            body: Box::new(Node::List(body.clone()))
+        });
+
+        ast.push_front(Node::If {
+            condition_nodes: condition_nodes,
+            else_node: Some(Box::new(Node::List(body.clone()))),
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_error_old_and() {
+        let parsed_ast = parse("{{ true && 1 }}");
+        assert!(parsed_ast.is_err());
+        assert_eq!(
+            parsed_ast.err().unwrap(),
+            TeraError::DeprecatedSyntax(1, 9, "Use `and` instead of `&&`".to_string())
         );
     }
 
     #[test]
-    fn test_math_precedence_simple() {
-        test_parser(
-            "{{ 1 / 2 + 1 }}",
-            vec![
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(3, SpecificNode::Math {
-                        lhs: Box::new(Node::new(3, SpecificNode::Math {
-                            lhs: Box::new(Node::new(3, SpecificNode::Int(1))),
-                            rhs: Box::new(Node::new(7, SpecificNode::Int(2))),
-                            operator: TokenType::Divide
-                        })),
-                        rhs: Box::new(Node::new(11, SpecificNode::Int(1))),
-                        operator: TokenType::Add
-                    }))
-                ),
-            ]
+    fn test_ast_error_old_or() {
+        let parsed_ast = parse("{{ true || 1 }}");
+        assert!(parsed_ast.is_err());
+        assert_eq!(
+            parsed_ast.err().unwrap(),
+            TeraError::DeprecatedSyntax(1, 9, "Use `or` instead of `||`".to_string())
         );
     }
 
     #[test]
-    fn test_math_precedence_complex() {
-        test_parser(
-            "{{ 1 / 2 + 3 * 2 + 42 }}",
-            vec![
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(3, SpecificNode::Math {
-                        lhs: Box::new(Node::new(3, SpecificNode::Math {
-                            lhs: Box::new(Node::new(3, SpecificNode::Int(1))),
-                            rhs: Box::new(Node::new(7, SpecificNode::Int(2))),
-                            operator: TokenType::Divide
-                        })),
-                        rhs: Box::new(Node::new(11, SpecificNode::Math {
-                            lhs: Box::new(Node::new(11, SpecificNode::Math {
-                                lhs: Box::new(Node::new(11, SpecificNode::Int(3))),
-                                rhs: Box::new(Node::new(15, SpecificNode::Int(2))),
-                                operator: TokenType::Multiply
-                            })),
-                            rhs: Box::new(Node::new(19, SpecificNode::Int(42))),
-                            operator: TokenType::Add
-                        })),
-                        operator: TokenType::Add
-                    }))
-                ),
-            ]
+    fn test_ast_error_mismatch_endblock_name() {
+        let parsed_ast = parse("{% block hey %}{% endblock ho %}");
+        assert!(parsed_ast.is_err());
+        assert_eq!(
+            parsed_ast.err().unwrap(),
+            TeraError::MismatchingEndBlock(1, 33, "hey".to_string(), "ho".to_string())
         );
     }
 
-    #[test]
-    fn test_basic_logic() {
-        test_parser(
-            "{{1==1}}{{1>1}}{{1<1}}{{1>=1}}{{1<=1}}{{1&&1}}{{1||1}}",
-            vec![
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(2, SpecificNode::Logic {
-                        lhs: Box::new(Node::new(2, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(5, SpecificNode::Int(1))),
-                        operator: TokenType::Equal
-                    }))
-                ),
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(10, SpecificNode::Logic {
-                        lhs: Box::new(Node::new(10, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(12, SpecificNode::Int(1))),
-                        operator: TokenType::Greater
-                    }))
-                ),
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(17, SpecificNode::Logic {
-                        lhs: Box::new(Node::new(17, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(19, SpecificNode::Int(1))),
-                        operator: TokenType::Lower
-                    }))
-                ),
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(24, SpecificNode::Logic {
-                        lhs: Box::new(Node::new(24, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(27, SpecificNode::Int(1))),
-                        operator: TokenType::GreaterOrEqual
-                    }))
-                ),
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(32, SpecificNode::Logic {
-                        lhs: Box::new(Node::new(32, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(35, SpecificNode::Int(1))),
-                        operator: TokenType::LowerOrEqual
-                    }))
-                ),
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(40, SpecificNode::Logic {
-                        lhs: Box::new(Node::new(40, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(43, SpecificNode::Int(1))),
-                        operator: TokenType::And
-                    }))
-                ),
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(48, SpecificNode::Logic {
-                        lhs: Box::new(Node::new(48, SpecificNode::Int(1))),
-                        rhs: Box::new(Node::new(51, SpecificNode::Int(1))),
-                        operator: TokenType::Or
-                    }))
-                ),
-            ]
-        );
-    }
-
-    #[test]
-    fn test_logic_precedence_complex() {
-        test_parser(
-            "{{1 > 2 || 3 == 4 && admin}}",
-            vec![
-                SpecificNode::VariableBlock(
-                    Box::new(Node::new(2, SpecificNode::Logic {
-                        lhs: Box::new(Node::new(2, SpecificNode::Logic {
-                            lhs: Box::new(Node::new(2, SpecificNode::Int(1))),
-                            rhs: Box::new(Node::new(6, SpecificNode::Int(2))),
-                            operator: TokenType::Greater
-                        })),
-                        rhs: Box::new(Node::new(11, SpecificNode::Logic {
-                            lhs: Box::new(Node::new(11, SpecificNode::Logic {
-                                lhs: Box::new(Node::new(11, SpecificNode::Int(3))),
-                                rhs: Box::new(Node::new(16, SpecificNode::Int(4))),
-                                operator: TokenType::Equal
-                            })),
-                            rhs: Box::new(Node::new(21, SpecificNode::Identifier("admin".to_owned()))),
-                            operator: TokenType::And
-                        })),
-                        operator: TokenType::Or
-                    }))
-                ),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_if() {
-        test_parser(
-            "{% if true %}1{% elif a %}2{% elif b %}3{% else %}4{% endif %}",
-            vec![
-                SpecificNode::If {
-                    condition_nodes: vec![
-                        Box::new(Node::new(6, SpecificNode::Conditional {
-                            condition: Box::new(Node::new(6, SpecificNode::Bool(true))),
-                            body: Box::new(Node::new(13, SpecificNode::List(vec![
-                                Box::new(Node::new(13, SpecificNode::Text("1".to_owned()))),
-                            ])))
-                        })),
-                        Box::new(Node::new(22, SpecificNode::Conditional {
-                            condition: Box::new(Node::new(22, SpecificNode::Identifier("a".to_owned()))),
-                            body: Box::new(Node::new(26, SpecificNode::List(vec![
-                                Box::new(Node::new(26, SpecificNode::Text("2".to_owned()))),
-                            ])))
-                        })),
-                        Box::new(Node::new(35, SpecificNode::Conditional {
-                            condition: Box::new(Node::new(35, SpecificNode::Identifier("b".to_owned()))),
-                            body: Box::new(Node::new(39, SpecificNode::List(vec![
-                                Box::new(Node::new(39, SpecificNode::Text("3".to_owned()))),
-                            ])))
-                        })),
-                    ],
-                    else_node: Some(Box::new(Node::new(50, SpecificNode::List(vec![
-                        Box::new(Node::new(50, SpecificNode::Text("4".to_owned()))),
-                    ]))))
-                },
-            ]
-        );
-    }
-
-
-    #[test]
-    fn test_nested_if() {
-        test_parser(
-            "{% if true %}parent{% if a %}nested{% endif %}{% endif %} hey",
-            vec![
-                SpecificNode::If {
-                    condition_nodes: vec![
-                        Box::new(Node::new(6, SpecificNode::Conditional {
-                            condition: Box::new(Node::new(6, SpecificNode::Bool(true))),
-                            body: Box::new(Node::new(13, SpecificNode::List(vec![
-                                Box::new(Node::new(13, SpecificNode::Text("parent".to_owned()))),
-                                Box::new(Node::new(19, SpecificNode::If {
-                                    condition_nodes: vec![
-                                        Box::new(Node::new(25, SpecificNode::Conditional {
-                                            condition: Box::new(Node::new(25, SpecificNode::Identifier("a".to_owned()))),
-                                            body: Box::new(Node::new(29, SpecificNode::List(vec![
-                                                Box::new(Node::new(29, SpecificNode::Text("nested".to_owned()))),
-                                            ])))
-                                        }))
-                                    ],
-                                    else_node: None,
-                                })),
-                            ])))
-                        })),
-                    ],
-                    else_node: None
-                },
-                SpecificNode::Text(" hey".to_owned())
-            ]
-        );
-    }
-
-    #[test]
-    fn test_for() {
-        test_parser(
-            "{% for x in items %}{% if x.show %}{{x}}{% endif %}{% endfor %}",
-            vec![
-                SpecificNode::For {
-                    local: Box::new(Node::new(7, SpecificNode::Identifier("x".to_owned()))),
-                    array: Box::new(Node::new(12, SpecificNode::Identifier("items".to_owned()))),
-                    body: Box::new(Node::new(20, SpecificNode::List(vec![
-                        Box::new(Node::new(20, SpecificNode::If {
-                            condition_nodes: vec![
-                                Box::new(Node::new(26, SpecificNode::Conditional {
-                                    condition: Box::new(Node::new(26, SpecificNode::Identifier("x.show".to_owned()))),
-                                    body: Box::new(Node::new(35, SpecificNode::List(vec![
-                                        Box::new(Node::new(35, SpecificNode::VariableBlock(
-                                            Box::new(Node::new(37, SpecificNode::Identifier("x".to_owned())))
-                                        ))),
-                                    ])))
-                                }))
-                            ],
-                            else_node: None,
-                        })),
-                    ]))),
-                }
-            ]
-        );
-    }
-
-    #[test]
-    fn test_if_math_condition() {
-        test_parser(
-            "{% if age + 1 > 18 %}Adult{% endif %}",
-            vec![
-                SpecificNode::If {
-                    condition_nodes: vec![
-                        Box::new(Node::new(6, SpecificNode::Conditional {
-                            condition: Box::new(Node::new(6, SpecificNode::Logic {
-                                lhs: Box::new(Node::new(6, SpecificNode::Math {
-                                    lhs: Box::new(Node::new(6, SpecificNode::Identifier("age".to_owned()))),
-                                    rhs: Box::new(Node::new(12, SpecificNode::Int(1))),
-                                    operator: TokenType::Add
-                                })),
-                                rhs: Box::new(Node::new(16, SpecificNode::Int(18))),
-                                operator: TokenType::Greater
-                            })),
-                            body: Box::new(Node::new(21, SpecificNode::List(vec![
-                                Box::new(Node::new(21, SpecificNode::Text("Adult".to_owned()))),
-                            ])))
-                        })),
-                    ],
-                    else_node: None
-                },
-            ]
-        );
-    }
-
-    #[test]
-    fn test_block() {
-        test_parser(
-            "{% block hello %}Hello{% endblock hello %}",
-            vec![
-                SpecificNode::Block {
-                    name: "hello".to_owned(),
-                    body: Box::new(Node::new(17, SpecificNode::List(vec![
-                        Box::new(Node::new(17, SpecificNode::Text("Hello".to_owned()))),
-                    ])))
-                },
-            ]
-        );
-    }
-
-    #[test]
-    fn test_extends() {
-        let parser = Parser::new("dummy", "{% extends \"main.html\" %}");
-        assert_eq!(parser.extends, Some("main.html".to_owned()));
-    }
+    // Complete test, to be deleted once we can fully render templates
+    // #[test]
+    // fn test_ast_template() {
+    //     let parsed_ast = parse("
+    //         {# Greeter template #}
+    //         {% block hey %}
+    //         {% endblock hey %}
+    //         Yo
+    //         Hello {% if i18n %}世界{% else %}world{% endif %}
+    //         {% for country in countries %}
+    //             {{ loop.index }}.{{ country }}
+    //         {% endfor %}
+    //         Hey
+    //     ");
+    //     println!("{:?}", parsed_ast);
+    //     assert_eq!(1, 0);
+    // }
 }
