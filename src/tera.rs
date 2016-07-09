@@ -46,7 +46,6 @@ impl Tera {
         Tera {
             templates: templates
         }
-
     }
 
     pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {

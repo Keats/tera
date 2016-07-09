@@ -44,9 +44,9 @@ impl JsonRender for Json {
             Json::I64(i) => i.to_string(),
             Json::U64(i) => i.to_string(),
             Json::F64(f) => f.to_string(),
-            Json::Bool (i) => i.to_string(),
+            Json::Bool(i) => i.to_string(),
             Json::Null => "".to_owned(),
-            Json::Array (ref a) => {
+            Json::Array(ref a) => {
                 let mut buf = String::new();
                 buf.push('[');
                 for i in a.iter() {
@@ -56,7 +56,7 @@ impl JsonRender for Json {
                 buf.push(']');
                 buf
             },
-            Json::Object (_) => "[object]".to_owned()
+            Json::Object(_) => "[object]".to_owned()
         }
     }
 }
@@ -82,17 +82,18 @@ impl JsonNumber for Json {
 pub trait JsonTruthy {
     fn is_truthy(&self) -> bool;
 }
+
 impl JsonTruthy for Json {
     fn is_truthy(&self) -> bool {
         match *self {
             Json::I64(i) => i != 0,
             Json::U64(i) => i != 0,
-            Json::F64(i) => i != 0.0 || ! i.is_nan(),
-            Json::Bool (ref i) => *i,
+            Json::F64(i) => i != 0.0 || !i.is_nan(),
+            Json::Bool(ref i) => *i,
             Json::Null => false,
-            Json::String (ref i) => !i.is_empty(),
-            Json::Array (ref i) => !i.is_empty(),
-            Json::Object (ref i) => !i.is_empty()
+            Json::String(ref i) => !i.is_empty(),
+            Json::Array(ref i) => !i.is_empty(),
+            Json::Object(ref i) => !i.is_empty()
         }
     }
 }

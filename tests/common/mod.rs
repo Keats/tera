@@ -1,5 +1,12 @@
 extern crate serde;
 extern crate serde_json;
+extern crate tera;
+
+use std::io::prelude::*;
+use std::fs::File;
+
+use self::tera::Template;
+
 
 #[derive(Debug)]
 pub struct Product {
@@ -9,6 +16,7 @@ pub struct Product {
     summary: String
 }
 impl Product {
+    #[allow(dead_code)]
     pub fn new() -> Product {
         Product {
             name: "Moto G".to_owned(),
@@ -69,6 +77,7 @@ pub struct Review {
     paragraphs: Vec<String>
 }
 impl Review {
+    #[allow(dead_code)]
     pub fn new() -> Review {
         Review {
             title: "My review".to_owned(),
@@ -113,4 +122,18 @@ impl<'a> serde::ser::MapVisitor for ReviewMapVisitor<'a> {
             }
         }
     }
+}
+
+#[allow(dead_code)]
+pub fn load_template(path: &str) -> Template {
+    Template::new("tpl", &read_file(path))
+}
+
+#[allow(dead_code)]
+pub fn read_file(path: &str) -> String {
+    let mut f = File::open(path).unwrap();
+    let mut input = String::new();
+    f.read_to_string(&mut input).unwrap();
+
+    input
 }
