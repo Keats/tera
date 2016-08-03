@@ -41,7 +41,7 @@ impl Node {
 
 impl_rdp! {
     grammar! {
-        whitespace = _{ [" "] | ["\t"] | ["\r"] | ["\n"] }
+        whitespace = _{ !soi ~ ([" "] | ["\t"] | ["\r"] | ["\n"])+ ~ !eoi }
 
         // basic blocks of the language
         op_or        = { ["or"] }
@@ -124,8 +124,8 @@ impl_rdp! {
             text
         }
 
-        // top level node
-        template = _{ extends_tag? ~ content* ~ eoi }
+        // top level rule
+        template = _{ soi ~ extends_tag? ~ content* ~ eoi }
     }
 
     process! {
@@ -364,75 +364,58 @@ pub fn parse(input: &str) -> TeraResult<Node> {
         return Err(TeraError::InvalidSyntax(line_no, col_no));
     }
 
-    // We need to create text tokens to fill the whitespace in between content
-    // that is not picked up as text by the grammar
     // Tuples of (position_to_insert, token)
     let mut space_tokens = vec![];
-    let mut previous_token: Option<Token<Rule>> = None;
-    // We want to retain our whitespace in texts
-    let mut previous_position = 0;
-    // Loop index, easier than enumerate() to keep the mutability
-    let mut i = 0;
-    for token in parser.queue_mut() {
-        // println!("{:?} - {:?}", i, token);
-        // Adding back leading/trailing whitespace to text tokens
-        if token.rule == Rule::text {
-            if previous_position > 0 {
-                token.start = previous_position;
-            } else {
-                // Initial whitespace
-                token.start = 0;
-            }
-        }
-
+    let mut previous_end = 0;
+    // We need to check for 2 things:
+    // 1. deprecated syntax -> error
+    // 2. whitespace in between content to be replaced by text node later on
+    for (i, token) in parser.queue().into_iter().enumerate() {
         match token.rule {
+            // deprecated syntax first
+            Rule::op_wrong_and => {
+                let (line_no, col_no) = parser.input().line_col(token.start);
+                return Err(
+                    TeraError::DeprecatedSyntax(
+                        line_no, col_no, "Use `and` instead of `&&`".to_string()
+                    )
+                );
+            },
+            Rule::op_wrong_or => {
+                let (line_no, col_no) = parser.input().line_col(token.start);
+                return Err(
+                    TeraError::DeprecatedSyntax(
+                        line_no, col_no, "Use `or` instead of `||`".to_string()
+                    )
+                );
+            },
+            // All possible tags showing up in the content rule to handle whitespace
             Rule::variable_tag | Rule::comment_tag | Rule::if_tag | Rule::else_tag | Rule::text
             | Rule::endif_tag | Rule::endblock_tag | Rule::endfor_tag
             | Rule::elif_tag | Rule::block_tag | Rule::for_tag | Rule::extends_tag => {
-                previous_position = token.end;
-
-                if previous_token.is_some() {
-                    let prev = previous_token.unwrap();
-                    // println!("> {} - {:?} - {:?}", i, previous_token, token);
+                if previous_end > 0 {
+                    // We need to take into account the Rule::content so we insert
+                    // before it if there is one (endblock tag don't have one typically)
                     let insert_at = match token.rule {
                         Rule::endif_tag | Rule::endblock_tag | Rule::endfor_tag => i,
                         _ => i - 1
                     };
-                    if prev.end < token.start {
+                    if previous_end < token.start {
                         space_tokens.push((
                             insert_at,
-                            Token::new(Rule::text, prev.end, token.start)
+                            Token::new(Rule::text, previous_end, token.start)
                         ));
                     }
                 }
-                previous_token = Some(*token);
+                previous_end = token.end;
             },
             _ => ()
         };
-        i += 1;
-    }
-
-    // second iteration on tokens, not really efficient but can't access
-    // parser.input() while iterating on the mutable queue above
-    // this loop only looks for errors
-    for token in parser.queue() {
-        if token.rule == Rule::op_wrong_and {
-            let (line_no, col_no) = parser.input().line_col(token.start);
-            return Err(
-                TeraError::DeprecatedSyntax(line_no, col_no, "Use `and` instead of `&&`".to_string())
-            );
-        }
-        if token.rule == Rule::op_wrong_or {
-            let (line_no, col_no) = parser.input().line_col(token.start);
-            return Err(
-                TeraError::DeprecatedSyntax(line_no, col_no, "Use `or` instead of `||`".to_string())
-            );
-        }
     }
 
     // println!("{:?}", parser.queue());
     // println!("{:?}", space_tokens);
-    // Next the space tokens we need to insert
+    // Next we need to insert the space tokens
     let mut number_inserted = 0;
     for (i, token) in space_tokens {
         parser.queue_mut().insert(i + number_inserted, token);
@@ -444,6 +427,7 @@ pub fn parse(input: &str) -> TeraResult<Node> {
         });
         number_inserted += 2;
     }
+    // println!("{:?}", input);
     // println!("{:?}", parser.queue());
     parser.main()
 }
@@ -480,6 +464,20 @@ mod tests {
     #[test]
     fn test_text() {
         let mut parser = Rdp::new(StringInput::new("Hello\n 世界"));
+        assert!(parser.text());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_text_with_trailing_space() {
+        let mut parser = Rdp::new(StringInput::new("Hello\n 世界  "));
+        assert!(parser.text());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_text_with_leading_space() {
+        let mut parser = Rdp::new(StringInput::new("   Hello\n 世界"));
         assert!(parser.text());
         assert!(parser.end());
     }
@@ -594,7 +592,7 @@ mod tests {
         assert!(parsed_ast.is_err());
         assert_eq!(
             parsed_ast.err().unwrap(),
-            TeraError::InvalidSyntax(1, 1)
+            TeraError::InvalidSyntax(1, 13)
         );
     }
 
@@ -604,7 +602,7 @@ mod tests {
         assert!(parsed_ast.is_err());
         assert_eq!(
             parsed_ast.err().unwrap(),
-            TeraError::InvalidSyntax(1, 27)
+            TeraError::InvalidSyntax(1, 30)
         );
     }
 
@@ -803,21 +801,23 @@ mod tests {
         );
     }
 
-    // Complete test, to be deleted once we can fully render templates
-    // #[test]
-    // fn test_ast_template() {
-    //     let parsed_ast = parse("
-    //         {# Greeter template #}
-    //         {% block hey %}
-    //         {% endblock hey %}
-    //         Yo
-    //         Hello {% if i18n %}世界{% else %}world{% endif %}
-    //         {% for country in countries %}
-    //             {{ loop.index }}.{{ country }}
-    //         {% endfor %}
-    //         Hey
-    //     ");
-    //     println!("{:?}", parsed_ast);
-    //     assert_eq!(1, 0);
-    // }
+    // Test that we can parse the template used in benching
+    #[test]
+    fn test_parse_bench() {
+        let parsed_ast = parse("
+            <html>
+              <head>
+                <title>{{ product.name }}</title>
+              </head>
+              <body>
+                <h1>{{ product.name }} - {{ product.manufacturer }}</h1>
+                <p>{{ product.summary }}</p>
+                <p>£{{ product.price * 1.20 }} (VAT inc.)</p>
+                <p>Look at reviews from your friends {{ username }}</p>
+                <button>Buy!</button>
+              </body>
+            </html>
+        ");
+        assert!(parsed_ast.is_ok());
+    }
 }
