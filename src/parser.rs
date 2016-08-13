@@ -41,7 +41,7 @@ impl Node {
 
 impl_rdp! {
     grammar! {
-        whitespace = _{ !soi ~ ([" "] | ["\t"] | ["\r"] | ["\n"])+ ~ !eoi }
+        whitespace = _{ ([" "] | ["\t"] | ["\r"] | ["\n"])+ ~ !eoi }
 
         // basic blocks of the language
         op_or        = { ["or"] }
@@ -99,23 +99,22 @@ impl_rdp! {
         block_start    = _{ variable_start | tag_start | comment_start }
 
         // Actual tags
-        extends_tag  = { tag_start ~ ["extends"] ~ string ~ tag_end }
-
-        variable_tag    = { variable_start ~ expression ~ variable_end }
-        comment_tag     = { comment_start ~ (!comment_end ~ any )* ~ comment_end }
-        block_tag       = { tag_start ~ ["block"] ~ identifier ~ tag_end }
-        if_tag          = { tag_start ~ ["if"] ~ expression ~ tag_end }
-        elif_tag        = { tag_start ~ ["elif"] ~ expression ~ tag_end }
-        else_tag        = { tag_start ~ ["else"] ~ tag_end }
-        for_tag         = { tag_start ~ ["for"] ~ identifier ~ ["in"] ~ identifier ~ tag_end }
-        endblock_tag    = { tag_start ~ ["endblock"] ~ identifier ~ tag_end }
-        endif_tag       = { tag_start ~ ["endif"] ~ tag_end }
-        endfor_tag      = { tag_start ~ ["endfor"] ~ tag_end }
+        extends_tag     = !@{ tag_start ~ ["extends"] ~ string ~ tag_end }
+        variable_tag    = !@{ variable_start ~ expression ~ variable_end }
+        comment_tag     = !@{ comment_start ~ (!comment_end ~ any )* ~ comment_end }
+        block_tag       = !@{ tag_start ~ ["block"] ~ identifier ~ tag_end }
+        if_tag          = !@{ tag_start ~ ["if"] ~ expression ~ tag_end }
+        elif_tag        = !@{ tag_start ~ ["elif"] ~ expression ~ tag_end }
+        else_tag        = !@{ tag_start ~ ["else"] ~ tag_end }
+        for_tag         = !@{ tag_start ~ ["for"] ~ identifier ~ ["in"] ~ identifier ~ tag_end }
+        endblock_tag    = !@{ tag_start ~ ["endblock"] ~ identifier ~ tag_end }
+        endif_tag       = !@{ tag_start ~ ["endif"] ~ tag_end }
+        endfor_tag      = !@{ tag_start ~ ["endfor"] ~ tag_end }
 
         elif_block = { elif_tag ~ content* }
 
-        text = @{ (!(block_start) ~ any )+ }
-        content = {
+        text = { (!(block_start) ~ any )+ }
+        content = @{
             variable_tag |
             comment_tag |
             block_tag ~ content* ~ endblock_tag |
@@ -364,6 +363,8 @@ pub fn parse(input: &str) -> TeraResult<Node> {
         return Err(TeraError::InvalidSyntax(line_no, col_no));
     }
 
+    println!("{:?}", parser.queue_with_captures());
+
     // Tuples of (position_to_insert, token)
     let mut space_tokens = vec![];
     let mut previous_end = 0;
@@ -416,17 +417,17 @@ pub fn parse(input: &str) -> TeraResult<Node> {
     // println!("{:?}", parser.queue());
     // println!("{:?}", space_tokens);
     // Next we need to insert the space tokens
-    let mut number_inserted = 0;
-    for (i, token) in space_tokens {
-        parser.queue_mut().insert(i + number_inserted, token);
-        // process! expect text to be wrapped in a Token::content
-        parser.queue_mut().insert(i + number_inserted, Token {
-            rule: Rule::content,
-            start: token.start,
-            end: token.end
-        });
-        number_inserted += 2;
-    }
+    // let mut number_inserted = 0;
+    // for (i, token) in space_tokens {
+    //     parser.queue_mut().insert(i + number_inserted, token);
+    //     // process! expect text to be wrapped in a Token::content
+    //     parser.queue_mut().insert(i + number_inserted, Token {
+    //         rule: Rule::content,
+    //         start: token.start,
+    //         end: token.end
+    //     });
+    //     number_inserted += 2;
+    // }
     // println!("{:?}", input);
     // println!("{:?}", parser.queue());
     parser.main()
