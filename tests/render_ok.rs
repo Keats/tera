@@ -87,3 +87,8 @@ fn test_ok_basic_inheritance_template() {
         Some("tests/templates/base.html")
     );
 }
+
+#[test]
+fn test_ok_raw_template() {
+    assert_template_ok("tests/templates/raw.html", None);
+}

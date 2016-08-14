@@ -339,6 +339,7 @@ impl<'a> Renderer<'a> {
     pub fn render_node(&mut self, node: Node) -> TeraResult<String> {
         match node {
             Text(s) => Ok(s),
+            Raw(s) => Ok(s.trim().to_string()),
             VariableBlock(exp) => self.render_variable_block(*exp),
             If {condition_nodes, else_node} => {
                 self.render_if(condition_nodes, else_node)
