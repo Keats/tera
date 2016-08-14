@@ -24,6 +24,7 @@ pub enum Node {
     For {variable: String, array: String, body: Box<Node>},
     Block {name: String, body: Box<Node>},
 
+    Raw(String),
     Identifier(String),
     Extends(String),
     VariableBlock(Box<Node>),
@@ -107,19 +108,23 @@ impl_rdp! {
         elif_tag        = !@{ tag_start ~ ["elif"] ~ expression ~ tag_end }
         else_tag        = !@{ tag_start ~ ["else"] ~ tag_end }
         for_tag         = !@{ tag_start ~ ["for"] ~ identifier ~ ["in"] ~ identifier ~ tag_end }
+        raw_tag         = !@{ tag_start ~ ["raw"] ~ tag_end }
+        endraw_tag      = !@{ tag_start ~ ["endraw"] ~ tag_end }
         endblock_tag    = !@{ tag_start ~ ["endblock"] ~ identifier ~ tag_end }
         endif_tag       = !@{ tag_start ~ ["endif"] ~ tag_end }
         endfor_tag      = !@{ tag_start ~ ["endfor"] ~ tag_end }
 
         elif_block = { elif_tag ~ content* }
+        raw_text   = { (!endraw_tag ~ any )* }
+        text       = { (!(block_start) ~ any )+ }
 
-        text = { (!(block_start) ~ any )+ }
         content = @{
             variable_tag |
             comment_tag |
             block_tag ~ content* ~ endblock_tag |
             if_tag ~ content* ~ elif_block* ~ (else_tag ~ content*)? ~ endif_tag |
             for_tag ~ content* ~ endfor_tag |
+            raw_tag ~ raw_text ~ endraw_tag |
             text
         }
 
@@ -166,6 +171,9 @@ impl_rdp! {
             },
             (_: variable_tag, exp: _expression()) => {
                 Ok(Some(Node::VariableBlock(Box::new(try!(exp)))))
+            },
+            (_: raw_tag, &body: raw_text, _: endraw_tag) => {
+                Ok(Some(Node::Raw(body.to_string())))
             },
             (_: block_tag, &name: identifier, body: _template(), _: endblock_tag, &end_name: identifier) => {
                 if name != end_name {
@@ -726,6 +734,18 @@ mod tests {
             condition_nodes: condition_nodes,
             else_node: Some(Box::new(Node::List(body.clone()))),
         });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_raw() {
+        let parsed_ast = parse("Hey {% raw %}Hey {{ name }}{% endraw %} Ho");
+        let mut ast = LinkedList::new();
+        // A bit ugly to have a separate node for the leading ws but oh well
+        ast.push_front(Node::Text(" Ho".to_string()));
+        ast.push_front(Node::Raw("Hey {{ name }}".to_string()));
+        ast.push_front(Node::Text("Hey ".to_string()));
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
     }
