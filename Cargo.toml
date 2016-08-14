@@ -14,7 +14,7 @@ glob = "0.2"
 serde = "0.8"
 serde_json = "0.8"
 clippy = {version = "~0.0.77", optional = true}
-pest = { git = "https://github.com/dragostis/pest", branch = "v0.4.0" }
+pest = "0.4"
 quick-error = "1.1.0"
 
 [features]

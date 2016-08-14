@@ -41,7 +41,7 @@ impl Node {
 
 impl_rdp! {
     grammar! {
-        whitespace = _{ !soi ~ ([" "] | ["\t"] | ["\r"] | ["\n"])+ ~ !eoi }
+        whitespace = _{ ([" "] | ["\t"] | ["\r"] | ["\n"])+ }
 
         // basic blocks of the language
         op_or        = { ["or"] }
@@ -99,23 +99,22 @@ impl_rdp! {
         block_start    = _{ variable_start | tag_start | comment_start }
 
         // Actual tags
-        extends_tag  = { tag_start ~ ["extends"] ~ string ~ tag_end }
-
-        variable_tag    = { variable_start ~ expression ~ variable_end }
-        comment_tag     = { comment_start ~ (!comment_end ~ any )* ~ comment_end }
-        block_tag       = { tag_start ~ ["block"] ~ identifier ~ tag_end }
-        if_tag          = { tag_start ~ ["if"] ~ expression ~ tag_end }
-        elif_tag        = { tag_start ~ ["elif"] ~ expression ~ tag_end }
-        else_tag        = { tag_start ~ ["else"] ~ tag_end }
-        for_tag         = { tag_start ~ ["for"] ~ identifier ~ ["in"] ~ identifier ~ tag_end }
-        endblock_tag    = { tag_start ~ ["endblock"] ~ identifier ~ tag_end }
-        endif_tag       = { tag_start ~ ["endif"] ~ tag_end }
-        endfor_tag      = { tag_start ~ ["endfor"] ~ tag_end }
+        extends_tag     = !@{ tag_start ~ ["extends"] ~ string ~ tag_end }
+        variable_tag    = !@{ variable_start ~ expression ~ variable_end }
+        comment_tag     = !@{ comment_start ~ (!comment_end ~ any )* ~ comment_end }
+        block_tag       = !@{ tag_start ~ ["block"] ~ identifier ~ tag_end }
+        if_tag          = !@{ tag_start ~ ["if"] ~ expression ~ tag_end }
+        elif_tag        = !@{ tag_start ~ ["elif"] ~ expression ~ tag_end }
+        else_tag        = !@{ tag_start ~ ["else"] ~ tag_end }
+        for_tag         = !@{ tag_start ~ ["for"] ~ identifier ~ ["in"] ~ identifier ~ tag_end }
+        endblock_tag    = !@{ tag_start ~ ["endblock"] ~ identifier ~ tag_end }
+        endif_tag       = !@{ tag_start ~ ["endif"] ~ tag_end }
+        endfor_tag      = !@{ tag_start ~ ["endfor"] ~ tag_end }
 
         elif_block = { elif_tag ~ content* }
 
-        text = @{ (!(block_start) ~ any )+ }
-        content = {
+        text = { (!(block_start) ~ any )+ }
+        content = @{
             variable_tag |
             comment_tag |
             block_tag ~ content* ~ endblock_tag |
@@ -125,12 +124,12 @@ impl_rdp! {
         }
 
         // top level rule
-        template = _{ soi ~ extends_tag? ~ content* ~ eoi }
+        template = @{ soi ~ extends_tag? ~ content* ~ eoi }
     }
 
     process! {
         main(&self) -> TeraResult<Node> {
-            (tpl: _template()) => {
+            (_: template, tpl: _template()) => {
                 match tpl {
                     Ok(t) => Ok(Node::List(t)),
                     Err(e) => Err(e)
@@ -364,15 +363,9 @@ pub fn parse(input: &str) -> TeraResult<Node> {
         return Err(TeraError::InvalidSyntax(line_no, col_no));
     }
 
-    // Tuples of (position_to_insert, token)
-    let mut space_tokens = vec![];
-    let mut previous_end = 0;
-    // We need to check for 2 things:
-    // 1. deprecated syntax -> error
-    // 2. whitespace in between content to be replaced by text node later on
-    for (i, token) in parser.queue().into_iter().enumerate() {
+    // We need to check for deprecated syntaxes
+    for token in parser.queue() {
         match token.rule {
-            // deprecated syntax first
             Rule::op_wrong_and => {
                 let (line_no, col_no) = parser.input().line_col(token.start);
                 return Err(
@@ -389,46 +382,10 @@ pub fn parse(input: &str) -> TeraResult<Node> {
                     )
                 );
             },
-            // All possible tags showing up in the content rule to handle whitespace
-            Rule::variable_tag | Rule::comment_tag | Rule::if_tag | Rule::else_tag | Rule::text
-            | Rule::endif_tag | Rule::endblock_tag | Rule::endfor_tag
-            | Rule::elif_tag | Rule::block_tag | Rule::for_tag | Rule::extends_tag => {
-                if previous_end > 0 {
-                    // We need to take into account the Rule::content so we insert
-                    // before it if there is one (endblock tag don't have one typically)
-                    let insert_at = match token.rule {
-                        Rule::endif_tag | Rule::endblock_tag | Rule::endfor_tag => i,
-                        _ => i - 1
-                    };
-                    if previous_end < token.start {
-                        space_tokens.push((
-                            insert_at,
-                            Token::new(Rule::text, previous_end, token.start)
-                        ));
-                    }
-                }
-                previous_end = token.end;
-            },
             _ => ()
         };
     }
 
-    // println!("{:?}", parser.queue());
-    // println!("{:?}", space_tokens);
-    // Next we need to insert the space tokens
-    let mut number_inserted = 0;
-    for (i, token) in space_tokens {
-        parser.queue_mut().insert(i + number_inserted, token);
-        // process! expect text to be wrapped in a Token::content
-        parser.queue_mut().insert(i + number_inserted, Token {
-            rule: Rule::content,
-            start: token.start,
-            end: token.end
-        });
-        number_inserted += 2;
-    }
-    // println!("{:?}", input);
-    // println!("{:?}", parser.queue());
     parser.main()
 }
 
@@ -471,7 +428,9 @@ mod tests {
     #[test]
     fn test_text_with_trailing_space() {
         let mut parser = Rdp::new(StringInput::new("Hello\n 世界  "));
-        assert!(parser.text());
+        // the text rule itself is not going to parse the trailing space
+        // correctly so we are using template here
+        assert!(parser.template());
         assert!(parser.end());
     }
 
@@ -592,7 +551,7 @@ mod tests {
         assert!(parsed_ast.is_err());
         assert_eq!(
             parsed_ast.err().unwrap(),
-            TeraError::InvalidSyntax(1, 13)
+            TeraError::InvalidSyntax(1, 1)
         );
     }
 
@@ -602,7 +561,7 @@ mod tests {
         assert!(parsed_ast.is_err());
         assert_eq!(
             parsed_ast.err().unwrap(),
-            TeraError::InvalidSyntax(1, 30)
+            TeraError::InvalidSyntax(1, 27)
         );
     }
 
