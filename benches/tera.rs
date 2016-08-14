@@ -44,43 +44,12 @@ impl serde::Serialize for Product {
     fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
         where S: serde::Serializer
     {
-        serializer.serialize_struct("Product", ProductMapVisitor {
-            value: self,
-            state: 0,
-        })
-    }
-}
-
-struct ProductMapVisitor<'a> {
-    value: &'a Product,
-    state: u8,
-}
-
-impl<'a> serde::ser::MapVisitor for ProductMapVisitor<'a> {
-    fn visit<S>(&mut self, serializer: &mut S) -> Result<Option<()>, S::Error>
-        where S: serde::Serializer
-    {
-        match self.state {
-            0 => {
-                self.state += 1;
-                Ok(Some(try!(serializer.serialize_struct_elt("name", &self.value.name))))
-            },
-            1 => {
-                self.state += 1;
-                Ok(Some(try!(serializer.serialize_struct_elt("manufacturer", &self.value.manufacturer))))
-            },
-            2 => {
-                self.state += 1;
-                Ok(Some(try!(serializer.serialize_struct_elt("price", &self.value.price))))
-            },
-            3 => {
-                self.state += 1;
-                Ok(Some(try!(serializer.serialize_struct_elt("summary", &self.value.summary))))
-            },
-            _ => {
-                Ok(None)
-            }
-        }
+        let mut state = try!(serializer.serialize_struct("Product", 4));
+        try!(serializer.serialize_struct_elt(&mut state, "name", &self.name));
+        try!(serializer.serialize_struct_elt(&mut state, "manufacturer", &self.manufacturer));
+        try!(serializer.serialize_struct_elt(&mut state, "summary", &self.summary));
+        try!(serializer.serialize_struct_elt(&mut state, "price", &self.price));
+        serializer.serialize_struct_end(state)
     }
 }
 
