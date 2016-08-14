@@ -123,6 +123,19 @@ A few special variables are available inside for loops like in jinja2:
 
 The `for` statement has to end with a `endfor` tag.
 
+### Raw
+Allow you to ignore texts that Tera would try to render otherwise.
+```jinja
+{% raw %}
+  Hello {{ name }}
+{% endraw %}
+```
+would be rendered:
+```jinja
+Hello {{ name }}
+```
+
+
 ### Inheritance
 Tera uses the same kind of inheritance as Jinja2 and django templates: you define a base template and extends it in child templates.
 
