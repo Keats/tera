@@ -359,15 +359,15 @@ impl<'a> Renderer<'a> {
                     Some(b) => {
                         match b.clone() {
                             Block {body, ..} => {
-                                return self.render_node(*body.clone());
+                                self.render_node(*body.clone())
                             },
                             _ => unreachable!()
                         }
                     },
                     None => {
-                        return self.render_node(*body);
+                        self.render_node(*body)
                     }
-                };
+                }
             },
             _ => unreachable!()
         }
