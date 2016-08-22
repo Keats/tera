@@ -92,3 +92,8 @@ fn test_ok_basic_inheritance_template() {
 fn test_ok_raw_template() {
     assert_template_ok("tests/templates/raw.html", None);
 }
+
+#[test]
+fn test_ok_filters_template() {
+    assert_template_ok("tests/templates/filters.html", None);
+}

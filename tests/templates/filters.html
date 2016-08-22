@@ -1,0 +1,8 @@
+<html>
+  <head>
+    <title>{{ product.name | upper | trim }}</title>
+  </head>
+  <body>
+    <h1>{{ product.name | trim }} - {{ product.manufacturer | trim | truncate(length=4) }}</h1>
+  </body>
+</html>

@@ -18,11 +18,14 @@ extern crate quick_error;
 
 
 mod errors;
+#[macro_use]
+mod macros;
 mod parser;
 mod context;
 mod render;
 mod template;
 mod tera;
+mod filters;
 
 
 // Library exports

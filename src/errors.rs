@@ -1,3 +1,5 @@
+use serde_json::value::Value;
+
 /// Library generic result type.
 pub type TeraResult<T> = Result<T, TeraError>;
 
@@ -21,6 +23,11 @@ quick_error! {
             display("Template `{}` wasn't found", name)
             description("template not found")
         }
+        FilterNotFound(name: String) {
+            display("Filter `{}` was not found in the context.", name)
+            description("filter not found")
+        }
+
         // Runtime errors
         NotANumber(name: String) {
             display("Field `{}` was used in a math operation but is not a number", name)
@@ -33,6 +40,10 @@ quick_error! {
         FieldNotFound(name: String) {
             display("Field `{}` was not found in the context.", name)
             description("field not found")
+        }
+        FilterIncorrectArgType(filter_name: String, arg_name: String, arg_value: Value, expected_type: String) {
+            display("Filter `{}` received an incorrect type for arg `{}`: got {:?} but expected a {}", filter_name, arg_name, arg_value, expected_type)
+            description("incorrect filter arg type")
         }
     }
 }
