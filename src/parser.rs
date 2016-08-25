@@ -1,7 +1,7 @@
-use std::collections::LinkedList;
+use std::collections::{HashMap, LinkedList};
 
 use pest::prelude::*;
-
+use serde_json::value::{Value, to_value};
 use errors::{TeraResult, TeraError};
 
 
@@ -24,8 +24,12 @@ pub enum Node {
     For {variable: String, array: String, body: Box<Node>},
     Block {name: String, body: Box<Node>},
 
+    // For now all params are strings. We still need to differentiate between
+    // user input (ie "dd/mm/YY" arg in a date filter)
+    Filter {name: String, args: HashMap<String, Value>, args_ident: HashMap<String, String>},
+    Identifier {name: String, filters: Option<LinkedList<Node>>},
+
     Raw(String),
-    Identifier(String),
     Extends(String),
     VariableBlock(Box<Node>),
 }
@@ -62,6 +66,7 @@ impl_rdp! {
         op_true      = { ["true"] }
         op_false     = { ["false"] }
         boolean      = _{ op_true | op_false }
+        op_filter    = _{ ["|"] }
 
         int   = @{ ["-"]? ~ (["0"] | ['1'..'9'] ~ ['0'..'9']*) }
         float = @{
@@ -69,18 +74,35 @@ impl_rdp! {
                 ["0"] ~ ["."] ~ ['0'..'9']+ |
                 ['1'..'9'] ~ ['0'..'9']* ~ ["."] ~ ['0'..'9']+
         }
+        // matches anything between 2 double quotes
+        string  = @{ ["\""] ~ (!(["\""]) ~ any )* ~ ["\""]}
+
+        // FUNCTIONS
+        // include macros later on
+        // Almost same as identifier minus no . allowed
+        simple_ident = @{
+            (['a'..'z'] | ['A'..'Z'] | ["_"]) ~
+            (['a'..'z'] | ['A'..'Z'] | ["_"] | ['0'..'9'])*
+        }
+        // named args
+        fn_arg_value = @{ boolean | int | float | string | identifier }
+        fn_arg       = @{ simple_ident ~ ["="] ~ fn_arg_value }
+        fn_args      = !@{ fn_arg ~ ([","] ~ fn_arg )* }
+        fn_call      = { simple_ident ~ ["("] ~ fn_args ~ [")"] | simple_ident }
+
+        filters = { (op_filter ~ fn_call)+ }
 
         identifier = @{
             (['a'..'z'] | ['A'..'Z'] | ["_"]) ~
             (['a'..'z'] | ['A'..'Z'] | ["_"] | ["."] | ['0'..'9'])*
         }
-        // matches anything between 2 double quotes
-        string = @{ ["\""] ~ (!(["\""]) ~ any )* ~ ["\""]}
+        identifier_with_filter = { identifier ~ filters }
+        idents = _{ identifier_with_filter | identifier }
 
         // Precedence climbing
         expression = _{
             // boolean first so they are not caught as identifiers
-            { boolean | identifier | float | int }
+            { boolean | idents | float | int }
             or          = { op_or | op_wrong_or }
             and         = { op_and | op_wrong_and }
             comparison  = { op_gt | op_lt | op_eq | op_ineq | op_lte | op_gte }
@@ -107,7 +129,7 @@ impl_rdp! {
         if_tag          = !@{ tag_start ~ ["if"] ~ expression ~ tag_end }
         elif_tag        = !@{ tag_start ~ ["elif"] ~ expression ~ tag_end }
         else_tag        = !@{ tag_start ~ ["else"] ~ tag_end }
-        for_tag         = !@{ tag_start ~ ["for"] ~ identifier ~ ["in"] ~ identifier ~ tag_end }
+        for_tag         = !@{ tag_start ~ ["for"] ~ identifier ~ ["in"] ~ idents ~ tag_end }
         raw_tag         = !@{ tag_start ~ ["raw"] ~ tag_end }
         endraw_tag      = !@{ tag_start ~ ["endraw"] ~ tag_end }
         endblock_tag    = !@{ tag_start ~ ["endblock"] ~ identifier ~ tag_end }
@@ -285,6 +307,73 @@ impl_rdp! {
             },
         }
 
+        _fn_arg_value(&self) -> Value {
+            (&number: int) => {
+                to_value(&number.parse::<i32>().unwrap())
+            },
+            (&number: float) => {
+                to_value(&number.parse::<f32>().unwrap())
+            },
+            (_: op_true) => {
+                to_value(&true)
+            },
+            (_: op_false) => {
+                to_value(&false)
+            },
+            (&text: text) => {
+                to_value(text)
+            }
+        }
+
+        _fn_args(&self) -> (HashMap<String, Value>, HashMap<String, String>) {
+            // first arg of the fn
+            (_: fn_args, _: fn_arg, &name: simple_ident, _: fn_arg_value, &ident: identifier, mut tail: _fn_args()) => {
+                tail.1.insert(name.to_string(), ident.to_string());
+                tail
+            },
+            (_: fn_args, _: fn_arg, &name: simple_ident, _: fn_arg_value, arg: _fn_arg_value(), mut tail: _fn_args()) => {
+                tail.0.insert(name.to_string(), arg);
+                tail
+            },
+            // arguments after the first
+            (_: fn_arg, &name: simple_ident, _: fn_arg_value, &ident: identifier, mut tail: _fn_args()) => {
+                tail.1.insert(name.to_string(), ident.to_string());
+                tail
+            },
+            (_: fn_arg, &name: simple_ident, _: fn_arg_value, arg: _fn_arg_value(), mut tail: _fn_args()) => {
+                tail.0.insert(name.to_string(), arg);
+                tail
+            },
+            () => (HashMap::new(), HashMap::new())
+        }
+
+        // TODO: reuse that for macros
+        _fn(&self) -> TeraResult<Node> {
+            (_: fn_call, &name: simple_ident, args: _fn_args()) => {
+                Ok(Node::Filter{name: name.to_string(), args: args.0, args_ident: args.1})
+            },
+            // The filters parser will need to consume the `fn_call` token
+            // It might not be needed in next version of pest
+            // https://github.com/dragostis/pest/issues/74
+            (&name: simple_ident, args: _fn_args()) => {
+                Ok(Node::Filter{name: name.to_string(), args: args.0, args_ident: args.1})
+            },
+        }
+
+        _filters(&self) -> TeraResult<LinkedList<Node>> {
+            (_: filters, filter: _fn(), tail: _filters()) => {
+                let mut tail2 = try!(tail);
+                tail2.push_front(try!(filter));
+                Ok(tail2)
+            },
+            (_: fn_call, filter: _fn(), tail: _filters()) => {
+                let mut tail2 = try!(tail);
+                tail2.push_front(try!(filter));
+                Ok(tail2)
+            },
+            () => Ok(LinkedList::new())
+        }
+
         _expression(&self) -> TeraResult<Node> {
             (_: add_sub, left: _expression(), sign, right: _expression()) => {
                 Ok(Node::Math {
@@ -337,8 +426,14 @@ impl_rdp! {
                     operator: "or".to_string()
                 })
             },
+            (_: identifier_with_filter, &ident: identifier, tail: _filters()) => {
+                Ok(Node::Identifier {
+                    name: ident.to_string(),
+                    filters: Some(try!(tail)),
+                })
+            },
             (&ident: identifier) => {
-                Ok(Node::Identifier(ident.to_string()))
+                Ok(Node::Identifier {name: ident.to_string(), filters: None })
             },
             (&number: int) => {
                 Ok(Node::Int(number.parse::<i32>().unwrap()))
@@ -370,6 +465,7 @@ pub fn parse(input: &str) -> TeraResult<Node> {
         let (line_no, col_no) = parser.input().line_col(pos);
         return Err(TeraError::InvalidSyntax(line_no, col_no));
     }
+    // println!("{:#?}", parser.queue_with_captures());
 
     // We need to check for deprecated syntaxes
     for token in parser.queue() {
@@ -399,9 +495,11 @@ pub fn parse(input: &str) -> TeraResult<Node> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::LinkedList;
+    use std::collections::{LinkedList, HashMap};
 
     use pest::prelude::*;
+    use serde_json::value::{to_value};
+
     use super::{Rdp, Node, parse};
     use errors::TeraError;
 
@@ -423,6 +521,15 @@ mod tests {
     fn test_identifier() {
         let mut parser = Rdp::new(StringInput::new("client.phone_number"));
         assert!(parser.identifier());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_identifier_with_filter() {
+        let mut parser = Rdp::new(
+            StringInput::new("phone_number | phone(format=user.country) | truncate(limit=50)")
+        );
+        assert!(parser.identifier_with_filter());
         assert!(parser.end());
     }
 
@@ -492,6 +599,13 @@ mod tests {
     }
 
     #[test]
+    fn test_for_tag_with_filter() {
+        let mut parser = Rdp::new(StringInput::new("{% for client in clients | slice(start=1, end=9) %}"));
+        assert!(parser.for_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
     fn test_endfor_tag() {
         let mut parser = Rdp::new(StringInput::new("{% endfor %}"));
         assert!(parser.endfor_tag());
@@ -527,8 +641,22 @@ mod tests {
     }
 
     #[test]
+    fn test_if_tag_with_filter() {
+        let mut parser = Rdp::new(StringInput::new("{% if 1 + something | test %}"));
+        assert!(parser.if_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
     fn test_variable_tag() {
         let mut parser = Rdp::new(StringInput::new("{{loop.index + 1}}"));
+        assert!(parser.variable_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_variable_tag_with_filter() {
+        let mut parser = Rdp::new(StringInput::new("{{ greeting | i18n(lang=user.lang) | truncate(limit=50) }}"));
         assert!(parser.variable_tag());
         assert!(parser.end());
     }
@@ -591,7 +719,7 @@ mod tests {
         ast.push_front(Node::Text(" ".to_string()));
         ast.push_front(Node::VariableBlock(
             Box::new(Node::Math {
-                lhs: Box::new(Node::Identifier("count".to_string())),
+                lhs: Box::new(Node::Identifier{name: "count".to_string(), filters: None}),
                 rhs: Box::new(Node::Math {
                     lhs: Box::new(Node::Int(1)),
                     rhs: Box::new(Node::Float(2.5)),
@@ -626,7 +754,7 @@ mod tests {
         let mut ast = LinkedList::new();
         let mut inner_content = LinkedList::new();
         inner_content.push_front(Node::VariableBlock(
-            Box::new(Node::Identifier("user.email".to_string()))
+            Box::new(Node::Identifier {name: "user.email".to_string(), filters: None})
         ));
         ast.push_front(Node::For {
             variable: "user".to_string(),
@@ -655,7 +783,7 @@ mod tests {
 
         let mut condition_nodes = LinkedList::new();
         condition_nodes.push_front(Node::Conditional {
-            condition: Box::new(Node::Identifier("superadmin".to_string())),
+            condition: Box::new(Node::Identifier {name: "superadmin".to_string(), filters: None}),
             body: Box::new(Node::List(body.clone()))
         });
 
@@ -676,7 +804,7 @@ mod tests {
 
         let mut condition_nodes = LinkedList::new();
         condition_nodes.push_front(Node::Conditional {
-            condition: Box::new(Node::Identifier("superadmin".to_string())),
+            condition: Box::new(Node::Identifier {name: "superadmin".to_string(), filters: None}),
             body: Box::new(Node::List(body.clone()))
         });
 
@@ -697,11 +825,11 @@ mod tests {
 
         let mut condition_nodes = LinkedList::new();
         condition_nodes.push_front(Node::Conditional {
-            condition: Box::new(Node::Identifier("superadmin".to_string())),
+            condition: Box::new(Node::Identifier {name: "superadmin".to_string(), filters: None}),
             body: Box::new(Node::List(body.clone()))
         });
         condition_nodes.push_back(Node::Conditional {
-            condition: Box::new(Node::Identifier("admin".to_string())),
+            condition: Box::new(Node::Identifier {name: "admin".to_string(), filters: None}),
             body: Box::new(Node::List(body.clone()))
         });
 
@@ -722,11 +850,11 @@ mod tests {
 
         let mut condition_nodes = LinkedList::new();
         condition_nodes.push_back(Node::Conditional {
-            condition: Box::new(Node::Identifier("admin".to_string())),
+            condition: Box::new(Node::Identifier {name: "admin".to_string(), filters: None}),
             body: Box::new(Node::List(body.clone()))
         });
         condition_nodes.push_front(Node::Conditional {
-            condition: Box::new(Node::Identifier("superadmin".to_string())),
+            condition: Box::new(Node::Identifier {name: "superadmin".to_string(), filters: None}),
             body: Box::new(Node::List(body.clone()))
         });
 
@@ -746,6 +874,40 @@ mod tests {
         ast.push_front(Node::Text(" Ho".to_string()));
         ast.push_front(Node::Raw("Hey {{ name }}".to_string()));
         ast.push_front(Node::Text("Hey ".to_string()));
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_filter() {
+        let parsed_ast = parse("{{ greeting | i18n(lang=user.lang, units=user.units) | truncate(limit=50, cut_word=true) }}");
+        let mut filters = LinkedList::new();
+
+        let mut args_truncate = HashMap::new();
+        args_truncate.insert("limit".to_string(), to_value(&50));
+        args_truncate.insert("cut_word".to_string(), to_value(&true));
+        let mut args_i18n = HashMap::new();
+        args_i18n.insert("lang".to_string(), "user.lang".to_string());
+        args_i18n.insert("units".to_string(), "user.units".to_string());
+
+        filters.push_front(Node::Filter {
+            name: "truncate".to_string(),
+            args: args_truncate,
+            args_ident: HashMap::new(),
+        });
+        filters.push_front(Node::Filter {
+            name: "i18n".to_string(),
+            args: HashMap::new(),
+            args_ident: args_i18n,
+        });
+
+        let mut ast = LinkedList::new();
+        ast.push_front(Node::VariableBlock(
+            Box::new(Node::Identifier {
+                name: "greeting".to_string(),
+                filters: Some(filters),
+            })
+        ));
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
     }

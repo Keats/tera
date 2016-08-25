@@ -106,13 +106,42 @@ impl<'a> Renderer<'a> {
         self.context.lookup(key).cloned().ok_or_else(|| FieldNotFound(key.to_string()))
     }
 
+    // Gets an identifier and return its json value
+    // If there is no filter, it's itself, otherwise call the filters in order
+    // an return their result
+    fn eval_ident(&self, node: &Node) -> TeraResult<Json> {
+        match *node {
+            Identifier { ref name, ref filters } => {
+                let mut value = try!(self.lookup_variable(name));
+                if let Some(ref _filters) = *filters {
+                    for filter in _filters {
+                        match *filter {
+                            Filter { ref name, ref args, ref args_ident } => {
+                                let filter_fn = try!(self.tera.get_filter(name));
+                                let mut all_args = args.clone();
+                                for (arg_name, ident_name) in args_ident {
+                                    all_args.insert(arg_name.to_string(), try!(self.lookup_variable(ident_name)));
+                                }
+                                value = try!(filter_fn(value, all_args));
+                            },
+                            _ => unreachable!(),
+                        };
+                    }
+                    return Ok(value);
+                }
+                Ok(value)
+            },
+            _ => unreachable!()
+        }
+    }
+
     fn eval_math(&self, node: &Node) -> TeraResult<f32> {
         match *node {
-            Identifier(ref s) => {
-                let value = try!(self.lookup_variable(s));
+            Identifier { ref name, .. } => {
+                let value = try!(self.eval_ident(node));
                 match value.to_number() {
                     Ok(v) =>  Ok(v),
-                    Err(_) => Err(NotANumber(s.to_string()))
+                    Err(_) => Err(NotANumber(name.to_string()))
                 }
             },
             Int(s) => Ok(s as f32),
@@ -142,8 +171,8 @@ impl<'a> Renderer<'a> {
     fn eval_condition(&self, node: Node) -> TeraResult<bool> {
         match node {
             // Simple truthiness check
-            Identifier(ref n) => {
-                let value = try!(self.lookup_variable(n));
+            Identifier { .. } => {
+                let value = try!(self.eval_ident(&node));
                 Ok(value.is_truthy())
             },
             Logic { lhs, rhs, operator } => {
@@ -177,13 +206,13 @@ impl<'a> Renderer<'a> {
                                 // TODO: rhs MUST be bool like
                                 panic!("Unimplemented");
                             },
-                            Identifier(ref n) => {
-                                let l = try!(self.lookup_variable(n));
+                            Identifier { .. } => {
+                                let l = try!(self.eval_ident(&lhs));
                                 // who knows what rhs is
                                 // Here goes a whole new level of ugliness
                                 match *rhs {
-                                    Identifier(ref i) => {
-                                        let r = try!(self.lookup_variable(i));
+                                    Identifier { .. } => {
+                                        let r = try!(self.eval_ident(&rhs));
                                         let result = match operator.as_str() {
                                             "==" => l == r,
                                             "!=" => l != r,
@@ -194,7 +223,7 @@ impl<'a> Renderer<'a> {
                                     Int(r) => {
                                         let l2: i32 = match from_value(l.clone()) {
                                             Ok(k) => k,
-                                            Err(_) => { return Err(NotANumber(n.to_string())); }
+                                            Err(_) => { return Err(NotANumber(l.to_string())); }
                                         };
                                         let result = match operator.as_str() {
                                             "==" => l2 == r,
@@ -206,7 +235,7 @@ impl<'a> Renderer<'a> {
                                     Float(r) => {
                                         let l2: f32 = match from_value(l.clone()) {
                                             Ok(k) => k,
-                                            Err(_) => { return Err(NotANumber(n.to_string())); }
+                                            Err(_) => { return Err(NotANumber(l.to_string())); }
                                         };
                                         let result = match operator.as_str() {
                                             "==" => (l2 - r).abs() < EPSILON,
@@ -261,11 +290,11 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    // eval all the values in a  {{ }} block
+    // eval all the values in a {{ }} block
     fn render_variable_block(&mut self, node: Node) -> TeraResult<String>  {
         match node {
-            Identifier(ref s) => {
-                let value = try!(self.lookup_variable(s));
+            Identifier { .. } => {
+                let value = try!(self.eval_ident(&node));
                 Ok(value.render())
             },
             Math { .. } => {
@@ -502,5 +531,17 @@ mod tests {
         );
 
         assert_eq!(result.unwrap(), "10truefalse21falsefalse32falsetrue".to_owned());
+    }
+
+    #[test]
+    fn test_render_filter() {
+        let mut context = Context::new();
+        context.add("greeting", &"hello");
+        let result = render_template(
+            "{{ greeting | upper }}",
+            context
+        );
+
+        assert_eq!(result.unwrap(), "HELLO".to_owned());
     }
 }

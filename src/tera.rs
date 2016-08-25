@@ -5,6 +5,7 @@ use std::fs::File;
 use glob::glob;
 
 use template::Template;
+use filters::{FilterFn, string};
 use context::Context;
 use errors::{TeraResult, TeraError};
 use render::Renderer;
@@ -13,6 +14,7 @@ use render::Renderer;
 #[derive(Debug)]
 pub struct Tera {
     pub templates: HashMap<String, Template>,
+    pub filters: HashMap<String, FilterFn>,
 }
 
 impl Tera {
@@ -43,9 +45,12 @@ impl Tera {
             }
         }
 
-        Tera {
-            templates: templates
-        }
+        let mut tera = Tera {
+            templates: templates,
+            filters: HashMap::new(),
+        };
+        tera.register_tera_filters();
+        tera
     }
 
     pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
@@ -63,16 +68,37 @@ impl Tera {
     }
 
     // Can panic!
-    // Only for internal tests, do not use publicly for now
+    // Only for internal tests, do not use publicly
     pub fn add_template(&mut self, name: &str, content: &str) {
         self.templates.insert(name.to_string(), Template::new(name, content));
+    }
+
+    pub fn get_filter(&self, filter_name: &str) -> TeraResult<&FilterFn> {
+        match self.filters.get(filter_name) {
+            Some(fil) => Ok(fil),
+            None => Err(TeraError::FilterNotFound(filter_name.to_string()))
+        }
+    }
+
+    pub fn register_filter(&mut self, name: &str, filter: FilterFn) {
+        self.filters.insert(name.to_string(), filter);
+    }
+
+    fn register_tera_filters(&mut self) {
+        self.register_filter("upper", string::upper);
+        self.register_filter("trim", string::trim);
+        self.register_filter("truncate", string::truncate);
     }
 }
 
 impl Default for Tera {
     fn default() -> Tera {
-        Tera {
-            templates: HashMap::new()
-        }
+        let mut tera = Tera {
+            templates: HashMap::new(),
+            filters: HashMap::new(),
+        };
+
+        tera.register_tera_filters();
+        tera
     }
 }
