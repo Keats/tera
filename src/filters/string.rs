@@ -39,6 +39,13 @@ pub fn truncate(value: Value, args: HashMap<String, Value>) -> TeraResult<Value>
     Ok(to_value(&result))
 }
 
+/// Convert a value to lowercase.
+pub fn lower(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("lower", "value", String, value);
+
+    Ok(to_value(&s.to_lowercase()))
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -90,5 +97,12 @@ mod tests {
         let result = truncate(to_value("日本語"), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("日本…"));
+    }
+
+    #[test]
+    fn test_lower() {
+        let result = lower(to_value("HELLO"), HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("hello"));
     }
 }
