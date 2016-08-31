@@ -46,6 +46,12 @@ pub fn lower(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     Ok(to_value(&s.to_lowercase()))
 }
 
+/// Gets the number of words in a string.
+pub fn wordcount(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("wordcount", "value", String, value);
+
+    Ok(to_value(&s.split_whitespace().count()))
+}
 
 #[cfg(test)]
 mod tests {
@@ -104,5 +110,12 @@ mod tests {
         let result = lower(to_value("HELLO"), HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("hello"));
+    }
+
+    #[test]
+    fn test_wordcount() {
+        let result = wordcount(to_value("Joel is a slug"), HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(&4));
     }
 }
