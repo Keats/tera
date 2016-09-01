@@ -46,7 +46,7 @@ quick_error! {
             description("incorrect filter arg type")
         }
         EmptyArray(filter_name: String) {
-            display("Array provided is empty, but filter {} is trying to access an element", filter_name)
+            display("Array provided is empty, but filter `{}` is trying to access an element", filter_name)
             description("Tried retriving an element in an empty array.")
         }
     }
