@@ -70,6 +70,26 @@ pub fn replace(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> 
     Ok(to_value(&result))
 }
 
+/// First letter of the string is uppercase rest is lowercase
+pub fn capitalize(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("capitalize", "value", String, value);
+    let result = s.char_indices().fold(String::new(), |accu, x | {
+        if x.0 == 0 {
+            let uppercase_char = x.1.to_uppercase().collect::<String>();
+            let mut result = accu.clone();
+            result.push_str(&uppercase_char);
+            result
+        }else{
+            let lowercase_char = x.1.to_lowercase().collect::<String>();
+            let mut result = accu.clone();
+            result.push_str(&lowercase_char);
+            result
+        }
+    });
+    
+    Ok(to_value(&result))
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -147,22 +167,16 @@ mod tests {
     }
 
     #[test]
-    fn test_replace_not_found() {
-        let mut args = HashMap::new();
-        args.insert("old".to_string(), to_value(&"m"));
-        args.insert("new".to_string(), to_value(&"d'oh, "));
-        let result = replace(to_value(&"aaaaargh"), args);
+    fn test_capitalize() {
+        let result = capitalize(to_value("CAPITAL"), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("aaaaargh"));
+        assert_eq!(result.unwrap(), to_value("Capital"));
     }
 
     #[test]
-    fn test_replace_interval() {
-        let mut args = HashMap::new();
-        args.insert("old".to_string(), to_value(&"abc"));
-        args.insert("new".to_string(), to_value(&"123"));
-        let result = replace(to_value(&"abcXXXXabcYYYYabc"), args);
+    fn test_capitalize_all_lowercase() {
+        let result = capitalize(to_value("capital"), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("123XXXX123YYYY123"));
+        assert_eq!(result.unwrap(), to_value("Capital"));
     }
 }
