@@ -5,7 +5,7 @@ use std::fs::File;
 use glob::glob;
 
 use template::Template;
-use filters::{FilterFn, string};
+use filters::{FilterFn, string, array};
 use context::Context;
 use errors::{TeraResult, TeraError};
 use render::Renderer;
@@ -63,7 +63,7 @@ impl Tera {
     pub fn get_template(&self, template_name: &str) -> TeraResult<&Template> {
         match self.templates.get(template_name) {
             Some(tmpl) => Ok(tmpl),
-            None => Err(TeraError::TemplateNotFound(template_name.to_string()))
+            None => Err(TeraError::TemplateNotFound(template_name.to_string())),
         }
     }
 
@@ -76,7 +76,7 @@ impl Tera {
     pub fn get_filter(&self, filter_name: &str) -> TeraResult<&FilterFn> {
         match self.filters.get(filter_name) {
             Some(fil) => Ok(fil),
-            None => Err(TeraError::FilterNotFound(filter_name.to_string()))
+            None => Err(TeraError::FilterNotFound(filter_name.to_string())),
         }
     }
 
@@ -86,11 +86,14 @@ impl Tera {
 
     fn register_tera_filters(&mut self) {
         self.register_filter("upper", string::upper);
+        self.register_filter("lower", string::lower);
         self.register_filter("trim", string::trim);
         self.register_filter("truncate", string::truncate);
-        self.register_filter("lower", string::lower);
         self.register_filter("wordcount", string::wordcount);
         self.register_filter("replace", string::replace);
+        self.register_filter("first", array::first);
+        self.register_filter("last", array::last);
+        self.register_filter("join", array::join);
     }
 }
 
