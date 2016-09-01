@@ -51,43 +51,34 @@ pub fn wordcount(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     Ok(to_value(&s.split_whitespace().count()))
 }
 
-/// Replaces given number of substrings with  new ones. If count is not given replaces all
-/// occurrences
+/// Replaces given `from` substring with `to` string.
 pub fn replace(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("replace", "value", String, value);
 
-    let old_chunk = match args.get("old") {
-        Some(old) => try_get_value!("replace", "old", String, old.clone()),
-        None => String::new() 
-    };
-    
-    let new_chunk = match args.get("new") {
-        Some(new) => try_get_value!("replace", "new", String, new.clone()),
+    let from = match args.get("from") {
+        Some(val) => try_get_value!("replace", "from", String, val.clone()),
         None => String::new()
     };
 
-    let result = s.replace(&old_chunk, &new_chunk);
-    Ok(to_value(&result))
+    let to = match args.get("to") {
+        Some(val) => try_get_value!("replace", "to", String, val.clone()),
+        None => String::new()
+    };
+
+    Ok(to_value(&s.replace(&from, &to)))
 }
 
 /// First letter of the string is uppercase rest is lowercase
 pub fn capitalize(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("capitalize", "value", String, value);
-    let result = s.char_indices().fold(String::new(), |accu, x | {
-        if x.0 == 0 {
-            let uppercase_char = x.1.to_uppercase().collect::<String>();
-            let mut result = accu.clone();
-            result.push_str(&uppercase_char);
-            result
-        }else{
-            let lowercase_char = x.1.to_lowercase().collect::<String>();
-            let mut result = accu.clone();
-            result.push_str(&lowercase_char);
-            result
+    let mut chars = s.chars();
+    match chars.next() {
+        None => Ok(to_value("")),
+        Some(f) => {
+            let res = f.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase();
+            Ok(to_value(&res))
         }
-    });
-    
-    Ok(to_value(&result))
+    }
 }
 
 #[cfg(test)]
@@ -159,8 +150,8 @@ mod tests {
     #[test]
     fn test_replace() {
         let mut args = HashMap::new();
-        args.insert("old".to_string(), to_value(&"Hello"));
-        args.insert("new".to_string(), to_value(&"Goodbye"));
+        args.insert("from".to_string(), to_value(&"Hello"));
+        args.insert("to".to_string(), to_value(&"Goodbye"));
         let result = replace(to_value(&"Hello world!"), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("Goodbye world!"));
@@ -168,15 +159,15 @@ mod tests {
 
     #[test]
     fn test_capitalize() {
-        let result = capitalize(to_value("CAPITAL"), HashMap::new());
+        let result = capitalize(to_value("CAPITAL IZE"), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("Capital"));
+        assert_eq!(result.unwrap(), to_value("Capital ize"));
     }
 
     #[test]
     fn test_capitalize_all_lowercase() {
-        let result = capitalize(to_value("capital"), HashMap::new());
+        let result = capitalize(to_value("capital ize"), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("Capital"));
+        assert_eq!(result.unwrap(), to_value("Capital ize"));
     }
 }
