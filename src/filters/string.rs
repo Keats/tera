@@ -56,7 +56,7 @@ pub fn wordcount(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
 /// Replaces given number of substrings with  new ones. If count is not given replaces all
 /// occurrences
 pub fn replace(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
-    let mut s = try_get_value!("replace", "value", String, value);
+    let s = try_get_value!("replace", "value", String, value);
 
     let count = match args.get("count") {
         Some(c) => try_get_value!("replace", "count", i32, c.clone()),
@@ -73,19 +73,20 @@ pub fn replace(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> 
         None => String::new()
     };
 
+    let indices : Vec<_> =  s.match_indices(&old_chunk).collect();
+
     // replace all 
-    if count == -1 {
-        s = s.replace(&old_chunk, &new_chunk);
-        Ok(to_value(&s))
+    if count == -1 || count >= indices.len() as i32 {
+        let result = s.replace(&old_chunk, &new_chunk);
+        Ok(to_value(&result))
     } 
     // replace with count
     else {
-        let indices : Vec<_> =  s.match_indices(&old_chunk).collect();
         let mut index_counter : usize = 0;
         let replaced = s.char_indices().fold(String::new(), |acc, x | {
             if (index_counter == 0 && x.0 < indices[index_counter].0) || 
                (index_counter > 0 && x.0 < indices[index_counter].0 && x.0 >= indices[index_counter-1].0 + old_chunk.len()) || 
-                index_counter >= count as usize {
+               (index_counter >= count as usize && x.0 >= indices[index_counter-1].0 + old_chunk.len()){
                 let mut result = acc.clone();
                 result.push(x.1);
                 result
@@ -181,6 +182,17 @@ mod tests {
     }
 
     #[test]
+    fn test_replace_with_larger_count() {
+        let mut args = HashMap::new();
+        args.insert("old".to_string(), to_value(&"a"));
+        args.insert("new".to_string(), to_value(&"d'oh, "));
+        args.insert("count".to_string(), to_value(&7));
+        let result = replace(to_value(&"aaaaargh"), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("d'oh, d'oh, d'oh, d'oh, d'oh, rgh"));
+    }
+
+    #[test]
     fn test_replace_with_count() {
         let mut args = HashMap::new();
         args.insert("old".to_string(), to_value(&"a"));
@@ -189,5 +201,28 @@ mod tests {
         let result = replace(to_value(&"aaaaargh"), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("d'oh, d'oh, aaargh"));
+    }
+
+    #[test]
+    fn test_replace_not_found() {
+        let mut args = HashMap::new();
+        args.insert("old".to_string(), to_value(&"m"));
+        args.insert("new".to_string(), to_value(&"d'oh, "));
+        args.insert("count".to_string(), to_value(&2));
+        let result = replace(to_value(&"aaaaargh"), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("aaaaargh"));
+    }
+
+    #[test]
+    fn test_replace_interval() {
+        let mut args = HashMap::new();
+        args.insert("old".to_string(), to_value(&"abc"));
+        args.insert("new".to_string(), to_value(&"123"));
+        args.insert("count".to_string(), to_value(&2));
+        let result = replace(to_value(&"abcXXXXabcYYYYabc"), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("123XXXX123YYYYabc"));
+    
     }
 }
