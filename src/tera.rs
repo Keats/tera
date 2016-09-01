@@ -90,6 +90,7 @@ impl Tera {
         self.register_filter("truncate", string::truncate);
         self.register_filter("lower", string::lower);
         self.register_filter("wordcount", string::wordcount);
+        self.register_filter("replace", string::replace);
     }
 }
 
