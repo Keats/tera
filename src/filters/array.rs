@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use serde_json::value::{Value, to_value};
 use context::JsonRender;
 use errors::TeraResult;
-use errors::TeraError;
 
 pub fn first(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let arr = try_get_value!("first", "value", Vec<Value>, value);
@@ -12,7 +11,7 @@ pub fn first(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     if let Some(val) = arr.first() {
         Ok(val.clone())
     } else {
-        Err(TeraError::EmptyArray("first".to_string()))
+        Ok(to_value(&""))
     }
 }
 
@@ -22,35 +21,28 @@ pub fn last(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     if let Some(val) = arr.last() {
         Ok(val.clone())
     } else {
-        Err(TeraError::EmptyArray("last".to_string()))
+        Ok(to_value(&""))
     }
 }
 
 pub fn join(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
     let arr = try_get_value!("join","value",Vec<Value>, value);
-    let separator = match args.get("d") {
+    let sep = match args.get("d") {
         Some(val) => try_get_value!("truncate", "d", String, val.clone()),
         None => "".to_string(),
     };
-    let mut reduction = arr.iter()
-        .fold("".to_string(),
-              |acc, val| acc + &*separator + &*val.render());
-    if reduction.len() > 0 {
-        // if we had any elements, trim the separator off the front.
-        reduction = reduction.split_at(separator.len()).1.to_string();
-    }
 
-    Ok(to_value(&reduction))
+    // Convert all the values to strings before we join them together.
+    let rendered = arr.iter().map(|val| val.render()).collect::<Vec<_>>();
+    let result = rendered[..].join(&*sep);
+
+    Ok(to_value(&result))
 }
 
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-
     use serde_json::value::{Value, to_value};
-
-    use errors::TeraError::*;
-
     use super::*;
 
     #[test]
@@ -65,8 +57,8 @@ mod tests {
         let v: Vec<Value> = Vec::new();
 
         let result = first(to_value(&v), HashMap::new());
-        assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), EmptyArray("first".to_string()));
+        assert!(result.is_ok());
+        assert_eq!(result.ok().unwrap(), to_value(&""));
     }
 
     #[test]
@@ -81,8 +73,8 @@ mod tests {
         let v: Vec<Value> = Vec::new();
 
         let result = last(to_value(&v), HashMap::new());
-        assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), EmptyArray("last".to_string()));
+        assert!(result.is_ok());
+        assert_eq!(result.ok().unwrap(), to_value(&""));
     }
 
     #[test]
