@@ -13,6 +13,12 @@ pub fn upper(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     Ok(to_value(&s.to_uppercase()))
 }
 
+/// Convert a value to lowercase.
+pub fn lower(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("lower", "value", String, value);
+
+    Ok(to_value(&s.to_lowercase()))
+}
 
 /// Strip leading and trailing whitespace.
 pub fn trim(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
@@ -34,16 +40,8 @@ pub fn truncate(value: Value, args: HashMap<String, Value>) -> TeraResult<Value>
         return Ok(to_value(&s));
     }
 
-
-    let result = s[.. s.char_indices().nth(length).unwrap().0].to_string() + "…";
+    let result = s[..s.char_indices().nth(length).unwrap().0].to_string() + "…";
     Ok(to_value(&result))
-}
-
-/// Convert a value to lowercase.
-pub fn lower(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
-    let s = try_get_value!("lower", "value", String, value);
-
-    Ok(to_value(&s.to_lowercase()))
 }
 
 /// Gets the number of words in a string.
