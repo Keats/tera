@@ -28,7 +28,7 @@ quick_error! {
             description("filter not found")
         }
 
-// Runtime errors
+        // Runtime errors
         NotANumber(name: String) {
             display("Field `{}` was used in a math operation but is not a number", name)
             description("field is not a number")
