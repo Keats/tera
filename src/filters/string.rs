@@ -159,15 +159,14 @@ mod tests {
 
     #[test]
     fn test_capitalize() {
-        let result = capitalize(to_value("CAPITAL IZE"), HashMap::new());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("Capital ize"));
-    }
-
-    #[test]
-    fn test_capitalize_all_lowercase() {
-        let result = capitalize(to_value("capital ize"), HashMap::new());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("Capital ize"));
+        let tests = vec![
+            ("CAPITAL IZE", "Capital ize"),
+            ("capital ize", "Capital ize"),
+        ];
+        for (input, expected) in tests {
+            let result = capitalize(to_value(input), HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected));
+        }
     }
 }
