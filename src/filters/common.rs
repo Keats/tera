@@ -1,8 +1,10 @@
-/// Filters operating on string
+/// Filters operating on multiple types
 use std::collections::HashMap;
 
 use serde_json::value::{Value, to_value};
 use errors::{TeraError, TeraResult};
+
+use std::iter::FromIterator;
 
 // Returns the number of items in an array or the number of characters in a string.
 // Returns 0 if not an array or string.
@@ -23,10 +25,7 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
             rev.reverse();
             Ok(to_value(&rev))
         }
-        Value::String(s) => {
-            use std::iter::FromIterator;
-            Ok(to_value(&String::from_iter(s.chars().rev())))
-        }
+        Value::String(s) => Ok(to_value(&String::from_iter(s.chars().rev()))),
         _ => {
             Err(TeraError::FilterIncorrectArgType("reverse".to_string(),
                                                   "value".to_string(),
