@@ -41,7 +41,6 @@ pub fn join(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
 
     // Convert all the values to strings before we join them together.
     let rendered = arr.iter().map(|val| val.render()).collect::<Vec<_>>();
-
     Ok(to_value(&rendered.join(&sep)))
 }
 
