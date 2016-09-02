@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde_json::value::{Value, to_value};
 
-use errors::TeraResult;
+use errors::{TeraResult, TeraError};
 
 
 /// Convert a value to uppercase.
@@ -13,6 +13,12 @@ pub fn upper(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     Ok(to_value(&s.to_uppercase()))
 }
 
+/// Convert a value to lowercase.
+pub fn lower(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("lower", "value", String, value);
+
+    Ok(to_value(&s.to_lowercase()))
+}
 
 /// Strip leading and trailing whitespace.
 pub fn trim(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
@@ -34,16 +40,8 @@ pub fn truncate(value: Value, args: HashMap<String, Value>) -> TeraResult<Value>
         return Ok(to_value(&s));
     }
 
-
-    let result = s[.. s.char_indices().nth(length).unwrap().0].to_string() + "…";
+    let result = s[..s.char_indices().nth(length).unwrap().0].to_string() + "…";
     Ok(to_value(&result))
-}
-
-/// Convert a value to lowercase.
-pub fn lower(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
-    let s = try_get_value!("lower", "value", String, value);
-
-    Ok(to_value(&s.to_lowercase()))
 }
 
 /// Gets the number of words in a string.
@@ -51,6 +49,40 @@ pub fn wordcount(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("wordcount", "value", String, value);
 
     Ok(to_value(&s.split_whitespace().count()))
+}
+
+/// Replaces given `from` substring with `to` string.
+pub fn replace(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("replace", "value", String, value);
+
+    let from = match args.get("from") {
+        Some(val) => try_get_value!("replace", "from", String, val.clone()),
+        None => {
+            return Err(TeraError::FilterMissingArg("replace".to_string(), "from".to_string()));
+        }
+    };
+
+    let to = match args.get("to") {
+        Some(val) => try_get_value!("replace", "to", String, val.clone()),
+        None => {
+            return Err(TeraError::FilterMissingArg("replace".to_string(), "to".to_string()));
+        }
+    };
+
+    Ok(to_value(&s.replace(&from, &to)))
+}
+
+/// First letter of the string is uppercase rest is lowercase
+pub fn capitalize(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("capitalize", "value", String, value);
+    let mut chars = s.chars();
+    match chars.next() {
+        None => Ok(to_value("")),
+        Some(f) => {
+            let res = f.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase();
+            Ok(to_value(&res))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -117,5 +149,40 @@ mod tests {
         let result = wordcount(to_value("Joel is a slug"), HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&4));
+    }
+
+    #[test]
+    fn test_replace() {
+        let mut args = HashMap::new();
+        args.insert("from".to_string(), to_value(&"Hello"));
+        args.insert("to".to_string(), to_value(&"Goodbye"));
+        let result = replace(to_value(&"Hello world!"), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("Goodbye world!"));
+    }
+
+    #[test]
+    fn test_replace_missing_arg() {
+        let mut args = HashMap::new();
+        args.insert("from".to_string(), to_value(&"Hello"));
+        let result = replace(to_value(&"Hello world!"), args);
+        assert!(result.is_err());
+        assert_eq!(
+            result.err().unwrap(),
+            FilterMissingArg("replace".to_string(), "to".to_string())
+        );
+    }
+
+    #[test]
+    fn test_capitalize() {
+        let tests = vec![
+            ("CAPITAL IZE", "Capital ize"),
+            ("capital ize", "Capital ize"),
+        ];
+        for (input, expected) in tests {
+            let result = capitalize(to_value(input), HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected));
+        }
     }
 }

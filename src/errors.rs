@@ -28,7 +28,7 @@ quick_error! {
             description("filter not found")
         }
 
-// Runtime errors
+        // Runtime errors
         NotANumber(name: String) {
             display("Field `{}` was used in a math operation but is not a number", name)
             description("field is not a number")
@@ -44,6 +44,10 @@ quick_error! {
         FilterIncorrectArgType(filter_name: String, arg_name: String, arg_value: Value, expected_type: String) {
             display("Filter `{}` received an incorrect type for arg `{}`: got {:?} but expected a {}", filter_name, arg_name, arg_value, expected_type)
             description("incorrect filter arg type")
+        }
+        FilterMissingArg(filter_name: String, arg_name: String) {
+            display("Filter `{}` expected an arg called `{}`", filter_name, arg_name)
+            description("missing arg in filter call")
         }
     }
 }

@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
-use serde_json::value::{Value as Json, to_value};
+use serde_json::value::{Value, to_value};
 
-pub type TemplateContext = BTreeMap<String, Json>;
+pub type TemplateContext = BTreeMap<String, Value>;
 
 #[derive(Debug, Clone)]
 pub struct Context {
-    data: BTreeMap<String, Json>,
+    data: BTreeMap<String, Value>,
 }
 
 impl Context {
@@ -21,7 +21,7 @@ impl Context {
         self.data.insert(key.to_owned(), to_value(d));
     }
 
-    pub fn as_json(&self) -> Json {
+    pub fn as_json(&self) -> Value {
         to_value(&self.data)
     }
 }
@@ -32,21 +32,21 @@ impl Default for Context {
     }
 }
 
-pub trait JsonRender {
+pub trait ValueRender {
     fn render(&self) -> String;
 }
 // Needed to render variables
 // From handlebars-rust
-impl JsonRender for Json {
+impl ValueRender for Value {
     fn render(&self) -> String {
         match *self {
-            Json::String(ref s) => s.clone(),
-            Json::I64(i) => i.to_string(),
-            Json::U64(i) => i.to_string(),
-            Json::F64(f) => f.to_string(),
-            Json::Bool(i) => i.to_string(),
-            Json::Null => "".to_owned(),
-            Json::Array(ref a) => {
+            Value::String(ref s) => s.clone(),
+            Value::I64(i) => i.to_string(),
+            Value::U64(i) => i.to_string(),
+            Value::F64(f) => f.to_string(),
+            Value::Bool(i) => i.to_string(),
+            Value::Null => "".to_owned(),
+            Value::Array(ref a) => {
                 let mut buf = String::new();
                 buf.push('[');
                 for i in a.iter() {
@@ -56,44 +56,44 @@ impl JsonRender for Json {
                 buf.push(']');
                 buf
             },
-            Json::Object(_) => "[object]".to_owned()
+            Value::Object(_) => "[object]".to_owned()
         }
     }
 }
 
 
-pub trait JsonNumber {
+pub trait ValueNumber {
     fn to_number(&self) -> Result<f32, ()>;
 }
 // Needed for all the maths
 // Convert everything to f32, seems like a terrible idea
-impl JsonNumber for Json {
+impl ValueNumber for Value {
     fn to_number(&self) -> Result<f32, ()> {
         match *self {
-            Json::I64(i) => Ok(i as f32),
-            Json::U64(i) => Ok(i as f32),
-            Json::F64(f) => Ok(f as f32),
+            Value::I64(i) => Ok(i as f32),
+            Value::U64(i) => Ok(i as f32),
+            Value::F64(f) => Ok(f as f32),
             _ => Err(())
         }
     }
 }
 
 // From handlebars-rust
-pub trait JsonTruthy {
+pub trait ValueTruthy {
     fn is_truthy(&self) -> bool;
 }
 
-impl JsonTruthy for Json {
+impl ValueTruthy for Value {
     fn is_truthy(&self) -> bool {
         match *self {
-            Json::I64(i) => i != 0,
-            Json::U64(i) => i != 0,
-            Json::F64(i) => i != 0.0 || !i.is_nan(),
-            Json::Bool(ref i) => *i,
-            Json::Null => false,
-            Json::String(ref i) => !i.is_empty(),
-            Json::Array(ref i) => !i.is_empty(),
-            Json::Object(ref i) => !i.is_empty()
+            Value::I64(i) => i != 0,
+            Value::U64(i) => i != 0,
+            Value::F64(i) => i != 0.0 || !i.is_nan(),
+            Value::Bool(ref i) => *i,
+            Value::Null => false,
+            Value::String(ref i) => !i.is_empty(),
+            Value::Array(ref i) => !i.is_empty(),
+            Value::Object(ref i) => !i.is_empty()
         }
     }
 }
