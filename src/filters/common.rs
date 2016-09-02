@@ -4,12 +4,12 @@ use std::collections::HashMap;
 use serde_json::value::{Value, to_value};
 use errors::{TeraError, TeraResult};
 
-// Returns the number of elements in an array or the number of
-// characters in a string.
+// Returns the number of items in an array or the number of characters in a string.
+// Returns 0 if not an array or string.
 pub fn length(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     match value {
         Value::Array(arr) => Ok(to_value(&arr.len())),
-        Value::String(s) => Ok(to_value(&s.len())),
+        Value::String(s) => Ok(to_value(&s.chars().count())),
         _ => Ok(to_value(&0)),
     }
 }
@@ -25,8 +25,7 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
         }
         Value::String(s) => {
             use std::iter::FromIterator;
-            let rev = String::from_iter(s.chars().rev());
-            Ok(to_value(&rev))
+            Ok(to_value(&String::from_iter(s.chars().rev())))
         }
         _ => {
             Err(TeraError::FilterIncorrectArgType("reverse".to_string(),
@@ -56,6 +55,13 @@ mod tests {
         let result = length(to_value(&"Hello World"), HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&11));
+    }
+
+    #[test]
+    fn test_length_str_nonascii() {
+        let result = length(to_value(&"日本語"), HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(&3));
     }
 
     #[test]
