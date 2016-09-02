@@ -5,7 +5,7 @@ use std::fs::File;
 use glob::glob;
 
 use template::Template;
-use filters::{FilterFn, string, array};
+use filters::{FilterFn, string, array, common};
 use context::Context;
 use errors::{TeraResult, TeraError};
 use render::Renderer;
@@ -93,6 +93,8 @@ impl Tera {
         self.register_filter("first", array::first);
         self.register_filter("last", array::last);
         self.register_filter("join", array::join);
+        self.register_filter("length", common::length);
+        self.register_filter("reverse", common::reverse);
     }
 }
 
