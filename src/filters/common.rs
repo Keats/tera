@@ -1,10 +1,9 @@
 /// Filters operating on multiple types
 use std::collections::HashMap;
+use std::iter::FromIterator;
 
 use serde_json::value::{Value, to_value};
 use errors::{TeraError, TeraResult};
-
-use std::iter::FromIterator;
 
 // Returns the number of items in an array or the number of characters in a string.
 // Returns 0 if not an array or string.
