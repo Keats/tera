@@ -355,6 +355,10 @@ impl<'a> Renderer<'a> {
                 // Safe unwrap
                 self.for_loops.last_mut().unwrap().increment();
                 if i == length - 1 {
+                    // Don't forget to pop the for_loop is we are done
+                    // otherwise it would just replay the last loop
+                    // see https://github.com/Keats/tera/issues/51
+                    self.for_loops.pop();
                     break;
                 }
                 i += 1;
@@ -531,6 +535,18 @@ mod tests {
         );
 
         assert_eq!(result.unwrap(), "10truefalse21falsefalse32falsetrue".to_owned());
+    }
+
+    #[test]
+    fn test_render_nested_loop() {
+        let mut context = Context::new();
+        context.add("vectors", &vec![vec![0, 3, 6], vec![1, 4, 7]]);
+        let result = render_template(
+            "{% for vector in vectors %}{% for j in vector %}{{ j }}{% endfor %}{% endfor %}",
+            context
+        );
+
+        assert_eq!(result.unwrap(), "036147".to_owned());
     }
 
     #[test]
