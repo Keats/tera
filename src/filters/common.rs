@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use serde_json::value::{Value, to_value};
 use errors::{TeraError, TeraResult};
 
+// Returns the number of elements in an array or the number of
+// characters in a string.
 pub fn length(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     match value {
         Value::Array(arr) => Ok(to_value(&arr.len())),
@@ -12,6 +14,7 @@ pub fn length(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     }
 }
 
+// Reverses the elements of an array or the characters in a string.
 pub fn reverse(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     match value {
         Value::Array(arr) => {
