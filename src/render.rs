@@ -1,9 +1,9 @@
 use std::f32::EPSILON;
 use std::collections::LinkedList;
 
-use serde_json::value::{Value as Json, from_value, to_value};
+use serde_json::value::{Value, from_value, to_value};
 
-use context::{Context, JsonRender, JsonNumber, JsonTruthy};
+use context::{Context, ValueRender, ValueNumber, ValueTruthy};
 use template::Template;
 use errors::TeraResult;
 use errors::TeraError::*;
@@ -19,11 +19,11 @@ use tera::Tera;
 struct ForLoop {
     variable_name: String,
     current: usize,
-    values: Vec<Json>
+    values: Vec<Value>
 }
 
 impl ForLoop {
-    pub fn new(local: String, values: Vec<Json>) -> ForLoop {
+    pub fn new(local: String, values: Vec<Value>) -> ForLoop {
         ForLoop {
             variable_name: local,
             current: 0,
@@ -35,7 +35,7 @@ impl ForLoop {
         self.current += 1;
     }
 
-    pub fn get(&self) -> Option<&Json> {
+    pub fn get(&self) -> Option<&Value> {
         self.values.get(self.current)
     }
 
@@ -51,7 +51,7 @@ impl ForLoop {
 #[derive(Debug)]
 pub struct Renderer<'a> {
     template: &'a Template,
-    context: Json,
+    context: Value,
     tera: &'a Tera,
     for_loops: Vec<ForLoop>,
 }
@@ -68,7 +68,7 @@ impl<'a> Renderer<'a> {
 
     // Lookup a variable name from the context and takes into
     // account for loops variables
-    fn lookup_variable(&self, key: &str) -> TeraResult<Json> {
+    fn lookup_variable(&self, key: &str) -> TeraResult<Value> {
         // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
             return self.context.lookup(key).cloned()
@@ -109,7 +109,7 @@ impl<'a> Renderer<'a> {
     // Gets an identifier and return its json value
     // If there is no filter, it's itself, otherwise call the filters in order
     // an return their result
-    fn eval_ident(&self, node: &Node) -> TeraResult<Json> {
+    fn eval_ident(&self, node: &Node) -> TeraResult<Value> {
         match *node {
             Identifier { ref name, ref filters } => {
                 let mut value = try!(self.lookup_variable(name));

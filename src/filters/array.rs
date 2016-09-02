@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use serde_json::value::{Value, to_value};
-use context::JsonRender;
+use context::ValueRender;
 use errors::TeraResult;
 
 /// Returns the first value of an array

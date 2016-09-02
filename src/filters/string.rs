@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde_json::value::{Value, to_value};
 
-use errors::TeraResult;
+use errors::{TeraResult, TeraError};
 
 
 /// Convert a value to uppercase.
@@ -57,12 +57,16 @@ pub fn replace(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> 
 
     let from = match args.get("from") {
         Some(val) => try_get_value!("replace", "from", String, val.clone()),
-        None => String::new()
+        None => {
+            return Err(TeraError::FilterMissingArg("replace".to_string(), "from".to_string()));
+        }
     };
 
     let to = match args.get("to") {
         Some(val) => try_get_value!("replace", "to", String, val.clone()),
-        None => String::new()
+        None => {
+            return Err(TeraError::FilterMissingArg("replace".to_string(), "to".to_string()));
+        }
     };
 
     Ok(to_value(&s.replace(&from, &to)))
@@ -158,16 +162,27 @@ mod tests {
     }
 
     #[test]
-    fn test_capitalize() {
-        let result = capitalize(to_value("CAPITAL IZE"), HashMap::new());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("Capital ize"));
+    fn test_replace_missing_arg() {
+        let mut args = HashMap::new();
+        args.insert("from".to_string(), to_value(&"Hello"));
+        let result = replace(to_value(&"Hello world!"), args);
+        assert!(result.is_err());
+        assert_eq!(
+            result.err().unwrap(),
+            FilterMissingArg("replace".to_string(), "to".to_string())
+        );
     }
 
     #[test]
-    fn test_capitalize_all_lowercase() {
-        let result = capitalize(to_value("capital ize"), HashMap::new());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("Capital ize"));
+    fn test_capitalize() {
+        let tests = vec![
+            ("CAPITAL IZE", "Capital ize"),
+            ("capital ize", "Capital ize"),
+        ];
+        for (input, expected) in tests {
+            let result = capitalize(to_value(input), HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected));
+        }
     }
 }
