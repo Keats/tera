@@ -88,8 +88,9 @@ pub fn capitalize(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> 
 /// Escapes quote chracters
 pub fn addslashes(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("addslashes", "value", String, value);
-    let result = s.replace("\"", "\\\"");
+    let result = s.replace("\\","\\\\").replace("\"", "\\\"");
     Ok(to_value(&result.replace("\'", "\\\'")))
+
 }
 
 #[cfg(test)]
@@ -198,6 +199,9 @@ mod tests {
         let tests = vec![
             (r#"I'm so happy"#, r#"I\'m so happy"#),
             (r#"Let "me" help you"#, r#"Let \"me\" help you"#),
+            (r#"<a>'"#, r#"<a>\'"#),
+            (r#""double quotes" and \'single quotes\'"#, r#"\"double quotes\" and \\\'single quotes\\\'"#),
+            (r#"\ : backslashes too"#, r#"\\ : backslashes too"#)
         ];
         for (input, expected) in tests {
             let result = addslashes(to_value(input), HashMap::new());
