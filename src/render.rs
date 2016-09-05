@@ -364,6 +364,8 @@ impl<'a> Renderer<'a> {
                 i += 1;
             }
             output = output.trim_right().to_string();
+        } else {
+            self.for_loops.pop();
         }
 
         Ok(output.trim_right().to_string())
@@ -538,9 +540,21 @@ mod tests {
     }
 
     #[test]
-    fn test_render_nested_loop() {
+    fn test_render_nested_loop_simple() {
         let mut context = Context::new();
         context.add("vectors", &vec![vec![0, 3, 6], vec![1, 4, 7]]);
+        let result = render_template(
+            "{% for vector in vectors %}{% for j in vector %}{{ j }}{% endfor %}{% endfor %}",
+            context
+        );
+
+        assert_eq!(result.unwrap(), "036147".to_owned());
+    }
+
+    #[test]
+    fn test_render_nested_loop_with_empty_vec() {
+        let mut context = Context::new();
+        context.add("vectors", &vec![vec![0, 3, 6], vec![], vec![1, 4, 7]]);
         let result = render_template(
             "{% for vector in vectors %}{% for j in vector %}{{ j }}{% endfor %}{% endfor %}",
             context
