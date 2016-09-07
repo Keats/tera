@@ -93,6 +93,20 @@ pub fn addslashes(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> 
 
 }
 
+/// Capitalizes each word in the string
+pub fn title(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("title", "value", String, value);
+    let words = s.split_whitespace().collect::<Vec<_>>();
+    let result = words.iter().map(|&word|{
+                    let mut characters = word.chars();
+                    match characters.next() {
+                        None => "".to_string(),
+                        Some(f) => f.to_uppercase().collect::<String>() + &characters.as_str().to_lowercase(),
+                    }   
+                }).collect::<Vec<_>>().join(" ");
+    Ok(to_value(&result))
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -205,6 +219,19 @@ mod tests {
         ];
         for (input, expected) in tests {
             let result = addslashes(to_value(input), HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected));
+        }
+    }
+
+    #[test]
+    fn test_title() {
+        let tests = vec![
+            ("foo bar", "Foo Bar"),
+            ("foo\tbar", "Foo Bar"),
+        ];
+        for (input, expected) in tests {
+            let result = title(to_value(input), HashMap::new());
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected));
         }
