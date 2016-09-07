@@ -186,3 +186,56 @@ Again, straight from jinja2 docs:
 ```
 
 When trying to render that template, Tera will see that it depends on a parent template and will render it first, filling the blocks as it encounters them in the base template.
+
+
+### Filters
+Variables can be modified by filters. 
+Filters are separated from the variable by a pipe symbol (`|`) and may have named arguments in parentheses. Multiple filters can be chained: the output of one filter is applied to the next.
+
+For example, `{{ name | lower | replace(from="doctor", to="Dr.") }}` will take a variable called `name` and make it lowercase and then replace instances of `doctor` by `Dr.`. It's equivalent to `replace(lower(name), from="doctor", to="Dr.")` as a function.
+
+Note that calling filters on a incorrect type like trying to capitalize an array will result in a error.
+
+#### lower
+Lowercase a string
+
+#### wordcount
+Returns number of words in a string
+
+#### capitalize
+Returns the string with all its character lowercased apart from the first char which is uppercased.
+
+#### replace
+Takes 2 mandatory string named arguments: `from` and `to`. It will return a string with all instances of 
+the `from` string with the `to` string.
+
+Example: `{{ name | replace(from="Robert", to="Bob")}}`
+
+#### addslashes
+Adds slashes before quotes.
+
+Example: `{{ value | addslashes }}` 
+
+If value is "I'm using Tera", the output will be "I\'m using Tera"
+
+#### first
+Returns the first element of an array.
+If the array is empty, returns empty string;
+
+#### last
+Returns the last element of an array.
+If the array is empty, returns empty string;
+
+#### join
+Joins an array with a string.
+
+Example: `{{ value|join:" // " }}`
+
+If value is the array ['a', 'b', 'c'], the output will be the string "a // b // c".
+
+#### length
+Returns the length of an array or a string, 0 if the value is not an array.
+// TODO: return an error instead to be consistent?
+
+#### reverse
+Returns a reversed string or array

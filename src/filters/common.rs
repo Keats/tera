@@ -26,10 +26,9 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
         }
         Value::String(s) => Ok(to_value(&String::from_iter(s.chars().rev()))),
         _ => {
-            Err(TeraError::FilterIncorrectArgType("reverse".to_string(),
-                                                  "value".to_string(),
-                                                  value,
-                                                  "Array|String".to_string()))
+            Err(TeraError::FilterIncorrectArgType(
+                "reverse".to_string(), "value".to_string(), value, "Array|String".to_string()
+            ))
         }
     }
 }
