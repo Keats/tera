@@ -88,9 +88,7 @@ pub fn capitalize(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> 
 /// Escapes quote chracters
 pub fn addslashes(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("addslashes", "value", String, value);
-    let result = s.replace("\\","\\\\").replace("\"", "\\\"");
-    Ok(to_value(&result.replace("\'", "\\\'")))
-
+    Ok(to_value(&s.replace("\\","\\\\").replace("\"", "\\\"").replace("\'", "\\\'")))
 }
 
 #[cfg(test)]
