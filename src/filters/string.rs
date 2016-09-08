@@ -99,37 +99,53 @@ pub fn title(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("title", "value", String, value);
     let split_pattern = Regex::new(r"([-\s\(\{\[<]+)").unwrap();
     let words = split_pattern.split(&s).collect::<Vec<&str>>();
-    let capitalized = words.iter().map(|&word|{
-                    let mut characters = word.chars();
-                    match characters.next() {
-                        None => "".to_string(),
-                        Some(f) => f.to_uppercase().collect::<String>() + &characters.as_str().to_lowercase(),
-                    }   
-                }).collect::<Vec<_>>();
+    let capitalized = words.iter()
+                           .map(|&word| {
+                               let mut characters = word.chars();
+                               match characters.next() {
+                                   None => "".to_string(),
+                                   Some(f) => {
+                                       f.to_uppercase().collect::<String>() +
+                                       &characters.as_str().to_lowercase()
+                                   }
+                               }
+                           }).filter(|word|{
+                           ! word.is_empty()
+                           })
+                           .collect::<Vec<_>>();
 
-    match  split_pattern.find(&s) {
+    match split_pattern.find(&s) {
         None => Ok(to_value(&capitalized.join(""))),
         Some(first_index) => {
-                let captures = split_pattern.captures_iter(&s);
-                let mut result  = String::new();
-           if first_index.0 == 0 {
-               result =  captures.zip(capitalized.iter()).map(|(seperator,word)| {
-                                    seperator.push_str(word);
-                                    seperator
-                                }).collect::<String>().join("");
-           }else {
-                result = capitalized.iter().zip(captures).map(|(word,seperator)| {
-                                    word.push_str(seperator);
-                                    word
-                                }).collect::<String>().join("")
-           
-           } 
-               if captures.len() > capitalized.len() {
-                    result.push_str(captures.last().unwrap());
-               }else if capitalized.len() > captures.len() {
-                    result.push_str(capitalized.last().unwrap());
-               }
-        Ok(to_value(&result))
+            let captures = split_pattern.captures_iter(&s);
+            let mut result: String;
+            if first_index.0 == 0 {
+                result = captures.zip(capitalized.iter())
+                                 .map(|(seperator, word)| {
+                                     let mut temp = seperator.at(0).unwrap().to_string();
+                                     temp.push_str(word);
+                                     temp
+                                 })
+                                 .collect::<Vec<String>>()
+                                 .join("");
+            } else {
+                result = capitalized.iter()
+                                    .zip(captures)
+                                    .map(|(word, seperator)| {
+                                        let mut temp = word.clone();
+                                        temp.push_str(seperator.at(0).unwrap());
+                                        temp.to_string()
+                                    })
+                                    .collect::<Vec<String>>()
+                                    .join("");
+            }
+            let captured_patterns_count = split_pattern.find_iter(&s).count();
+            if captured_patterns_count > capitalized.len() {
+                result.push_str( split_pattern.captures_iter(&s).last().unwrap().at(0).unwrap());
+            } else if capitalized.len() > captured_patterns_count {
+                result.push_str(capitalized.last().unwrap());
+            }
+            Ok(to_value(&result))
         }
     }
 }
@@ -255,7 +271,20 @@ mod tests {
     fn test_title() {
         let tests = vec![
             ("foo bar", "Foo Bar"),
-            ("foo\tbar", "Foo Bar"),
+            ("foo\tbar", "Foo\tBar"),
+            ("foo  bar", "Foo  Bar"),
+            ("f bar f", "F Bar F"),
+            ("foo-bar", "Foo-Bar"),
+            ("FOO\tBAR", "Foo\tBar"),
+            ("foo (bar)", "Foo (Bar)"),
+            ("foo (bar) ", "Foo (Bar) "),
+            ("foo {bar}", "Foo {Bar}"),
+            ("foo [bar]", "Foo [Bar]"),
+            ("foo <bar>", "Foo <Bar>"),
+            ("  foo  bar", "  Foo  Bar"),
+            ("\tfoo\tbar\t", "\tFoo\tBar\t"),
+            ("foo bar ", "Foo Bar "),
+            ("foo bar\t", "Foo Bar\t")
         ];
         for (input, expected) in tests {
             let result = title(to_value(input), HashMap::new());
