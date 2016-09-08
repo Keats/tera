@@ -5,6 +5,7 @@ use serde_json::value::{Value, to_value};
 
 use errors::{TeraResult, TeraError};
 
+use regex::Regex;
 
 /// Convert a value to uppercase.
 pub fn upper(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
@@ -96,15 +97,41 @@ pub fn addslashes(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> 
 /// Capitalizes each word in the string
 pub fn title(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("title", "value", String, value);
-    let words = s.split_whitespace().collect::<Vec<_>>();
-    let result = words.iter().map(|&word|{
+    let split_pattern = Regex::new(r"([-\s\(\{\[<]+)").unwrap();
+    let words = split_pattern.split(&s).collect::<Vec<&str>>();
+    let capitalized = words.iter().map(|&word|{
                     let mut characters = word.chars();
                     match characters.next() {
                         None => "".to_string(),
                         Some(f) => f.to_uppercase().collect::<String>() + &characters.as_str().to_lowercase(),
                     }   
-                }).collect::<Vec<_>>().join(" ");
-    Ok(to_value(&result))
+                }).collect::<Vec<_>>();
+
+    match  split_pattern.find(&s) {
+        None => Ok(to_value(&capitalized.join(""))),
+        Some(first_index) => {
+                let captures = split_pattern.captures_iter(&s);
+                let mut result  = String::new();
+           if first_index.0 == 0 {
+               result =  captures.zip(capitalized.iter()).map(|(seperator,word)| {
+                                    seperator.push_str(word);
+                                    seperator
+                                }).collect::<String>().join("");
+           }else {
+                result = capitalized.iter().zip(captures).map(|(word,seperator)| {
+                                    word.push_str(seperator);
+                                    word
+                                }).collect::<String>().join("")
+           
+           } 
+               if captures.len() > capitalized.len() {
+                    result.push_str(captures.last().unwrap());
+               }else if capitalized.len() > captures.len() {
+                    result.push_str(capitalized.last().unwrap());
+               }
+        Ok(to_value(&result))
+        }
+    }
 }
 
 #[cfg(test)]
