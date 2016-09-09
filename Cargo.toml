@@ -16,7 +16,7 @@ serde_json = "0.8"
 clippy = {version = "~0.0.77", optional = true}
 pest = "0.4"
 quick-error = "1.1.0"
-regex = "0.1.71"
+regex = "0.1"
 
 [features]
 default = []

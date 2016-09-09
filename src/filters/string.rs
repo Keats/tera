@@ -150,6 +150,13 @@ pub fn title(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     }
 }
 
+///Removes html tags from string
+pub fn striptags(value : Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("striptags", "value", String, value);
+    let tag_pattern = Regex::new(r"(<!--.*?-->|<[^>]*>)").unwrap();
+    Ok(to_value(&tag_pattern.split(&s).map(|x| x.replace("\\n","").trim().to_string()).filter(|x| !x.is_empty()).collect::<Vec<String>>().join(" ")))
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -288,6 +295,20 @@ mod tests {
         ];
         for (input, expected) in tests {
             let result = title(to_value(input), HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected));
+        }
+    }
+
+    #[test]
+    fn test_striptags() {
+        let tests = vec![
+            (r"<b>Joel</b> <button>is</button> a <span>slug</span>", "Joel is a slug"),
+            (r#"<p>just a small   \n <a href="x"> example</a> link</p>\n<p>to a webpage</p><!-- <p>and some commented stuff</p> -->"#,
+            "just a small example link to a webpage"),
+        ];
+        for (input, expected) in tests {
+            let result = striptags(to_value(input), HashMap::new());
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected));
         }
