@@ -15,6 +15,7 @@ extern crate glob;
 extern crate pest;
 #[macro_use]
 extern crate quick_error;
+extern crate slug;
 
 
 mod errors;

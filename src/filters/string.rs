@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 
 use serde_json::value::{Value, to_value};
+use slug;
 
 use errors::{TeraResult, TeraError};
 
@@ -85,10 +86,16 @@ pub fn capitalize(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> 
     }
 }
 
-/// Escapes quote chracters
+/// Escapes quote characters
 pub fn addslashes(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("addslashes", "value", String, value);
     Ok(to_value(&s.replace("\\","\\\\").replace("\"", "\\\"").replace("\'", "\\\'")))
+}
+
+/// Transform a string into a slug
+pub fn slugify(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("slugify", "value", String, value);
+    Ok(to_value(&slug::slugify(s)))
 }
 
 #[cfg(test)]
@@ -203,6 +210,22 @@ mod tests {
         ];
         for (input, expected) in tests {
             let result = addslashes(to_value(input), HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected));
+        }
+    }
+
+    #[test]
+    fn test_slugify() {
+        // slug crate already has tests for general slugification so we just
+        // check our function works
+        let tests = vec![
+            (r#"Hello world"#, r#"hello-world"#),
+            (r#"Hello 世界"#, r#"hello-shi-jie"#),
+        ];
+        for (input, expected) in tests {
+            let result = slugify(to_value(input), HashMap::new());
+            println!("{:?} - {:?}", input, result);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected));
         }

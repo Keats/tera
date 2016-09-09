@@ -218,6 +218,13 @@ Example: `{{ value | addslashes }}`
 
 If value is "I'm using Tera", the output will be "I\'m using Tera"
 
+#### slugify
+Transform a string into ASCII, lowercase it, trim it, converts spaces to hyphens and remove all characters that are not numbers, lowercase letters or hyphens.
+
+Example: `{{ value | slugify}}
+If value is "-Hello world! ", the output will be "hello-world".
+
+
 #### first
 Returns the first element of an array.
 If the array is empty, returns empty string;
