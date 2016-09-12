@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use serde_json::value::{Value, to_value};
 use slug;
+use url::percent_encoding::{utf8_percent_encode, EncodeSet};
 
 use errors::{TeraResult, TeraError};
 
@@ -84,6 +85,46 @@ pub fn capitalize(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> 
             Ok(to_value(&res))
         }
     }
+}
+
+#[derive(Clone)]
+struct UrlEncodeSet(String);
+
+impl UrlEncodeSet {
+    fn safe_bytes(&self) -> &[u8] {
+        let &UrlEncodeSet(ref safe) = self;
+        safe.as_bytes()
+    }
+}
+
+impl EncodeSet for UrlEncodeSet {
+    fn contains(&self, byte: u8) -> bool {
+        if byte >= 48 && byte <= 57 { // digit
+            false
+        } else if byte >= 65 && byte <= 90 { // uppercase character
+            false
+        } else if byte >= 97 && byte <= 122 { // lowercase character
+            false
+        } else if byte == 45 || byte == 46 || byte == 95 { // -, . or _
+            false
+        } else if self.safe_bytes().contains(&byte) {
+            false
+        } else {
+            true
+        }
+    }
+}
+
+/// Percent-encodes reserved URI characters
+pub fn urlencode(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("urlencode", "value", String, value);
+    let safe = match args.get("safe") {
+        Some(l) => try_get_value!("urlencode", "safe", String, l.clone()),
+        None => "/".to_string(),
+    };
+
+    let encoded = utf8_percent_encode(s.as_str(), UrlEncodeSet(safe)).collect::<String>();
+    Ok(to_value(&encoded))
 }
 
 /// Escapes quote characters
@@ -226,6 +267,25 @@ mod tests {
         for (input, expected) in tests {
             let result = slugify(to_value(input), HashMap::new());
             println!("{:?} - {:?}", input, result);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected));
+        }
+    }
+
+    #[test]
+    fn test_urlencode() {
+        let tests = vec![
+            (r#"https://www.example.org/foo?a=b&c=d"#, None, r#"https%3A//www.example.org/foo%3Fa%3Db%26c%3Dd"#),
+            (r#"https://www.example.org/"#, Some(""), r#"https%3A%2F%2Fwww.example.org%2F"#),
+            (r#"/test&"/me?/"#, None, r#"/test%26%22/me%3F/"#),
+            (r#"escape/slash"#, Some(""), r#"escape%2Fslash"#),
+        ];
+        for (input, safe, expected) in tests {
+            let mut args = HashMap::new();
+            if let Some(safe) = safe {
+                args.insert("safe".to_string(), to_value(&safe));
+            }
+            let result = urlencode(to_value(input), args);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected));
         }
