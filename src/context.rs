@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
-use serde_json::value::{Value, to_value, Map};
+use serde_json::value::{Value, to_value};
 
 pub type TemplateContext = BTreeMap<String, Value>;
 

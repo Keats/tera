@@ -1,7 +1,6 @@
-use std::f32::EPSILON;
 use std::collections::LinkedList;
 
-use serde_json::value::{Value, from_value, to_value};
+use serde_json::value::{Value, to_value};
 
 use context::{Context, ValueRender, ValueNumber, ValueTruthy};
 use template::Template;

@@ -135,6 +135,7 @@ impl Default for Tera {
     }
 }
 
+// Needs a manual implementation since borrows in Fn's don't implement Debug.
 impl fmt::Debug for Tera {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "Tera {}", "{"));

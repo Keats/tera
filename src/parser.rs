@@ -18,7 +18,7 @@ pub enum Node {
     Logic {lhs: Box<Node>, rhs: Box<Node>, operator: String},
 
     If {condition_nodes: LinkedList<Node>, else_node: Option<Box<Node>>},
-    // represents a if/elif block. condition (Math, Logic, Test), body (a List)
+    // represents if/elif. condition (Bool, Math, Logic, Test), body (a List)
     Conditional {condition: Box<Node>, body: Box<Node>},
 
     For {variable: String, array: String, body: Box<Node>},
@@ -298,14 +298,6 @@ impl_rdp! {
             }
         }
 
-        // // Variable tests.
-        // test_fn_params = {
-        //     fn_arg_value
-        //     | ["("] ~ fn_arg_value ~ ([","] ~ fn_arg_value)* ~ [")"]
-        // }
-        // test_fn = { simple_ident ~ test_fn_params? }
-        // test = { ["is"] ~ test_fn }
-        // TODO: reuse that for macros
         _condition(&self) -> TeraResult<Node> {
             // Expression with a test.
             (exp: _expression(), _: test, test_args: _test()) => {
@@ -430,8 +422,6 @@ impl_rdp! {
             () => (Ok(LinkedList::new()))
         }
 
-        // test_fn = { simple_ident ~ test_fn_params? }
-        // {% if number is equalto 10 %}Hey{% endif %}
         _test(&self) -> TeraResult<(String, LinkedList<Node>)> {
             (_: test_fn, &name: simple_ident, params: _test_fn_params()) => {
                 Ok((name.to_string(), try!(params)))
@@ -496,12 +486,6 @@ impl_rdp! {
                     filters: Some(try!(tail)),
                 })
             },
-            // (_: test, &ident: identifier, tail: _filters()) => {
-            //     Ok(Node::Identifier {
-            //         name: ident.to_string(),
-            //         filters: Some(try!(tail)),
-            //     })
-            // },
             (&ident: identifier) => {
                 Ok(Node::Identifier {name: ident.to_string(), filters: None })
             },
