@@ -18,11 +18,14 @@ pub enum Node {
     Logic {lhs: Box<Node>, rhs: Box<Node>, operator: String},
 
     If {condition_nodes: LinkedList<Node>, else_node: Option<Box<Node>>},
-    // represents a if/elif block and its body (body is a List)
+    // represents a if/elif block. condition (Math, Logic, Test), body (a List)
     Conditional {condition: Box<Node>, body: Box<Node>},
 
     For {variable: String, array: String, body: Box<Node>},
     Block {name: String, body: Box<Node>},
+
+    // params are expressions
+    Test {expression: Box<Node>, name: String, params: LinkedList<Node>},
 
     // For now all params are strings. We still need to differentiate between
     // user input (ie "dd/mm/YY" arg in a date filter)
@@ -84,6 +87,7 @@ impl_rdp! {
             (['a'..'z'] | ['A'..'Z'] | ["_"]) ~
             (['a'..'z'] | ['A'..'Z'] | ["_"] | ['0'..'9'])*
         }
+
         // named args
         fn_arg_value = @{ boolean | int | float | string | identifier }
         fn_arg       = @{ simple_ident ~ ["="] ~ fn_arg_value }
@@ -98,6 +102,17 @@ impl_rdp! {
         }
         identifier_with_filter = { identifier ~ filters }
         idents = _{ identifier_with_filter | identifier }
+
+        // Variable tests.
+        test_fn_param = { expression }
+        test_fn_params = {
+            test_fn_param
+            | (["("] ~ test_fn_param ~ ([","] ~ test_fn_param)* ~ [")"])
+        }
+        test_fn = !@{ simple_ident ~ test_fn_params? }
+        // explicit whitespace is needed so that `if is_defined` doesn't get
+        // parsed as a test.
+        test = { ["is"] ~ test_fn }
 
         // Precedence climbing
         expression = _{
@@ -126,8 +141,8 @@ impl_rdp! {
         variable_tag    = !@{ variable_start ~ expression ~ variable_end }
         comment_tag     = !@{ comment_start ~ (!comment_end ~ any )* ~ comment_end }
         block_tag       = !@{ tag_start ~ ["block"] ~ identifier ~ tag_end }
-        if_tag          = !@{ tag_start ~ ["if"] ~ expression ~ tag_end }
-        elif_tag        = !@{ tag_start ~ ["elif"] ~ expression ~ tag_end }
+        if_tag          = !@{ tag_start ~ ["if"] ~ expression ~ test? ~ tag_end }
+        elif_tag        = !@{ tag_start ~ ["elif"] ~ expression ~ test? ~ tag_end }
         else_tag        = !@{ tag_start ~ ["else"] ~ tag_end }
         for_tag         = !@{ tag_start ~ ["for"] ~ identifier ~ ["in"] ~ idents ~ tag_end }
         raw_tag         = !@{ tag_start ~ ["raw"] ~ tag_end }
@@ -219,10 +234,10 @@ impl_rdp! {
                 }))
             },
             // only if
-            (_: if_tag, exp: _expression(), body: _template(), _: endif_tag) => {
+            (_: if_tag, cond: _condition(), body: _template(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(exp)),
+                    condition: Box::new(try!(cond)),
                     body: Box::new(Node::List(try!(body))),
                 });
 
@@ -232,10 +247,10 @@ impl_rdp! {
                 }))
             },
             // if/elifs/else
-            (_: if_tag, exp: _expression(), body: _template(), elifs: _elifs(), _: else_tag, else_body: _template(), _: endif_tag) => {
+            (_: if_tag, cond: _condition(), body: _template(), elifs: _elifs(), _: else_tag, else_body: _template(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(exp)),
+                    condition: Box::new(try!(cond)),
                     body: Box::new(Node::List(try!(body))),
                 });
 
@@ -249,10 +264,10 @@ impl_rdp! {
                 }))
             },
             // if/elifs
-            (_: if_tag, exp: _expression(), body: _template(), elifs: _elifs(), _: endif_tag) => {
+            (_: if_tag, cond: _condition(), body: _template(), elifs: _elifs(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(exp)),
+                    condition: Box::new(try!(cond)),
                     body: Box::new(Node::List(try!(body))),
                 });
 
@@ -266,10 +281,10 @@ impl_rdp! {
                 }))
             },
             // if/else
-            (_: if_tag, exp: _expression(), body: _template(), _: else_tag, else_body: _template(), _: endif_tag) => {
+            (_: if_tag, cond: _condition(), body: _template(), _: else_tag, else_body: _template(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(exp)),
+                    condition: Box::new(try!(cond)),
                     body: Box::new(Node::List(try!(body))),
                 });
 
@@ -283,6 +298,30 @@ impl_rdp! {
             }
         }
 
+        // // Variable tests.
+        // test_fn_params = {
+        //     fn_arg_value
+        //     | ["("] ~ fn_arg_value ~ ([","] ~ fn_arg_value)* ~ [")"]
+        // }
+        // test_fn = { simple_ident ~ test_fn_params? }
+        // test = { ["is"] ~ test_fn }
+        // TODO: reuse that for macros
+        _condition(&self) -> TeraResult<Node> {
+            // Expression with a test.
+            (exp: _expression(), _: test, test_args: _test()) => {
+                let (name, params) = try!(test_args);
+                Ok(Node::Test {
+                    expression: Box::new(try!(exp)),
+                    name: name,
+                    params: params,
+                })
+            },
+            // Expression without a test.
+            (exp: _expression()) => {
+                exp
+            }
+        }
+
         _elifs(&self) -> TeraResult<LinkedList<Node>> {
             (_: elif_block, node: _if(), tail: _elifs()) => {
                 let mut tail2 = try!(tail);
@@ -293,15 +332,15 @@ impl_rdp! {
         }
 
         _if(&self) -> TeraResult<Node> {
-            (_: if_tag, exp: _expression(), body: _template()) => {
+            (_: if_tag, cond: _condition(), body: _template()) => {
                 Ok(Node::Conditional {
-                    condition: Box::new(try!(exp)),
+                    condition: Box::new(try!(cond)),
                     body: Box::new(Node::List(try!(body))),
                 })
             },
-            (_: elif_tag, exp: _expression(), body: _template()) => {
+            (_: elif_tag, cond: _condition(), body: _template()) => {
                 Ok(Node::Conditional {
-                    condition: Box::new(try!(exp)),
+                    condition: Box::new(try!(cond)),
                     body: Box::new(Node::List(try!(body))),
                 })
             },
@@ -374,6 +413,31 @@ impl_rdp! {
             () => Ok(LinkedList::new())
         }
 
+        _test_fn_params(&self) -> (TeraResult<LinkedList<Node>>) {
+            // first arg of many
+            (_: test_fn_params, _: test_fn_param, value: _expression(), tail: _test_fn_params()) => {
+                let mut tail = try!(tail);
+                tail.push_front(try!(value));
+                Ok(tail)
+            },
+            // arguments after the first of many
+            (_: test_fn_param, value: _expression(), tail: _test_fn_params()) => {
+                let mut tail = try!(tail);
+                tail.push_front(try!(value));
+                Ok(tail)
+            },
+            // Base case.
+            () => (Ok(LinkedList::new()))
+        }
+
+        // test_fn = { simple_ident ~ test_fn_params? }
+        // {% if number is equalto 10 %}Hey{% endif %}
+        _test(&self) -> TeraResult<(String, LinkedList<Node>)> {
+            (_: test_fn, &name: simple_ident, params: _test_fn_params()) => {
+                Ok((name.to_string(), try!(params)))
+            },
+        }
+
         _expression(&self) -> TeraResult<Node> {
             (_: add_sub, left: _expression(), sign, right: _expression()) => {
                 Ok(Node::Math {
@@ -432,6 +496,12 @@ impl_rdp! {
                     filters: Some(try!(tail)),
                 })
             },
+            // (_: test, &ident: identifier, tail: _filters()) => {
+            //     Ok(Node::Identifier {
+            //         name: ident.to_string(),
+            //         filters: Some(try!(tail)),
+            //     })
+            // },
             (&ident: identifier) => {
                 Ok(Node::Identifier {name: ident.to_string(), filters: None })
             },
@@ -648,6 +718,20 @@ mod tests {
     }
 
     #[test]
+    fn test_if_tag_with_test() {
+        let mut parser = Rdp::new(StringInput::new("{% if value is defined %}"));
+        assert!(parser.if_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_elif_tag_with_test() {
+        let mut parser = Rdp::new(StringInput::new("{% elif value is defined %}"));
+        assert!(parser.elif_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
     fn test_variable_tag() {
         let mut parser = Rdp::new(StringInput::new("{{loop.index + 1}}"));
         assert!(parser.variable_tag());
@@ -796,6 +880,107 @@ mod tests {
     }
 
     #[test]
+    fn test_ast_if_with_test() {
+        let parsed_ast = parse("{% if number is defined %}Hey{% endif %}");
+        let mut ast = LinkedList::new();
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hey".to_string()));
+
+        let mut condition_nodes = LinkedList::new();
+        condition_nodes.push_front(Node::Conditional {
+            condition: Box::new(
+                Node::Test {
+                    expression: Box::new(Node::Identifier {
+                        name: "number".to_string(), filters: None,
+                    }),
+                    name: "defined".to_string(),
+                    params: LinkedList::new()
+                }
+            ),
+            body: Box::new(Node::List(body.clone()))
+        });
+
+        ast.push_front(Node::If {
+            condition_nodes: condition_nodes,
+            else_node: None,
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_if_with_test_params() {
+        let parsed_ast = parse(r#"{% if pi is equalto 3.14 %}Hey{% endif %}"#);
+        let mut ast = LinkedList::new();
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hey".to_string()));
+
+        let mut params = LinkedList::new();
+        params.push_front(Node::Float(3.14));
+
+        let mut condition_nodes = LinkedList::new();
+        condition_nodes.push_front(Node::Conditional {
+            condition: Box::new(
+                Node::Test {
+                    expression: Box::new(Node::Identifier {
+                        name: "pi".to_string(), filters: None,
+                    }),
+                    name: "equalto".to_string(),
+                    params: params,
+                }
+            ),
+            body: Box::new(Node::List(body.clone()))
+        });
+
+        ast.push_front(Node::If {
+            condition_nodes: condition_nodes,
+            else_node: None,
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_if_elif_with_test() {
+        let parsed_ast = parse("{% if hi %}Hey{% elif admin is oneof(a, 2, true) %}Hey{% endif %}");
+
+        let mut ast = LinkedList::new();
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hey".to_string()));
+
+        let mut condition_nodes = LinkedList::new();
+        condition_nodes.push_front(Node::Conditional {
+            condition: Box::new(Node::Identifier {name: "hi".to_string(), filters: None}),
+            body: Box::new(Node::List(body.clone()))
+        });
+
+        let mut params = LinkedList::new();
+        params.push_back(Node::Identifier { name: "a".to_string(), filters: None });
+        params.push_back(Node::Int(2));
+        params.push_back(Node::Bool(true));
+        condition_nodes.push_back(Node::Conditional {
+            condition: Box::new(
+                Node::Test {
+                    expression: Box::new(Node::Identifier {
+                        name: "admin".to_string(), filters: None,
+                    }),
+                    name: "oneof".to_string(),
+                    params: params,
+                }
+            ),
+            body: Box::new(Node::List(body.clone()))
+        });
+
+        ast.push_front(Node::If {
+            condition_nodes: condition_nodes,
+            else_node: None,
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+
+    #[test]
     fn test_ast_if_else() {
         let parsed_ast = parse("{% if superadmin %}Hey{% else %}Hey{% endif %}");
         let mut ast = LinkedList::new();
@@ -864,6 +1049,38 @@ mod tests {
         });
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_nullary_test() {
+        let mut parser = Rdp::new(StringInput::new("is defined"));
+        assert!(parser.test());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_unary_test() {
+        let mut parser = Rdp::new(StringInput::new("is equalto other"));
+        assert!(parser.test());
+        assert!(parser.end());
+
+        let mut parser = Rdp::new(StringInput::new("is equalto(other)"));
+        assert!(parser.test());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_n_ary_test() {
+        let mut parser = Rdp::new(StringInput::new("is oneof(a, b, c)"));
+        assert!(parser.test());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_n_ary_test_requires_parens() {
+        let mut parser = Rdp::new(StringInput::new("is oneof a, b, c"));
+        assert!(parser.test()); // parse until the ','
+        assert!(!parser.end());
     }
 
     #[test]
