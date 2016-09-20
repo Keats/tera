@@ -175,6 +175,12 @@ impl<'a> Renderer<'a> {
                 let value = try!(self.eval_ident(&node));
                 Ok(value.is_truthy())
             },
+            Test { expression, name, params } => {
+                println!("Parse a tester!");
+                Ok(false)
+                // let tester = try!(self.tera.get_tester());
+                // Ok(value.is_truthy())
+            },
             Logic { lhs, rhs, operator } => {
                 match operator.as_str() {
                     "or" => {

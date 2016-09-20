@@ -97,3 +97,8 @@ fn test_ok_raw_template() {
 fn test_ok_filters_template() {
     assert_template_ok("tests/templates/filters.html", None);
 }
+
+#[test]
+fn test_ok_variable_tests() {
+    assert_template_ok("tests/templates/variable_tests.html", None);
+}

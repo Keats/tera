@@ -49,5 +49,11 @@ quick_error! {
             display("Filter `{}` expected an arg called `{}`", filter_name, arg_name)
             description("missing arg in filter call")
         }
+
+        // Tester errors.
+        TestError(tester_name: String, message: String) {
+            display("Tester `{}` encountered an error while running.", tester_name)
+            description(message.as_str())
+        }
     }
 }

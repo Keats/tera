@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::io::prelude::*;
 use std::fs::File;
+use std::fmt;
 
 use glob::glob;
 
@@ -9,12 +10,12 @@ use filters::{FilterFn, string, array, common};
 use context::Context;
 use errors::{TeraResult, TeraError};
 use render::Renderer;
+use testers::{self, TesterFn};
 
-
-#[derive(Debug)]
 pub struct Tera {
     pub templates: HashMap<String, Template>,
     pub filters: HashMap<String, FilterFn>,
+    pub testers: HashMap<String, TesterFn>,
 }
 
 impl Tera {
@@ -48,8 +49,11 @@ impl Tera {
         let mut tera = Tera {
             templates: templates,
             filters: HashMap::new(),
+            testers: HashMap::new(),
         };
+
         tera.register_tera_filters();
+        tera.register_tera_testers();
         tera
     }
 
@@ -84,6 +88,10 @@ impl Tera {
         self.filters.insert(name.to_string(), filter);
     }
 
+    pub fn register_tester(&mut self, name: &str, tester: TesterFn) {
+        self.testers.insert(name.to_string(), tester);
+    }
+
     fn register_tera_filters(&mut self) {
         self.register_filter("upper", string::upper);
         self.register_filter("lower", string::lower);
@@ -100,6 +108,10 @@ impl Tera {
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
     }
+
+    fn register_tera_testers(&mut self) {
+        self.register_tester("defined", testers::defined);
+    }
 }
 
 impl Default for Tera {
@@ -107,9 +119,30 @@ impl Default for Tera {
         let mut tera = Tera {
             templates: HashMap::new(),
             filters: HashMap::new(),
+            testers: HashMap::new(),
         };
 
         tera.register_tera_filters();
+        tera.register_tera_testers();
         tera
+    }
+}
+
+impl fmt::Debug for Tera {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f, "Tera {}", "{"));
+        for template in self.templates.keys() {
+            try!(write!(f, "template={},", template));
+        }
+
+        for filter in self.filters.keys() {
+            try!(write!(f, "filters={},", filter));
+        }
+
+        for tester in self.testers.keys() {
+            try!(write!(f, "tester={},", tester));
+        }
+
+        write!(f, "{}", "}")
     }
 }
