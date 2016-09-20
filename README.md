@@ -187,6 +187,26 @@ Again, straight from jinja2 docs:
 
 When trying to render that template, Tera will see that it depends on a parent template and will render it first, filling the blocks as it encounters them in the base template.
 
+### Tests
+
+Tests can be used against a variable to check some condition on the variable.
+Perhaps the most common use of variable tests is to check if a variable is
+defined before its use to prevent run-time errors. Tests are made against
+variables in `if` blocks using the `is` keyword. For example, to test if `user`
+is defined, you would write:
+
+```
+{% if user is defined %}
+... do something with user ...
+{% else %}
+... don't use user here ...
+{% end %}
+```
+
+Here are the currently implemented testers:
+
+#### defined
+Returns true if the given variable is defined.
 
 ### Filters
 Variables can be modified by filters. 
