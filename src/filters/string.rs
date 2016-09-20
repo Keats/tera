@@ -337,7 +337,6 @@ mod tests {
             ("b7>b2!", "b7>b2!"),
             ("</fe", "</fe"),
             ("<x>b<y>", "b"),
-            //(r#"a<p onclick="alert('<test>')">b</p>c"#, "abc"),
             (r#"a<p a >b</p>c"#, "abc"),
             (r#"d<a:b c:d>e</p>f"#, "def"),
             (r#"<strong>foo</strong><a href="http://example.com">bar</a>"#, "foobar"),

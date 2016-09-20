@@ -93,6 +93,7 @@ impl Tera {
         self.register_filter("replace", string::replace);
         self.register_filter("capitalize", string::capitalize);
         self.register_filter("title", string::title);
+        self.register_filter("striptags", string::striptags);
 
         self.register_filter("first", array::first);
         self.register_filter("last", array::last);
