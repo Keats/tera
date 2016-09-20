@@ -159,7 +159,7 @@ pub fn title(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
 pub fn striptags(value : Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("striptags", "value", String, value);
     let tag_pattern = Regex::new(r"(<!--.*?-->|<[^>]*>)").unwrap();
-    Ok(to_value(&tag_pattern.split(&s).map(|x| x.replace("\\n","").trim().to_string()).filter(|x| !x.is_empty()).collect::<Vec<String>>().join(" ")))
+    Ok(to_value(&tag_pattern.split(&s).filter(|x| !x.is_empty()).collect::<Vec<&str>>().join("")))
 }
 
 #[cfg(test)]
@@ -326,7 +326,21 @@ mod tests {
         let tests = vec![
             (r"<b>Joel</b> <button>is</button> a <span>slug</span>", "Joel is a slug"),
             (r#"<p>just a small   \n <a href="x"> example</a> link</p>\n<p>to a webpage</p><!-- <p>and some commented stuff</p> -->"#,
-            "just a small example link to a webpage"),
+            r#"just a small   \n  example link\nto a webpage"#),
+            (r"<p>See: &#39;&eacute; is an apostrophe followed by e acute</p>",r"See: &#39;&eacute; is an apostrophe followed by e acute"),
+            (r"<adf>a", "a"),
+            (r"</adf>a", "a"),
+            (r"<asdf><asdf>e", "e"),
+            (r"hi, <f x", "hi, <f x"),
+            ("234<235, right?", "234<235, right?"),
+            ("a4<a5 right?", "a4<a5 right?"),
+            ("b7>b2!", "b7>b2!"),
+            ("</fe", "</fe"),
+            ("<x>b<y>", "b"),
+            //(r#"a<p onclick="alert('<test>')">b</p>c"#, "abc"),
+            (r#"a<p a >b</p>c"#, "abc"),
+            (r#"d<a:b c:d>e</p>f"#, "def"),
+            (r#"<strong>foo</strong><a href="http://example.com">bar</a>"#, "foobar"),
         ];
         for (input, expected) in tests {
             let result = striptags(to_value(input), HashMap::new());
