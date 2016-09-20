@@ -17,6 +17,7 @@ clippy = {version = "~0.0.77", optional = true}
 pest = "0.4"
 quick-error = "1.1.0"
 slug = "0.1"
+regex = "0.1"
 
 [features]
 default = []

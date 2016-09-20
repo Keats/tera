@@ -6,6 +6,7 @@ use slug;
 
 use errors::{TeraResult, TeraError};
 
+use regex::Regex;
 
 /// Convert a value to uppercase.
 pub fn upper(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
@@ -96,6 +97,69 @@ pub fn addslashes(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> 
 pub fn slugify(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("slugify", "value", String, value);
     Ok(to_value(&slug::slugify(s)))
+}
+
+/// Capitalizes each word in the string
+pub fn title(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("title", "value", String, value);
+    let split_pattern = Regex::new(r"([-\s\(\{\[<]+)").unwrap();
+    let words = split_pattern.split(&s).collect::<Vec<&str>>();
+    let capitalized = words.iter()
+                           .map(|&word| {
+                               let mut characters = word.chars();
+                               match characters.next() {
+                                   None => "".to_string(),
+                                   Some(f) => {
+                                       f.to_uppercase().collect::<String>() +
+                                       &characters.as_str().to_lowercase()
+                                   }
+                               }
+                           }).filter(|word|{
+                           ! word.is_empty()
+                           })
+                           .collect::<Vec<_>>();
+
+    match split_pattern.find(&s) {
+        None => Ok(to_value(&capitalized.join(""))),
+        Some(first_index) => {
+            let captures = split_pattern.captures_iter(&s);
+            let mut result: String;
+            if first_index.0 == 0 {
+                result = captures.zip(capitalized.iter())
+                                 .map(|(seperator, word)| {
+                                     let mut temp = seperator.at(0).unwrap().to_string();
+                                     temp.push_str(word);
+                                     temp
+                                 })
+                                 .collect::<Vec<String>>()
+                                 .join("");
+            } else {
+                result = capitalized.iter()
+                                    .zip(captures)
+                                    .map(|(word, seperator)| {
+                                        let mut temp = word.clone();
+                                        temp.push_str(seperator.at(0).unwrap());
+                                        temp.to_string()
+                                    })
+                                    .collect::<Vec<String>>()
+                                    .join("");
+            }
+            let captured_patterns_count = split_pattern.find_iter(&s).count();
+            if captured_patterns_count > capitalized.len() {
+                result.push_str( split_pattern.captures_iter(&s).last().unwrap().at(0).unwrap());
+            } else if capitalized.len() > captured_patterns_count {
+                result.push_str(capitalized.last().unwrap());
+            }
+            Ok(to_value(&result))
+        }
+    }
+}
+
+///Removes html tags from string
+pub fn striptags(value : Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("striptags", "value", String, value);
+    let tag_pattern = Regex::new(r"(<!--.*?-->|<[^>]*>)").unwrap();
+    Ok(to_value(&tag_pattern.split(&s).filter(|x| !x.is_empty()).collect::<Vec<&str>>().join("")))
 }
 
 #[cfg(test)]
@@ -226,6 +290,59 @@ mod tests {
         for (input, expected) in tests {
             let result = slugify(to_value(input), HashMap::new());
             println!("{:?} - {:?}", input, result);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected));
+        }
+    }
+
+    #[test]
+    fn test_title() {
+        let tests = vec![
+            ("foo bar", "Foo Bar"),
+            ("foo\tbar", "Foo\tBar"),
+            ("foo  bar", "Foo  Bar"),
+            ("f bar f", "F Bar F"),
+            ("foo-bar", "Foo-Bar"),
+            ("FOO\tBAR", "Foo\tBar"),
+            ("foo (bar)", "Foo (Bar)"),
+            ("foo (bar) ", "Foo (Bar) "),
+            ("foo {bar}", "Foo {Bar}"),
+            ("foo [bar]", "Foo [Bar]"),
+            ("foo <bar>", "Foo <Bar>"),
+            ("  foo  bar", "  Foo  Bar"),
+            ("\tfoo\tbar\t", "\tFoo\tBar\t"),
+            ("foo bar ", "Foo Bar "),
+            ("foo bar\t", "Foo Bar\t")
+        ];
+        for (input, expected) in tests {
+            let result = title(to_value(input), HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected));
+        }
+    }
+
+    #[test]
+    fn test_striptags() {
+        let tests = vec![
+            (r"<b>Joel</b> <button>is</button> a <span>slug</span>", "Joel is a slug"),
+            (r#"<p>just a small   \n <a href="x"> example</a> link</p>\n<p>to a webpage</p><!-- <p>and some commented stuff</p> -->"#,
+            r#"just a small   \n  example link\nto a webpage"#),
+            (r"<p>See: &#39;&eacute; is an apostrophe followed by e acute</p>",r"See: &#39;&eacute; is an apostrophe followed by e acute"),
+            (r"<adf>a", "a"),
+            (r"</adf>a", "a"),
+            (r"<asdf><asdf>e", "e"),
+            (r"hi, <f x", "hi, <f x"),
+            ("234<235, right?", "234<235, right?"),
+            ("a4<a5 right?", "a4<a5 right?"),
+            ("b7>b2!", "b7>b2!"),
+            ("</fe", "</fe"),
+            ("<x>b<y>", "b"),
+            (r#"a<p a >b</p>c"#, "abc"),
+            (r#"d<a:b c:d>e</p>f"#, "def"),
+            (r#"<strong>foo</strong><a href="http://example.com">bar</a>"#, "foobar"),
+        ];
+        for (input, expected) in tests {
+            let result = striptags(to_value(input), HashMap::new());
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected));
         }
