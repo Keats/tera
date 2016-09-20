@@ -167,6 +167,34 @@ impl<'a> Renderer<'a> {
         }
     }
 
+    fn eval_expression(&self, node: Node) -> TeraResult<Value> {
+        match node {
+            // Simple truthiness check
+            Identifier { .. } => {
+                let value = try!(self.eval_ident(&node));
+                Ok(value)
+            },
+            l @ Logic { .. } => {
+                let value = try!(self.eval_condition(l));
+                Ok(Value::Bool(value))
+            },
+            m @ Math { .. } => {
+                let result = try!(self.eval_math(&m));
+                Ok(Value::F64(result as f64))
+            },
+            Int(val) => {
+                Ok(Value::I64(val as i64))
+            },
+            Float(val) => {
+                Ok(Value::F64(val as f64))
+            },
+            Bool(b) => {
+                Ok(Value::Bool(b))
+            },
+            _ => unreachable!()
+        }
+    }
+
     // TODO: clean up this, too ugly right now for the == and != nodes
     fn eval_condition(&self, node: Node) -> TeraResult<bool> {
         match node {
@@ -176,19 +204,29 @@ impl<'a> Renderer<'a> {
                 Ok(value.is_truthy())
             },
             Test { expression, name, params } => {
-                println!("Parse a tester!");
-                Ok(false)
-                // let tester = try!(self.tera.get_tester());
-                // Ok(value.is_truthy())
+                let tester = try!(self.tera.get_tester(&name));
+                let context = match self.context.as_object() {
+                    Some(map) => map,
+                    None => return Err(Internal("context is not an object.".into()))
+                };
+
+                let mut value_params = LinkedList::new();
+                for param in params {
+                    value_params.push_back(try!(self.eval_expression(param)));
+                }
+
+                tester(context, &expression, value_params)
             },
             Logic { lhs, rhs, operator } => {
                 match operator.as_str() {
                     "or" => {
-                        let result = try!(self.eval_condition(*lhs)) || try!(self.eval_condition(*rhs));
+                        let result = try!(self.eval_condition(*lhs))
+                            || try!(self.eval_condition(*rhs));
                         return Ok(result);
                     },
                     "and" => {
-                        let result = try!(self.eval_condition(*lhs)) && try!(self.eval_condition(*rhs));
+                        let result = try!(self.eval_condition(*lhs))
+                            && try!(self.eval_condition(*rhs));
                         return Ok(result);
                     },
                     ">=" | ">" | "<=" | "<" => {
@@ -203,95 +241,35 @@ impl<'a> Renderer<'a> {
                         };
                         return Ok(result);
                     },
-                    // This is quite different from the other operators
-                    // TODO: clean this up, this is ugly
                     "==" | "!=" => {
-                        match *lhs {
-                            Logic { .. } => {
-                                // let l = self.eval_condition(lhs);
-                                // TODO: rhs MUST be bool like
-                                panic!("Unimplemented");
-                            },
-                            Identifier { .. } => {
-                                let l = try!(self.eval_ident(&lhs));
-                                // who knows what rhs is
-                                // Here goes a whole new level of ugliness
-                                match *rhs {
-                                    Identifier { .. } => {
-                                        let r = try!(self.eval_ident(&rhs));
-                                        let result = match operator.as_str() {
-                                            "==" => l == r,
-                                            "!=" => l != r,
-                                            _ => unreachable!()
-                                        };
-                                        return Ok(result);
-                                    },
-                                    Int(r) => {
-                                        let l2: i32 = match from_value(l.clone()) {
-                                            Ok(k) => k,
-                                            Err(_) => { return Err(NotANumber(l.to_string())); }
-                                        };
-                                        let result = match operator.as_str() {
-                                            "==" => l2 == r,
-                                            "!=" => l2 != r,
-                                            _ => unreachable!()
-                                        };
-                                        return Ok(result);
-                                    },
-                                    Float(r) => {
-                                        let l2: f32 = match from_value(l.clone()) {
-                                            Ok(k) => k,
-                                            Err(_) => { return Err(NotANumber(l.to_string())); }
-                                        };
-                                        let result = match operator.as_str() {
-                                            "==" => (l2 - r).abs() < EPSILON,
-                                            "!=" => (l2 - r).abs() > EPSILON,
-                                            _ => unreachable!()
-                                        };
-                                        return Ok(result);
-                                    },
-                                    _ => unreachable!()
-                                }
-                            },
-                            Int(n) => {
-                                // rhs MUST be a number
-                                let l = n as f32; // TODO: that's going to cause issues
-                                let r = try!(self.eval_math(&rhs));
-                                let result = match operator.as_str() {
-                                    "==" => (l - r).abs() < EPSILON,
-                                    "!=" => (l - r).abs() > EPSILON,
-                                    _ => unreachable!()
-                                };
-                                return Ok(result);
-                            },
-                            Float(l) => {
-                                // rhs MUST be a number
-                                let r = try!(self.eval_math(&rhs));
-                                let result = match operator.as_str() {
-                                    "==" => (l - r).abs() < EPSILON,
-                                    "!=" => (l - r).abs() > EPSILON,
-                                    _ => unreachable!()
-                                };
-                                return Ok(result);
-                            },
-                            Math { .. } => {
-                                // rhs MUST be a number
-                                let l = try!(self.eval_math(&lhs));
-                                let r = try!(self.eval_math(&rhs));
-                                let result = match operator.as_str() {
-                                    "==" => (l - r).abs() < EPSILON,
-                                    "!=" => (l - r).abs() > EPSILON,
-                                    _ => unreachable!()
-                                };
-                                return Ok(result);
-                            },
-                            _ => unreachable!()
+                        let mut lhs_val = try!(self.eval_expression(*lhs));
+                        let mut rhs_val = try!(self.eval_expression(*rhs));
+
+                        // Monomorphize number vals.
+                        if lhs_val.is_number() || rhs_val.is_number() {
+                            if !lhs_val.is_number() || !rhs_val.is_number() {
+                                return Ok(false);
+                            }
+
+                            // Since Tera only support 32 bit integers, this
+                            // actually preserves all of the precision. If Tera
+                            // switches to 64-bit values, use std::f32::EPSILON
+                            // to get an approximation as before.
+                            lhs_val = Value::F64(lhs_val.as_f64().unwrap());
+                            rhs_val = Value::F64(rhs_val.as_f64().unwrap());
                         }
+
+                        let result = match operator.as_str() {
+                            "==" => lhs_val == rhs_val,
+                            "!=" => lhs_val != rhs_val,
+                            _ => unreachable!()
+                        };
+
+                        Ok(result)
                     },
                     _ => unreachable!()
                 }
-                Ok(false)
-            },
+            }
             _ => unreachable!()
         }
     }

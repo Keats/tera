@@ -41,6 +41,10 @@ quick_error! {
             display("Field `{}` was not found in the context.", name)
             description("field not found")
         }
+        Internal(message: String) {
+            display("Tera encountered an internal error: {}", message)
+            description("tera internal error")
+        }
         FilterIncorrectArgType(filter_name: String, arg_name: String, arg_value: Value, expected_type: String) {
             display("Filter `{}` received an incorrect type for arg `{}`: got {:?} but expected a {}", filter_name, arg_name, arg_value, expected_type)
             description("incorrect filter arg type")
@@ -51,9 +55,14 @@ quick_error! {
         }
 
         // Tester errors.
+        TesterNotFound(name: String) {
+            display("Tester `{}` was not found in the context.", name)
+            description("tester not found")
+        }
         TestError(tester_name: String, message: String) {
-            display("Tester `{}` encountered an error while running.", tester_name)
-            description(message.as_str())
+            display("Tester `{}` encountered an error while running: {}",
+                    tester_name, message)
+            description("tester runtime error")
         }
     }
 }

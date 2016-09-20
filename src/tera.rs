@@ -88,6 +88,13 @@ impl Tera {
         self.filters.insert(name.to_string(), filter);
     }
 
+    pub fn get_tester(&self, tester_name: &str) -> TeraResult<&TesterFn> {
+        match self.testers.get(tester_name) {
+            Some(t) => Ok(t),
+            None => Err(TeraError::TesterNotFound(tester_name.to_string())),
+        }
+    }
+
     pub fn register_tester(&mut self, name: &str, tester: TesterFn) {
         self.testers.insert(name.to_string(), tester);
     }
