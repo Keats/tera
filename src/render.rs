@@ -197,10 +197,8 @@ impl<'a> Renderer<'a> {
     // TODO: clean up this, too ugly right now for the == and != nodes
     fn eval_condition(&self, node: Node) -> TeraResult<bool> {
         match node {
-            // Simple truthiness check
             Identifier { .. } => {
-                let value = try!(self.eval_ident(&node));
-                Ok(value.is_truthy())
+                Ok(self.eval_ident(&node).map(|v| v.is_truthy()).unwrap_or(false))
             },
             Test { expression, name, params } => {
                 let tester = try!(self.tera.get_tester(&name));
