@@ -17,6 +17,8 @@ extern crate pest;
 extern crate quick_error;
 extern crate slug;
 extern crate regex;
+#[macro_use]
+extern crate lazy_static;
 
 mod errors;
 #[macro_use]

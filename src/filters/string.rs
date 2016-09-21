@@ -6,7 +6,14 @@ use slug;
 
 use errors::{TeraResult, TeraError};
 
-use regex::Regex;
+use regex::{Regex, Captures};
+
+
+lazy_static! {
+    static ref STRIPTAGS_RE: Regex = Regex::new(r"(<!--.*?-->|<[^>]*>)").unwrap();
+    static ref WORDS_RE: Regex = Regex::new(r"\b(?P<first>\w)(?P<rest>\w*)\b").unwrap();
+}
+
 
 /// Convert a value to uppercase.
 pub fn upper(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
@@ -102,64 +109,21 @@ pub fn slugify(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
 /// Capitalizes each word in the string
 pub fn title(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("title", "value", String, value);
-    let split_pattern = Regex::new(r"([-\s\(\{\[<]+)").unwrap();
-    let words = split_pattern.split(&s).collect::<Vec<&str>>();
-    let capitalized = words.iter()
-                           .map(|&word| {
-                               let mut characters = word.chars();
-                               match characters.next() {
-                                   None => "".to_string(),
-                                   Some(f) => {
-                                       f.to_uppercase().collect::<String>() +
-                                       &characters.as_str().to_lowercase()
-                                   }
-                               }
-                           }).filter(|word|{
-                           ! word.is_empty()
-                           })
-                           .collect::<Vec<_>>();
 
-    match split_pattern.find(&s) {
-        None => Ok(to_value(&capitalized.join(""))),
-        Some(first_index) => {
-            let captures = split_pattern.captures_iter(&s);
-            let mut result: String;
-            if first_index.0 == 0 {
-                result = captures.zip(capitalized.iter())
-                                 .map(|(seperator, word)| {
-                                     let mut temp = seperator.at(0).unwrap().to_string();
-                                     temp.push_str(word);
-                                     temp
-                                 })
-                                 .collect::<Vec<String>>()
-                                 .join("");
-            } else {
-                result = capitalized.iter()
-                                    .zip(captures)
-                                    .map(|(word, seperator)| {
-                                        let mut temp = word.clone();
-                                        temp.push_str(seperator.at(0).unwrap());
-                                        temp.to_string()
-                                    })
-                                    .collect::<Vec<String>>()
-                                    .join("");
-            }
-            let captured_patterns_count = split_pattern.find_iter(&s).count();
-            if captured_patterns_count > capitalized.len() {
-                result.push_str( split_pattern.captures_iter(&s).last().unwrap().at(0).unwrap());
-            } else if capitalized.len() > captured_patterns_count {
-                result.push_str(capitalized.last().unwrap());
-            }
-            Ok(to_value(&result))
-        }
-    }
+    Ok(to_value(
+        &WORDS_RE.replace_all(&s, |caps: &Captures| {
+            let first = caps["first"].to_uppercase();
+            let rest = caps["rest"].to_lowercase();
+            format!("{}{}", first, rest)
+        })
+    ))
+
 }
 
-///Removes html tags from string
+/// Removes html tags from string
 pub fn striptags(value : Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("striptags", "value", String, value);
-    let tag_pattern = Regex::new(r"(<!--.*?-->|<[^>]*>)").unwrap();
-    Ok(to_value(&tag_pattern.split(&s).filter(|x| !x.is_empty()).collect::<Vec<&str>>().join("")))
+    Ok(to_value(&STRIPTAGS_RE.replace_all(&s, "")))
 }
 
 #[cfg(test)]

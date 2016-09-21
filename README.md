@@ -221,19 +221,19 @@ If value is "I'm using Tera", the output will be "I\'m using Tera"
 #### slugify
 Transform a string into ASCII, lowercase it, trim it, converts spaces to hyphens and remove all characters that are not numbers, lowercase letters or hyphens.
 
-Example: `{{ value | slugify}}
+Example: `{{ value | slugify}}`
 If value is "-Hello world! ", the output will be "hello-world".
 
 #### title
 Capitalizes each word inside a sentence.
 
-Example: `{{ value | title}}
+Example: `{{ value | title}}`
 If value is "foo  bar", the output will be "Foo  Bar".
 
 #### striptags
 Tries to remove HTML tags from input. Does not guarantee well formed output if input is not valid HTML.
 
-Example: `{{ value | striptags}}
+Example: `{{ value | striptags}}`
 If value is "<b>Joel</b>", the output will be "Joel" 
 
 #### first

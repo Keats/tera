@@ -16,8 +16,13 @@ serde_json = "0.8"
 clippy = {version = "~0.0.77", optional = true}
 pest = "0.4"
 quick-error = "1.1.0"
+
+# used in slugify filter
 slug = "0.1"
+# used in striptags filters
 regex = "0.1"
+# used for static regex
+lazy_static = "0.2"
 
 [features]
 default = []
