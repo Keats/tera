@@ -10,8 +10,8 @@ pub type TesterFn = fn(context: &Map<String, Value>,
                        params: LinkedList<Value>)
                        -> TeraResult<bool>;
 
-// Returns the number of items in an array or the number of characters in a string.
-// Returns 0 if not an array or string.
+/// Returns true if `value` is defined in the given context. Otherwise, returns
+/// false.
 pub fn defined(context: &Map<String, Value>, value: &Node, params: LinkedList<Value>)
         -> TeraResult<bool> {
     if params.len() != 0 {

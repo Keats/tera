@@ -110,8 +110,6 @@ impl_rdp! {
             | (["("] ~ test_fn_param ~ ([","] ~ test_fn_param)* ~ [")"])
         }
         test_fn = !@{ simple_ident ~ test_fn_params? }
-        // explicit whitespace is needed so that `if is_defined` doesn't get
-        // parsed as a test.
         test = { ["is"] ~ test_fn }
 
         // Precedence climbing

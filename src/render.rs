@@ -168,7 +168,6 @@ impl<'a> Renderer<'a> {
 
     fn eval_expression(&self, node: Node) -> TeraResult<Value> {
         match node {
-            // Simple truthiness check
             Identifier { .. } => {
                 let value = try!(self.eval_ident(&node));
                 Ok(value)
@@ -194,7 +193,6 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    // TODO: clean up this, too ugly right now for the == and != nodes
     fn eval_condition(&self, node: Node) -> TeraResult<bool> {
         match node {
             Identifier { .. } => {
