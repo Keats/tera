@@ -107,7 +107,7 @@ and `else`:
 {% endif %}
 ```
 
-Undefined values are considered falsy. This means that you can test for the
+Undefined variables are considered falsy. This means that you can test for the
 presence of a variable in the current context by writing:
 
 ```jinja
