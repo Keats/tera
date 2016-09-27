@@ -94,9 +94,10 @@ You can access variables of the context by using the `{{ my_variable_name }}` co
 You can also do some maths: `{{ product.price + 10 }}`. If `product.price` is not a number type, the `render` method will return an error.
 
 ### If
-Similar to the if in Rust, you can have several conditions and also use `elif` and `else`:
+Similar to the if in Rust, you can have several conditions and also use `elif`
+and `else`:
 
-```jinja`
+```jinja
 {% if price < 10 || always_show %}
    Price is {{ price }}.
 {% elif price > 1000 %}
@@ -105,7 +106,22 @@ Similar to the if in Rust, you can have several conditions and also use `elif` a
     N/A
 {% endif %}
 ```
-The `if` statement has to end with a `endif` tag.
+
+Undefined variables are considered falsy. This means that you can test for the
+presence of a variable in the current context by writing:
+
+```jinja
+{% if my_var %}
+    {{ my_var }}
+{% else %}
+    Sorry, my_var isn't defined.
+{% endif %}
+```
+
+If `my_var` is defined, the `if` branch will be rendered. Otherwise, the `else`
+branch will be rendered.
+
+Every `if` statement has to end with an `endif` tag.
 
 ### For
 Loop over items in a array:
@@ -187,6 +203,26 @@ Again, straight from jinja2 docs:
 
 When trying to render that template, Tera will see that it depends on a parent template and will render it first, filling the blocks as it encounters them in the base template.
 
+### Tests
+
+Tests can be used against a variable to check some condition on the variable.
+Perhaps the most common use of variable tests is to check if a variable is
+defined before its use to prevent run-time errors. Tests are made against
+variables in `if` blocks using the `is` keyword. For example, to test if `user`
+is defined, you would write:
+
+```
+{% if user is defined %}
+... do something with user ...
+{% else %}
+... don't use user here ...
+{% end %}
+```
+
+Here are the currently implemented testers:
+
+#### defined
+Returns true if the given variable is defined.
 
 ### Filters
 Variables can be modified by filters. 

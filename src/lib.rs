@@ -30,6 +30,7 @@ mod render;
 mod template;
 mod tera;
 mod filters;
+mod testers;
 
 
 // Library exports

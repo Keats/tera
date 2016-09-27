@@ -14,7 +14,11 @@
         <p>Only one review</p>
       {% endif %}
     {% else %}
-      <p>None of your friend reviewed this product</p>
+      {% if this_doesnt_exist %}
+        Oh no!
+      {% else %}
+        <p>None of your friend reviewed this product</p>
+      {% endif %}
     {% endif %}
     <button>Buy!</button>
   </body>
