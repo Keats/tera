@@ -23,6 +23,8 @@ slug = "0.1"
 regex = "0.1"
 # used for static regex
 lazy_static = "0.2"
+# used in urlencode filter
+url = "1.2.0"
 
 [features]
 default = []

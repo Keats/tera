@@ -257,3 +257,11 @@ Returns the length of an array or a string, 0 if the value is not an array.
 
 #### reverse
 Returns a reversed string or array
+
+#### urlencode
+Percent-encodes a string.
+
+Example: `{{ value | urlencode }}`
+If value is "/foo?a=b&c=d", the output will be "/foo%3Fa%3Db%26c%3Dd".
+
+Takes an optional argument of characters that shouldn't be percent-encoded (`/` by default). So, to encode slashes as well, you can do `{{ value | urlencode(safe: "") }}`. 
