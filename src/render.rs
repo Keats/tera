@@ -346,6 +346,15 @@ impl<'a> Renderer<'a> {
 
     pub fn render_node(&mut self, node: Node) -> TeraResult<String> {
         match node {
+            Include(p) => {
+                let ast = try!(self.tera.get_template(&p)).ast.get_children();
+                let mut output = String::new();
+                for node in ast {
+                    output.push_str(&try!(self.render_node(node)));
+                }
+
+                Ok(output)
+            },
             Text(s) => Ok(s),
             Raw(s) => Ok(s.trim().to_string()),
             VariableBlock(exp) => self.render_variable_block(*exp),
@@ -410,6 +419,15 @@ mod tests {
         tera.add_template("hello", content);
 
         tera.render("hello", context)
+    }
+
+    #[test]
+    fn test_render_include() {
+        let mut tera = Tera::default();
+        tera.add_template("world", "world");
+        tera.add_template("hello", "<h1>Hello {% include \"world\" %}</h1>");
+        let result = tera.render("hello", Context::new());
+        assert_eq!(result.unwrap(), "<h1>Hello world</h1>".to_owned());
     }
 
     #[test]

@@ -35,6 +35,7 @@ pub enum Node {
     Raw(String),
     Extends(String),
     VariableBlock(Box<Node>),
+    Include(String),
 }
 
 impl Node {
@@ -135,6 +136,7 @@ impl_rdp! {
         block_start    = _{ variable_start | tag_start | comment_start }
 
         // Actual tags
+        include_tag     = !@{ tag_start ~ ["include"] ~ string ~ tag_end }
         extends_tag     = !@{ tag_start ~ ["extends"] ~ string ~ tag_end }
         variable_tag    = !@{ variable_start ~ expression ~ variable_end }
         comment_tag     = !@{ comment_start ~ (!comment_end ~ any )* ~ comment_end }
@@ -154,6 +156,7 @@ impl_rdp! {
         text       = { (!(block_start) ~ any )+ }
 
         content = @{
+            include_tag |
             variable_tag |
             comment_tag |
             block_tag ~ content* ~ endblock_tag |
@@ -203,6 +206,9 @@ impl_rdp! {
         _content(&self) -> TeraResult<Option<Node>> {
             (&head: text) => {
                 Ok(Some(Node::Text(head.to_string())))
+            },
+            (_: include_tag, &name: string) => {
+                Ok(Some(Node::Include(name.replace("\"", "").to_string())))
             },
             (_: variable_tag, exp: _expression()) => {
                 Ok(Some(Node::VariableBlock(Box::new(try!(exp)))))
@@ -619,6 +625,13 @@ mod tests {
     fn test_extends_tag() {
         let mut parser = Rdp::new(StringInput::new("{% extends \"base.html\" %}"));
         assert!(parser.extends_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_include_tag() {
+        let mut parser = Rdp::new(StringInput::new("{% include \"component.html\" %}"));
+        assert!(parser.include_tag());
         assert!(parser.end());
     }
 
