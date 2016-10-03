@@ -84,7 +84,10 @@ Notice that the name of the template is based on the root of the template direct
 
 ## Template writer documentation
 ### Variables
-You can access variables of the context by using the `{{ my_variable_name }}` construct. You can access attributes by using the dot (`.`) like `{{ product.name }}`.
+You can access variables of the context by using the `{{ my_variable_name }}` construct. 
+You can access attributes by using the dot (`.`) like `{{ product.name }}`.
+You can access specific members of an array or tuple by using the `.0` notation where 0 is the index you want.
+
 You can also do some maths: `{{ product.price + 10 }}`. If `product.price` is not a number type, the `render` method will return an error.
 
 ### If

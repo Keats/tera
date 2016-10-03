@@ -70,7 +70,7 @@ impl<'a> Renderer<'a> {
     fn lookup_variable(&self, key: &str) -> TeraResult<Value> {
         // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
-            return self.context.lookup(key).cloned()
+            return self.context.pointer(&("/".to_string() + &key.replace(".", "/"))).cloned()
                 .ok_or_else(|| FieldNotFound(key.to_string()));
         }
 
@@ -102,7 +102,8 @@ impl<'a> Renderer<'a> {
 
         // dummy statement to satisfy the compiler
         // TODO: make it so that's not needed
-        self.context.lookup(key).cloned().ok_or_else(|| FieldNotFound(key.to_string()))
+        self.context.pointer(&("/".to_string() + &key.replace(".", "/"))).cloned()
+            .ok_or_else(|| FieldNotFound(key.to_string()))
     }
 
     // Gets an identifier and return its json value
@@ -552,5 +553,17 @@ mod tests {
         );
 
         assert_eq!(result.unwrap(), "HELLO".to_owned());
+    }
+
+    #[test]
+    fn test_render_index_array() {
+        let mut context = Context::new();
+        context.add("my_arr", &vec![1, 2, 3]);
+        let result = render_template(
+            "{{ my_arr.1 }}",
+            context
+        );
+
+        assert_eq!(result.unwrap(), "2".to_owned());
     }
 }
