@@ -1,30 +1,79 @@
 use errors::{TeraResult, TeraError};
-use serde_json::value::{Map, Value};
-use parser::Node;
+use serde_json::value::{Value};
+use context::ValueNumber;
 
 use std::collections::LinkedList;
 
-// TODO: Don't expose the AST to tester functions.
-pub type TesterFn = fn(context: &Map<String, Value>,
-                       value: &Node,
-                       params: LinkedList<Value>)
-                       -> TeraResult<bool>;
+
+pub type TesterFn = fn(
+    value: Option<Value>,
+    params: LinkedList<Value>
+) -> TeraResult<bool>;
+
 
 /// Returns true if `value` is defined in the given context. Otherwise, returns
 /// false.
-pub fn defined(context: &Map<String, Value>, value: &Node, params: LinkedList<Value>)
-        -> TeraResult<bool> {
+pub fn defined(value: Option<Value>, params: LinkedList<Value>) -> TeraResult<bool> {
     if params.len() != 0 {
-        return Err(TeraError::TestError("defined".to_string(),
-            "defined should not be called with parameters".to_string()))
+        return Err(TeraError::TestError(
+            "defined".to_string(),
+            "defined should not be called with parameters".to_string()
+        ))
     }
 
-    let name = match *value {
-        Node::Identifier { ref name, .. } => name,
-        _ => return Err(TeraError::TestError("defined".to_string(),
-                "defined can only be called on identifiers".to_string()))
-    };
+    Ok(value.is_some())
+}
 
-    Ok(context.contains_key(name))
+/// Returns true if `value` is an odd number. Otherwise, returns false.
+pub fn odd(value: Option<Value>, params: LinkedList<Value>) -> TeraResult<bool> {
+    if params.len() != 0 {
+        return Err(TeraError::TestError(
+            "odd".to_string(),
+            "odd should not be called with parameters".to_string()
+        ))
+    }
+
+    match value {
+        Some(v) => {
+          return match v.to_number() {
+            Ok(f) => Ok(f % 2.0 != 0.0),
+            Err(_) => Err(TeraError::TestError(
+                "odd".to_string(),
+                "odd can only be called on numbers".to_string()
+            ))
+          };
+        },
+        None => Err(TeraError::TestError(
+            "odd".to_string(),
+            "odd was called on an undefined expression".to_string()
+        ))
+    }
+}
+
+
+/// Returns true if `value` is defined in an even number. Otherwise, returns false.
+pub fn even(value: Option<Value>, params: LinkedList<Value>) -> TeraResult<bool> {
+    if params.len() != 0 {
+        return Err(TeraError::TestError(
+            "even".to_string(),
+            "even should not be called with parameters".to_string()
+        ))
+    }
+
+    match value {
+        Some(v) => {
+          return match v.to_number() {
+            Ok(f) => Ok(f % 2.0 == 0.0),
+            Err(_) => Err(TeraError::TestError(
+                "even".to_string(),
+                "even can only be called on numbers".to_string()
+            ))
+          };
+        },
+        None => Err(TeraError::TestError(
+            "even".to_string(),
+            "even was called on an undefined expression".to_string()
+        ))
+    }
 }
 
