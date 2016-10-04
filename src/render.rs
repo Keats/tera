@@ -224,12 +224,12 @@ impl<'a> Renderer<'a> {
                     "or" => {
                         let result = try!(self.eval_condition(*lhs))
                             || try!(self.eval_condition(*rhs));
-                        return Ok(result);
+                        Ok(result)
                     },
                     "and" => {
                         let result = try!(self.eval_condition(*lhs))
                             && try!(self.eval_condition(*rhs));
-                        return Ok(result);
+                        Ok(result)
                     },
                     ">=" | ">" | "<=" | "<" => {
                         let l = try!(self.eval_math(&lhs));
@@ -241,7 +241,7 @@ impl<'a> Renderer<'a> {
                             "<" => l < r,
                             _ => unreachable!()
                         };
-                        return Ok(result);
+                        Ok(result)
                     },
                     "==" | "!=" => {
                         let mut lhs_val = try!(self.eval_expression(*lhs));
