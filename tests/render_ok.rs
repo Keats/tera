@@ -29,6 +29,7 @@ fn assert_template_ok(path: &str, base_path: Option<&str>) {
     context.add("show_more", &true);
     context.add("reviews", &vec![Review::new(), Review::new()]);
     context.add("a_tuple", &(1, 2, 3));
+    context.add("an_array_of_tuple", &vec![(1, 2, 3), (1, 2, 3)]);
     let empty: Vec<Review> = Vec::new();
     context.add("empty", &empty);
 

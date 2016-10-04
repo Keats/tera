@@ -65,12 +65,19 @@ impl<'a> Renderer<'a> {
         }
     }
 
+    // Converts a dotted path to a json pointer one
+    // TODO: should belong on the context itself eventually once
+    // we move from json
+    fn get_json_pointer(&self, key: &str) -> String {
+        ["/", &key.replace(".", "/")].join("")
+    }
+
     // Lookup a variable name from the context and takes into
     // account for loops variables
     fn lookup_variable(&self, key: &str) -> TeraResult<Value> {
         // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
-            return self.context.pointer(&("/".to_string() + &key.replace(".", "/"))).cloned()
+            return self.context.pointer(&self.get_json_pointer(key)).cloned()
                 .ok_or_else(|| FieldNotFound(key.to_string()));
         }
 
@@ -84,8 +91,7 @@ impl<'a> Renderer<'a> {
                 // might be a struct or some nested structure
                 if key.contains('.') {
                     let new_key = key.split_terminator('.').skip(1).collect::<Vec<&str>>().join(".");
-                    return value.lookup(&new_key).cloned()
-                        .ok_or_else(|| FieldNotFound(key.to_string()));
+                    return value.pointer(&self.get_json_pointer(&new_key)).cloned().ok_or_else(|| FieldNotFound(key.to_string()));
                 } else {
                     return Ok(value.clone());
                 }
@@ -102,7 +108,7 @@ impl<'a> Renderer<'a> {
 
         // dummy statement to satisfy the compiler
         // TODO: make it so that's not needed
-        self.context.pointer(&("/".to_string() + &key.replace(".", "/"))).cloned()
+        self.context.pointer(&self.get_json_pointer(key)).cloned()
             .ok_or_else(|| FieldNotFound(key.to_string()))
     }
 
@@ -559,11 +565,12 @@ mod tests {
     fn test_render_index_array() {
         let mut context = Context::new();
         context.add("my_arr", &vec![1, 2, 3]);
+        context.add("my_arr2", &vec![(1,2,3), (1,2,3), (1,2,3)]);
         let result = render_template(
-            "{{ my_arr.1 }}",
+            "{{ my_arr.1 }}{{ my_arr2.1.1 }}",
             context
         );
 
-        assert_eq!(result.unwrap(), "2".to_owned());
+        assert_eq!(result.unwrap(), "22".to_owned());
     }
 }
