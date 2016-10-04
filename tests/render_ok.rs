@@ -28,6 +28,8 @@ fn assert_template_ok(path: &str, base_path: Option<&str>) {
     context.add("number_reviews", &2);
     context.add("show_more", &true);
     context.add("reviews", &vec![Review::new(), Review::new()]);
+    context.add("a_tuple", &(1, 2, 3));
+    context.add("an_array_of_tuple", &vec![(1, 2, 3), (1, 2, 3)]);
     let empty: Vec<Review> = Vec::new();
     context.add("empty", &empty);
 
@@ -101,4 +103,9 @@ fn test_ok_filters_template() {
 #[test]
 fn test_ok_variable_tests() {
     assert_template_ok("tests/templates/variable_tests.html", None);
+}
+
+#[test]
+fn test_ok_indexing() {
+    assert_template_ok("tests/templates/indexing.html", None);
 }
