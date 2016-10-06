@@ -215,11 +215,33 @@ is defined, you would write:
 ... don't use user here ...
 {% end %}
 ```
+Note that testers allow expressions so the following is a valid test as well:
+
+```
+{% if my_number + 1 is odd %}
+ blabla
+{% endif %}
+```
 
 Here are the currently implemented testers:
 
 #### defined
 Returns true if the given variable is defined.
+
+#### undefined
+Returns true if the given variable is undefined.
+
+#### odd
+Returns true if the given variable is an odd number.
+
+#### even
+Returns true if the given variable is an even number.
+
+#### string
+Returns true if the given variable is a string.
+
+#### number
+Returns true if the given variable is a number.
 
 ### Filters
 Variables can be modified by filters. 

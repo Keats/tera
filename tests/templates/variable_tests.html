@@ -10,8 +10,30 @@
   <h1>Oh no!</h1>
 {% endif %}
 
-{% if number_reviews is odd %}
+{% if blabla is undefined %}
+    Blabla
+{% endif %}
+
+{% if username is string %}
+    String
+{% elif product is string %}
+    Wat
+{% endif %}
+
+{% if number_reviews + 1 is odd %}
     Odd
-{% elif number_reviews is even %}
+{% elif number_reviews is odd %}
+    Nop
+{% endif %}
+
+{% if number_reviews is even %}
     Even
+{% elif number_reviews + 1 is even %}
+    Nop2
+{% endif %}
+
+{% if number_reviews is number %}
+    Number
+{% elif product is number %}
+    Wat2
 {% endif %}

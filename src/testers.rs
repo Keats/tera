@@ -11,8 +11,7 @@ pub type TesterFn = fn(
 ) -> TeraResult<bool>;
 
 
-/// Returns true if `value` is defined in the given context. Otherwise, returns
-/// false.
+/// Returns true if `value` is defined. Otherwise, returns false.
 pub fn defined(value: Option<Value>, params: LinkedList<Value>) -> TeraResult<bool> {
     if params.len() != 0 {
         return Err(TeraError::TestError(
@@ -22,6 +21,60 @@ pub fn defined(value: Option<Value>, params: LinkedList<Value>) -> TeraResult<bo
     }
 
     Ok(value.is_some())
+}
+
+/// Returns true if `value` is undefined. Otherwise, returns false.
+pub fn undefined(value: Option<Value>, params: LinkedList<Value>) -> TeraResult<bool> {
+    if params.len() != 0 {
+        return Err(TeraError::TestError(
+            "undefined".to_string(),
+            "undefined should not be called with parameters".to_string()
+        ))
+    }
+
+    Ok(value.is_none())
+}
+
+/// Returns true if `value` is a string. Otherwise, returns false.
+pub fn string(value: Option<Value>, params: LinkedList<Value>) -> TeraResult<bool> {
+    if params.len() != 0 {
+        return Err(TeraError::TestError(
+            "string".to_string(),
+            "string should not be called with parameters".to_string()
+        ))
+    }
+
+    match value {
+        Some(v) => match v {
+            Value::String(_) => Ok(true),
+            _ => Ok(false),
+        },
+        None => Err(TeraError::TestError(
+            "string".to_string(),
+            "string was called on an undefined expression".to_string()
+        ))
+    }
+}
+
+/// Returns true if `value` is a number. Otherwise, returns false.
+pub fn number(value: Option<Value>, params: LinkedList<Value>) -> TeraResult<bool> {
+    if params.len() != 0 {
+        return Err(TeraError::TestError(
+            "number".to_string(),
+            "number should not be called with parameters".to_string()
+        ))
+    }
+
+    match value {
+        Some(v) => match v {
+            Value::I64(_) | Value::F64(_) | Value::U64(_) => Ok(true),
+            _ => Ok(false),
+        },
+        None => Err(TeraError::TestError(
+            "number".to_string(),
+            "number was called on an undefined expression".to_string()
+        ))
+    }
 }
 
 /// Returns true if `value` is an odd number. Otherwise, returns false.
@@ -51,7 +104,7 @@ pub fn odd(value: Option<Value>, params: LinkedList<Value>) -> TeraResult<bool> 
 }
 
 
-/// Returns true if `value` is defined in an even number. Otherwise, returns false.
+/// Returns true if `value` is an even number. Otherwise, returns false.
 pub fn even(value: Option<Value>, params: LinkedList<Value>) -> TeraResult<bool> {
     if params.len() != 0 {
         return Err(TeraError::TestError(
