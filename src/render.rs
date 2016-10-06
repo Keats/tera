@@ -199,9 +199,9 @@ impl<'a> Renderer<'a> {
             },
             Test { expression, name, params } => {
                 let tester = try!(self.tera.get_tester(&name));
-                let mut value_params = LinkedList::new();
+                let mut value_params = vec![];
                 for param in params {
-                    value_params.push_back(try!(self.eval_expression(param)));
+                    value_params.push(try!(self.eval_expression(param)));
                 }
                 tester(self.eval_expression(*expression).ok(), value_params)
             },
