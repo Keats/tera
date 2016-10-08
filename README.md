@@ -215,7 +215,7 @@ is defined, you would write:
 ... don't use user here ...
 {% end %}
 ```
-Note that testers allow expressions so the following is a valid test as well:
+Note that testers allow expressions, so the following is a valid test as well:
 
 ```
 {% if my_number + 1 is odd %}

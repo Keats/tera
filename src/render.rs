@@ -84,7 +84,9 @@ impl<'a> Renderer<'a> {
                 // might be a struct or some nested structure
                 if key.contains('.') {
                     let new_key = key.split_terminator('.').skip(1).collect::<Vec<&str>>().join(".");
-                    return value.pointer(&get_json_pointer(&new_key)).cloned().ok_or_else(|| FieldNotFound(key.to_string()));
+                    return value.pointer(&get_json_pointer(&new_key))
+                        .cloned()
+                        .ok_or_else(|| FieldNotFound(key.to_string()));
                 } else {
                     return Ok(value.clone());
                 }
@@ -100,8 +102,7 @@ impl<'a> Renderer<'a> {
         }
 
         // dummy statement to satisfy the compiler
-        // TODO: make it so that's not needed
-        self.context.pointer(&get_json_pointer(key)).cloned().ok_or_else(|| FieldNotFound(key.to_string()))
+        unreachable!();
     }
 
     // Gets an identifier and return its json value
@@ -203,7 +204,7 @@ impl<'a> Renderer<'a> {
                 for param in params {
                     value_params.push(try!(self.eval_expression(param)));
                 }
-                tester(self.eval_expression(*expression).ok(), value_params)
+                tester(&name, self.eval_expression(*expression).ok(), value_params)
             },
             Logic { lhs, rhs, operator } => {
                 match operator.as_str() {
