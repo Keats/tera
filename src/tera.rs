@@ -59,6 +59,7 @@ impl Tera {
         tera
     }
 
+    /// Renders a Tera template given a `Context`.
     pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
         let template = try!(self.get_template(template_name));
         let mut renderer = Renderer::new(template, self, data.as_json());
@@ -66,8 +67,8 @@ impl Tera {
         renderer.render()
     }
 
-    /// Renders a Serde JSON value.
-    pub fn render_value<T>(&self, template_name: &str, data: &T) -> TeraResult<String>
+    /// Renders a Tera template given a `Serializeable` object.
+    pub fn value_render<T>(&self, template_name: &str, data: &T) -> TeraResult<String>
         where T: Serialize
     {
         let value = to_value(data);
