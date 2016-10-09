@@ -121,6 +121,11 @@ impl Tera {
 
     fn register_tera_testers(&mut self) {
         self.register_tester("defined", testers::defined);
+        self.register_tester("undefined", testers::undefined);
+        self.register_tester("odd", testers::odd);
+        self.register_tester("even", testers::even);
+        self.register_tester("string", testers::string);
+        self.register_tester("number", testers::number);
     }
 }
 
