@@ -2,7 +2,7 @@ use std::collections::LinkedList;
 
 use serde_json::value::{Value, to_value};
 
-use context::{Context, ValueRender, ValueNumber, ValueTruthy};
+use context::{ValueRender, ValueNumber, ValueTruthy};
 use template::Template;
 use errors::TeraResult;
 use errors::TeraError::*;
@@ -56,11 +56,7 @@ pub struct Renderer<'a> {
 }
 
 impl<'a> Renderer<'a> {
-    pub fn new(tpl: &'a Template, tera: &'a Tera, context: Context) -> Renderer<'a> {
-        Renderer::new_with_json(tpl, tera, context.as_json())
-    }
-
-    pub fn new_with_json(tpl: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
+    pub fn new(tpl: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
         Renderer {
             template: tpl,
             tera: tera,

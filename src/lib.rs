@@ -3,7 +3,6 @@
 // Needed by pest
 #![recursion_limit = "200"]
 
-
 #![cfg_attr(feature = "dev", feature(plugin))]
 #![cfg_attr(feature = "dev", plugin(clippy))]
 #![cfg_attr(feature = "dev", allow(block_in_if_condition_stmt, linkedlist))]
@@ -33,10 +32,10 @@ mod filters;
 mod testers;
 
 
-// Library exports. Template and Renderer are not meant to be used in your code
-// as they are generally unstable, internal APIs.
-pub use render::Renderer;
-pub use template::Template;
+// Library exports.
+
+// Template is meant to be used internally only but is exported for test/bench.
+#[doc(hidden)] pub use template::Template;
 pub use context::Context;
 pub use tera::Tera;
 pub use errors::{TeraResult, TeraError};
