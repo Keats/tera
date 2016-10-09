@@ -2,7 +2,7 @@ use std::collections::LinkedList;
 
 use serde_json::value::{Value, to_value};
 
-use context::{ValueRender, ValueNumber, ValueTruthy};
+use context::{ValueRender, ValueNumber, ValueTruthy, get_json_pointer};
 use template::Template;
 use errors::TeraResult;
 use errors::TeraError::*;
@@ -65,19 +65,12 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    // Converts a dotted path to a json pointer one
-    // TODO: should belong on the context itself eventually once
-    // we move from json
-    fn get_json_pointer(&self, key: &str) -> String {
-        ["/", &key.replace(".", "/")].join("")
-    }
-
     // Lookup a variable name from the context and takes into
     // account for loops variables
     fn lookup_variable(&self, key: &str) -> TeraResult<Value> {
         // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
-            return self.context.pointer(&self.get_json_pointer(key)).cloned()
+            return self.context.pointer(&get_json_pointer(key)).cloned()
                 .ok_or_else(|| FieldNotFound(key.to_string()));
         }
 
@@ -91,7 +84,9 @@ impl<'a> Renderer<'a> {
                 // might be a struct or some nested structure
                 if key.contains('.') {
                     let new_key = key.split_terminator('.').skip(1).collect::<Vec<&str>>().join(".");
-                    return value.pointer(&self.get_json_pointer(&new_key)).cloned().ok_or_else(|| FieldNotFound(key.to_string()));
+                    return value.pointer(&get_json_pointer(&new_key))
+                        .cloned()
+                        .ok_or_else(|| FieldNotFound(key.to_string()));
                 } else {
                     return Ok(value.clone());
                 }
@@ -107,9 +102,7 @@ impl<'a> Renderer<'a> {
         }
 
         // dummy statement to satisfy the compiler
-        // TODO: make it so that's not needed
-        self.context.pointer(&self.get_json_pointer(key)).cloned()
-            .ok_or_else(|| FieldNotFound(key.to_string()))
+        unreachable!();
     }
 
     // Gets an identifier and return its json value
@@ -207,17 +200,11 @@ impl<'a> Renderer<'a> {
             },
             Test { expression, name, params } => {
                 let tester = try!(self.tera.get_tester(&name));
-                let context = match self.context.as_object() {
-                    Some(map) => map,
-                    None => return Err(Internal("context is not an object.".into()))
-                };
-
-                let mut value_params = LinkedList::new();
+                let mut value_params = vec![];
                 for param in params {
-                    value_params.push_back(try!(self.eval_expression(param)));
+                    value_params.push(try!(self.eval_expression(param)));
                 }
-
-                tester(context, &expression, value_params)
+                tester(&name, self.eval_expression(*expression).ok(), value_params)
             },
             Logic { lhs, rhs, operator } => {
                 match operator.as_str() {
