@@ -33,7 +33,7 @@ fn number_args_allowed(arg_name: &str, tester_name: &str, max: usize, args_len: 
     Ok(())
 }
 
-// Called to return an error when unwrapping the value and realising there's nothing
+// Called to check if the Value is defined and return an Err if not
 fn value_defined(arg_name: &str, tester_name: &str, value: &Option<Value>) -> TeraResult<()> {
     if value.is_none() {
         return Err(TeraError::TestError(
@@ -64,8 +64,8 @@ pub fn string(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResul
     try!(number_args_allowed(name, "string", 0, params.len()));
     try!(value_defined(name, "string", &value));
 
-    match value.unwrap() {
-        Value::String(_) => Ok(true),
+    match value {
+        Some(Value::String(_)) => Ok(true),
         _ => Ok(false)
     }
 }
@@ -75,8 +75,8 @@ pub fn number(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResul
     try!(number_args_allowed(name, "number", 0, params.len()));
     try!(value_defined(name, "number", &value));
 
-    match value.unwrap() {
-        Value::I64(_) | Value::F64(_) | Value::U64(_) => Ok(true),
+    match value {
+        Some(Value::I64(_)) | Some(Value::F64(_)) | Some(Value::U64(_)) => Ok(true),
         _ => Ok(false)
     }
 }
@@ -86,9 +86,9 @@ pub fn odd(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<b
     try!(number_args_allowed(name, "odd", 0, params.len()));
     try!(value_defined(name, "odd", &value));
 
-    match value.unwrap().to_number() {
-        Ok(f) => Ok(f % 2.0 != 0.0),
-        Err(_) => Err(TeraError::TestError(
+    match value.and_then(|v| v.to_number().ok()) {
+        Some(f) => Ok(f % 2.0 != 0.0),
+        _ => Err(TeraError::TestError(
             "odd".to_string(),
             "odd can only be called on numbers".to_string()
         ))
