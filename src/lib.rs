@@ -33,9 +33,8 @@ mod filters;
 mod testers;
 
 
-// Library exports
-// Template and Rendered are not meant to be used in your code, only there for
-// bench/test of tera itself
+// Library exports. Template and Renderer are not meant to be used in your code
+// as they are generally unstable, internal APIs.
 pub use render::Renderer;
 pub use template::Template;
 pub use context::Context;
