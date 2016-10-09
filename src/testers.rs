@@ -34,11 +34,15 @@ fn number_args_allowed(arg_name: &str, tester_name: &str, max: usize, args_len: 
 }
 
 // Called to return an error when unwrapping the value and realising there's nothing
-fn value_is_undefined(arg_name: &str, tester_name: &str) -> TeraResult<bool> {
-    Err(TeraError::TestError(
-        tester_name.to_string(),
-        format!("{} was called on the variable {}, which is undefined", tester_name, arg_name)
-    ))
+fn value_defined(arg_name: &str, tester_name: &str, value: &Option<Value>) -> TeraResult<()> {
+    if value.is_none() {
+        return Err(TeraError::TestError(
+            tester_name.to_string(),
+            format!("{} was called on the variable {}, which is undefined", tester_name, arg_name)
+        ));
+    }
+
+    Ok(())
 }
 
 /// Returns true if `value` is defined. Otherwise, returns false.
@@ -58,10 +62,10 @@ pub fn undefined(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraRe
 /// Returns true if `value` is a string. Otherwise, returns false.
 pub fn string(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
     try!(number_args_allowed(name, "string", 0, params.len()));
+    try!(value_defined(name, "string", &value));
 
-    match value {
-        Some(Value::String(_)) => Ok(true),
-        None => value_is_undefined(name, "string"),
+    match value.unwrap() {
+        Value::String(_) => Ok(true),
         _ => Ok(false)
     }
 }
@@ -69,10 +73,10 @@ pub fn string(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResul
 /// Returns true if `value` is a number. Otherwise, returns false.
 pub fn number(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
     try!(number_args_allowed(name, "number", 0, params.len()));
+    try!(value_defined(name, "number", &value));
 
-    match value {
-        Some(Value::I64(_)) | Some(Value::F64(_)) | Some(Value::U64(_)) => Ok(true),
-        None => value_is_undefined(name, "number"),
+    match value.unwrap() {
+        Value::I64(_) | Value::F64(_) | Value::U64(_) => Ok(true),
         _ => Ok(false)
     }
 }
@@ -80,16 +84,14 @@ pub fn number(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResul
 /// Returns true if `value` is an odd number. Otherwise, returns false.
 pub fn odd(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
     try!(number_args_allowed(name, "odd", 0, params.len()));
+    try!(value_defined(name, "odd", &value));
 
-    match value {
-        Some(v) => match v.to_number() {
-            Ok(f) => Ok(f % 2.0 != 0.0),
-            Err(_) => Err(TeraError::TestError(
-                "odd".to_string(),
-                "odd can only be called on numbers".to_string()
-            ))
-        },
-        None => value_is_undefined(name, "odd")
+    match value.unwrap().to_number() {
+        Ok(f) => Ok(f % 2.0 != 0.0),
+        Err(_) => Err(TeraError::TestError(
+            "odd".to_string(),
+            "odd can only be called on numbers".to_string()
+        ))
     }
 }
 
@@ -97,24 +99,15 @@ pub fn odd(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<b
 /// Returns true if `value` is an even number. Otherwise, returns false.
 pub fn even(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
     try!(number_args_allowed(name, "even", 0, params.len()));
+    try!(value_defined(name, "even", &value));
 
-    match value {
-        Some(v) => {
-          return match v.to_number() {
-            Ok(f) => Ok(f % 2.0 == 0.0),
-            Err(_) => Err(TeraError::TestError(
-                "even".to_string(),
-                "even can only be called on numbers".to_string()
-            ))
-          };
-        },
-        None => value_is_undefined(name, "even")
-    }
+    let is_odd = try!(odd(name, value, params));
+    Ok(!is_odd)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{defined};
+    use super::{defined, string};
 
     use serde_json::value::{to_value};
 
@@ -126,5 +119,10 @@ mod tests {
     #[test]
     fn test_too_many_args() {
         assert!(defined("", None, vec![to_value(1)]).is_err())
+    }
+
+    #[test]
+    fn test_value_defined() {
+        assert!(string("", None, vec![]).is_err())
     }
 }
