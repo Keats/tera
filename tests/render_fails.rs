@@ -59,3 +59,11 @@ fn test_error_render_iterate_non_array() {
     assert_eq!(result.is_err(), true);
     assert_eq!(result.unwrap_err().description(), "field is not an array".to_string());
 }
+
+#[test]
+fn test_error_render_include_inexistent() {
+    let result = render_tpl("inexisting_include.html");
+
+    assert_eq!(result.is_err(), true);
+    assert_eq!(result.unwrap_err().description(), "template not found".to_string());
+}
