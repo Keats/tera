@@ -109,3 +109,8 @@ fn test_ok_variable_tests() {
 fn test_ok_indexing() {
     assert_template_ok("tests/templates/indexing.html", None);
 }
+
+#[test]
+fn test_ok_include_template() {
+    assert_template_ok("tests/templates/include.html", Some("tests/templates/included.html"));
+}
