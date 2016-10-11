@@ -200,6 +200,13 @@ Again, straight from jinja2 docs:
 
 When trying to render that template, Tera will see that it depends on a parent template and will render it first, filling the blocks as it encounters them in the base template.
 
+#### Include
+You can include a template to be rendered using the current context with the `include` tag.
+
+```jinja
+{% include "included.html" %}
+```
+
 ### Tests
 
 Tests can be used against a variable to check some condition on the variable.
