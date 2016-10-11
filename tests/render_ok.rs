@@ -38,9 +38,6 @@ fn assert_template_ok(path: &str, base_path: Option<&str>) {
         println!("Template {:?} was rendered incorrectly", path);
         println!("Got: \n {:#?}", rendered);
         println!("Expected: \n {:#?}", expected);
-        // Uncomment below to save ouput to html file since
-        // we don't ignore whitespace right now it's a bit tricky to get
-        // the exact \n and spacing
         let mut file = File::create("out.html").unwrap();
         file.write_all(rendered.as_bytes()).unwrap();
         assert!(false);
@@ -113,4 +110,21 @@ fn test_ok_indexing() {
 #[test]
 fn test_ok_include_template() {
     assert_template_ok("tests/templates/include.html", Some("tests/templates/included.html"));
+}
+
+#[test]
+fn test_ok_value_render() {
+    let path = "tests/templates/value_render.html";
+    let mut tera = Tera::default();
+    tera.add_template("tpl", &read_file(path));
+    let expected = read_file(&path.replace("templates", "expected"));
+    let rendered = tera.value_render("tpl", &Product::new()).unwrap();
+    if rendered != expected {
+        println!("Template {:?} was rendered incorrectly", path);
+        println!("Got: \n {:#?}", rendered);
+        println!("Expected: \n {:#?}", expected);
+        let mut file = File::create("out.html").unwrap();
+        file.write_all(rendered.as_bytes()).unwrap();
+        assert!(false);
+    }
 }

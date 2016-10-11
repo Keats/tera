@@ -82,6 +82,18 @@ tera.render("products/product.html", context);
 Notice that the name of the template is based on the root of the template directory given to the Tera instance.
 `Context` takes any primitive value or a struct that implements the `Serialize` trait from `serde_json`. 
 
+If the data you want to render implements the `Serialize` trait, you can bypass the context and render the value directly:
+
+```rust
+// product here is a struct with a `name` field
+tera.value_render("products/product.html", &product);
+
+// in product.html
+{{ name }}
+```
+Note that this method only works for objects that would be converted to JSON objects, like structs and maps.
+ 
+
 ## Template writer documentation
 ### Variables
 You can access variables of the context by using the `{{ my_variable_name }}` construct. 
