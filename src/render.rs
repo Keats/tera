@@ -101,8 +101,9 @@ impl<'a> Renderer<'a> {
             }
         }
 
-        // dummy statement to satisfy the compiler
-        unreachable!();
+        // can get there when looking a variable in the global context while in a forloop
+        self.context.pointer(&get_json_pointer(key)).cloned()
+            .ok_or_else(|| FieldNotFound(key.to_string()))
     }
 
     // Gets an identifier and return its json value
@@ -577,5 +578,18 @@ mod tests {
         );
 
         assert_eq!(result.unwrap(), "22".to_owned());
+    }
+
+    // this was a regression in 0.3.0
+    #[test]
+    fn test_render_if_in_for() {
+        let mut context = Context::new();
+        context.add("sel", &2u32);
+        context.add("seq", &vec![1,2,3]);
+        let result = render_template(
+            "{% for val in seq %} {% if val == sel %} on {% else %} off {% endif %} {% endfor %}",
+            context
+        );
+        assert_eq!(result.unwrap(), "off on off".to_string());
     }
 }
