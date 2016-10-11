@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1 (2016/10/11)
+- Fix regression when using variables in forloops + add test for it
+
 ## 0.3.0 (2016/10/11)
 
 - Change signature of tests functions (BREAKING CHANGE)
