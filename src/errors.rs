@@ -23,6 +23,10 @@ quick_error! {
             display("Template `{}` wasn't found", name)
             description("template not found")
         }
+        InvalidValue(name: String) {
+            display("Expected the value to be an Object while rendering `{}`.", name)
+            description("invalid value")
+        }
         FilterNotFound(name: String) {
             display("Filter `{}` was not found in the context.", name)
             description("filter not found")

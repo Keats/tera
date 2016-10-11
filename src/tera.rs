@@ -4,6 +4,8 @@ use std::fs::File;
 use std::fmt;
 
 use glob::glob;
+use serde::Serialize;
+use serde_json::value::to_value;
 
 use template::Template;
 use filters::{FilterFn, string, array, common};
@@ -57,10 +59,25 @@ impl Tera {
         tera
     }
 
+    /// Renders a Tera template given a `Context`.
     pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
         let template = try!(self.get_template(template_name));
-        let mut renderer = Renderer::new(template, self, data);
+        let mut renderer = Renderer::new(template, self, data.as_json());
 
+        renderer.render()
+    }
+
+    /// Renders a Tera template given a `Serializeable` object.
+    pub fn value_render<T>(&self, template_name: &str, data: &T) -> TeraResult<String>
+        where T: Serialize
+    {
+        let value = to_value(data);
+        if !value.is_object() {
+            return Err(TeraError::InvalidValue(template_name.to_string()))
+        }
+
+        let template = try!(self.get_template(template_name));
+        let mut renderer = Renderer::new(template, self, value);
         renderer.render()
     }
 
