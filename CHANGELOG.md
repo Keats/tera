@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.2.0 (2016/10/27)
+## 0.3.0 (2016/10/11)
+
+- Change signature of tests functions (BREAKING CHANGE)
+- Add more tests: `undefined`, `odd`, `even`, `number` and `string`
+- Add `include` directive to include another file
+- Indexed array/tuple access using the `.x` where `x` is an integer
+
+Thanks to @SergioBenitez and @andrelmartins for the contributions!
+
+
+## 0.2.0 (2016/09/27)
 
 - Added filters, see README for current list
 - Added tests, only `defined` for now
