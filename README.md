@@ -353,3 +353,14 @@ Returns a number rounded following the method given. Default method is `common` 
 `ceil` and `floor` are available as alternative methods.
 
 Example: `{{ num | round }} {{ num | round(method="ceil") }}`
+
+
+#### escape
+Escapes a string's HTML. Specifically, it makes these replacements:
+
+- < is converted to &lt;
+- > is converted to &gt;
+- ' (single quote) is converted to &#39;
+- " (double quote) is converted to &quot;
+- & is converted to &amp;
+

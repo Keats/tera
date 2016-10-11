@@ -162,10 +162,24 @@ pub fn title(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
 }
 
 /// Removes html tags from string
-pub fn striptags(value : Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn striptags(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let s = try_get_value!("striptags", "value", String, value);
     Ok(to_value(&STRIPTAGS_RE.replace_all(&s, "")))
 }
+
+/// Returns the given text with ampersands, quotes and angle brackets encoded
+/// for use in HTML.
+pub fn escape_html(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let s = try_get_value!("escapehtml", "value", String, value);
+    Ok(to_value(
+        s.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;")
+    ))
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -367,6 +381,22 @@ mod tests {
         ];
         for (input, expected) in tests {
             let result = striptags(to_value(input), HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected));
+        }
+    }
+
+    #[test]
+    fn test_escape_html() {
+        let tests = vec![
+            (r"a&b", "a&amp;b"),
+            (r"<a", "&lt;a"),
+            (r">a", "&gt;a"),
+            (r#"""#, "&quot;"),
+            (r#"'"#, "&#39;"),
+        ];
+        for (input, expected) in tests {
+            let result = escape_html(to_value(input), HashMap::new());
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected));
         }

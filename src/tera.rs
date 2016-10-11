@@ -129,6 +129,7 @@ impl Tera {
         self.register_filter("title", string::title);
         self.register_filter("striptags", string::striptags);
         self.register_filter("urlencode", string::urlencode);
+        self.register_filter("escape", string::escape_html);
 
         self.register_filter("first", array::first);
         self.register_filter("last", array::last);
