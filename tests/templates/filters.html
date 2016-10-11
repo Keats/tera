@@ -4,5 +4,6 @@
   </head>
   <body>
     <h1>{{ product.name | trim }} - {{ product.manufacturer | trim | truncate(length=4) }}</h1>
+    <span>{{ number_reviews | round(method="floor") }} review{{ number_reviews|pluralize(suffix="es") }}</span>
   </body>
 </html>

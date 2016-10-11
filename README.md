@@ -339,3 +339,17 @@ Example: `{{ value | urlencode }}`
 If value is "/foo?a=b&c=d", the output will be "/foo%3Fa%3Db%26c%3Dd".
 
 Takes an optional argument of characters that shouldn't be percent-encoded (`/` by default). So, to encode slashes as well, you can do `{{ value | urlencode(safe: "") }}`. 
+
+#### pluralize
+Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
+
+Example: `You have {{ num_messages }} message{{ num_messages|pluralize }}`
+If num_messages is 1, the output will be You have 1 message. If num_messages is 2 the output will be You have 2 messages.
+You can specify the suffix as an argument that way: `{{ num_messages|pluralize(suffix="es") }}`
+
+
+#### round
+Returns a number rounded following the method given. Default method is `common` which will round to the nearest integer.
+`ceil` and `floor` are available as alternative methods.
+
+Example: `{{ num | round }} {{ num | round(method="ceil") }}`
