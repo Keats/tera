@@ -8,17 +8,19 @@ use serde::Serialize;
 use serde_json::value::to_value;
 
 use template::Template;
-use filters::{FilterFn, string, array, common};
+use filters::{FilterFn, string, array, common, number};
 use context::Context;
 use errors::{TeraResult, TeraError};
 use render::Renderer;
 use testers::{self, TesterFn};
+
 
 pub struct Tera {
     pub templates: HashMap<String, Template>,
     pub filters: HashMap<String, FilterFn>,
     pub testers: HashMap<String, TesterFn>,
 }
+
 
 impl Tera {
     pub fn new(dir: &str) -> Tera {
@@ -127,10 +129,14 @@ impl Tera {
         self.register_filter("title", string::title);
         self.register_filter("striptags", string::striptags);
         self.register_filter("urlencode", string::urlencode);
+        self.register_filter("escape", string::escape_html);
 
         self.register_filter("first", array::first);
         self.register_filter("last", array::last);
         self.register_filter("join", array::join);
+
+        self.register_filter("pluralize", number::pluralize);
+        self.register_filter("round", number::round);
 
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);

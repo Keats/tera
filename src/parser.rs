@@ -355,8 +355,8 @@ impl_rdp! {
             (_: op_false) => {
                 to_value(&false)
             },
-            (&text: text) => {
-                to_value(text)
+            (&text: string) => {
+                to_value(text.replace("\"", ""))
             }
         }
 
@@ -736,6 +736,13 @@ mod tests {
     #[test]
     fn test_variable_tag_with_filter() {
         let mut parser = Rdp::new(StringInput::new("{{ greeting | i18n(lang=user.lang) | truncate(limit=50) }}"));
+        assert!(parser.variable_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_variable_tag_with_filter_and_string_arg() {
+        let mut parser = Rdp::new(StringInput::new("{{ greeting | i18n(lang=\"fr\") }}"));
         assert!(parser.variable_tag());
         assert!(parser.end());
     }
