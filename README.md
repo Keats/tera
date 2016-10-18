@@ -188,7 +188,7 @@ For example, here's a `base.html` almost copied from the jinja documentation:
 </html>
 ```
 The difference with Jinja being that `endblock` tags must be named.
-This defines 4 `block` tag that child templates can override. The `head` and `footer` block contains some html already which will be rendered if they are not overrident.
+This defines 4 `block` tag that child templates can override. The `head` and `footer` block contains some html already which will be rendered if they are not overriden.
 
 #### Child template
 Again, straight from jinja2 docs:

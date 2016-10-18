@@ -128,3 +128,8 @@ fn test_ok_value_render() {
         assert!(false);
     }
 }
+
+#[test]
+fn test_ok_macros() {
+    assert_template_ok("tests/templates/use_macros.html", Some("tests/templates/macros.html"));
+}

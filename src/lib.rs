@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 // Needed by pest
-#![recursion_limit = "200"]
+#![recursion_limit = "300"]
 
 #![cfg_attr(feature = "dev", feature(plugin))]
 #![cfg_attr(feature = "dev", plugin(clippy))]

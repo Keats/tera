@@ -76,3 +76,11 @@ fn test_error_value_render_non_object() {
     assert_eq!(result.is_err(), true);
     assert_eq!(result.unwrap_err().description(), "invalid value".to_string());
 }
+
+#[test]
+fn test_error_wrong_args_macros() {
+    let result = render_tpl("macro_wrong_args.html");
+
+    assert_eq!(result.is_err(), true);
+    assert_eq!(result.unwrap_err().description(), "macro wrong args".to_string());
+}

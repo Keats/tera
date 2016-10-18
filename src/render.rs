@@ -1,4 +1,4 @@
-use std::collections::LinkedList;
+use std::collections::{LinkedList, HashMap};
 
 use serde_json::value::{Value, to_value};
 
@@ -53,6 +53,10 @@ pub struct Renderer<'a> {
     context: Value,
     tera: &'a Tera,
     for_loops: Vec<ForLoop>,
+    // looks like filename: {macro_name: body node}
+    macros: HashMap<String, HashMap<String, Node>>,
+    // set when rendering macros, None if not in a macro
+    macro_context: Option<Value>,
 }
 
 impl<'a> Renderer<'a> {
@@ -62,15 +66,23 @@ impl<'a> Renderer<'a> {
             tera: tera,
             context: context,
             for_loops: vec![],
+            macros: HashMap::new(),
+            macro_context: None,
         }
     }
 
     // Lookup a variable name from the context and takes into
     // account for loops variables
     fn lookup_variable(&self, key: &str) -> TeraResult<Value> {
+        // Differentiate between macros and general context
+        let context = match self.macro_context {
+            Some(ref c) => c,
+            None => &self.context,
+        };
+
         // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
-            return self.context.pointer(&get_json_pointer(key)).cloned()
+            return context.pointer(&get_json_pointer(key)).cloned()
                 .ok_or_else(|| FieldNotFound(key.to_string()));
         }
 
@@ -102,7 +114,7 @@ impl<'a> Renderer<'a> {
         }
 
         // can get there when looking a variable in the global context while in a forloop
-        self.context.pointer(&get_json_pointer(key)).cloned()
+        context.pointer(&get_json_pointer(key)).cloned()
             .ok_or_else(|| FieldNotFound(key.to_string()))
     }
 
@@ -116,11 +128,11 @@ impl<'a> Renderer<'a> {
                 if let Some(ref _filters) = *filters {
                     for filter in _filters {
                         match *filter {
-                            Filter { ref name, ref args, ref args_ident } => {
+                            Filter { ref name, ref params } => {
                                 let filter_fn = try!(self.tera.get_filter(name));
-                                let mut all_args = args.clone();
-                                for (arg_name, ident_name) in args_ident {
-                                    all_args.insert(arg_name.to_string(), try!(self.lookup_variable(ident_name)));
+                                let mut all_args = HashMap::new();
+                                for (arg_name, exp) in params {
+                                    all_args.insert(arg_name.to_string(), try!(self.eval_expression(exp.clone())));
                                 }
                                 value = try!(filter_fn(value, all_args));
                             },
@@ -189,6 +201,9 @@ impl<'a> Renderer<'a> {
             },
             Bool(b) => {
                 Ok(Value::Bool(b))
+            },
+            Text(t) => {
+                Ok(Value::String(t))
             },
             _ => unreachable!()
         }
@@ -345,6 +360,50 @@ impl<'a> Renderer<'a> {
         Ok(output.trim_right().to_string())
     }
 
+    // TODO: have a look at this method once it is working to clean it up, too much indentation
+    fn render_macro(&mut self, call_node: Node) -> TeraResult<String> {
+        match call_node {
+            MacroCall {namespace, name, params} => {
+                // Avoid shadowing when matching the definition of macros
+                let call_params = params;
+                // TODO: avoid cloned() everywhere if possible
+                match self.macros.get(&namespace).cloned() {
+                    Some(macros) => match macros.get(&name) {
+                        Some(ref m) => match *m  {
+                            &Macro { ref body, ref params, .. } => {
+                                let mut context = HashMap::new();
+                                let expected_params = params.iter().cloned().collect::<Vec<String>>();
+                                let args_seen = call_params.keys().cloned().collect::<Vec<String>>();
+                                if expected_params.len() != args_seen.len() {
+                                    return Err(MacroCallWrongArgs(name, expected_params, args_seen));
+                                }
+
+                                for (arg_name, exp) in call_params {
+                                    if !params.contains(&arg_name) {
+                                        return Err(MacroCallWrongArgs(name, expected_params, args_seen));
+                                    }
+
+                                    context.insert(arg_name.to_string(), try!(self.eval_expression(exp)));
+                                }
+
+                                self.macro_context = Some(to_value(&context));
+                                let mut output = String::new();
+                                for node in body.get_children() {
+                                    output.push_str(&try!(self.render_node(node)));
+                                }
+                                Ok(output.trim_right().to_string())
+                            },
+                            _ => unreachable!()
+                        },
+                        None => Err(MacroNotFound(namespace, name))
+                    },
+                    None => Err(MacroNotFound(namespace, name))
+                }
+            },
+            _ => unreachable!(),
+        }
+    }
+
     pub fn render_node(&mut self, node: Node) -> TeraResult<String> {
         match node {
             Include(p) => {
@@ -356,6 +415,14 @@ impl<'a> Renderer<'a> {
 
                 Ok(output)
             },
+            ImportMacro {tpl_name, name} => {
+                let tpl = try!(self.tera.get_template(&tpl_name));
+                self.macros.insert(name.to_string(), tpl.macros.clone());
+                // In theory, the render_node should return TeraResult<Option<String>>
+                // but in practice there's no difference so keeping this hack
+                Ok("".to_string())
+            },
+            MacroCall {..} => self.render_macro(node),
             Text(s) => Ok(s),
             Raw(s) => Ok(s.trim().to_string()),
             VariableBlock(exp) => self.render_variable_block(*exp),
