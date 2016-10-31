@@ -115,7 +115,7 @@ impl_rdp! {
         macro_param = @{ simple_ident }
         macro_params = !@{ macro_param ~ ([","] ~ macro_param )* }
         macro_definition = _{ identifier ~ ["("] ~ macro_params* ~ [")"]}
-        macro_call = { simple_ident ~ ["::"] ~ simple_ident ~ ["("] ~ fn_args ~ [")"] }
+        macro_call = { simple_ident ~ ["::"] ~ simple_ident ~ ["("] ~ fn_args? ~ [")"] }
 
         // Variable tests.
         test_fn_param = { expression }
@@ -129,7 +129,7 @@ impl_rdp! {
         // Precedence climbing
         expression = _{
             // boolean first so they are not caught as identifiers
-            { boolean | idents | float | int | string }
+            { boolean | string | idents | float | int }
             or          = { op_or | op_wrong_or }
             and         = { op_and | op_wrong_and }
             comparison  = { op_gt | op_lt | op_eq | op_ineq | op_lte | op_gte }

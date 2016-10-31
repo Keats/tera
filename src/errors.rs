@@ -33,8 +33,8 @@ quick_error! {
             display("Filter `{}` was not found.", name)
             description("filter not found")
         }
-        MacroNotFound(name: String, tpl_name: String) {
-            display("Macro `{}` was not found in the namespace `{}`.", name, tpl_name)
+        MacroNotFound(name: String, namespace: String) {
+            display("Macro `{}` was not found in the namespace `{}`.", name, namespace)
             description("macro not found")
         }
         NotANumber(name: String) {

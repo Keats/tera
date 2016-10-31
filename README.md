@@ -364,3 +364,30 @@ Escapes a string's HTML. Specifically, it makes these replacements:
 - " (double quote) is converted to &quot;
 - & is converted to &amp;
 
+### Macros
+Macros are a simple way to re-use template bits. Think of them as functions that you can call
+and that returns some text.
+
+Macros are defined the following way:
+
+```jinja2
+{% macro hello_world(greeting, language) %}
+    {% if language == "en" %}
+        {{ greeting }}
+    {% endif %}
+{% endmacro hello_world %}
+```
+
+In order to be called, the file containing the macros needs to be loaded first in the file using them:
+
+```jinja2
+{% import "macros.html" as macros %}
+```
+You can name your namespace (`macros` in the example) anything you want.
+You can call a macro the following way:
+
+```jinja2
+{{ macros::hello_world(greeting="Hello World", language="en") }}
+```
+Do note that macros, like other functions in Tera, require keyword arguments.
+If you are trying to call a macro defined in the same file, you will need to use the `{{ self::my_macro() }}`` syntax to call it the file its defined in.

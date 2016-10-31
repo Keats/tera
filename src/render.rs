@@ -57,6 +57,8 @@ pub struct Renderer<'a> {
     macros: HashMap<String, HashMap<String, Node>>,
     // set when rendering macros, None if not in a macro
     macro_context: Option<Value>,
+    // Keeps track of which namespace we're on in order to resolve the `self::` syntax
+    macro_namespaces: Vec<String>,
 }
 
 impl<'a> Renderer<'a> {
@@ -68,6 +70,7 @@ impl<'a> Renderer<'a> {
             for_loops: vec![],
             macros: HashMap::new(),
             macro_context: None,
+            macro_namespaces: vec![],
         }
     }
 
@@ -361,13 +364,23 @@ impl<'a> Renderer<'a> {
     }
 
     // TODO: have a look at this method once it is working to clean it up, too much indentation
+    // Probably very inefficient and can be trimmed down
     fn render_macro(&mut self, call_node: Node) -> TeraResult<String> {
         match call_node {
             MacroCall {namespace, name, params} => {
                 // Avoid shadowing when matching the definition of macros
                 let call_params = params;
+                // To find the real namespace we just look at the last one we got.
+                // If we have self, we take the last one otherwise we push it into the vec
+                let real_namespace = if namespace == "self".to_string() {
+                    // TODO: handle error
+                    self.macro_namespaces.last().unwrap().to_string()
+                } else {
+                    self.macro_namespaces.push(namespace.clone());
+                    namespace.clone()
+                };
                 // TODO: avoid cloned() everywhere if possible
-                match self.macros.get(&namespace).cloned() {
+                match self.macros.get(&real_namespace).cloned() {
                     Some(macros) => match macros.get(&name) {
                         Some(ref m) => match *m  {
                             &Macro { ref body, ref params, .. } => {
@@ -382,7 +395,6 @@ impl<'a> Renderer<'a> {
                                     if !params.contains(&arg_name) {
                                         return Err(MacroCallWrongArgs(name, expected_params, args_seen));
                                     }
-
                                     context.insert(arg_name.to_string(), try!(self.eval_expression(exp)));
                                 }
 
@@ -391,13 +403,18 @@ impl<'a> Renderer<'a> {
                                 for node in body.get_children() {
                                     output.push_str(&try!(self.render_node(node)));
                                 }
+                                // Remove the namespace before returning if necessary
+                                if namespace == real_namespace {
+                                    self.macro_namespaces.pop();
+                                }
+                                self.macro_context = None;
                                 Ok(output.trim_right().to_string())
                             },
                             _ => unreachable!()
                         },
-                        None => Err(MacroNotFound(namespace, name))
+                        None => Err(MacroNotFound(real_namespace, name))
                     },
-                    None => Err(MacroNotFound(namespace, name))
+                    None => Err(MacroNotFound(real_namespace, name))
                 }
             },
             _ => unreachable!(),

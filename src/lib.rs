@@ -10,19 +10,15 @@
 extern crate serde;
 extern crate serde_json;
 extern crate glob;
-#[macro_use]
-extern crate pest;
-#[macro_use]
-extern crate quick_error;
+#[macro_use] extern crate pest;
+#[macro_use] extern crate quick_error;
 extern crate slug;
 extern crate regex;
-#[macro_use]
-extern crate lazy_static;
+#[macro_use] extern crate lazy_static;
 extern crate url;
 
 mod errors;
-#[macro_use]
-mod macros;
+#[macro_use] mod macros;
 mod parser;
 mod context;
 mod render;
@@ -35,7 +31,8 @@ mod testers;
 // Library exports.
 
 // Template is meant to be used internally only but is exported for test/bench.
-#[doc(hidden)] pub use template::Template;
+#[doc(hidden)]
+pub use template::Template;
 pub use context::Context;
 pub use tera::Tera;
 pub use errors::{TeraResult, TeraError};

@@ -1,5 +1,8 @@
+{% macro do_nothing() %}
+{% endmacro do_nothing %}
+
 {% macro hello_world(greeting, language) %}
     {% if language == "en" %}
-        {{ greeting }}
+        {{ greeting }}{{ self::do_nothing() }}
     {% endif %}
 {% endmacro hello_world %}
