@@ -372,9 +372,12 @@ impl<'a> Renderer<'a> {
                 let call_params = params;
                 // To find the real namespace we just look at the last one we got.
                 // If we have self, we take the last one otherwise we push it into the vec
-                let real_namespace = if namespace == "self".to_string() {
-                    // TODO: handle error
-                    self.macro_namespaces.last().unwrap().to_string()
+                let real_namespace = if namespace == "self" {
+                    // TODO: handle error if we don't have a namespace
+                    self.macro_namespaces
+                        .last()
+                        .expect("Open an issue with a template sample please (mention `self namespace macro`)!")
+                        .to_string()
                 } else {
                     self.macro_namespaces.push(namespace.clone());
                     namespace.clone()
@@ -383,10 +386,14 @@ impl<'a> Renderer<'a> {
                 match self.macros.get(&real_namespace).cloned() {
                     Some(macros) => match macros.get(&name) {
                         Some(ref m) => match *m  {
+                            // The macro definition
                             &Macro { ref body, ref params, .. } => {
+                                // We need to make a new context for the macro
                                 let mut context = HashMap::new();
                                 let expected_params = params.iter().cloned().collect::<Vec<String>>();
                                 let args_seen = call_params.keys().cloned().collect::<Vec<String>>();
+                                // fail early if we don't have the same number of args
+                                // remove that check if we add kwargs to macros
                                 if expected_params.len() != args_seen.len() {
                                     return Err(MacroCallWrongArgs(name, expected_params, args_seen));
                                 }

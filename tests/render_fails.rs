@@ -84,3 +84,12 @@ fn test_error_wrong_args_macros() {
     assert_eq!(result.is_err(), true);
     assert_eq!(result.unwrap_err().description(), "macro wrong args".to_string());
 }
+
+
+#[test]
+fn test_error_macros_self_inexisting() {
+    let result = render_tpl("macro_self_inexisting.html");
+
+    assert_eq!(result.is_err(), true);
+    assert_eq!(result.unwrap_err().description(), "macro not found".to_string());
+}

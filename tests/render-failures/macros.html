@@ -3,3 +3,8 @@
         {{ greeting }}
     {% endif %}
 {% endmacro hello_world %}
+
+
+{% macro hello_world2() %}
+    {{ self::inexisting() }}
+{% endmacro hello_world2 %}

@@ -1135,6 +1135,7 @@ mod tests {
 
     #[test]
     fn test_unary_test() {
+        // TODO: remove that syntax
         let mut parser = Rdp::new(StringInput::new("is equalto other"));
         assert!(parser.test());
         assert!(parser.end());
@@ -1151,6 +1152,7 @@ mod tests {
         assert!(parser.end());
     }
 
+    // TODO: remove that syntax
     #[test]
     fn test_n_ary_test_requires_parens() {
         let mut parser = Rdp::new(StringInput::new("is oneof a, b, c"));
