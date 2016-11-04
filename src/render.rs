@@ -385,9 +385,9 @@ impl<'a> Renderer<'a> {
                 // TODO: avoid cloned() everywhere if possible
                 match self.macros.get(&real_namespace).cloned() {
                     Some(macros) => match macros.get(&name) {
-                        Some(ref m) => match *m  {
+                        Some(m) => match *m  {
                             // The macro definition
-                            &Macro { ref body, ref params, .. } => {
+                            Macro { ref body, ref params, .. } => {
                                 // We need to make a new context for the macro
                                 let mut context = HashMap::new();
                                 let expected_params = params.iter().cloned().collect::<Vec<String>>();

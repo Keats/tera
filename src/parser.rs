@@ -985,13 +985,13 @@ mod tests {
 
     #[test]
     fn test_ast_if_with_test_params() {
-        let parsed_ast = parse(r#"{% if pi is equalto 3.14 %}Hey{% endif %}"#);
+        let parsed_ast = parse(r#"{% if pi is equalto 3.13 %}Hey{% endif %}"#);
         let mut ast = LinkedList::new();
         let mut body = LinkedList::new();
         body.push_front(Node::Text("Hey".to_string()));
 
         let mut params = LinkedList::new();
-        params.push_front(Node::Float(3.14));
+        params.push_front(Node::Float(3.13));
 
         let mut condition_nodes = LinkedList::new();
         condition_nodes.push_front(Node::Conditional {
