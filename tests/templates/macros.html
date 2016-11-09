@@ -1,8 +1,9 @@
 {% macro do_nothing() %}
 {% endmacro do_nothing %}
 
-{% macro hello_world(greeting, language) %}
-    {% if language == "en" %}
-        {{ greeting }}{{ self::do_nothing() }}
-    {% endif %}
-{% endmacro hello_world %}
+{% macro input(label, type) %}
+    <label>
+        {{ label }}
+        <input type="{{type}}" />
+    </label>
+{% endmacro input %}

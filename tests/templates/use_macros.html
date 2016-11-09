@@ -1,4 +1,4 @@
 {% import "macros.html" as macros %}
-{{ macros::hello_world(greeting="Hello World", language="en") }}
-{{ macros::hello_world(greeting="Hello World", language="fr") }}
-{{ macros::hello_world(greeting="Hello World", language=username) }}
+{{ macros::input(label="Name", type="text") }}
+{{ macros::input(label="Age", type="number") }}
+{{ macros::input(label=username, type="text") }}

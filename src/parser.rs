@@ -114,7 +114,7 @@ impl_rdp! {
         // TODO: add default arg?
         macro_param = @{ simple_ident }
         macro_params = !@{ macro_param ~ ([","] ~ macro_param )* }
-        macro_definition = _{ identifier ~ ["("] ~ macro_params* ~ [")"]}
+        macro_definition = _{ identifier ~ ["("] ~ macro_params? ~ [")"]}
         macro_call = { simple_ident ~ ["::"] ~ simple_ident ~ ["("] ~ fn_args? ~ [")"] }
 
         // Variable tests.
@@ -226,11 +226,11 @@ impl_rdp! {
                 Ok(Some(Node::Text(head.to_string())))
             },
             (_: include_tag, &name: string) => {
-                Ok(Some(Node::Include(name.replace("\"", "").to_string())))
+                Ok(Some(Node::Include(name.trim_matches('"').to_string())))
             },
             (_: import_macro_tag, &tpl_name: string, &name: simple_ident) => {
                 Ok(Some(Node::ImportMacro {
-                    tpl_name: tpl_name.replace("\"", "").to_string(),
+                    tpl_name: tpl_name.trim_matches('"').to_string(),
                     name: name.to_string(),
                 }))
             },
@@ -1205,9 +1205,49 @@ mod tests {
     }
 
     #[test]
-    fn test_ast_macro_definition() {
+    fn test_ast_macro_definition_no_arg() {
+        let parsed_ast = parse("{% macro helloworld() %}Hello{% endmacro helloworld %}");
+        let params = LinkedList::new();
+
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hello".to_string()));
+
+        let mut ast = LinkedList::new();
+        ast.push_front(Node::Macro {
+            name: "helloworld".to_string(),
+            params: params,
+            body: Box::new(Node::List(body.clone())),
+        });
+
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_definition_one_arg() {
         let parsed_ast = parse("{% macro helloworld(greeting) %}Hello{% endmacro helloworld %}");
         let mut params = LinkedList::new();
+        params.push_front("greeting".to_string());
+
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hello".to_string()));
+
+        let mut ast = LinkedList::new();
+        ast.push_front(Node::Macro {
+            name: "helloworld".to_string(),
+            params: params,
+            body: Box::new(Node::List(body.clone())),
+        });
+
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_definition_multiple_args() {
+        let parsed_ast = parse("{% macro helloworld(greeting, language) %}Hello{% endmacro helloworld %}");
+        let mut params = LinkedList::new();
+        params.push_front("language".to_string());
         params.push_front("greeting".to_string());
 
         let mut body = LinkedList::new();
@@ -1238,7 +1278,38 @@ mod tests {
     }
 
     #[test]
-    fn test_ast_macro_call() {
+    fn test_ast_macro_call_no_args() {
+        let parsed_ast = parse("{{ macros::macro1() }}");
+        let mut ast = LinkedList::new();
+        let params = HashMap::new();
+        ast.push_front(Node::MacroCall {
+            namespace: "macros".to_string(),
+            name: "macro1".to_string(),
+            params: params
+        });
+
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_call_one_arg() {
+        let parsed_ast = parse("{{ macros::macro1(foo=bar) }}");
+        let mut ast = LinkedList::new();
+        let mut params = HashMap::new();
+        params.insert("foo".to_string(), Node::Identifier {name: "bar".to_string(), filters: None});
+        ast.push_front(Node::MacroCall {
+            namespace: "macros".to_string(),
+            name: "macro1".to_string(),
+            params: params
+        });
+
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_call_multiple_args() {
         let parsed_ast = parse("{{ macros::macro1(foo=bar, hey=1+2) }}");
         let mut ast = LinkedList::new();
         let mut params = HashMap::new();

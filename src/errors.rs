@@ -9,7 +9,7 @@ quick_error! {
         MismatchingEndTag(line_no: usize, col_no: usize, expected: String, found: String) {
             display("Was expecting block with name `{}` to be closed, but `{}` is closing at line {:?}, column {:?}",
                     expected, found, line_no, col_no)
-            description("unexpected endX name")
+            description("unexpected end tag name")
         }
         InvalidSyntax(line_no: usize, col_no: usize) {
             display("invalid Tera syntax at line {:?}, column {:?}", line_no, col_no)
@@ -26,7 +26,7 @@ quick_error! {
             description("invalid value")
         }
         TemplateNotFound(name: String) {
-            display("Template `{}` wasn't found", name)
+            display("Template `{}` was not found", name)
             description("template not found")
         }
         FilterNotFound(name: String) {

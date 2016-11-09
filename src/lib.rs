@@ -31,8 +31,7 @@ mod testers;
 // Library exports.
 
 // Template is meant to be used internally only but is exported for test/bench.
-#[doc(hidden)]
-pub use template::Template;
+#[doc(hidden)] pub use template::Template;
 pub use context::Context;
 pub use tera::Tera;
 pub use errors::{TeraResult, TeraError};
