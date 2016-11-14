@@ -2,8 +2,13 @@
 {% endmacro do_nothing %}
 
 {% macro input(label, type) %}
-    <label>
-        {{ label }}
-        <input type="{{type}}" />
-    </label>
+<label>
+    {{ label }}
+    <input type="{{type}}" />
+</label>
 {% endmacro input %}
+
+
+{% macro factorial(n) %}
+  {% if n > 1 %}{{ n }} - {{ self::factorial(n=n-1) }}{% else %}1{% endif %}
+{% endmacro factorial %}

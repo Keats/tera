@@ -378,12 +378,12 @@ Macros are defined as follows:
 {% endmacro hello_world %}
 ```
 
-In order to be called, the file containing the macros needs to be loaded first in the file using them:
+You need to import the file containing the macros in order to use them:
 
 ```jinja2
 {% import "macros.html" as macros %}
 ```
-You can name your namespace (`macros` in the example) anything you want.
+You can name that file namespace (`macros` in the example) anything you want.
 You can call a macro the following way:
 
 ```jinja2
@@ -391,3 +391,7 @@ You can call a macro the following way:
 ```
 Do note that macros, like other functions in Tera, require keyword arguments.
 If you are trying to call a macro defined in the same file, you will need to use the `{{ self::my_macro() }}`` syntax to call it the file its defined in.
+
+Macros can be called recursively but there is no limit to recursion so make sure you macro ends.
+
+There are a few restrictions to the content inside macros: no macros definitions, includes or blocks.

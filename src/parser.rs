@@ -171,12 +171,22 @@ impl_rdp! {
         raw_text   = { (!endraw_tag ~ any )* }
         text       = { (!(block_start) ~ any )+ }
 
+        // smaller sets of allowed content in macros
+        macro_content = @{
+            variable_tag |
+            comment_tag |
+            if_tag ~ macro_content* ~ elif_block* ~ (else_tag ~ macro_content*)? ~ endif_tag |
+            for_tag ~ macro_content* ~ endfor_tag |
+            raw_tag ~ raw_text ~ endraw_tag |
+            text
+        }
+
         content = @{
             include_tag |
             import_macro_tag |
             variable_tag |
             comment_tag |
-            macro_tag ~ content* ~ endmacro_tag |
+            macro_tag ~ macro_content* ~ endmacro_tag |
             block_tag ~ content* ~ endblock_tag |
             if_tag ~ content* ~ elif_block* ~ (else_tag ~ content*)? ~ endif_tag |
             for_tag ~ content* ~ endfor_tag |
@@ -210,6 +220,14 @@ impl_rdp! {
                 Ok(body)
             },
             (_: content, node: _content(), tail: _template()) => {
+                let mut tail2 = try!(tail);
+                match try!(node) {
+                    Some(n) => { tail2.push_front(n); }
+                    None => ()
+                };
+                Ok(tail2)
+            },
+            (_: macro_content, node: _content(), tail: _template()) => {
                 let mut tail2 = try!(tail);
                 match try!(node) {
                     Some(n) => { tail2.push_front(n); }

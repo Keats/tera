@@ -410,7 +410,7 @@ impl<'a> Renderer<'a> {
                     self.macro_namespaces.pop();
                 }
                 self.macro_context = None;
-                return Ok(output.trim_right().to_string());
+                return Ok(output.trim().to_string());
             } else {
                 return Err(MacroNotFound(real_namespace, macro_name));
             }

@@ -1,8 +1,9 @@
-{% macro hello_world(greeting, language) %}
-    {% if language == "en" %}
-        {{ greeting }}
-    {% endif %}
-{% endmacro hello_world %}
+{% macro input(label, type) %}
+<label>
+    {{ label }}
+    <input type="{{type}}" />
+</label>
+{% endmacro input %}
 
 
 {% macro hello_world2() %}
