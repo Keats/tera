@@ -12,3 +12,7 @@
 {% macro factorial(n) %}
   {% if n > 1 %}{{ n }} - {{ self::factorial(n=n-1) }}{% else %}1{% endif %}
 {% endmacro factorial %}
+
+{% macro include(greeting) %}
+    {% include "macro_included.html" %}
+{% endmacro include %}

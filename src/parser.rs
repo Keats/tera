@@ -173,6 +173,7 @@ impl_rdp! {
 
         // smaller sets of allowed content in macros
         macro_content = @{
+            include_tag |
             variable_tag |
             comment_tag |
             if_tag ~ macro_content* ~ elif_block* ~ (else_tag ~ macro_content*)? ~ endif_tag |

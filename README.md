@@ -394,4 +394,4 @@ If you are trying to call a macro defined in the same file, you will need to use
 
 Macros can be called recursively but there is no limit to recursion so make sure you macro ends.
 
-There are a few restrictions to the content inside macros: no macros definitions, includes or blocks.
+There are a few restrictions to the content inside macros: no macros definitions or blocks are allowed.

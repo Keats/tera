@@ -416,7 +416,7 @@ impl<'a> Renderer<'a> {
             }
 
         } else {
-            unreachable!()
+            unreachable!("Got a node other than a MacroCall when rendering a macro")
         }
     }
 
@@ -429,7 +429,7 @@ impl<'a> Renderer<'a> {
                     output.push_str(&try!(self.render_node(node)));
                 }
 
-                Ok(output)
+                Ok(output.trim_left().to_string())
             },
             ImportMacro {tpl_name, name} => {
                 let tpl = try!(self.tera.get_template(&tpl_name));
