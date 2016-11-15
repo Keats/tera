@@ -19,6 +19,8 @@ pub struct Tera {
     pub templates: HashMap<String, Template>,
     pub filters: HashMap<String, FilterFn>,
     pub testers: HashMap<String, TesterFn>,
+    // Which extensions does Tera automatically autoescape on. Defaults to ["html", "htm", "xml"]
+    autoescape_extensions: Vec<String>,
 }
 
 
@@ -54,6 +56,7 @@ impl Tera {
             templates: templates,
             filters: HashMap::new(),
             testers: HashMap::new(),
+            autoescape_extensions: vec!["html".to_string(), "html".to_string(), "xml".to_string()]
         };
 
         tera.register_tera_filters();
@@ -103,6 +106,8 @@ impl Tera {
         }
     }
 
+    /// Register a filter with Tera.
+    /// If a filter with that name already exists, it will be overwritten
     pub fn register_filter(&mut self, name: &str, filter: FilterFn) {
         self.filters.insert(name.to_string(), filter);
     }
@@ -114,6 +119,8 @@ impl Tera {
         }
     }
 
+    /// Register a tester with Tera.
+    /// If a tester with that name already exists, it will be overwritten
     pub fn register_tester(&mut self, name: &str, tester: TesterFn) {
         self.testers.insert(name.to_string(), tester);
     }
@@ -150,6 +157,12 @@ impl Tera {
         self.register_tester("string", testers::string);
         self.register_tester("number", testers::number);
     }
+
+    /// Select which extension(s) to automatically do HTML escaping on.
+    /// Pass an empty vec to completely disable autoescape
+    pub fn autoescape_on(&mut self, extensions: Vec<String>) {
+        self.autoescape_extensions = extensions;
+    }
 }
 
 impl Default for Tera {
@@ -158,6 +171,7 @@ impl Default for Tera {
             templates: HashMap::new(),
             filters: HashMap::new(),
             testers: HashMap::new(),
+            autoescape_extensions: vec!["html".to_string(), "html".to_string(), "xml".to_string()]
         };
 
         tera.register_tera_filters();

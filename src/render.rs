@@ -9,6 +9,7 @@ use errors::TeraError::*;
 use parser::Node;
 use parser::Node::*;
 use tera::Tera;
+use utils::escape_html;
 
 
 // we need to have some data in the renderer for when we are in a ForLoop
@@ -73,6 +74,7 @@ impl<'a> Renderer<'a> {
             macro_namespaces: vec![],
         }
     }
+
 
     // Lookup a variable name from the context and takes into
     // account for loops variables
