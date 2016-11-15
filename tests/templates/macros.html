@@ -10,7 +10,7 @@
 
 
 {% macro factorial(n) %}
-  {% if n > 1 %}{{ n }} - {{ self::factorial(n=n-1) }}{% else %}1{% endif %}
+  {% if n > 1 %}{{ n }} - {{ self::factorial(n=n-1) }}{% else %}1{% endif %}{{ n }}
 {% endmacro factorial %}
 
 {% macro include(greeting) %}

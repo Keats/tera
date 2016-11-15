@@ -55,8 +55,8 @@ pub struct Renderer<'a> {
     for_loops: Vec<ForLoop>,
     // looks like filename: {macro_name: body node}
     macros: HashMap<String, HashMap<String, Node>>,
-    // set when rendering macros, None if not in a macro
-    macro_context: Option<Value>,
+    // set when rendering macros, empty if not in a macro
+    macro_context: Vec<Value>,
     // Keeps track of which namespace we're on in order to resolve the `self::` syntax
     macro_namespaces: Vec<String>,
 }
@@ -69,7 +69,7 @@ impl<'a> Renderer<'a> {
             context: context,
             for_loops: vec![],
             macros: HashMap::new(),
-            macro_context: None,
+            macro_context: vec![],
             macro_namespaces: vec![],
         }
     }
@@ -78,9 +78,10 @@ impl<'a> Renderer<'a> {
     // account for loops variables
     fn lookup_variable(&self, key: &str) -> TeraResult<Value> {
         // Differentiate between macros and general context
-        let context = match self.macro_context {
-            Some(ref c) => c,
-            None => &self.context,
+        let context = if self.macro_context.is_empty() {
+            &self.context
+        } else {
+            self.macro_context.last().expect("Didn't get the macro context")
         };
 
         // Look in the plain context if we aren't in a for loop
@@ -365,11 +366,14 @@ impl<'a> Renderer<'a> {
 
     fn render_macro(&mut self, call_node: Node) -> TeraResult<String> {
         if let MacroCall {namespace, name: macro_name, params: call_params} = call_node {
-            // To find the real namespace we just look at the last one we got.
-            // If we have self, we take the last one otherwise we push it into the vec of namespaces
-            let real_namespace = match namespace.as_ref() {
+            // We need to find the active namespace in Tera if `self` is used
+            // Since each macro (other than the `self` ones) pushes its own namespace
+            // to the stack when being rendered, we can just lookup the last namespace that was pushed
+            // to find out the active one
+            let active_namespace = match namespace.as_ref() {
                 "self" => {
                     // TODO: handle error if we don't have a namespace
+                    // This can only happen when calling {{ self:: }} outside of a macro afaik
                     self.macro_namespaces
                         .last()
                         .expect("Open an issue with a template sample please (mention `self namespace macro`)!")
@@ -382,17 +386,21 @@ impl<'a> Renderer<'a> {
                 }
             };
 
-            if let Some(Macro {body, params, ..}) = self.macros.get(&real_namespace)
-                .and_then(|m| m.get(&macro_name).cloned()) {
-                // fail early if we don't have the same number of args
+            // We get our macro definition using the namespace name we just got
+            let macro_definition = self.macros
+                .get(&active_namespace)
+                .and_then(|m| m.get(&macro_name).cloned());
+
+            if let Some(Macro {body, params, ..}) = macro_definition {
                 let expected_params = params.iter().cloned().collect::<Vec<String>>();
                 let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
-                // remove that check if we add kwargs to macros
+                // fail fast if the number of args don't match
                 if expected_params.len() != params_seen.len() {
                     return Err(MacroCallWrongArgs(macro_name, expected_params, params_seen));
                 }
 
-                // We need to make a new context for the macro
+                // We need to make a new context for the macro from the arguments given
+                // Return an error if we get some unknown params
                 let mut context = HashMap::new();
                 for (param_name, exp) in call_params {
                     if !params.contains(&param_name) {
@@ -400,19 +408,30 @@ impl<'a> Renderer<'a> {
                     }
                     context.insert(param_name.to_string(), try!(self.eval_expression(exp)));
                 }
-                self.macro_context = Some(to_value(&context));
+
+                // Push this context to our stack of macro context so the renderer can pick variables
+                // from it
+                self.macro_context.push(to_value(&context));
+
+                // We render the macro body as a normal node
                 let mut output = String::new();
                 for node in body.get_children() {
                     output.push_str(&try!(self.render_node(node)));
                 }
-                // Remove the namespace before returning if necessary
-                if namespace == real_namespace {
+
+                // If the current namespace wasn't `self`, we remove it since it's not needed anymore
+                // In the `self` case, we are still in the parent macro and its namespace is still
+                // needed so we keep it
+                if namespace == active_namespace {
                     self.macro_namespaces.pop();
                 }
-                self.macro_context = None;
+
+                // We remove the macro context we just rendered from our stack of contexts
+                self.macro_context.pop();
+
                 return Ok(output.trim().to_string());
             } else {
-                return Err(MacroNotFound(real_namespace, macro_name));
+                return Err(MacroNotFound(active_namespace, macro_name));
             }
 
         } else {
