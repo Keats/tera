@@ -11,6 +11,7 @@ use template::Template;
 use filters::{FilterFn, string, array, common, number};
 use context::Context;
 use errors::{TeraResult, TeraError};
+use errors::TeraError::*;
 use render::Renderer;
 use testers::{self, TesterFn};
 
@@ -63,9 +64,8 @@ impl Tera {
 
     /// Renders a Tera template given a `Context`.
     pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
-        let template = try!(self.get_template(template_name));
-        let mut renderer = Renderer::new(template, self, data.as_json());
-
+        let templates = try!(self.get_template_and_ancestors(template_name));
+        let mut renderer = Renderer::new(templates, self, data.as_json());
         renderer.render()
     }
 
@@ -78,9 +78,24 @@ impl Tera {
             return Err(TeraError::InvalidValue(template_name.to_string()))
         }
 
-        let template = try!(self.get_template(template_name));
-        let mut renderer = Renderer::new(template, self, value);
+        let templates = try!(self.get_template_and_ancestors(template_name));
+        let mut renderer = Renderer::new(templates, self, value);
         renderer.render()
+    }
+
+    fn get_template_and_ancestors(&self, template_name: &str) -> TeraResult<Vec<&Template>> {
+        let mut templates = vec![try!(self.get_template(template_name))];
+        while templates[templates.len() - 1].parent.is_some() {
+            let parent_name = templates[templates.len() - 1].parent.clone().unwrap();
+            let parent_template = try!(self.get_template(&parent_name));
+            templates.push(parent_template);
+            let index_of_template = templates.iter().position(|&x| x.name == parent_template.name).unwrap();
+            if index_of_template != templates.len() - 1 {
+                let template_names = templates[index_of_template ..].iter().map(|template| template.name.clone()).collect();
+                return Err(CircularExtends(template_names))
+            }
+        }
+        Ok(templates)
     }
 
     pub fn get_template(&self, template_name: &str) -> TeraResult<&Template> {
@@ -183,5 +198,21 @@ impl fmt::Debug for Tera {
         }
 
         write!(f, "{}", "}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use context::Context;
+    use errors::TeraError::*;
+    use tera::Tera;
+    #[test]
+    fn test_circular_templates() {
+        let mut tera = Tera::default();
+        tera.add_template("a", "{% extends \"b\" %}");
+        tera.add_template("b", "{% extends \"c\" %}");
+        tera.add_template("c", "{% extends \"a\" %}");
+        let result = tera.render("a", Context::new());
+        assert_eq!(result, Err(CircularExtends(vec!["a".to_owned(), "b".to_owned(), "c".to_owned(), "a".to_owned()])));
     }
 }
