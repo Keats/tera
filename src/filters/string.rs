@@ -386,7 +386,7 @@ mod tests {
             (r"<a", "&lt;a"),
             (r">a", "&gt;a"),
             (r#"""#, "&quot;"),
-            (r#"'"#, "&#39;"),
+            (r#"'"#, "&#x27;"),
         ];
         for (input, expected) in tests {
             let result = escape_html(to_value(input), HashMap::new());

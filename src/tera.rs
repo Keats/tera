@@ -19,8 +19,9 @@ pub struct Tera {
     pub templates: HashMap<String, Template>,
     pub filters: HashMap<String, FilterFn>,
     pub testers: HashMap<String, TesterFn>,
-    // Which extensions does Tera automatically autoescape on. Defaults to ["html", "htm", "xml"]
-    autoescape_extensions: Vec<String>,
+    // Which extensions does Tera automatically autoescape on.
+    // Defaults to ["html", "htm", "xml"]
+    pub autoescape_extensions: Vec<String>,
 }
 
 

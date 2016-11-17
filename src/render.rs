@@ -60,10 +60,17 @@ pub struct Renderer<'a> {
     macro_context: Vec<Value>,
     // Keeps track of which namespace we're on in order to resolve the `self::` syntax
     macro_namespaces: Vec<String>,
+    should_escape: bool,
 }
 
 impl<'a> Renderer<'a> {
     pub fn new(tpl: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
+        let mut should_escape = false;
+        for ext in tera.autoescape_extensions.clone() {
+            if tpl.name.ends_with(ext.as_str()) {
+                should_escape = true;
+            }
+        }
         Renderer {
             template: tpl,
             tera: tera,
@@ -72,9 +79,9 @@ impl<'a> Renderer<'a> {
             macros: HashMap::new(),
             macro_context: vec![],
             macro_namespaces: vec![],
+            should_escape: should_escape,
         }
     }
-
 
     // Lookup a variable name from the context and takes into
     // account for loops variables
@@ -131,6 +138,17 @@ impl<'a> Renderer<'a> {
         match *node {
             Identifier { ref name, ref filters } => {
                 let mut value = try!(self.lookup_variable(name));
+
+                // Escaping strings if wanted for that template
+                if self.should_escape {
+                    match value {
+                      Value::String(s) =>  {
+                          value = to_value(escape_html(s.as_str()));
+                      },
+                      _ => (),
+                    };
+                }
+
                 if let Some(ref _filters) = *filters {
                     for filter in _filters {
                         match *filter {
@@ -695,5 +713,27 @@ mod tests {
             context
         );
         assert_eq!(result.unwrap(), "off on off".to_string());
+    }
+
+    #[test]
+    fn test_autoescape_html() {
+        let mut context = Context::new();
+        context.add("bad", &"<script>alert('pwnd');</script>");
+        let mut tera = Tera::default();
+        tera.add_template("hello.html", "{{bad}}");
+        let result = tera.render("hello.html", context);
+
+        assert_eq!(result.unwrap(), "&lt;script&gt;alert(&#x27;pwnd&#x27;);&lt;&#x2F;script&gt;".to_string());
+    }
+
+    #[test]
+    fn test_no_autoescape_on_extensions_not_specified() {
+        let mut context = Context::new();
+        context.add("bad", &"<script>alert('pwnd');</script>");
+        let mut tera = Tera::default();
+        tera.add_template("hello.sql", "{{bad}}");
+        let result = tera.render("hello.sql", context);
+
+        assert_eq!(result.unwrap(), "<script>alert('pwnd');</script>".to_string());
     }
 }
