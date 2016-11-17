@@ -1,3 +1,5 @@
+use std::collections::{LinkedList};
+
 use serde_json::value::Value;
 
 /// Library generic result type.
@@ -69,7 +71,7 @@ quick_error! {
             display("Tester `{}` encountered an error while running: {}", tester_name, message)
             description("tester runtime error")
         }
-        MacroCallWrongArgs(macro_name: String, expected_args: Vec<String>, args: Vec<String>) {
+        MacroCallWrongArgs(macro_name: String, expected_args: LinkedList<String>, args: Vec<String>) {
             display("Macro `{}` got `{:?}` for args but was expecting `{:?}` (order does not matter)", macro_name, expected_args, args)
             description("macro wrong args")
         }

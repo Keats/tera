@@ -392,19 +392,19 @@ impl<'a> Renderer<'a> {
                 .and_then(|m| m.get(&macro_name).cloned());
 
             if let Some(Macro {body, params, ..}) = macro_definition {
-                let expected_params = params.iter().cloned().collect::<Vec<String>>();
-                let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
                 // fail fast if the number of args don't match
-                if expected_params.len() != params_seen.len() {
-                    return Err(MacroCallWrongArgs(macro_name, expected_params, params_seen));
+                if params.len() != call_params.len() {
+                    let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
+                    return Err(MacroCallWrongArgs(macro_name, params, params_seen));
                 }
 
                 // We need to make a new context for the macro from the arguments given
                 // Return an error if we get some unknown params
                 let mut context = HashMap::new();
-                for (param_name, exp) in call_params {
+                for (param_name, exp) in call_params.clone() {
                     if !params.contains(&param_name) {
-                        return Err(MacroCallWrongArgs(macro_name, expected_params, params_seen));
+                        let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
+                        return Err(MacroCallWrongArgs(macro_name, params, params_seen));
                     }
                     context.insert(param_name.to_string(), try!(self.eval_expression(exp)));
                 }
