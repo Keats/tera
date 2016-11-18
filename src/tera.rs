@@ -20,7 +20,7 @@ pub struct Tera {
     pub filters: HashMap<String, FilterFn>,
     pub testers: HashMap<String, TesterFn>,
     // Which extensions does Tera automatically autoescape on.
-    // Defaults to ["html", "htm", "xml"]
+    // Defaults to [".html", ".htm", ".xml"]
     pub autoescape_extensions: Vec<&'static str>,
 }
 
@@ -161,6 +161,10 @@ impl Tera {
 
     /// Select which extension(s) to automatically do HTML escaping on.
     /// Pass an empty vec to completely disable autoescape
+    /// Note that autoescape will happen if the template name ends with one
+    /// of the extensions given.
+    /// Example: a file named `template.html` will be escaped by default but
+    /// won't if you set pass `[".php.html"]` to that method.
     pub fn autoescape_on(&mut self, extensions: Vec<&'static str>) {
         self.autoescape_extensions = extensions;
     }
