@@ -115,10 +115,8 @@ impl EncodeSet for UrlEncodeSet {
             false
         } else if byte == 45 || byte == 46 || byte == 95 { // -, . or _
             false
-        } else if self.safe_bytes().contains(&byte) {
-            false
         } else {
-            true
+            !self.safe_bytes().contains(&byte)
         }
     }
 }

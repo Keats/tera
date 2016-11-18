@@ -1,3 +1,5 @@
+use std::collections::{LinkedList};
+
 use serde_json::value::Value;
 
 /// Library generic result type.
@@ -6,10 +8,10 @@ pub type TeraResult<T> = Result<T, TeraError>;
 quick_error! {
     #[derive(PartialEq, Debug, Clone)]
     pub enum TeraError {
-        MismatchingEndBlock(line_no: usize, col_no: usize, expected: String, found: String) {
-            display("Was expecting block `{}` to be closed, but `{}` is closing at line {:?}, column {:?}",
+        MismatchingEndTag(line_no: usize, col_no: usize, expected: String, found: String) {
+            display("Was expecting block with name `{}` to be closed, but `{}` is closing at line {:?}, column {:?}",
                     expected, found, line_no, col_no)
-            description("unexpected endblock name")
+            description("unexpected end tag name")
         }
         InvalidSyntax(line_no: usize, col_no: usize) {
             display("invalid Tera syntax at line {:?}, column {:?}", line_no, col_no)
@@ -19,20 +21,24 @@ quick_error! {
             display("deprecated syntax at line {:?}, column {:?}: {}", line_no, col_no, message)
             description("deprecated syntax")
         }
-        TemplateNotFound(name: String) {
-            display("Template `{}` wasn't found", name)
-            description("template not found")
-        }
+
+        // Runtime errors
         InvalidValue(name: String) {
             display("Expected the value to be an Object while rendering `{}`.", name)
             description("invalid value")
         }
+        TemplateNotFound(name: String) {
+            display("Template `{}` was not found", name)
+            description("template not found")
+        }
         FilterNotFound(name: String) {
-            display("Filter `{}` was not found in the context.", name)
+            display("Filter `{}` was not found.", name)
             description("filter not found")
         }
-
-        // Runtime errors
+        MacroNotFound(name: String, namespace: String) {
+            display("Macro `{}` was not found in the namespace `{}`.", name, namespace)
+            description("macro not found")
+        }
         NotANumber(name: String) {
             display("Field `{}` was used in a math operation but is not a number", name)
             description("field is not a number")
@@ -57,16 +63,17 @@ quick_error! {
             display("Filter `{}` expected an arg called `{}`", filter_name, arg_name)
             description("missing arg in filter call")
         }
-
-        // Tester errors.
         TesterNotFound(name: String) {
             display("Tester `{}` was not found in the context.", name)
             description("tester not found")
         }
         TestError(tester_name: String, message: String) {
-            display("Tester `{}` encountered an error while running: {}",
-                    tester_name, message)
+            display("Tester `{}` encountered an error while running: {}", tester_name, message)
             description("tester runtime error")
+        }
+        MacroCallWrongArgs(macro_name: String, expected_args: LinkedList<String>, args: Vec<String>) {
+            display("Macro `{}` got `{:?}` for args but was expecting `{:?}` (order does not matter)", macro_name, expected_args, args)
+            description("macro wrong args")
         }
     }
 }

@@ -1,7 +1,6 @@
 use std::collections::{HashMap, LinkedList};
 
 use pest::prelude::*;
-use serde_json::value::{Value, to_value};
 use errors::{TeraResult, TeraError};
 
 
@@ -24,12 +23,20 @@ pub enum Node {
     For {variable: String, array: String, body: Box<Node>},
     Block {name: String, body: Box<Node>},
 
+    // params is the list of the params names
+    Macro {name: String, params: LinkedList<String>, body: Box<Node>},
+    // import looks like `{% import "macros.html" as macros %}`
+    // tpl_name refers to "macros.html" and name to macros in that example
+    ImportMacro {tpl_name: String, name: String},
+    // Macros are called like `{{ my_macros::macro1(foo=1, bar=bar) }}`
+    // params are kwargs {name: expression}
+    MacroCall {namespace: String, name: String, params: HashMap<String, Node>},
+
     // params are expressions
     Test {expression: Box<Node>, name: String, params: LinkedList<Node>},
 
-    // For now all params are strings. We still need to differentiate between
-    // user input (ie "dd/mm/YY" arg in a date filter)
-    Filter {name: String, args: HashMap<String, Value>, args_ident: HashMap<String, String>},
+    // params are expressions
+    Filter {name: String, params: HashMap<String, Node>},
     Identifier {name: String, filters: Option<LinkedList<Node>>},
 
     Raw(String),
@@ -82,18 +89,17 @@ impl_rdp! {
         string  = @{ ["\""] ~ (!(["\""]) ~ any )* ~ ["\""]}
 
         // FUNCTIONS
-        // include macros later on
-        // Almost same as identifier minus no . allowed
+        // Almost same as identifier minus no . allowed, used everywhere other
+        // than accessing context variables
         simple_ident = @{
             (['a'..'z'] | ['A'..'Z'] | ["_"]) ~
             (['a'..'z'] | ['A'..'Z'] | ["_"] | ['0'..'9'])*
         }
 
         // named args
-        fn_arg_value = @{ boolean | int | float | string | identifier }
-        fn_arg       = @{ simple_ident ~ ["="] ~ fn_arg_value }
-        fn_args      = !@{ fn_arg ~ ([","] ~ fn_arg )* }
-        fn_call      = { simple_ident ~ ["("] ~ fn_args ~ [")"] | simple_ident }
+        fn_arg  = @{ simple_ident ~ ["="] ~ expression}
+        fn_args = !@{ fn_arg ~ ([","] ~ fn_arg )* }
+        fn_call = { simple_ident ~ ["("] ~ fn_args ~ [")"] | simple_ident }
 
         filters = { (op_filter ~ fn_call)+ }
 
@@ -103,6 +109,13 @@ impl_rdp! {
         }
         identifier_with_filter = { identifier ~ filters }
         idents = _{ identifier_with_filter | identifier }
+
+        // macros
+        // TODO: add default arg?
+        macro_param = @{ simple_ident }
+        macro_params = !@{ macro_param ~ ([","] ~ macro_param )* }
+        macro_definition = _{ identifier ~ ["("] ~ macro_params? ~ [")"]}
+        macro_call = { simple_ident ~ ["::"] ~ simple_ident ~ ["("] ~ fn_args? ~ [")"] }
 
         // Variable tests.
         test_fn_param = { expression }
@@ -116,7 +129,7 @@ impl_rdp! {
         // Precedence climbing
         expression = _{
             // boolean first so they are not caught as identifiers
-            { boolean | idents | float | int }
+            { boolean | string | idents | float | int }
             or          = { op_or | op_wrong_or }
             and         = { op_and | op_wrong_and }
             comparison  = { op_gt | op_lt | op_eq | op_ineq | op_lte | op_gte }
@@ -136,29 +149,45 @@ impl_rdp! {
         block_start    = _{ variable_start | tag_start | comment_start }
 
         // Actual tags
-        include_tag     = !@{ tag_start ~ ["include"] ~ string ~ tag_end }
-        extends_tag     = !@{ tag_start ~ ["extends"] ~ string ~ tag_end }
-        variable_tag    = !@{ variable_start ~ expression ~ variable_end }
-        comment_tag     = !@{ comment_start ~ (!comment_end ~ any )* ~ comment_end }
-        block_tag       = !@{ tag_start ~ ["block"] ~ identifier ~ tag_end }
-        if_tag          = !@{ tag_start ~ ["if"] ~ expression ~ test? ~ tag_end }
-        elif_tag        = !@{ tag_start ~ ["elif"] ~ expression ~ test? ~ tag_end }
-        else_tag        = !@{ tag_start ~ ["else"] ~ tag_end }
-        for_tag         = !@{ tag_start ~ ["for"] ~ identifier ~ ["in"] ~ idents ~ tag_end }
-        raw_tag         = !@{ tag_start ~ ["raw"] ~ tag_end }
-        endraw_tag      = !@{ tag_start ~ ["endraw"] ~ tag_end }
-        endblock_tag    = !@{ tag_start ~ ["endblock"] ~ identifier ~ tag_end }
-        endif_tag       = !@{ tag_start ~ ["endif"] ~ tag_end }
-        endfor_tag      = !@{ tag_start ~ ["endfor"] ~ tag_end }
+        include_tag      = !@{ tag_start ~ ["include"] ~ string ~ tag_end }
+        import_macro_tag = !@{ tag_start ~ ["import"] ~ string ~ ["as"] ~ simple_ident ~ tag_end}
+        extends_tag      = !@{ tag_start ~ ["extends"] ~ string ~ tag_end }
+        variable_tag     = !@{ variable_start ~ (macro_call | expression) ~ variable_end }
+        comment_tag      = !@{ comment_start ~ (!comment_end ~ any )* ~ comment_end }
+        block_tag        = !@{ tag_start ~ ["block"] ~ identifier ~ tag_end }
+        macro_tag        = !@{ tag_start ~ ["macro"] ~ macro_definition ~ tag_end }
+        if_tag           = !@{ tag_start ~ ["if"] ~ expression ~ test? ~ tag_end }
+        elif_tag         = !@{ tag_start ~ ["elif"] ~ expression ~ test? ~ tag_end }
+        else_tag         = !@{ tag_start ~ ["else"] ~ tag_end }
+        for_tag          = !@{ tag_start ~ ["for"] ~ identifier ~ ["in"] ~ idents ~ tag_end }
+        raw_tag          = !@{ tag_start ~ ["raw"] ~ tag_end }
+        endraw_tag       = !@{ tag_start ~ ["endraw"] ~ tag_end }
+        endblock_tag     = !@{ tag_start ~ ["endblock"] ~ identifier ~ tag_end }
+        endmacro_tag     = !@{ tag_start ~ ["endmacro"] ~ identifier ~ tag_end }
+        endif_tag        = !@{ tag_start ~ ["endif"] ~ tag_end }
+        endfor_tag       = !@{ tag_start ~ ["endfor"] ~ tag_end }
 
         elif_block = { elif_tag ~ content* }
         raw_text   = { (!endraw_tag ~ any )* }
         text       = { (!(block_start) ~ any )+ }
 
-        content = @{
+        // smaller sets of allowed content in macros
+        macro_content = @{
             include_tag |
             variable_tag |
             comment_tag |
+            if_tag ~ macro_content* ~ elif_block* ~ (else_tag ~ macro_content*)? ~ endif_tag |
+            for_tag ~ macro_content* ~ endfor_tag |
+            raw_tag ~ raw_text ~ endraw_tag |
+            text
+        }
+
+        content = @{
+            include_tag |
+            import_macro_tag |
+            variable_tag |
+            comment_tag |
+            macro_tag ~ macro_content* ~ endmacro_tag |
             block_tag ~ content* ~ endblock_tag |
             if_tag ~ content* ~ elif_block* ~ (else_tag ~ content*)? ~ endif_tag |
             for_tag ~ content* ~ endfor_tag |
@@ -199,6 +228,14 @@ impl_rdp! {
                 };
                 Ok(tail2)
             },
+            (_: macro_content, node: _content(), tail: _template()) => {
+                let mut tail2 = try!(tail);
+                match try!(node) {
+                    Some(n) => { tail2.push_front(n); }
+                    None => ()
+                };
+                Ok(tail2)
+            },
             () => Ok(LinkedList::new())
         }
 
@@ -208,7 +245,20 @@ impl_rdp! {
                 Ok(Some(Node::Text(head.to_string())))
             },
             (_: include_tag, &name: string) => {
-                Ok(Some(Node::Include(name.replace("\"", "").to_string())))
+                Ok(Some(Node::Include(name.trim_matches('"').to_string())))
+            },
+            (_: import_macro_tag, &tpl_name: string, &name: simple_ident) => {
+                Ok(Some(Node::ImportMacro {
+                    tpl_name: tpl_name.trim_matches('"').to_string(),
+                    name: name.to_string(),
+                }))
+            },
+            (_: variable_tag, _: macro_call, &namespace: simple_ident, &name: simple_ident, params: _fn_args()) => {
+                Ok(Some(Node::MacroCall {
+                    namespace: namespace.to_string(),
+                    name: name.to_string(),
+                    params: try!(params)
+                }))
             },
             (_: variable_tag, exp: _expression()) => {
                 Ok(Some(Node::VariableBlock(Box::new(try!(exp)))))
@@ -220,13 +270,28 @@ impl_rdp! {
                 if name != end_name {
                     let (line_no, col_no) = self.input().line_col(self.input.pos());
                     return Err(
-                        TeraError::MismatchingEndBlock(
+                        TeraError::MismatchingEndTag(
                             line_no, col_no, name.to_string(), end_name.to_string()
                         )
                     );
                 }
                 Ok(Some(Node::Block {
                     name: name.to_string(),
+                    body: Box::new(Node::List(try!(body)))
+                }))
+            },
+            (_: macro_tag, &name: identifier, params: _macro_def_params(), body: _template(), _: endmacro_tag, &end_name: identifier) => {
+                if name != end_name {
+                    let (line_no, col_no) = self.input().line_col(self.input.pos());
+                    return Err(
+                        TeraError::MismatchingEndTag(
+                            line_no, col_no, name.to_string(), end_name.to_string()
+                        )
+                    );
+                }
+                Ok(Some(Node::Macro {
+                    name: name.to_string(),
+                    params: params,
                     body: Box::new(Node::List(try!(body)))
                 }))
             },
@@ -342,56 +407,31 @@ impl_rdp! {
             },
         }
 
-        _fn_arg_value(&self) -> Value {
-            (&number: int) => {
-                to_value(&number.parse::<i32>().unwrap())
-            },
-            (&number: float) => {
-                to_value(&number.parse::<f32>().unwrap())
-            },
-            (_: op_true) => {
-                to_value(&true)
-            },
-            (_: op_false) => {
-                to_value(&false)
-            },
-            (&text: string) => {
-                to_value(text.replace("\"", ""))
-            }
-        }
-
-        _fn_args(&self) -> (HashMap<String, Value>, HashMap<String, String>) {
-            // first arg of the fn
-            (_: fn_args, _: fn_arg, &name: simple_ident, _: fn_arg_value, &ident: identifier, mut tail: _fn_args()) => {
-                tail.1.insert(name.to_string(), ident.to_string());
-                tail
-            },
-            (_: fn_args, _: fn_arg, &name: simple_ident, _: fn_arg_value, arg: _fn_arg_value(), mut tail: _fn_args()) => {
-                tail.0.insert(name.to_string(), arg);
-                tail
+        _fn_args(&self) -> TeraResult<HashMap<String, Node>> {
+             // first arg of the fn
+            (_: fn_args, _: fn_arg, &name: simple_ident, exp: _expression(), tail: _fn_args()) => {
+                let mut tail2 = try!(tail);
+                tail2.insert(name.to_string(), try!(exp));
+                Ok(tail2)
             },
             // arguments after the first
-            (_: fn_arg, &name: simple_ident, _: fn_arg_value, &ident: identifier, mut tail: _fn_args()) => {
-                tail.1.insert(name.to_string(), ident.to_string());
-                tail
+            (_: fn_arg, &name: simple_ident, exp: _expression(), tail: _fn_args()) => {
+                let mut tail2 = try!(tail);
+                tail2.insert(name.to_string(), try!(exp));
+                Ok(tail2)
             },
-            (_: fn_arg, &name: simple_ident, _: fn_arg_value, arg: _fn_arg_value(), mut tail: _fn_args()) => {
-                tail.0.insert(name.to_string(), arg);
-                tail
-            },
-            () => (HashMap::new(), HashMap::new())
+            () => Ok(HashMap::new())
         }
 
-        // TODO: reuse that for macros
         _fn(&self) -> TeraResult<Node> {
             (_: fn_call, &name: simple_ident, args: _fn_args()) => {
-                Ok(Node::Filter{name: name.to_string(), args: args.0, args_ident: args.1})
+                Ok(Node::Filter{name: name.to_string(), params: try!(args)})
             },
             // The filters parser will need to consume the `fn_call` token
             // It might not be needed in next version of pest
             // https://github.com/dragostis/pest/issues/74
             (&name: simple_ident, args: _fn_args()) => {
-                Ok(Node::Filter{name: name.to_string(), args: args.0, args_ident: args.1})
+                Ok(Node::Filter{name: name.to_string(), params: try!(args)})
             },
         }
 
@@ -407,6 +447,21 @@ impl_rdp! {
                 Ok(tail2)
             },
             () => Ok(LinkedList::new())
+        }
+
+        _macro_def_params(&self) -> LinkedList<String> {
+            // first arg of many
+            (_: macro_params, _: macro_param, &name: simple_ident, mut tail: _macro_def_params()) => {
+                tail.push_front(name.to_string());
+                tail
+            },
+            // arguments after the first of many
+            (_: macro_param, &name: simple_ident, mut tail: _macro_def_params()) => {
+                tail.push_front(name.to_string());
+                tail
+            },
+            // Base case
+            () => LinkedList::new()
         }
 
         _test_fn_params(&self) -> (TeraResult<LinkedList<Node>>) {
@@ -508,6 +563,9 @@ impl_rdp! {
             (&text: text) => {
                 Ok(Node::Text(text.to_string()))
             },
+            (&string: string) => {
+                Ok(Node::Text(string.replace("\"", "").to_string()))
+            }
         }
     }
 }
@@ -556,7 +614,6 @@ mod tests {
     use std::collections::{LinkedList, HashMap};
 
     use pest::prelude::*;
-    use serde_json::value::{to_value};
 
     use super::{Rdp, Node, parse};
     use errors::TeraError;
@@ -748,9 +805,44 @@ mod tests {
     }
 
     #[test]
+    fn test_variable_tag_macro_call() {
+        let mut parser = Rdp::new(StringInput::new("{{ my_macros::macro1(hello=\"world\", foo=bar, hey=1+2) }}"));
+        assert!(parser.variable_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
     fn test_content() {
         let mut parser = Rdp::new(StringInput::new("{% if i18n %}世界{% else %}world{% endif %}"));
         assert!(parser.content());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_macro_tag_no_args() {
+        let mut parser = Rdp::new(StringInput::new("{% macro hello_world() %}"));
+        assert!(parser.macro_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_macro_tag_with_args() {
+        let mut parser = Rdp::new(StringInput::new("{% macro hello_world(greeting, capitalize) %}"));
+        assert!(parser.macro_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_endmacro() {
+        let mut parser = Rdp::new(StringInput::new("{% endmacro hello_world %}"));
+        assert!(parser.endmacro_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_import_macro() {
+        let mut parser = Rdp::new(StringInput::new("{% import \"macros.html\" as macros %}"));
+        assert!(parser.import_macro_tag());
         assert!(parser.end());
     }
 
@@ -912,13 +1004,13 @@ mod tests {
 
     #[test]
     fn test_ast_if_with_test_params() {
-        let parsed_ast = parse(r#"{% if pi is equalto 3.14 %}Hey{% endif %}"#);
+        let parsed_ast = parse(r#"{% if pi is equalto 3.13 %}Hey{% endif %}"#);
         let mut ast = LinkedList::new();
         let mut body = LinkedList::new();
         body.push_front(Node::Text("Hey".to_string()));
 
         let mut params = LinkedList::new();
-        params.push_front(Node::Float(3.14));
+        params.push_front(Node::Float(3.13));
 
         let mut condition_nodes = LinkedList::new();
         condition_nodes.push_front(Node::Conditional {
@@ -1062,6 +1154,7 @@ mod tests {
 
     #[test]
     fn test_unary_test() {
+        // TODO: remove that syntax
         let mut parser = Rdp::new(StringInput::new("is equalto other"));
         assert!(parser.test());
         assert!(parser.end());
@@ -1078,6 +1171,7 @@ mod tests {
         assert!(parser.end());
     }
 
+    // TODO: remove that syntax
     #[test]
     fn test_n_ary_test_requires_parens() {
         let mut parser = Rdp::new(StringInput::new("is oneof a, b, c"));
@@ -1103,21 +1197,19 @@ mod tests {
         let mut filters = LinkedList::new();
 
         let mut args_truncate = HashMap::new();
-        args_truncate.insert("limit".to_string(), to_value(&50));
-        args_truncate.insert("cut_word".to_string(), to_value(&true));
+        args_truncate.insert("limit".to_string(), Node::Int(50));
+        args_truncate.insert("cut_word".to_string(), Node::Bool(true));
         let mut args_i18n = HashMap::new();
-        args_i18n.insert("lang".to_string(), "user.lang".to_string());
-        args_i18n.insert("units".to_string(), "user.units".to_string());
+        args_i18n.insert("lang".to_string(), Node::Identifier {name: "user.lang".to_string(), filters: None});
+        args_i18n.insert("units".to_string(), Node::Identifier {name: "user.units".to_string(), filters: None});
 
         filters.push_front(Node::Filter {
             name: "truncate".to_string(),
-            args: args_truncate,
-            args_ident: HashMap::new(),
+            params: args_truncate,
         });
         filters.push_front(Node::Filter {
             name: "i18n".to_string(),
-            args: HashMap::new(),
-            args_ident: args_i18n,
+            params: args_i18n,
         });
 
         let mut ast = LinkedList::new();
@@ -1127,6 +1219,131 @@ mod tests {
                 filters: Some(filters),
             })
         ));
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_definition_no_arg() {
+        let parsed_ast = parse("{% macro helloworld() %}Hello{% endmacro helloworld %}");
+        let params = LinkedList::new();
+
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hello".to_string()));
+
+        let mut ast = LinkedList::new();
+        ast.push_front(Node::Macro {
+            name: "helloworld".to_string(),
+            params: params,
+            body: Box::new(Node::List(body.clone())),
+        });
+
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_definition_one_arg() {
+        let parsed_ast = parse("{% macro helloworld(greeting) %}Hello{% endmacro helloworld %}");
+        let mut params = LinkedList::new();
+        params.push_front("greeting".to_string());
+
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hello".to_string()));
+
+        let mut ast = LinkedList::new();
+        ast.push_front(Node::Macro {
+            name: "helloworld".to_string(),
+            params: params,
+            body: Box::new(Node::List(body.clone())),
+        });
+
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_definition_multiple_args() {
+        let parsed_ast = parse("{% macro helloworld(greeting, language) %}Hello{% endmacro helloworld %}");
+        let mut params = LinkedList::new();
+        params.push_front("language".to_string());
+        params.push_front("greeting".to_string());
+
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Hello".to_string()));
+
+        let mut ast = LinkedList::new();
+        ast.push_front(Node::Macro {
+            name: "helloworld".to_string(),
+            params: params,
+            body: Box::new(Node::List(body.clone())),
+        });
+
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_import() {
+        let parsed_ast = parse("{% import \"macros.html\" as macros %}");
+        let mut ast = LinkedList::new();
+        ast.push_front(Node::ImportMacro {
+            tpl_name: "macros.html".to_string(),
+            name: "macros".to_string(),
+        });
+
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_call_no_args() {
+        let parsed_ast = parse("{{ macros::macro1() }}");
+        let mut ast = LinkedList::new();
+        let params = HashMap::new();
+        ast.push_front(Node::MacroCall {
+            namespace: "macros".to_string(),
+            name: "macro1".to_string(),
+            params: params
+        });
+
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_call_one_arg() {
+        let parsed_ast = parse("{{ macros::macro1(foo=bar) }}");
+        let mut ast = LinkedList::new();
+        let mut params = HashMap::new();
+        params.insert("foo".to_string(), Node::Identifier {name: "bar".to_string(), filters: None});
+        ast.push_front(Node::MacroCall {
+            namespace: "macros".to_string(),
+            name: "macro1".to_string(),
+            params: params
+        });
+
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_call_multiple_args() {
+        let parsed_ast = parse("{{ macros::macro1(foo=bar, hey=1+2) }}");
+        let mut ast = LinkedList::new();
+        let mut params = HashMap::new();
+        params.insert("foo".to_string(), Node::Identifier {name: "bar".to_string(), filters: None});
+        params.insert("hey".to_string(), Node::Math {
+            lhs: Box::new(Node::Int(1)),
+            rhs: Box::new(Node::Int(2)),
+            operator: "+".to_string(),
+        });
+        ast.push_front(Node::MacroCall {
+            namespace: "macros".to_string(),
+            name: "macro1".to_string(),
+            params: params
+        });
+
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
     }
@@ -1157,7 +1374,7 @@ mod tests {
         assert!(parsed_ast.is_err());
         assert_eq!(
             parsed_ast.err().unwrap(),
-            TeraError::MismatchingEndBlock(1, 33, "hey".to_string(), "ho".to_string())
+            TeraError::MismatchingEndTag(1, 33, "hey".to_string(), "ho".to_string())
         );
     }
 

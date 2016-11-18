@@ -188,7 +188,7 @@ For example, here's a `base.html` almost copied from the jinja documentation:
 </html>
 ```
 The difference with Jinja being that `endblock` tags must be named.
-This defines 4 `block` tag that child templates can override. The `head` and `footer` block contains some html already which will be rendered if they are not overrident.
+This defines 4 `block` tag that child templates can override. The `head` and `footer` block contains some html already which will be rendered if they are not overriden.
 
 #### Child template
 Again, straight from jinja2 docs:
@@ -364,3 +364,34 @@ Escapes a string's HTML. Specifically, it makes these replacements:
 - " (double quote) is converted to &quot;
 - & is converted to &amp;
 
+### Macros
+Macros are a simple way to reuse template bits. Think of them as functions that you can call that return some text.
+
+Macros are defined as follows:
+
+```jinja2
+{% macro input(label, type) %}
+    <label>
+        {{ label }}
+        <input type="{{type}}" />
+    </label>
+{% endmacro hello_world %}
+```
+
+You need to import the file containing the macros in order to use them:
+
+```jinja2
+{% import "macros.html" as macros %}
+```
+You can name that file namespace (`macros` in the example) anything you want.
+You can call a macro the following way:
+
+```jinja2
+{{ macros::input(label="Name", type="text") }}
+```
+Do note that macros, like other functions in Tera, require keyword arguments.
+If you are trying to call a macro defined in the same file, you will need to use the `{{ self::my_macro() }}`` syntax to call it the file its defined in.
+
+Macros can be called recursively but there is no limit to recursion so make sure you macro ends.
+
+There are a few restrictions to the content inside macros: no macros definitions or blocks are allowed.

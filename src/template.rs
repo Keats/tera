@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
 use parser::{parse, Node};
+use errors::TeraResult;
+use errors::TeraError::MacroNotFound;
 
 
 // This is the parsed equivalent of a html template file
@@ -10,6 +12,7 @@ pub struct Template {
     pub ast: Node,
     pub parent: Option<String>,
     pub blocks: HashMap<String, Node>,
+    pub macros: HashMap<String, Node>,
 }
 
 impl Template {
@@ -45,11 +48,34 @@ impl Template {
             }
         }
 
+        // We also find all macros defined in the template file
+        let mut macros = HashMap::new();
+        for node in ast.get_children() {
+            match node {
+                Node::Macro { ref name, .. } => {
+                    if macros.contains_key(name) {
+                        panic!("Error when parsing `{}`:\n{} macro is duplicated", tpl_name, name);
+                    }
+                    macros.insert(name.to_string(), node.clone())
+
+                },
+                _ => continue,
+            };
+        }
+
         Template {
             name: tpl_name.to_string(),
             ast: ast,
             parent: parent,
             blocks: blocks,
+            macros: macros,
+        }
+    }
+
+    pub fn get_macro(&self, name: String) -> TeraResult<&Node> {
+        match self.macros.get(&name) {
+            Some(m) => Ok(m),
+            None => Err(MacroNotFound(self.name.clone(), name.to_string())),
         }
     }
 }
@@ -80,5 +106,13 @@ mod tests {
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
         assert_eq!(tpl.blocks.contains_key("hey"), true);
+    }
+
+    #[test]
+    fn test_can_find_macros() {
+        let tpl = Template::new("hello", "{% macro hey() %}{% endmacro hey %}");
+
+        println!("{:?}", tpl.macros);
+        assert_eq!(tpl.macros.contains_key("hey"), true);
     }
 }

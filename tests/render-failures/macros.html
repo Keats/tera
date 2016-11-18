@@ -1,0 +1,11 @@
+{% macro input(label, type) %}
+<label>
+    {{ label }}
+    <input type="{{type}}" />
+</label>
+{% endmacro input %}
+
+
+{% macro hello_world2() %}
+    {{ self::inexisting() }}
+{% endmacro hello_world2 %}

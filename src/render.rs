@@ -1,4 +1,4 @@
-use std::collections::LinkedList;
+use std::collections::{LinkedList, HashMap};
 
 use serde_json::value::{Value, to_value};
 
@@ -53,6 +53,12 @@ pub struct Renderer<'a> {
     context: Value,
     tera: &'a Tera,
     for_loops: Vec<ForLoop>,
+    // looks like filename: {macro_name: body node}
+    macros: HashMap<String, HashMap<String, Node>>,
+    // set when rendering macros, empty if not in a macro
+    macro_context: Vec<Value>,
+    // Keeps track of which namespace we're on in order to resolve the `self::` syntax
+    macro_namespaces: Vec<String>,
 }
 
 impl<'a> Renderer<'a> {
@@ -62,15 +68,25 @@ impl<'a> Renderer<'a> {
             tera: tera,
             context: context,
             for_loops: vec![],
+            macros: HashMap::new(),
+            macro_context: vec![],
+            macro_namespaces: vec![],
         }
     }
 
     // Lookup a variable name from the context and takes into
     // account for loops variables
     fn lookup_variable(&self, key: &str) -> TeraResult<Value> {
+        // Differentiate between macros and general context
+        let context = if self.macro_context.is_empty() {
+            &self.context
+        } else {
+            self.macro_context.last().expect("Didn't get the macro context")
+        };
+
         // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
-            return self.context.pointer(&get_json_pointer(key)).cloned()
+            return context.pointer(&get_json_pointer(key)).cloned()
                 .ok_or_else(|| FieldNotFound(key.to_string()));
         }
 
@@ -102,7 +118,7 @@ impl<'a> Renderer<'a> {
         }
 
         // can get there when looking a variable in the global context while in a forloop
-        self.context.pointer(&get_json_pointer(key)).cloned()
+        context.pointer(&get_json_pointer(key)).cloned()
             .ok_or_else(|| FieldNotFound(key.to_string()))
     }
 
@@ -116,11 +132,11 @@ impl<'a> Renderer<'a> {
                 if let Some(ref _filters) = *filters {
                     for filter in _filters {
                         match *filter {
-                            Filter { ref name, ref args, ref args_ident } => {
+                            Filter { ref name, ref params } => {
                                 let filter_fn = try!(self.tera.get_filter(name));
-                                let mut all_args = args.clone();
-                                for (arg_name, ident_name) in args_ident {
-                                    all_args.insert(arg_name.to_string(), try!(self.lookup_variable(ident_name)));
+                                let mut all_args = HashMap::new();
+                                for (arg_name, exp) in params {
+                                    all_args.insert(arg_name.to_string(), try!(self.eval_expression(exp.clone())));
                                 }
                                 value = try!(filter_fn(value, all_args));
                             },
@@ -189,6 +205,9 @@ impl<'a> Renderer<'a> {
             },
             Bool(b) => {
                 Ok(Value::Bool(b))
+            },
+            Text(t) => {
+                Ok(Value::String(t))
             },
             _ => unreachable!()
         }
@@ -345,6 +364,81 @@ impl<'a> Renderer<'a> {
         Ok(output.trim_right().to_string())
     }
 
+    fn render_macro(&mut self, call_node: Node) -> TeraResult<String> {
+        if let MacroCall {namespace, name: macro_name, params: call_params} = call_node {
+            // We need to find the active namespace in Tera if `self` is used
+            // Since each macro (other than the `self` ones) pushes its own namespace
+            // to the stack when being rendered, we can just lookup the last namespace that was pushed
+            // to find out the active one
+            let active_namespace = match namespace.as_ref() {
+                "self" => {
+                    // TODO: handle error if we don't have a namespace
+                    // This can only happen when calling {{ self:: }} outside of a macro afaik
+                    self.macro_namespaces
+                        .last()
+                        .expect("Open an issue with a template sample please (mention `self namespace macro`)!")
+                        .to_string()
+                },
+                _ => {
+                    // TODO: String doesn't have Copy trait, can we avoid double cloning?
+                    self.macro_namespaces.push(namespace.clone());
+                    namespace.clone()
+                }
+            };
+
+            // We get our macro definition using the namespace name we just got
+            let macro_definition = self.macros
+                .get(&active_namespace)
+                .and_then(|m| m.get(&macro_name).cloned());
+
+            if let Some(Macro {body, params, ..}) = macro_definition {
+                // fail fast if the number of args don't match
+                if params.len() != call_params.len() {
+                    let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
+                    return Err(MacroCallWrongArgs(macro_name, params, params_seen));
+                }
+
+                // We need to make a new context for the macro from the arguments given
+                // Return an error if we get some unknown params
+                let mut context = HashMap::new();
+                for (param_name, exp) in call_params.clone() {
+                    if !params.contains(&param_name) {
+                        let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
+                        return Err(MacroCallWrongArgs(macro_name, params, params_seen));
+                    }
+                    context.insert(param_name.to_string(), try!(self.eval_expression(exp)));
+                }
+
+                // Push this context to our stack of macro context so the renderer can pick variables
+                // from it
+                self.macro_context.push(to_value(&context));
+
+                // We render the macro body as a normal node
+                let mut output = String::new();
+                for node in body.get_children() {
+                    output.push_str(&try!(self.render_node(node)));
+                }
+
+                // If the current namespace wasn't `self`, we remove it since it's not needed anymore
+                // In the `self` case, we are still in the parent macro and its namespace is still
+                // needed so we keep it
+                if namespace == active_namespace {
+                    self.macro_namespaces.pop();
+                }
+
+                // We remove the macro context we just rendered from our stack of contexts
+                self.macro_context.pop();
+
+                return Ok(output.trim().to_string());
+            } else {
+                return Err(MacroNotFound(active_namespace, macro_name));
+            }
+
+        } else {
+            unreachable!("Got a node other than a MacroCall when rendering a macro")
+        }
+    }
+
     pub fn render_node(&mut self, node: Node) -> TeraResult<String> {
         match node {
             Include(p) => {
@@ -354,8 +448,16 @@ impl<'a> Renderer<'a> {
                     output.push_str(&try!(self.render_node(node)));
                 }
 
-                Ok(output)
+                Ok(output.trim_left().to_string())
             },
+            ImportMacro {tpl_name, name} => {
+                let tpl = try!(self.tera.get_template(&tpl_name));
+                self.macros.insert(name.to_string(), tpl.macros.clone());
+                // In theory, the render_node should return TeraResult<Option<String>>
+                // but in practice there's no difference so keeping this hack
+                Ok("".to_string())
+            },
+            MacroCall {..} => self.render_macro(node),
             Text(s) => Ok(s),
             Raw(s) => Ok(s.trim().to_string()),
             VariableBlock(exp) => self.render_variable_block(*exp),

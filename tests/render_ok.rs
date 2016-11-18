@@ -10,14 +10,15 @@ mod common;
 use common::{Product, Review, read_file};
 
 
-fn assert_template_ok(path: &str, base_path: Option<&str>) {
+fn assert_template_ok(path: &str, others: Vec<&str>) {
     let mut tera = Tera::default();
     tera.add_template("tpl", &read_file(path));
-    if base_path.is_some() {
-        let base = base_path.unwrap().to_string();
+    for p in others {
+        let base = p.to_string();
         let split = base.split("/").collect::<Vec<&str>>();
         let name = split.last().unwrap();
         tera.add_template(name, &read_file(&base));
+
     }
     let expected = read_file(&path.replace("templates", "expected"));
 
@@ -46,70 +47,70 @@ fn assert_template_ok(path: &str, base_path: Option<&str>) {
 
 #[test]
 fn test_ok_basic_template() {
-    assert_template_ok("tests/templates/basic.html", None);
+    assert_template_ok("tests/templates/basic.html", vec![]);
 }
 
 #[test]
 fn test_ok_comment_template() {
-    assert_template_ok("tests/templates/comment.html", None);
+    assert_template_ok("tests/templates/comment.html", vec![]);
 }
 
 #[test]
 fn test_ok_comment_alignment_template() {
-    assert_template_ok("tests/templates/comment_alignment.html", None);
+    assert_template_ok("tests/templates/comment_alignment.html", vec![]);
 }
 
 #[test]
 fn test_ok_variables_template() {
-    assert_template_ok("tests/templates/variables.html", None);
+    assert_template_ok("tests/templates/variables.html", vec![]);
 }
 
 #[test]
 fn test_ok_conditions_template() {
-    assert_template_ok("tests/templates/conditions.html", None);
+    assert_template_ok("tests/templates/conditions.html", vec![]);
 }
 
 #[test]
 fn test_ok_loops_template() {
-    assert_template_ok("tests/templates/loops.html", None);
+    assert_template_ok("tests/templates/loops.html", vec![]);
 }
 
 #[test]
 fn test_ok_empty_loop_template() {
-    assert_template_ok("tests/templates/empty_loop.html", None);
+    assert_template_ok("tests/templates/empty_loop.html", vec![]);
 }
 
 #[test]
 fn test_ok_basic_inheritance_template() {
     assert_template_ok(
         "tests/templates/basic_inheritance.html",
-        Some("tests/templates/base.html")
+        vec!["tests/templates/base.html"]
     );
 }
 
 #[test]
 fn test_ok_raw_template() {
-    assert_template_ok("tests/templates/raw.html", None);
+    assert_template_ok("tests/templates/raw.html", vec![]);
 }
 
 #[test]
 fn test_ok_filters_template() {
-    assert_template_ok("tests/templates/filters.html", None);
+    assert_template_ok("tests/templates/filters.html", vec![]);
 }
 
 #[test]
 fn test_ok_variable_tests() {
-    assert_template_ok("tests/templates/variable_tests.html", None);
+    assert_template_ok("tests/templates/variable_tests.html", vec![]);
 }
 
 #[test]
 fn test_ok_indexing() {
-    assert_template_ok("tests/templates/indexing.html", None);
+    assert_template_ok("tests/templates/indexing.html", vec![]);
 }
 
 #[test]
 fn test_ok_include_template() {
-    assert_template_ok("tests/templates/include.html", Some("tests/templates/included.html"));
+    assert_template_ok("tests/templates/include.html", vec!["tests/templates/included.html"]);
 }
 
 #[test]
@@ -127,4 +128,12 @@ fn test_ok_value_render() {
         file.write_all(rendered.as_bytes()).unwrap();
         assert!(false);
     }
+}
+
+#[test]
+fn test_ok_macros() {
+    assert_template_ok(
+        "tests/templates/use_macros.html",
+        vec!["tests/templates/macros.html", "tests/templates/macro_included.html"]
+    );
 }

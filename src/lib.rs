@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 // Needed by pest
-#![recursion_limit = "200"]
+#![recursion_limit = "300"]
 
 #![cfg_attr(feature = "dev", feature(plugin))]
 #![cfg_attr(feature = "dev", plugin(clippy))]
@@ -10,19 +10,15 @@
 extern crate serde;
 extern crate serde_json;
 extern crate glob;
-#[macro_use]
-extern crate pest;
-#[macro_use]
-extern crate quick_error;
+#[macro_use] extern crate pest;
+#[macro_use] extern crate quick_error;
 extern crate slug;
 extern crate regex;
-#[macro_use]
-extern crate lazy_static;
+#[macro_use] extern crate lazy_static;
 extern crate url;
 
 mod errors;
-#[macro_use]
-mod macros;
+#[macro_use] mod macros;
 mod parser;
 mod context;
 mod render;

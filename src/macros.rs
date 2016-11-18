@@ -5,7 +5,7 @@
 #[macro_export]
 macro_rules! try_get_value {
     ($filter_name:expr, $var_name:expr, $ty:ty, $val:expr) => {{
-        let v: $ty = match ::serde_json::value::from_value($val.clone()) {
+        match ::serde_json::value::from_value::<$ty>($val.clone()) {
             Ok(s) => s,
             Err(_) => {
                 return Err(::errors::TeraError::FilterIncorrectArgType(
@@ -15,7 +15,6 @@ macro_rules! try_get_value {
                     stringify!($ty).to_string())
                 );
             }
-        };
-        v
+        }
     }};
 }
