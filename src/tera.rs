@@ -57,7 +57,7 @@ impl Tera {
             templates: templates,
             filters: HashMap::new(),
             testers: HashMap::new(),
-            autoescape_extensions: vec!["html", "html", "xml"]
+            autoescape_extensions: vec![".html", ".htm", ".xml"]
         };
 
         tera.register_tera_filters();
@@ -172,7 +172,7 @@ impl Default for Tera {
             templates: HashMap::new(),
             filters: HashMap::new(),
             testers: HashMap::new(),
-            autoescape_extensions: vec!["html", "html", "xml"]
+            autoescape_extensions: vec![".html", ".htm", ".xml"]
         };
 
         tera.register_tera_filters();
