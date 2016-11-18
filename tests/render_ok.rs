@@ -12,6 +12,7 @@ use common::{Product, Review, read_file};
 
 fn assert_template_ok(path: &str, others: Vec<&str>) {
     let mut tera = Tera::default();
+    tera.autoescape_on(vec!["html"]);
     tera.add_template("tpl", &read_file(path));
     for p in others {
         let base = p.to_string();

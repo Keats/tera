@@ -23,10 +23,13 @@ pub fn escape_html(input: &str) -> String {
             '"' => output.push_str("&quot;"),
             '\'' => output.push_str("&#x27;"),
             '/' => output.push_str("&#x2F;"),
+            // Additional one for old IE (unpatched IE8 and below)
+            // See https://github.com/OWASP/owasp-java-encoder/wiki/Grave-Accent-Issue
+            '`' => output.push_str("&#96;"),
             _ => output.push(*c as char)
         }
     }
 
-    output.shrink_to_fit();
+    // Not using shrink_to_fit() on purpose
     output
 }

@@ -66,8 +66,8 @@ pub struct Renderer<'a> {
 impl<'a> Renderer<'a> {
     pub fn new(tpl: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
         let mut should_escape = false;
-        for ext in tera.autoescape_extensions.clone() {
-            if tpl.name.ends_with(ext.as_str()) {
+        for ext in &tera.autoescape_extensions {
+            if tpl.name.ends_with(ext) {
                 should_escape = true;
             }
         }
@@ -141,12 +141,9 @@ impl<'a> Renderer<'a> {
 
                 // Escaping strings if wanted for that template
                 if self.should_escape {
-                    match value {
-                      Value::String(s) =>  {
-                          value = to_value(escape_html(s.as_str()));
-                      },
-                      _ => (),
-                    };
+                    if let Value::String(s) = value {
+                        value = to_value(escape_html(s.as_str()));
+                    }
                 }
 
                 if let Some(ref _filters) = *filters {
