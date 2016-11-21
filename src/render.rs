@@ -133,18 +133,16 @@ impl<'a> Renderer<'a> {
         match *node {
             Identifier { ref name, ref filters } => {
                 let mut value = try!(self.lookup_variable(name));
-
-                // Escaping strings if wanted for that template
-                if self.should_escape {
-                    if let Value::String(s) = value {
-                        value = to_value(escape_html(s.as_str()));
-                    }
-                }
+                let mut is_safe = false;
 
                 if let Some(ref _filters) = *filters {
                     for filter in _filters {
                         match *filter {
                             Filter { ref name, ref params } => {
+                                if name == "safe" {
+                                    is_safe = true;
+                                    continue;
+                                }
                                 let filter_fn = try!(self.tera.get_filter(name));
                                 let mut all_args = HashMap::new();
                                 for (arg_name, exp) in params {
@@ -155,7 +153,13 @@ impl<'a> Renderer<'a> {
                             _ => unreachable!(),
                         };
                     }
-                    return Ok(value);
+                }
+
+                // Escaping strings if wanted for that template
+                if self.should_escape && !is_safe {
+                    if let Value::String(s) = value {
+                        value = to_value(escape_html(s.as_str()));
+                    }
                 }
                 Ok(value)
             },
@@ -725,6 +729,17 @@ mod tests {
         let mut tera = Tera::default();
         tera.add_template("hello.sql", "{{bad}}");
         let result = tera.render("hello.sql", context);
+
+        assert_eq!(result.unwrap(), "<script>alert('pwnd');</script>".to_string());
+    }
+
+    #[test]
+    fn test_no_autoescape_with_safe_filter() {
+        let mut context = Context::new();
+        context.add("bad", &"<script>alert('pwnd');</script>");
+        let mut tera = Tera::default();
+        tera.add_template("hello.html", "{{ bad | safe }}");
+        let result = tera.render("hello.html", context);
 
         assert_eq!(result.unwrap(), "<script>alert('pwnd');</script>".to_string());
     }

@@ -36,3 +36,4 @@ mod utils;
 pub use context::Context;
 pub use tera::Tera;
 pub use errors::{TeraResult, TeraError};
+pub use utils::{escape_html};
