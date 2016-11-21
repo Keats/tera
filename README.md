@@ -354,6 +354,10 @@ Returns a number rounded following the method given. Default method is `common` 
 
 Example: `{{ num | round }} {{ num | round(method="ceil") }}`
 
+#### filesizeformat
+Returns a human-readable file size (i.e. '110 MB') from an integer.
+
+Example: `{{ num | filesizeformat }}`
 
 #### escape
 Escapes a string's HTML. Specifically, it makes these replacements:

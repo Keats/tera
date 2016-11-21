@@ -16,6 +16,7 @@ extern crate slug;
 extern crate regex;
 #[macro_use] extern crate lazy_static;
 extern crate url;
+extern crate humansize;
 
 mod errors;
 #[macro_use] mod macros;

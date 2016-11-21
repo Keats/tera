@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 
 use serde_json::value::{Value, to_value};
+use humansize::{FileSize, file_size_opts};
 
 use errors::{TeraResult, TeraError};
 
@@ -42,6 +43,21 @@ pub fn round(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
         )
     }
 }
+
+
+/// Returns a human-readable file size (i.e. '110 MB') from an integer
+pub fn filesizeformat(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+    let num = try_get_value!("filesizeformat", "value", i32, value);
+    let formatted = try!(
+        num.file_size(file_size_opts::CONVENTIONAL)
+            .or(Err(
+                TeraError::Internal(format!("Tried to called filesizeformat on a negative number: {}", num))
+            ))
+    );
+
+    Ok(to_value(formatted))
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -95,5 +111,13 @@ mod tests {
         let result = round(to_value(2.1), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(2.0));
+    }
+
+    #[test]
+    fn test_filesizeformat() {
+        let args = HashMap::new();
+        let result = filesizeformat(to_value(123456789), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("117.74 MB"));
     }
 }

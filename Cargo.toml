@@ -25,6 +25,8 @@ regex = "0.1"
 lazy_static = "0.2"
 # used in urlencode filter
 url = "1.2.0"
+# used in filesizeformat filter
+humansize = "0.1.1"
 
 [features]
 default = []
