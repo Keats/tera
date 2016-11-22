@@ -1,6 +1,6 @@
 /// Contains helper functions
 
-/// From https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet
+/// From [OWASP](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
 /// Escape the following characters with HTML entity encoding to prevent switching
 /// into any execution context, such as script, style, or event handlers. Using
 /// hex entities is recommended in the spec. In addition to the 5 characters

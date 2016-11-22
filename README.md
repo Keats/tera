@@ -93,6 +93,19 @@ tera.value_render("products/product.html", &product);
 ```
 Note that this method only works for objects that would be converted to JSON objects, like structs and maps.
  
+### Autoescaping
+By default, autoescaping is turned on for files ending in `.html`, `.htm` and `.xml`.
+You can change that by calling `Tera::autoescape_on` with a Vec of suffixes. 
+
+```rust
+let mut tera = Tera::new("templates/**/*");
+tera.autoescape_on(vec!["email.j2", ".sql"]);
+```
+Note that calling `autoescape_on` will remove the defaults. If you want to completely disable autoescaping, simply
+call `tera.autoescape_on(vec![]);`.
+
+Another thing to note is that you can pass file suffixes and not only extensions to that method.
+
 
 ## Template writer documentation
 ### Variables
