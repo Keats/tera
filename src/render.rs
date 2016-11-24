@@ -49,6 +49,7 @@ impl ForLoop {
 
 #[derive(Debug)]
 pub struct Renderer<'a> {
+    templates: Vec<&'a Template>,
     template: &'a Template,
     context: Value,
     tera: &'a Tera,
@@ -59,18 +60,23 @@ pub struct Renderer<'a> {
     macro_context: Vec<Value>,
     // Keeps track of which namespace we're on in order to resolve the `self::` syntax
     macro_namespaces: Vec<String>,
+    block_definitions: Vec<(&'a Template, Node)>,
+    block_stack_idx: usize,
 }
 
 impl<'a> Renderer<'a> {
-    pub fn new(tpl: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
+    pub fn new(templates: Vec<&'a Template>, tera: &'a Tera, context: Value) -> Renderer<'a> {
         Renderer {
-            template: tpl,
+            template: templates[0],
+            templates: templates,
             tera: tera,
             context: context,
             for_loops: vec![],
             macros: HashMap::new(),
             macro_context: vec![],
             macro_namespaces: vec![],
+            block_definitions: vec![],
+            block_stack_idx: 0,
         }
     }
 
@@ -475,32 +481,48 @@ impl<'a> Renderer<'a> {
                 self.render_for(variable, array, body)
             },
             Block {name, body} => {
-                match self.template.blocks.get(&name) {
-                    Some(b) => {
-                        match b.clone() {
-                            Block {body, ..} => {
-                                self.render_node(*body.clone())
-                            },
-                            _ => unreachable!()
-                        }
-                    },
-                    None => {
-                        self.render_node(*body)
-                    }
+                self.block_definitions.push((self.templates.last().unwrap(), Block {name: name.clone(), body: body.clone()}));
+                self.block_definitions.extend(self.templates.iter().rev().skip(1).flat_map(|template| match template.blocks.get(&name) {
+                    Some(block @ &Block {..}) => Some((*template, block.clone())),
+                    Some(_) => unreachable!(),
+                    None => None
+                }));
+                self.block_stack_idx = self.block_definitions.len() - 1;
+                let body = match self.block_definitions[self.block_stack_idx].1 {
+                    Block {ref body, ..} => *body.clone(),
+                    _ => unreachable!()
+                };
+                self.render_node(body)
+            },
+            Super => {
+                if self.block_definitions.is_empty() {
+                    Err(SuperOutsideBlock(self.templates.last().unwrap().name.clone()))
+                } else if self.block_stack_idx == 0 {
+                    let template_name = self.block_definitions[self.block_stack_idx].0.name.clone();
+                    let block_name = match &self.block_definitions[self.block_stack_idx].1 {
+                        &Block {ref name, ..} => name.clone(),
+                        _ => unreachable!()
+                    };
+                    Err(SuperNoParent(template_name, block_name))
+                } else {
+                    self.block_stack_idx -= 1;
+                    let body = match &self.block_definitions[self.block_stack_idx].1 {
+                        &Block {ref body, ..} => *body.clone(),
+                        _ => unreachable!()
+                    };
+                    let result = self.render_node(body);
+                    self.block_stack_idx += 1;
+                    result
                 }
             },
-            _ => unreachable!()
+            Extends(_) => Ok("".to_owned()),
+            x @ _ => unreachable!("{:?}", x)
         }
     }
 
     pub fn render(&mut self) -> TeraResult<String> {
-        let ast = match self.template.parent {
-            Some(ref p) => {
-                let parent = try!(self.tera.get_template(p));
-                parent.ast.get_children()
-            },
-            None => self.template.ast.get_children()
-        };
+        // Use the highest ancestor's ast
+        let ast = self.templates[self.templates.len() - 1].ast.get_children();
 
         let mut output = String::new();
         for node in ast {
@@ -516,6 +538,7 @@ mod tests {
     use context::Context;
     use errors::TeraResult;
     use tera::Tera;
+    use errors::TeraError::*;
 
     fn render_template(content: &str, context: Context) -> TeraResult<String> {
         let mut tera = Tera::default();
@@ -680,6 +703,24 @@ mod tests {
         );
 
         assert_eq!(result.unwrap(), "22".to_owned());
+    }
+
+    #[test]
+    fn test_render_super_error_no_parent() {
+        let result = render_template("{% block a %}{{ super() }}{% endblock a %}", Context::new());
+        assert_eq!(result, Err(SuperNoParent("hello".to_owned(), "a".to_owned())));
+    }
+
+    #[test]
+    fn test_render_super() {
+        let mut tera = Tera::default();
+        tera.add_template("grandparent", "{% block hey %}hello{% endblock hey %} {% block ending %}sincerely{% endblock ending %}");
+        tera.add_template("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }}{% endblock hey %}");
+        tera.add_template("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}");
+
+        let result = tera.render("child", Context::new());
+
+        assert_eq!(result.unwrap(), "dad says hi and grandma says hello sincerely with love".to_owned());
     }
 
     // this was a regression in 0.3.0

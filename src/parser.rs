@@ -43,6 +43,7 @@ pub enum Node {
     Extends(String),
     VariableBlock(Box<Node>),
     Include(String),
+    Super,
 }
 
 impl Node {
@@ -153,6 +154,7 @@ impl_rdp! {
         import_macro_tag = !@{ tag_start ~ ["import"] ~ string ~ ["as"] ~ simple_ident ~ tag_end}
         extends_tag      = !@{ tag_start ~ ["extends"] ~ string ~ tag_end }
         variable_tag     = !@{ variable_start ~ (macro_call | expression) ~ variable_end }
+        super_tag        = !@{ variable_start ~ ["super()"] ~ variable_end }
         comment_tag      = !@{ comment_start ~ (!comment_end ~ any )* ~ comment_end }
         block_tag        = !@{ tag_start ~ ["block"] ~ identifier ~ tag_end }
         macro_tag        = !@{ tag_start ~ ["macro"] ~ macro_definition ~ tag_end }
@@ -191,6 +193,7 @@ impl_rdp! {
             if_tag ~ block_content* ~ elif_block* ~ (else_tag ~ block_content*)? ~ endif_tag |
             for_tag ~ block_content* ~ endfor_tag |
             raw_tag ~ raw_text ~ endraw_tag |
+            super_tag |
             text
         }
 
@@ -381,6 +384,10 @@ impl_rdp! {
                     condition_nodes: condition_nodes,
                     else_node: Some(Box::new(Node::List(try!(else_body)))),
                 }))
+            },
+            // {{ super() }}
+            (_: super_tag) => {
+                Ok(Some(Node::Super))
             },
             (_: comment_tag) => {
                 Ok(None)
@@ -1396,6 +1403,12 @@ mod tests {
             parsed_ast.err().unwrap(),
             TeraError::MismatchingEndTag(1, 33, "hey".to_string(), "ho".to_string())
         );
+    }
+
+    #[test]
+    fn test_parse_error_super_outside_block() {
+        let result = parse("{{ super() }}");
+        assert_eq!(result, Err(TeraError::InvalidSyntax(1, 9)));
     }
 
     // Test that we can parse the template used in benching

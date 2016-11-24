@@ -39,6 +39,18 @@ quick_error! {
             display("Macro `{}` was not found in the namespace `{}`.", name, namespace)
             description("macro not found")
         }
+        CircularExtends(template_names: Vec<String>) {
+            display("template loop: `{}`", template_names.join("` extends `"))
+            description("loop of template extends")
+        }
+        SuperNoParent(template_name: String, block_name: String) {
+            display("super() called in block `{}` of template `{}` that does not extend any other template", block_name, template_name)
+            description("no parent template")
+        }
+        SuperOutsideBlock(template_name: String) {
+            display("super() invoked in template `{}` outside any block", template_name)
+            description("super invoked without surrounding block")
+        }
         NotANumber(name: String) {
             display("Field `{}` was used in a math operation but is not a number", name)
             description("field is not a number")
