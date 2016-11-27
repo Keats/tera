@@ -13,14 +13,14 @@ use common::{Product, Review, read_file};
 fn assert_template_ok(path: &str, others: Vec<&str>) {
     let mut tera = Tera::default();
     tera.autoescape_on(vec!["html"]);
-    tera.add_template("tpl", &read_file(path));
+
     for p in others {
         let base = p.to_string();
         let split = base.split("/").collect::<Vec<&str>>();
         let name = split.last().unwrap();
         tera.add_template(name, &read_file(&base));
-
     }
+    tera.add_template("tpl", &read_file(path));
     let expected = read_file(&path.replace("templates", "expected"));
 
     let mut context = Context::new();

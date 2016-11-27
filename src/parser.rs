@@ -22,6 +22,7 @@ pub enum Node {
 
     For {variable: String, array: String, body: Box<Node>},
     Block {name: String, body: Box<Node>},
+    Super,
 
     // params is the list of the params names
     Macro {name: String, params: LinkedList<String>, body: Box<Node>},
@@ -153,6 +154,7 @@ impl_rdp! {
         import_macro_tag = !@{ tag_start ~ ["import"] ~ string ~ ["as"] ~ simple_ident ~ tag_end}
         extends_tag      = !@{ tag_start ~ ["extends"] ~ string ~ tag_end }
         variable_tag     = !@{ variable_start ~ (macro_call | expression) ~ variable_end }
+        super_tag        = !@{ variable_start ~ ["super()"] ~ variable_end }
         comment_tag      = !@{ comment_start ~ (!comment_end ~ any )* ~ comment_end }
         block_tag        = !@{ tag_start ~ ["block"] ~ identifier ~ tag_end }
         macro_tag        = !@{ tag_start ~ ["macro"] ~ macro_definition ~ tag_end }
@@ -186,6 +188,7 @@ impl_rdp! {
         // currently identical as `macro_content` but will change when super() is added
         block_content = @{
             include_tag |
+            super_tag |
             variable_tag |
             comment_tag |
             if_tag ~ block_content* ~ elif_block* ~ (else_tag ~ block_content*)? ~ endif_tag |
@@ -381,6 +384,9 @@ impl_rdp! {
                     condition_nodes: condition_nodes,
                     else_node: Some(Box::new(Node::List(try!(else_body)))),
                 }))
+            },
+            (_: super_tag) => {
+                Ok(Some(Node::Super))
             },
             (_: comment_tag) => {
                 Ok(None)

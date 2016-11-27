@@ -60,9 +60,56 @@ impl Tera {
             autoescape_extensions: vec![".html", ".htm", ".xml"]
         };
 
+        tera.build_inheritance_chains();
         tera.register_tera_filters();
         tera.register_tera_testers();
         tera
+    }
+
+    // We need to know the hierarchy of templates to be able to render multiple extends level
+    // This happens at compile to avoid checking it every time we want to render a template
+    // This also checks for soundness issues in the inheritance chains, such as missing template or
+    // circular extends
+    fn build_inheritance_chains(&mut self) {
+        // Recursive fn that finds all the parents and put them in an ordered Vec from closest to main
+        // parent template
+        fn build_chain(tera: &Tera, start: &Template, template: &Template, mut parents: Vec<String>) -> Vec<String> {
+            if parents.len() > 0 && start.name == template.name {
+                panic!("Circular extend detected for template {:?}. Inheritance chain: {:?}", start.name, parents);
+            }
+
+            match template.parent {
+                Some(ref p) => {
+                    match tera.get_template(p) {
+                        Ok(parent) => {
+                            parents.push(parent.name.clone());
+                            build_chain(tera, start, parent, parents)
+                        },
+                        Err(_) => {
+                            panic!(
+                                format!(
+                                    "Template {:?} is inheriting from {:?}, which doesn't exist or isn't loaded.",
+                                    template.name, p
+                                )
+                            );
+                        }
+                    }
+                },
+                None => parents
+            }
+        }
+
+        // TODO: Can we use iter_mut for the templates and modify in place?
+        // If we do so, we run into a borrow issue since we need to pass the tera instance
+        // to the build chain fn
+        let mut templates = HashMap::new();
+        for (_, template) in &self.templates {
+            let mut tpl = template.clone();
+            tpl.parents = build_chain(self, template, template, vec![]);
+            println!("{:?} - {:?}", tpl.name, tpl.parents);
+            templates.insert(tpl.name.clone(), tpl);
+        }
+        self.templates = templates;
     }
 
     /// Renders a Tera template given a `Context`.
@@ -96,8 +143,20 @@ impl Tera {
 
     // Can panic!
     // Only for internal tests, do not use publicly
+    #[doc(hidden)]
     pub fn add_template(&mut self, name: &str, content: &str) {
         self.templates.insert(name.to_string(), Template::new(name, content));
+        self.build_inheritance_chains();
+    }
+
+    // Can panic!
+    // Only for internal tests, do not use publicly
+    #[doc(hidden)]
+    pub fn add_templates(&mut self, templates: Vec<(&str, &str)>) {
+        for (name, content) in templates {
+            self.templates.insert(name.to_string(), Template::new(name, content));
+        }
+        self.build_inheritance_chains();
     }
 
     pub fn get_filter(&self, filter_name: &str) -> TeraResult<&FilterFn> {
@@ -202,5 +261,58 @@ impl fmt::Debug for Tera {
         }
 
         write!(f, "{}", "}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Tera};
+
+    #[test]
+    fn test_get_inheritance_chain() {
+        let mut tera = Tera::default();
+        tera.add_templates(vec![
+            ("a", "{% extends \"b\" %}"),
+            ("b", "{% extends \"c\" %}"),
+            ("c", "{% extends \"d\" %}"),
+            ("d", ""),
+        ]);
+
+        assert_eq!(
+            tera.get_template("a").unwrap().parents,
+            vec!["b".to_string(), "c".to_string(), "d".to_string()]
+        );
+
+        assert_eq!(
+            tera.get_template("b").unwrap().parents,
+            vec!["c".to_string(), "d".to_string()]
+        );
+
+        assert_eq!(
+            tera.get_template("c").unwrap().parents,
+            vec!["d".to_string()]
+        );
+
+        assert_eq!(
+            tera.get_template("d").unwrap().parents.len(),
+            0
+        );
+    }
+
+    #[should_panic(expected = "Template \"a\" is inheriting from \"b\", which doesn't exist or isn't loaded.")]
+    #[test]
+    fn test_missing_parent_template() {
+        let mut tera = Tera::default();
+        tera.add_template("a", "{% extends \"b\" %}");
+    }
+
+    #[should_panic(expected = "Circular extend detected for template \"a\". Inheritance chain: [\"b\", \"a\"]")]
+    #[test]
+    fn test_circular_extends() {
+        let mut tera = Tera::default();
+        tera.add_templates(vec![
+            ("a", "{% extends \"b\" %}"),
+            ("b", "{% extends \"a\" %}"),
+        ]);
     }
 }

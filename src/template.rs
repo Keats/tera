@@ -13,6 +13,9 @@ pub struct Template {
     pub parent: Option<String>,
     pub blocks: HashMap<String, Node>,
     pub macros: HashMap<String, Node>,
+    // filled when all templates have been parsed: contains the full list of parent templates
+    // as opposed to Tera::Template which only contains the parent
+    pub parents: Vec<String>,
 }
 
 impl Template {
@@ -69,6 +72,7 @@ impl Template {
             parent: parent,
             blocks: blocks,
             macros: macros,
+            parents: vec![],
         }
     }
 
