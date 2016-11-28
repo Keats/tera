@@ -306,7 +306,7 @@ mod tests {
         tera.add_template("a", "{% extends \"b\" %}");
     }
 
-    #[should_panic(expected = "Circular extend detected for template \"a\". Inheritance chain: [\"b\", \"a\"]")]
+    #[should_panic(expected = "Circular extend detected for template ")]
     #[test]
     fn test_circular_extends() {
         let mut tera = Tera::default();
