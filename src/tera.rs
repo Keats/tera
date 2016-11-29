@@ -69,7 +69,9 @@ impl Tera {
     // We need to know the hierarchy of templates to be able to render multiple extends level
     // This happens at compile to avoid checking it every time we want to render a template
     // This also checks for soundness issues in the inheritance chains, such as missing template or
-    // circular extends
+    // circular extends.
+    // It also builds the block inheritance chain and detects when super() is called in a place
+    // where it can't work
     fn build_inheritance_chains(&mut self) {
         // Recursive fn that finds all the parents and put them in an ordered Vec from closest to main
         // parent template
@@ -106,7 +108,24 @@ impl Tera {
         for (_, template) in &self.templates {
             let mut tpl = template.clone();
             tpl.parents = build_chain(self, template, template, vec![]);
-            println!("{:?} - {:?}", tpl.name, tpl.parents);
+
+            // TODO: iterate over both blocks and templates and try to find the parents blocks
+            // insert that into the tpl object once done so it's available directly in the template
+            // without having to fetch all the parents to build it at runtime
+            for (block_name, def) in &tpl.blocks {
+                // push our own block first
+                let mut definitions = vec![def.clone()];
+
+                // and then see if our parents have it
+                for parent in &tpl.parents {
+                    let t = self.get_template(&parent).expect("Couldn't find template");
+                    match t.blocks.get(block_name) {
+                        Some(b) => definitions.push(b.clone()),
+                        None => (),
+                    };
+                }
+                tpl.blocks_definitions.insert(block_name.clone(), definitions);
+            }
             templates.insert(tpl.name.clone(), tpl);
         }
         self.templates = templates;
@@ -314,5 +333,35 @@ mod tests {
             ("a", "{% extends \"b\" %}"),
             ("b", "{% extends \"a\" %}"),
         ]);
+    }
+
+    #[test]
+    fn test_get_parent_blocks_definition() {
+        let mut tera = Tera::default();
+        tera.add_templates(vec![
+            ("grandparent", "{% block hey %}hello{% endblock hey %} {% block ending %}sincerely{% endblock ending %}"),
+            ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }}{% endblock hey %}"),
+            ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
+        ]);
+
+        let hey_definitions = tera.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
+        assert_eq!(hey_definitions.len(), 3);
+        let ending_definitions = tera.get_template("child").unwrap().blocks_definitions.get("ending").unwrap();
+        assert_eq!(ending_definitions.len(), 2);
+    }
+
+    #[test]
+    fn test_get_parent_blocks_definition_nested_block() {
+        let mut tera = Tera::default();
+        tera.add_templates(vec![
+            ("grandparent", "{% block hey %}hello{% endblock hey %}"),
+            ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}"),
+            ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
+        ]);
+
+        let hey_definitions = tera.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
+        assert_eq!(hey_definitions.len(), 3);
+        let ending_definitions = tera.get_template("parent").unwrap().blocks_definitions.get("ending").unwrap();
+        assert_eq!(ending_definitions.len(), 1);
     }
 }

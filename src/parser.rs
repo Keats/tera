@@ -191,6 +191,7 @@ impl_rdp! {
             super_tag |
             variable_tag |
             comment_tag |
+            block_tag ~ block_content* ~ endblock_tag |
             if_tag ~ block_content* ~ elif_block* ~ (else_tag ~ block_content*)? ~ endif_tag |
             for_tag ~ block_content* ~ endfor_tag |
             raw_tag ~ raw_text ~ endraw_tag |
