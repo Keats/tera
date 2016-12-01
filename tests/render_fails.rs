@@ -61,14 +61,6 @@ fn test_error_render_iterate_non_array() {
 }
 
 #[test]
-fn test_error_render_include_inexistent() {
-    let result = render_tpl("inexisting_include.html");
-
-    assert_eq!(result.is_err(), true);
-    assert_eq!(result.unwrap_err().description(), "template not found".to_string());
-}
-
-#[test]
 fn test_error_value_render_non_object() {
     let tera = Tera::new("tests/render-failures/**/*");
     let result = tera.value_render("value_render_non_object.html", &[1,2,3]);

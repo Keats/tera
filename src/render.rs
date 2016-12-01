@@ -61,6 +61,9 @@ pub struct Renderer<'a> {
     // Keeps track of which namespace we're on in order to resolve the `self::` syntax
     macro_namespaces: Vec<String>,
     should_escape: bool,
+    // Used when super() is used in a block, to know where we are in our stack of
+    // definitions and for which block (block name, hierarchy level)
+    blocks: Vec<(String, usize)>,
 }
 
 impl<'a> Renderer<'a> {
@@ -75,6 +78,7 @@ impl<'a> Renderer<'a> {
             macro_context: vec![],
             macro_namespaces: vec![],
             should_escape: should_escape,
+            blocks: vec![],
         }
     }
 
@@ -491,13 +495,19 @@ impl<'a> Renderer<'a> {
                 self.render_for(variable, array, body)
             },
             Block {name, body} => {
-                match self.template.blocks.get(&name) {
+                self.blocks.push((name.clone(), 0));
+                println!("Encountered {:?} block!", name);
+
+                match self.template.blocks_definitions.get(&name) {
                     Some(b) => {
-                        match b.clone() {
+                        // the indexing here is safe since we are rendering a block, we know we have
+                        // at least 1
+                        println!("Rendering initial block {:?}", b[0]);
+                        match b[0].clone() {
                             Block {body, ..} => {
                                 self.render_node(*body.clone())
                             },
-                            _ => unreachable!()
+                            x @ _ => unreachable!("render_node Block {:?}", x)
                         }
                     },
                     None => {
@@ -505,17 +515,49 @@ impl<'a> Renderer<'a> {
                     }
                 }
             },
-            _ => unreachable!()
+            Super => {
+                if let Some((name, level)) = self.blocks.last().cloned() {
+                    // TODO: can we use last_mut() and update the tuple in place
+                    // while avoiding the double mutable borrow?
+                    self.blocks.pop();
+                    let new_level = level + 1;
+                    self.blocks.push((name.clone(), new_level));
+
+                    match self.template.blocks_definitions.get(&name) {
+                        Some(b) => {
+                            //println!("All definitions: {:?}", b);
+                            if new_level <= b.len() - 1 {
+                                println!("Current level body: {:?}", b[new_level]);
+                                match b[new_level].clone() {
+                                    Block {body, ..} => {
+                                        self.render_node(*body.clone())
+                                    },
+                                    x @ _ => unreachable!("render_node Block {:?}", x)
+                                }
+                            } else {
+                                // Done with the super() for that block, remove it from the stack
+                                self.blocks.pop();
+                                Ok("".to_string())
+                            }
+                        },
+                        None => unreachable!("render_node -> didn't get block")
+                    }
+                } else {
+                    // prevented by parser already
+                    unreachable!("Super called outside of a block")
+                }
+            },
+            Extends(_) => Ok("".to_string()),
+            x @ _ => unreachable!("render_node -> unexpected node: {:?}", x)
         }
     }
 
     pub fn render(&mut self) -> TeraResult<String> {
-        let ast = match self.template.parent {
-            Some(ref p) => {
-                let parent = try!(self.tera.get_template(p));
-                parent.ast.get_children()
-            },
-            None => self.template.ast.get_children()
+        let ast = if self.template.parents.len() > 0 {
+            let parent = try!(self.tera.get_template(&self.template.parents.last().expect("Couldn't get first ancestor template")));
+            parent.ast.get_children()
+        } else {
+            self.template.ast.get_children()
         };
 
         let mut output = String::new();
@@ -742,5 +784,31 @@ mod tests {
         let result = tera.render("hello.html", context);
 
         assert_eq!(result.unwrap(), "<script>alert('pwnd');</script>".to_string());
+    }
+
+    #[test]
+    fn test_render_super_multiple_inheritance() {
+        let mut tera = Tera::default();
+        tera.add_templates(vec![
+            ("grandparent", "{% block hey %}hello{% endblock hey %} {% block ending %}sincerely{% endblock ending %}"),
+            ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }}{% endblock hey %}"),
+            ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
+        ]);
+        let result = tera.render("child", Context::new());
+
+        assert_eq!(result.unwrap(), "dad says hi and grandma says hello sincerely with love".to_string());
+    }
+
+    #[test]
+    fn test_render_super_multiple_inheritance_nested_block() {
+        let mut tera = Tera::default();
+        tera.add_templates(vec![
+            ("grandparent", "{% block hey %}hello{% endblock hey %}"),
+            ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}"),
+            ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
+        ]);
+        let result = tera.render("child", Context::new());
+
+        assert_eq!(result.unwrap(), "dad says hi and grandma says hello sincerely with love".to_string());
     }
 }
