@@ -27,6 +27,7 @@ mod template;
 mod tera;
 mod filters;
 mod testers;
+mod utils;
 
 
 // Library exports.
@@ -36,3 +37,4 @@ mod testers;
 pub use context::Context;
 pub use tera::Tera;
 pub use errors::{TeraResult, TeraError};
+pub use utils::{escape_html};

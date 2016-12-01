@@ -19,6 +19,9 @@ pub struct Tera {
     pub templates: HashMap<String, Template>,
     pub filters: HashMap<String, FilterFn>,
     pub testers: HashMap<String, TesterFn>,
+    // Which extensions does Tera automatically autoescape on.
+    // Defaults to [".html", ".htm", ".xml"]
+    pub autoescape_extensions: Vec<&'static str>,
 }
 
 
@@ -54,6 +57,7 @@ impl Tera {
             templates: templates,
             filters: HashMap::new(),
             testers: HashMap::new(),
+            autoescape_extensions: vec![".html", ".htm", ".xml"]
         };
 
         tera.register_tera_filters();
@@ -103,6 +107,8 @@ impl Tera {
         }
     }
 
+    /// Register a filter with Tera.
+    /// If a filter with that name already exists, it will be overwritten
     pub fn register_filter(&mut self, name: &str, filter: FilterFn) {
         self.filters.insert(name.to_string(), filter);
     }
@@ -114,6 +120,8 @@ impl Tera {
         }
     }
 
+    /// Register a tester with Tera.
+    /// If a tester with that name already exists, it will be overwritten
     pub fn register_tester(&mut self, name: &str, tester: TesterFn) {
         self.testers.insert(name.to_string(), tester);
     }
@@ -150,6 +158,16 @@ impl Tera {
         self.register_tester("string", testers::string);
         self.register_tester("number", testers::number);
     }
+
+    /// Select which extension(s) to automatically do HTML escaping on.
+    /// Pass an empty vec to completely disable autoescape
+    /// Note that autoescape will happen if the template name ends with one
+    /// of the extensions given.
+    /// Example: a file named `template.html` will be escaped by default but
+    /// won't if you set pass `[".php.html"]` to that method.
+    pub fn autoescape_on(&mut self, extensions: Vec<&'static str>) {
+        self.autoescape_extensions = extensions;
+    }
 }
 
 impl Default for Tera {
@@ -158,6 +176,7 @@ impl Default for Tera {
             templates: HashMap::new(),
             filters: HashMap::new(),
             testers: HashMap::new(),
+            autoescape_extensions: vec![".html", ".htm", ".xml"]
         };
 
         tera.register_tera_filters();

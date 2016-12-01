@@ -6,6 +6,7 @@ use slug;
 use url::percent_encoding::{utf8_percent_encode, EncodeSet};
 
 use errors::{TeraResult, TeraError};
+use utils;
 
 use regex::{Regex, Captures};
 
@@ -168,14 +169,8 @@ pub fn striptags(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
 /// Returns the given text with ampersands, quotes and angle brackets encoded
 /// for use in HTML.
 pub fn escape_html(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
-    let s = try_get_value!("escapehtml", "value", String, value);
-    Ok(to_value(
-        s.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;")
-            .replace("'", "&#39;")
-    ))
+    let s = try_get_value!("escape_html", "value", String, value);
+    Ok(to_value(utils::escape_html(&s)))
 }
 
 
@@ -391,7 +386,7 @@ mod tests {
             (r"<a", "&lt;a"),
             (r">a", "&gt;a"),
             (r#"""#, "&quot;"),
-            (r#"'"#, "&#39;"),
+            (r#"'"#, "&#x27;"),
         ];
         for (input, expected) in tests {
             let result = escape_html(to_value(input), HashMap::new());
