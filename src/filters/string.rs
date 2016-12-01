@@ -378,20 +378,4 @@ mod tests {
             assert_eq!(result.unwrap(), to_value(expected));
         }
     }
-
-    #[test]
-    fn test_escape_html() {
-        let tests = vec![
-            (r"a&b", "a&amp;b"),
-            (r"<a", "&lt;a"),
-            (r">a", "&gt;a"),
-            (r#"""#, "&quot;"),
-            (r#"'"#, "&#x27;"),
-        ];
-        for (input, expected) in tests {
-            let result = escape_html(to_value(input), HashMap::new());
-            assert!(result.is_ok());
-            assert_eq!(result.unwrap(), to_value(expected));
-        }
-    }
 }
