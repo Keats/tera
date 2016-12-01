@@ -176,6 +176,7 @@ Hello {{ name }}
 
 ### Inheritance
 Tera uses the same kind of inheritance as Jinja2 and django templates: you define a base template and extends it in child templates.
+There can be multiple levels of inheritance (i.e. A extends B that extends C).
 
 #### Base template
 A base template typically contains the basic html structure as well as several `blocks` that can contain placeholders.
@@ -201,7 +202,8 @@ For example, here's a `base.html` almost copied from the jinja documentation:
 </html>
 ```
 The difference with Jinja being that `endblock` tags must be named.
-This defines 4 `block` tag that child templates can override. The `head` and `footer` block contains some html already which will be rendered if they are not overriden.
+This defines 4 `block` tag that child templates can override. 
+The `head` and `footer` block contains some html already which will be rendered if they are not overridden.
 
 #### Child template
 Again, straight from jinja2 docs:
@@ -223,7 +225,33 @@ Again, straight from jinja2 docs:
 {% endblock content %}
 ```
 
-When trying to render that template, Tera will see that it depends on a parent template and will render it first, filling the blocks as it encounters them in the base template.
+To indicate inheritance, you have use the `extends` tag at the top of a file followed by the name of the template you want
+to extend.
+The `{{ super() }}` variable call is a magic variable in Tera that means: render the parent block there.
+
+Note that nested blocks are valid in Tera, consider the following templates:
+
+```jinja2
+// grandparent
+{% block hey %}hello{% endblock hey %}
+
+// parent
+{% extends "grandparent" %}
+{% block hey %}hi and grandma says {{ super() }} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}
+
+// child
+{% extends "parent" %}
+{% block hey %}dad says {{ super() }}{% endblock hey %}
+{% block ending %}{{ super() }} with love{% endblock ending %}
+```
+The block `ending` is nested in the `hey` block, which means rendering the `child` template will do the following:
+
+- Find the first base template: `grandparent`
+- See `hey` block in it and checks if it is in `child` and `parent` template
+- It is in `child` so we render it, it contains a `super()` call so we render the `hey` block from `parent`, which also contains a `super()` so we render the `hey` block of the `grandparent` template as well
+- See `ending` block in `child`, render it and also renders the `ending` block of `parent` as there is a `super()`
+
+The end result of that rendering (not counting whitespace) will be: "dad says hi and grandma says hello sincerely with love".
 
 #### Include
 You can include a template to be rendered using the current context with the `include` tag.

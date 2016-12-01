@@ -18,5 +18,5 @@ fn main() {
     context.add("username", &"Bob");
     context.add("bio", &"<script>alert('pwnd');</script>");
 
-    TEMPLATES.render("profile.html", context);
+    println!("{:?}", TEMPLATES.render("profile.html", context));
 }
