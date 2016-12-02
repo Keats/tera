@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 (2016/12/02)
+- Add macros
+- Add `filesizeformat` filter
+- Add autoescape
+- Add multiple level inheritance
+- Add nested blocks
+- Add `{{ super() }}`
+
+Thanks to @SergioBenitez and @yonran for the help!
+
+
 ## 0.3.1 (2016/10/11)
 - Fix regression when using variables in forloops + add test for it
 
