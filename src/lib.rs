@@ -38,3 +38,6 @@ pub use context::Context;
 pub use tera::Tera;
 pub use errors::{TeraResult, TeraError};
 pub use utils::{escape_html};
+// Re-export Value so apps/tools can encode data in Tera types
+// for now it's serde_json
+pub use serde_json::value::{Value, to_value};
