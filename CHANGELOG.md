@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 (2016/12/07)
+
+- Remove println! left behind
+- Fix macros not being found in child templates
+- Export `Value` and `to_value` (currently from serde-json)
+
 ## 0.4.0 (2016/12/02)
 - Add macros
 - Add `filesizeformat` filter
