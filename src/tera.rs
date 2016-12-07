@@ -71,7 +71,7 @@ impl Tera {
     // This also checks for soundness issues in the inheritance chains, such as missing template or
     // circular extends.
     // It also builds the block inheritance chain and detects when super() is called in a place
-    // where it can't work
+    // where it can't possibly work
     fn build_inheritance_chains(&mut self) {
         // Recursive fn that finds all the parents and put them in an ordered Vec from closest to main
         // parent template
@@ -114,13 +114,13 @@ impl Tera {
             // without having to fetch all the parents to build it at runtime
             for (block_name, def) in &tpl.blocks {
                 // push our own block first
-                let mut definitions = vec![def.clone()];
+                let mut definitions = vec![(tpl.name.clone(), def.clone())];
 
                 // and then see if our parents have it
                 for parent in &tpl.parents {
                     let t = self.get_template(&parent).expect("Couldn't find template");
                     match t.blocks.get(block_name) {
-                        Some(b) => definitions.push(b.clone()),
+                        Some(b) => definitions.push((t.name.clone(), b.clone())),
                         None => (),
                     };
                 }
