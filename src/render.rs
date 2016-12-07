@@ -54,8 +54,8 @@ pub struct Renderer<'a> {
     context: Value,
     tera: &'a Tera,
     for_loops: Vec<ForLoop>,
-    // looks like filename: {macro_name: body node}
-    macros: HashMap<String, HashMap<String, Node>>,
+    // looks like Vec<filename: {macro_name: body node}>
+    macros: Vec<HashMap<String, HashMap<String, Node>>>,
     // set when rendering macros, empty if not in a macro
     macro_context: Vec<Value>,
     // Keeps track of which namespace we're on in order to resolve the `self::` syntax
@@ -74,7 +74,7 @@ impl<'a> Renderer<'a> {
             tera: tera,
             context: context,
             for_loops: vec![],
-            macros: HashMap::new(),
+            macros: vec![],
             macro_context: vec![],
             macro_namespaces: vec![],
             should_escape: should_escape,
@@ -94,7 +94,9 @@ impl<'a> Renderer<'a> {
 
         // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
-            return context.pointer(&get_json_pointer(key)).cloned()
+            return context
+                .pointer(&get_json_pointer(key))
+                .cloned()
                 .ok_or_else(|| FieldNotFound(key.to_string()));
         }
 
@@ -304,6 +306,8 @@ impl<'a> Renderer<'a> {
     }
 
     // eval all the values in a {{ }} block
+    // Macro calls and super are NOT variable blocks in the AST, they have
+    // their own nodes
     fn render_variable_block(&mut self, node: Node) -> TeraResult<String>  {
         match node {
             Identifier { .. } => {
@@ -408,8 +412,10 @@ impl<'a> Renderer<'a> {
 
             // We get our macro definition using the namespace name we just got
             let macro_definition = self.macros
-                .get(&active_namespace)
-                .and_then(|m| m.get(&macro_name).cloned());
+                .last()
+                .and_then(|m| m.get(&active_namespace))
+                .and_then(|m| m.get(&macro_name)
+                .cloned());
 
             if let Some(Macro {body, params, ..}) = macro_definition {
                 // fail fast if the number of args don't match
@@ -453,10 +459,24 @@ impl<'a> Renderer<'a> {
             } else {
                 return Err(MacroNotFound(active_namespace, macro_name));
             }
-
         } else {
             unreachable!("Got a node other than a MacroCall when rendering a macro")
         }
+    }
+
+    fn import_macros(&mut self, tpl_name: String) -> TeraResult<bool> {
+        let tpl = try!(self.tera.get_template(&tpl_name));
+        if tpl.imported_macro_files.len() == 0 {
+            return Ok(false);
+        }
+        let mut map = HashMap::new();
+
+        for &(ref filename, ref namespace) in &tpl.imported_macro_files {
+            let macro_tpl = try!(self.tera.get_template(&filename));
+            map.insert(namespace.to_string(), macro_tpl.macros.clone());
+        }
+        self.macros.push(map);
+        Ok(true)
     }
 
     pub fn render_node(&mut self, node: Node) -> TeraResult<String> {
@@ -472,7 +492,13 @@ impl<'a> Renderer<'a> {
             },
             ImportMacro {tpl_name, name} => {
                 let tpl = try!(self.tera.get_template(&tpl_name));
-                self.macros.insert(name.to_string(), tpl.macros.clone());
+                let mut map = if self.macros.len() == 0 {
+                    HashMap::new()
+                } else {
+                    self.macros.pop().unwrap()
+                };
+                map.insert(name.to_string(), tpl.macros.clone());
+                self.macros.push(map);
                 // In theory, the render_node should return TeraResult<Option<String>>
                 // but in practice there's no difference so keeping this hack
                 Ok("".to_string())
@@ -495,17 +521,21 @@ impl<'a> Renderer<'a> {
                 self.render_for(variable, array, body)
             },
             Block {name, body} => {
-                self.blocks.push((name.clone(), 0));
-                println!("Encountered {:?} block!", name);
-
+                // We pick the first block, ie the one in the template we are rendering
+                // We will go up in "level" if we encounter a super()
                 match self.template.blocks_definitions.get(&name) {
                     Some(b) => {
                         // the indexing here is safe since we are rendering a block, we know we have
                         // at least 1
-                        println!("Rendering initial block {:?}", b[0]);
                         match b[0].clone() {
-                            Block {body, ..} => {
-                                self.render_node(*body.clone())
+                            (tpl_name, Block {body, ..}) => {
+                                self.blocks.push((name.clone(), 0));
+                                let has_macro = try!(self.import_macros(tpl_name));
+                                let res = self.render_node(*body.clone());
+                                if has_macro {
+                                    self.macros.pop();
+                                }
+                                res
                             },
                             x @ _ => unreachable!("render_node Block {:?}", x)
                         }
@@ -516,35 +546,35 @@ impl<'a> Renderer<'a> {
                 }
             },
             Super => {
-                if let Some((name, level)) = self.blocks.last().cloned() {
-                    // TODO: can we use last_mut() and update the tuple in place
-                    // while avoiding the double mutable borrow?
-                    self.blocks.pop();
+                if let Some((name, level)) = self.blocks.pop() {
                     let new_level = level + 1;
-                    self.blocks.push((name.clone(), new_level));
 
                     match self.template.blocks_definitions.get(&name) {
                         Some(b) => {
-                            //println!("All definitions: {:?}", b);
-                            if new_level <= b.len() - 1 {
-                                println!("Current level body: {:?}", b[new_level]);
-                                match b[new_level].clone() {
-                                    Block {body, ..} => {
-                                        self.render_node(*body.clone())
-                                    },
-                                    x @ _ => unreachable!("render_node Block {:?}", x)
-                                }
-                            } else {
-                                // Done with the super() for that block, remove it from the stack
-                                self.blocks.pop();
-                                Ok("".to_string())
+                            match b[new_level].clone() {
+                                (tpl_name, Block { body, .. }) => {
+                                    self.blocks.push((name.clone(), new_level));
+                                    let has_macro = try!(self.import_macros(tpl_name));
+                                    let res = self.render_node(*body.clone());
+                                    if has_macro {
+                                        self.macros.pop();
+                                    }
+                                    // Can't go any higher for that block anymore?
+                                    if new_level == b.len() - 1 {
+                                        // then remove it from the stack, we're done with it
+                                        self.blocks.pop();
+                                    }
+                                    res
+                                },
+                                x @ _ => unreachable!("render_node Block {:?}", x)
                             }
                         },
                         None => unreachable!("render_node -> didn't get block")
                     }
                 } else {
-                    // prevented by parser already
-                    unreachable!("Super called outside of a block")
+                    // prevented by parser already, unless it's a super in the base template
+                    // TODO: add a test and see if we need to return an error instead
+                    unreachable!("Super called outside of a block or in base template")
                 }
             },
             Extends(_) => Ok("".to_string()),
@@ -810,5 +840,64 @@ mod tests {
         let result = tera.render("child", Context::new());
 
         assert_eq!(result.unwrap(), "dad says hi and grandma says hello sincerely with love".to_string());
+    }
+
+    #[test]
+    fn test_render_macros() {
+        let mut tera = Tera::default();
+        tera.add_templates(vec![
+            ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
+            ("tpl", "{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}"),
+        ]);
+
+        let result = tera.render("tpl", Context::new());
+
+        assert_eq!(result.unwrap(), "Hello".to_string());
+    }
+
+    #[test]
+    fn test_render_macros_in_child_templates_same_namespace() {
+        let mut tera = Tera::default();
+        tera.add_templates(vec![
+            ("grandparent", "{% block hey %}hello{% endblock hey %}"),
+            ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
+            ("macros2", "{% macro hi()%}Hi{% endmacro hi %}"),
+            ("parent", "{% extends \"grandparent\" %}{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}"),
+            ("child", "{% extends \"parent\" %}{% import \"macros2\" as macros %}{% block hey %}{{super()}}/{{macros::hi()}}{% endblock hey %}"),
+        ]);
+
+        let result = tera.render("child", Context::new());
+
+        assert_eq!(result.unwrap(), "Hello/Hi".to_string());
+    }
+
+    #[test]
+    fn test_render_macros_in_child_templates_different_namespace() {
+        let mut tera = Tera::default();
+        tera.add_templates(vec![
+            ("grandparent", "{% block hey %}hello{% endblock hey %}"),
+            ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
+            ("macros2", "{% macro hi()%}Hi{% endmacro hi %}"),
+            ("parent", "{% extends \"grandparent\" %}{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}"),
+            ("child", "{% extends \"parent\" %}{% import \"macros2\" as macros2 %}{% block hey %}{{super()}}/{{macros2::hi()}}{% endblock hey %}"),
+        ]);
+
+        let result = tera.render("child", Context::new());
+
+        assert_eq!(result.unwrap(), "Hello/Hi".to_string());
+    }
+
+    #[test]
+    fn test_render_macros_in_parent_template_with_inheritance() {
+        let mut tera = Tera::default();
+        tera.add_templates(vec![
+            ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
+            ("grandparent", "{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}"),
+            ("child", "{% extends \"grandparent\" %}{% import \"macros\" as macros %}{% block hey %}{{super()}}/{{macros::hello()}}{% endblock hey %}"),
+        ]);
+
+        let result = tera.render("child", Context::new());
+
+        assert_eq!(result.unwrap(), "Hello/Hello".to_string());
     }
 }

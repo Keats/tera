@@ -4,7 +4,7 @@ version = "0.4.0"
 authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
 license = "MIT"
 readme = "README.md"
-description = "Jinja2/Django templates in pure Rust"
+description = "Template engine based on Jinja2/Django"
 homepage = "https://github.com/Keats/tera"
 repository = "https://github.com/Keats/tera"
 keywords = ["template", "html", "jinja", "django", "markup"]
@@ -31,8 +31,3 @@ humansize = "0.1.1"
 [features]
 default = []
 dev = ["clippy"]
-
-[profile.bench]
-lto = true
-codegen-units = 1
-opt-level = 3
