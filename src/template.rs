@@ -53,7 +53,7 @@ impl Template {
                 match node {
                     Node::Block { ref name, ref body } => {
                         if blocks.contains_key(name) {
-                            bail!("Error when parsing `{}`:\n{} block is duplicated", tpl_name, name);
+                            bail!("Block `{}` is duplicated", name);
                         }
                         blocks.insert(name.to_string(), node.clone());
                         find_blocks(tpl_name.clone(), body.get_children(), blocks)?;
@@ -66,7 +66,6 @@ impl Template {
         }
         find_blocks(tpl_name.to_string(), ast.get_children(), &mut blocks)?;
 
-
         // We also find all macros defined/imported in the template file
         let mut macros = HashMap::new();
         let mut imported_macro_files = vec![];
@@ -74,7 +73,7 @@ impl Template {
             match node {
                 Node::Macro { ref name, .. } => {
                     if macros.contains_key(name) {
-                        bail!("Error when parsing `{}`:\n{} macro is duplicated", tpl_name, name);
+                        bail!("Macro `{}` is duplicated", name);
                     }
                     macros.insert(name.to_string(), node.clone());
                 },

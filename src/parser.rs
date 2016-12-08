@@ -1,7 +1,7 @@
 use std::collections::{HashMap, LinkedList};
 
 use pest::prelude::*;
-use errors::{Result, ErrorKind};
+use errors::Result;
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -293,10 +293,9 @@ impl_rdp! {
             (_: block_tag, &name: identifier, body: _template(), _: endblock_tag, &end_name: identifier) => {
                 if name != end_name {
                     let (line_no, col_no) = self.input().line_col(self.input.pos());
-                    return Err(
-                        ErrorKind::MismatchingEndTag(
-                            line_no, col_no, name.to_string(), end_name.to_string()
-                        ).into()
+                    bail!(
+                        "Block `{}` is closing at line {}, col {} but we were expecting `{}` to be closing",
+                        end_name, line_no, col_no, name
                     );
                 }
                 Ok(Some(Node::Block {
@@ -307,10 +306,9 @@ impl_rdp! {
             (_: macro_tag, &name: identifier, params: _macro_def_params(), body: _template(), _: endmacro_tag, &end_name: identifier) => {
                 if name != end_name {
                     let (line_no, col_no) = self.input().line_col(self.input.pos());
-                    return Err(
-                        ErrorKind::MismatchingEndTag(
-                            line_no, col_no, name.to_string(), end_name.to_string()
-                        ).into()
+                    bail!(
+                        "Macro `{}` is closing at line {}, col {} but we were expecting `{}` to be closing",
+                        end_name, line_no, col_no, name
                     );
                 }
                 Ok(Some(Node::Macro {
@@ -597,37 +595,26 @@ impl_rdp! {
     }
 }
 
-// We need to preserve whitespace and count whitespace as text, which
-// pest doesn't allow easily so we have a custom step before processing
-// to add all/fix all our text tokens if necessary
+// We need a little bit of post-processing to
 pub fn parse(input: &str) -> Result<Node> {
     let mut parser = Rdp::new(StringInput::new(input));
 
     if !parser.template() {
         let (_, pos) = parser.expected();
         let (line_no, col_no) = parser.input().line_col(pos);
-        return Err(ErrorKind::InvalidSyntax(line_no, col_no).into());
+        bail!("Invalid Tera syntax at line {}, column {}", line_no, col_no);
     }
-    // println!("{:#?}", parser.queue_with_captures());
 
     // We need to check for deprecated syntaxes
     for token in parser.queue() {
         match token.rule {
             Rule::op_wrong_and => {
                 let (line_no, col_no) = parser.input().line_col(token.start);
-                return Err(
-                    ErrorKind::DeprecatedSyntax(
-                        line_no, col_no, "Use `and` instead of `&&`".to_string()
-                    ).into()
-                );
+                bail!("Use `and` instead of `&&` at line {}, column {}", line_no, col_no);
             },
             Rule::op_wrong_or => {
                 let (line_no, col_no) = parser.input().line_col(token.start);
-                return Err(
-                    ErrorKind::DeprecatedSyntax(
-                        line_no, col_no, "Use `or` instead of `||`".to_string()
-                    ).into()
-                );
+                bail!("Use `or` instead of `||` at line {}, column {}", line_no, col_no);
             },
             _ => ()
         };
@@ -643,7 +630,6 @@ mod tests {
     use pest::prelude::*;
 
     use super::{Rdp, Node, parse};
-    use errors::ErrorKind;
 
     #[test]
     fn test_int() {
@@ -892,7 +878,7 @@ mod tests {
         assert!(parsed_ast.is_err());
         assert_eq!(
             parsed_ast.err().unwrap().description(),
-            ErrorKind::InvalidSyntax(1, 1).description()
+            "Invalid Tera syntax at line 1, column 1"
         );
     }
 
@@ -902,7 +888,7 @@ mod tests {
         assert!(parsed_ast.is_err());
         assert_eq!(
             parsed_ast.err().unwrap().description(),
-            ErrorKind::InvalidSyntax(1, 27).description()
+            "Invalid Tera syntax at line 1, column 27"
         );
     }
 
@@ -1381,7 +1367,7 @@ mod tests {
         assert!(parsed_ast.is_err());
         assert_eq!(
             parsed_ast.err().unwrap().description(),
-            ErrorKind::DeprecatedSyntax(1, 9, "Use `and` instead of `&&`".to_string()).description()
+            "Use `and` instead of `&&` at line 1, column 9"
         );
     }
 
@@ -1391,7 +1377,7 @@ mod tests {
         assert!(parsed_ast.is_err());
         assert_eq!(
             parsed_ast.err().unwrap().description(),
-            ErrorKind::DeprecatedSyntax(1, 9, "Use `or` instead of `||`".to_string()).description()
+            "Use `or` instead of `||` at line 1, column 9"
         );
     }
 
@@ -1401,7 +1387,7 @@ mod tests {
         assert!(parsed_ast.is_err());
         assert_eq!(
             parsed_ast.err().unwrap().description(),
-            ErrorKind::MismatchingEndTag(1, 33, "hey".to_string(), "ho".to_string()).description()
+            "Block `ho` is closing at line 1, col 33 but we were expecting `hey` to be closing"
         );
     }
 

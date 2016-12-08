@@ -8,12 +8,10 @@ macro_rules! try_get_value {
         match ::serde_json::value::from_value::<$ty>($val.clone()) {
             Ok(s) => s,
             Err(_) => {
-                return Err(::errors::ErrorKind::FilterIncorrectArgType(
-                    $filter_name.to_string(),
-                    $var_name.to_string(),
-                    $val,
-                    stringify!($ty).to_string()
-                ).into());
+                bail!(
+                    "Filter `{}` received an incorrect type for arg `{}`: got `{:?}` but expected a {}",
+                    $filter_name, $var_name, $val, stringify!($ty)
+                );
             }
         }
     }};

@@ -7,7 +7,16 @@ use tera::{Tera, Context};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
-        let mut tera = Tera::new("examples/templates/**/*").unwrap();
+        let mut tera = match Tera::new("examples/templates/**/*") {
+            Ok(t) => t,
+            Err(e) => {
+                println!("Error: {}", e);
+                for e in e.iter().skip(1) {
+                    println!("Reason: {}", e);
+                }
+                ::std::process::exit(1);
+            }
+        };
         tera.autoescape_on(vec!["html", ".sql"]);
         tera
     };
@@ -16,6 +25,16 @@ lazy_static! {
 fn main() {
     let mut context = Context::new();
     context.add("username", &"Bob");
+    context.add("numbers", &vec![1,2,3]);
     context.add("bio", &"<script>alert('pwnd');</script>");
-    println!("{:?}", TEMPLATES.render("users/profile.html", context));
+
+    match TEMPLATES.render("users/profile.html", context) {
+        Ok(s) => println!("{:?}", s),
+        Err(e) => {
+            println!("Error: {}", e);
+            for e in e.iter().skip(1) {
+                println!("Reason: {}", e);
+            }
+        }
+    };
 }

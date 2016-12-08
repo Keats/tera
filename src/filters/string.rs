@@ -5,7 +5,7 @@ use serde_json::value::{Value, to_value};
 use slug;
 use url::percent_encoding::{utf8_percent_encode, EncodeSet};
 
-use errors::{Result, ErrorKind};
+use errors::Result;
 use utils;
 
 use regex::{Regex, Captures};
@@ -68,16 +68,12 @@ pub fn replace(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     let from = match args.get("from") {
         Some(val) => try_get_value!("replace", "from", String, val.clone()),
-        None => {
-            return Err(ErrorKind::FilterMissingArg("replace".to_string(), "from".to_string()).into());
-        }
+        None => bail!("Filter `replace` expected an arg called `from`")
     };
 
     let to = match args.get("to") {
         Some(val) => try_get_value!("replace", "to", String, val.clone()),
-        None => {
-            return Err(ErrorKind::FilterMissingArg("replace".to_string(), "to".to_string()).into());
-        }
+        None => bail!("Filter `replace` expected an arg called `to`")
     };
 
     Ok(to_value(&s.replace(&from, &to)))
@@ -180,9 +176,8 @@ mod tests {
 
     use serde_json::value::{to_value};
 
-    use errors::ErrorKind::*;
-
     use super::*;
+
 
     #[test]
     fn test_upper() {
@@ -197,9 +192,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.err().unwrap().description(),
-            FilterIncorrectArgType(
-                "upper".to_string(), "value".to_string(), to_value(&50), "String".to_string()
-            ).description()
+            "Filter `upper` received an incorrect type for arg `value`: got `50` but expected a String"
         );
     }
 
@@ -260,7 +253,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.err().unwrap().description(),
-            FilterMissingArg("replace".to_string(), "to".to_string()).description()
+            "Filter `replace` expected an arg called `to`"
         );
     }
 

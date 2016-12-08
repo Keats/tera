@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use serde_json::value::{Value, to_value};
 use humansize::{FileSize, file_size_opts};
 
-use errors::{Result, ErrorKind};
+use errors::Result;
 
 
 /// Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
@@ -36,11 +36,11 @@ pub fn round(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         "common" => Ok(to_value(num.round())),
         "ceil" => Ok(to_value(num.ceil())),
         "floor" => Ok(to_value(num.floor())),
-        _ => Err(
-            ErrorKind::Internal(
-                format!("round filter received an incorrect value for `method` argument: {}", method)
-            ).into()
-        )
+        _ => bail!(
+                "Filter `round` received an incorrect value for arg `method`: got `{:?}`, \
+                only common, ceil and floor are allowed",
+                method
+            )
     }
 }
 
@@ -48,16 +48,10 @@ pub fn round(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 /// Returns a human-readable file size (i.e. '110 MB') from an integer
 pub fn filesizeformat(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("filesizeformat", "value", i32, value);
-    let formatted = num
+    num
         .file_size(file_size_opts::CONVENTIONAL)
-        .or(Err(
-            ErrorKind::Internal(
-                format!("Tried to called filesizeformat on a negative number: {}", num)
-            )
-        ))?;
-
-
-    Ok(to_value(formatted))
+        .or(Err(format!("Filter `filesizeformat` was called on a negative number: {}", num).into()))
+        .map(to_value)
 }
 
 

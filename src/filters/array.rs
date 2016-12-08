@@ -10,11 +10,7 @@ use errors::Result;
 pub fn first(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("first", "value", Vec<Value>, value);
 
-    if let Some(val) = arr.first() {
-        Ok(val.clone())
-    } else {
-        Ok(to_value(&""))
-    }
+    Ok(arr.first().cloned().unwrap_or_else(|| to_value(&"")))
 }
 
 /// Returns the last value of an array

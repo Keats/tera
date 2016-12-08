@@ -4,8 +4,7 @@ use serde_json::value::{Value, to_value};
 
 use context::{ValueRender, ValueNumber, ValueTruthy, get_json_pointer};
 use template::Template;
-use errors::Result;
-use errors::ErrorKind::*;
+use errors::{Result, ResultExt};
 use parser::Node;
 use parser::Node::*;
 use tera::Tera;
@@ -86,18 +85,23 @@ impl<'a> Renderer<'a> {
     // account for loops variables
     fn lookup_variable(&self, key: &str) -> Result<Value> {
         // Differentiate between macros and general context
-        let context = if self.macro_context.is_empty() {
-            &self.context
-        } else {
-            self.macro_context.last().expect("Didn't get the macro context")
+        let context = match self.macro_context.last() {
+            Some(c) => c,
+            None => &self.context
         };
+
+        // small helper fn to reduce duplication code in the 3 spots in `lookup_variable` where we
+        // need to actually do the variable lookup
+        fn find_variable(context: &Value, key: &str, tpl_name: &str) -> Result<Value> {
+            match context.pointer(&get_json_pointer(key)).cloned() {
+                Some(v) => Ok(v),
+                None => bail!("Field `{}` not found in context while rendering '{}'", key, tpl_name)
+            }
+        }
 
         // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
-            return context
-                .pointer(&get_json_pointer(key))
-                .cloned()
-                .ok_or_else(|| FieldNotFound(key.to_string()).into());
+            return find_variable(context, key, &self.template.name);
         }
 
         for for_loop in self.for_loops.iter().rev() {
@@ -110,9 +114,7 @@ impl<'a> Renderer<'a> {
                 // might be a struct or some nested structure
                 if key.contains('.') {
                     let new_key = key.split_terminator('.').skip(1).collect::<Vec<&str>>().join(".");
-                    return value.pointer(&get_json_pointer(&new_key))
-                        .cloned()
-                        .ok_or_else(|| FieldNotFound(key.to_string()).into());
+                    return find_variable(value, &new_key, &self.template.name);
                 } else {
                     return Ok(value.clone());
                 }
@@ -128,8 +130,7 @@ impl<'a> Renderer<'a> {
         }
 
         // can get there when looking a variable in the global context while in a forloop
-        context.pointer(&get_json_pointer(key)).cloned()
-            .ok_or_else(|| FieldNotFound(key.to_string()).into())
+        find_variable(context, key, &self.template.name)
     }
 
     // Gets an identifier and return its json value
@@ -176,11 +177,13 @@ impl<'a> Renderer<'a> {
     fn eval_math(&self, node: &Node) -> Result<f32> {
         match *node {
             Identifier { ref name, .. } => {
-                let value = self.eval_ident(node)?;
-                match value.to_number() {
-                    Ok(v) =>  Ok(v),
-                    Err(_) => Err(NotANumber(name.to_string()).into())
-                }
+                self.eval_ident(node)?
+                    .to_number()
+                    .or(Err(
+                        format!(
+                            "Variable `{}` was used in a math operation but is not a number", name
+                        ).into()
+                    ))
             },
             Int(s) => Ok(s as f32),
             Float(s) => Ok(s),
@@ -245,7 +248,7 @@ impl<'a> Renderer<'a> {
                 for param in params {
                     value_params.push(self.eval_expression(param)?);
                 }
-                tester(&name, self.eval_expression(*expression).ok(), value_params)
+                tester(self.eval_expression(*expression).ok(), value_params)
             },
             Logic { lhs, rhs, operator } => {
                 match operator.as_str() {
@@ -348,7 +351,7 @@ impl<'a> Renderer<'a> {
         let list = self.lookup_variable(&array_name)?;
 
         if !list.is_array() {
-            return Err(NotAnArray(array_name.to_string()).into());
+            bail!("Tried to iterate on variable `{}`, but it isn't an array", array_name);
         }
 
         // Safe unwrap
@@ -412,7 +415,7 @@ impl<'a> Renderer<'a> {
                 // fail fast if the number of args don't match
                 if params.len() != call_params.len() {
                     let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
-                    return Err(MacroCallWrongArgs(macro_name, params, params_seen).into());
+                    bail!("Macro `{}` got `{:?}` for args but was expecting `{:?}` (order does not matter)", macro_name, params, params_seen);
                 }
 
                 // We need to make a new context for the macro from the arguments given
@@ -421,7 +424,7 @@ impl<'a> Renderer<'a> {
                 for (param_name, exp) in call_params.clone() {
                     if !params.contains(&param_name) {
                         let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
-                        return Err(MacroCallWrongArgs(macro_name, params, params_seen).into());
+                        bail!("Macro `{}` got `{:?}` for args but was expecting `{:?}` (order does not matter)", macro_name, params, params_seen);
                     }
                     context.insert(param_name.to_string(), self.eval_expression(exp)?);
                 }
@@ -448,7 +451,7 @@ impl<'a> Renderer<'a> {
 
                 return Ok(output.trim().to_string());
             } else {
-                return Err(MacroNotFound(active_namespace, macro_name).into());
+                bail!("Macro `{}` was not found in the namespace `{}`", macro_name, active_namespace);
             }
         } else {
             unreachable!("Got a node other than a MacroCall when rendering a macro")
@@ -569,6 +572,7 @@ impl<'a> Renderer<'a> {
                 }
             },
             Extends(_) => Ok("".to_string()),
+            Macro {..} => Ok("".to_string()),
             x @ _ => unreachable!("render_node -> unexpected node: {:?}", x)
         }
     }
@@ -577,7 +581,7 @@ impl<'a> Renderer<'a> {
         let ast = if self.template.parents.len() > 0 {
             let parent = self.tera.get_template(
                 &self.template.parents.last().expect("Couldn't get first ancestor template")
-            )?;
+            ).chain_err(|| format!("Failed to render '{}'", self.template.name))?;
             parent.ast.get_children()
         } else {
             self.template.ast.get_children()
@@ -585,7 +589,9 @@ impl<'a> Renderer<'a> {
 
         let mut output = String::new();
         for node in ast {
-            output.push_str(&self.render_node(node)?);
+            output.push_str(
+                &self.render_node(node).chain_err(|| format!("Failed to render '{}'", self.template.name))?
+            );
         }
 
         Ok(output)

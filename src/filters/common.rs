@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use serde_json::value::{Value, to_value};
-use errors::{ErrorKind, Result};
+use errors::Result;
+
 
 // Returns the number of items in an array or the number of characters in a string.
 // Returns 0 if not an array or string.
@@ -26,9 +27,10 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
         }
         Value::String(s) => Ok(to_value(&String::from_iter(s.chars().rev()))),
         _ => {
-            Err(ErrorKind::FilterIncorrectArgType(
-                "reverse".to_string(), "value".to_string(), value, "Array|String".to_string()
-            ).into())
+            bail!(
+                "Filter `reverse` received an incorrect type for arg `value`: got `{:?}` but expected Array|String",
+                value
+            );
         }
     }
 }
@@ -37,7 +39,6 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 mod tests {
     use std::collections::HashMap;
     use serde_json::value::to_value;
-    use errors::ErrorKind;
     use super::*;
 
     #[test]
@@ -88,12 +89,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.err().unwrap().description(),
-            ErrorKind::FilterIncorrectArgType(
-                "reverse".to_string(),
-                "value".to_string(),
-                to_value(&1.23),
-                "Array|String".to_string()
-            ).description()
+            "Filter `reverse` received an incorrect type for arg `value`: got `1.23` but expected Array|String"
         );
     }
 }
