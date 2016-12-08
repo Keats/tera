@@ -9,7 +9,7 @@ use errors::Result;
 
 /// Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
 pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
-    let num = try_get_value!("pluralize", "value", f32, value);
+    let num = try_get_value!("pluralize", "value", f64, value);
     let suffix = match args.get("suffix") {
         Some(val) => try_get_value!("pluralize", "suffix", String, val.clone()),
         None => "s".to_string(),
@@ -26,7 +26,7 @@ pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 /// will round to the nearest number.
 /// `ceil` and `floor` are also available as method.
 pub fn round(value: Value, args: HashMap<String, Value>) -> Result<Value> {
-    let num = try_get_value!("round", "value", f32, value);
+    let num = try_get_value!("round", "value", f64, value);
     let method = match args.get("method") {
         Some(val) => try_get_value!("round", "method", String, val.clone()),
         None => "common".to_string(),
@@ -47,7 +47,7 @@ pub fn round(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
 /// Returns a human-readable file size (i.e. '110 MB') from an integer
 pub fn filesizeformat(value: Value, _: HashMap<String, Value>) -> Result<Value> {
-    let num = try_get_value!("filesizeformat", "value", i32, value);
+    let num = try_get_value!("filesizeformat", "value", i64, value);
     num
         .file_size(file_size_opts::CONVENTIONAL)
         .or(Err(format!("Filter `filesizeformat` was called on a negative number: {}", num).into()))
