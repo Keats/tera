@@ -8,7 +8,7 @@ mod common;
 use common::{Product, Review};
 
 fn render_tpl(tpl_name: &str) -> Result<String> {
-    let tera = Tera::new("tests/render-failures/**/*");
+    let tera = Tera::new("tests/render-failures/**/*").unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -62,7 +62,7 @@ fn test_error_render_iterate_non_array() {
 
 #[test]
 fn test_error_value_render_non_object() {
-    let tera = Tera::new("tests/render-failures/**/*");
+    let tera = Tera::new("tests/render-failures/**/*").unwrap();
     let result = tera.value_render("value_render_non_object.html", &[1,2,3]);
 
     assert_eq!(result.is_err(), true);

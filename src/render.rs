@@ -600,7 +600,7 @@ mod tests {
 
     fn render_template(content: &str, context: Context) -> Result<String> {
         let mut tera = Tera::default();
-        tera.add_template("hello", content);
+        tera.add_template("hello", content).unwrap();
 
         tera.render("hello", context)
     }
@@ -608,8 +608,8 @@ mod tests {
     #[test]
     fn test_render_include() {
         let mut tera = Tera::default();
-        tera.add_template("world", "world");
-        tera.add_template("hello", "<h1>Hello {% include \"world\" %}</h1>");
+        tera.add_template("world", "world").unwrap();
+        tera.add_template("hello", "<h1>Hello {% include \"world\" %}</h1>").unwrap();
         let result = tera.render("hello", Context::new());
         assert_eq!(result.unwrap(), "<h1>Hello world</h1>".to_owned());
     }
@@ -781,7 +781,7 @@ mod tests {
         let mut context = Context::new();
         context.add("bad", &"<script>alert('pwnd');</script>");
         let mut tera = Tera::default();
-        tera.add_template("hello.html", "{{bad}}");
+        tera.add_template("hello.html", "{{bad}}").unwrap();
         let result = tera.render("hello.html", context);
 
         assert_eq!(result.unwrap(), "&lt;script&gt;alert(&#x27;pwnd&#x27;);&lt;&#x2F;script&gt;".to_string());
@@ -792,7 +792,7 @@ mod tests {
         let mut context = Context::new();
         context.add("bad", &"<script>alert('pwnd');</script>");
         let mut tera = Tera::default();
-        tera.add_template("hello.sql", "{{bad}}");
+        tera.add_template("hello.sql", "{{bad}}").unwrap();
         let result = tera.render("hello.sql", context);
 
         assert_eq!(result.unwrap(), "<script>alert('pwnd');</script>".to_string());
@@ -803,7 +803,7 @@ mod tests {
         let mut context = Context::new();
         context.add("bad", &"<script>alert('pwnd');</script>");
         let mut tera = Tera::default();
-        tera.add_template("hello.html", "{{ bad | safe }}");
+        tera.add_template("hello.html", "{{ bad | safe }}").unwrap();
         let result = tera.render("hello.html", context);
 
         assert_eq!(result.unwrap(), "<script>alert('pwnd');</script>".to_string());
@@ -816,7 +816,7 @@ mod tests {
             ("grandparent", "{% block hey %}hello{% endblock hey %} {% block ending %}sincerely{% endblock ending %}"),
             ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }}{% endblock hey %}"),
             ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
-        ]);
+        ]).unwrap();
         let result = tera.render("child", Context::new());
 
         assert_eq!(result.unwrap(), "dad says hi and grandma says hello sincerely with love".to_string());
@@ -829,7 +829,7 @@ mod tests {
             ("grandparent", "{% block hey %}hello{% endblock hey %}"),
             ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}"),
             ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
-        ]);
+        ]).unwrap();
         let result = tera.render("child", Context::new());
 
         assert_eq!(result.unwrap(), "dad says hi and grandma says hello sincerely with love".to_string());
@@ -841,7 +841,7 @@ mod tests {
         tera.add_templates(vec![
             ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
             ("tpl", "{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}"),
-        ]);
+        ]).unwrap();
 
         let result = tera.render("tpl", Context::new());
 
@@ -857,7 +857,7 @@ mod tests {
             ("macros2", "{% macro hi()%}Hi{% endmacro hi %}"),
             ("parent", "{% extends \"grandparent\" %}{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}"),
             ("child", "{% extends \"parent\" %}{% import \"macros2\" as macros %}{% block hey %}{{super()}}/{{macros::hi()}}{% endblock hey %}"),
-        ]);
+        ]).unwrap();
 
         let result = tera.render("child", Context::new());
 
@@ -873,7 +873,7 @@ mod tests {
             ("macros2", "{% macro hi()%}Hi{% endmacro hi %}"),
             ("parent", "{% extends \"grandparent\" %}{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}"),
             ("child", "{% extends \"parent\" %}{% import \"macros2\" as macros2 %}{% block hey %}{{super()}}/{{macros2::hi()}}{% endblock hey %}"),
-        ]);
+        ]).unwrap();
 
         let result = tera.render("child", Context::new());
 
@@ -887,7 +887,7 @@ mod tests {
             ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
             ("grandparent", "{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}"),
             ("child", "{% extends \"grandparent\" %}{% import \"macros\" as macros %}{% block hey %}{{super()}}/{{macros::hello()}}{% endblock hey %}"),
-        ]);
+        ]).unwrap();
 
         let result = tera.render("child", Context::new());
 

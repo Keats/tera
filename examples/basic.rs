@@ -7,7 +7,7 @@ use tera::{Tera, Context};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
-        let mut tera = Tera::new("examples/templates/**/*");
+        let mut tera = Tera::new("examples/templates/**/*").unwrap();
         tera.autoescape_on(vec!["html", ".sql"]);
         tera
     };
