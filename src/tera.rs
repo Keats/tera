@@ -267,19 +267,26 @@ impl Default for Tera {
 impl fmt::Debug for Tera {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Tera {}", "{")?;
+        write!(f, "\n\ttemplates: [\n")?;
+
         for template in self.templates.keys() {
-            write!(f, "template={},", template)?;
+            writeln!(f, "\t\t{},", template)?;
         }
+        write!(f, "\t]")?;
+        write!(f, "\n\tfilters: [\n")?;
 
         for filter in self.filters.keys() {
-            write!(f, "filters={},", filter)?;
+            writeln!(f, "\t\t{},", filter)?;
         }
+        write!(f, "\t]")?;
+        write!(f, "\n\ttesters: [\n")?;
 
         for tester in self.testers.keys() {
-            write!(f, "tester={},", tester)?;
+            writeln!(f, "\t\t{},", tester)?;
         }
+        write!(f, "\t]\n")?;
 
-        write!(f, "{}", "}")
+        writeln!(f, "{}", "}")
     }
 }
 
