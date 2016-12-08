@@ -10,7 +10,7 @@ use serde_json::value::to_value;
 use template::Template;
 use filters::{FilterFn, string, array, common, number};
 use context::Context;
-use errors::{TeraResult, TeraError};
+use errors::{Result, ErrorKind};
 use render::Renderer;
 use testers::{self, TesterFn};
 
@@ -132,7 +132,7 @@ impl Tera {
     }
 
     /// Renders a Tera template given a `Context`.
-    pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
+    pub fn render(&self, template_name: &str, data: Context) -> Result<String> {
         let template = self.get_template(template_name)?;
         let mut renderer = Renderer::new(template, self, data.as_json());
 
@@ -140,12 +140,12 @@ impl Tera {
     }
 
     /// Renders a Tera template given a `Serializeable` object.
-    pub fn value_render<T>(&self, template_name: &str, data: &T) -> TeraResult<String>
+    pub fn value_render<T>(&self, template_name: &str, data: &T) -> Result<String>
         where T: Serialize
     {
         let value = to_value(data);
         if !value.is_object() {
-            return Err(TeraError::InvalidValue(template_name.to_string()))
+            return Err(ErrorKind::InvalidValue(template_name.to_string()).into())
         }
 
         let template = self.get_template(template_name)?;
@@ -153,10 +153,10 @@ impl Tera {
         renderer.render()
     }
 
-    pub fn get_template(&self, template_name: &str) -> TeraResult<&Template> {
+    pub fn get_template(&self, template_name: &str) -> Result<&Template> {
         match self.templates.get(template_name) {
             Some(tmpl) => Ok(tmpl),
-            None => Err(TeraError::TemplateNotFound(template_name.to_string())),
+            None => Err(ErrorKind::TemplateNotFound(template_name.to_string()).into()),
         }
     }
 
@@ -178,10 +178,10 @@ impl Tera {
         self.build_inheritance_chains();
     }
 
-    pub fn get_filter(&self, filter_name: &str) -> TeraResult<&FilterFn> {
+    pub fn get_filter(&self, filter_name: &str) -> Result<&FilterFn> {
         match self.filters.get(filter_name) {
             Some(fil) => Ok(fil),
-            None => Err(TeraError::FilterNotFound(filter_name.to_string())),
+            None => Err(ErrorKind::FilterNotFound(filter_name.to_string()).into()),
         }
     }
 
@@ -191,10 +191,10 @@ impl Tera {
         self.filters.insert(name.to_string(), filter);
     }
 
-    pub fn get_tester(&self, tester_name: &str) -> TeraResult<&TesterFn> {
+    pub fn get_tester(&self, tester_name: &str) -> Result<&TesterFn> {
         match self.testers.get(tester_name) {
             Some(t) => Ok(t),
-            None => Err(TeraError::TesterNotFound(tester_name.to_string())),
+            None => Err(ErrorKind::TesterNotFound(tester_name.to_string()).into()),
         }
     }
 

@@ -1,8 +1,6 @@
 use std::collections::{HashMap, LinkedList};
 
 use parser::{parse, Node};
-use errors::TeraResult;
-use errors::TeraError::MacroNotFound;
 
 
 // This is the parsed equivalent of a template file
@@ -97,13 +95,6 @@ impl Template {
 
             parents: vec![],
             blocks_definitions: HashMap::new(),
-        }
-    }
-
-    pub fn get_macro(&self, name: String) -> TeraResult<&Node> {
-        match self.macros.get(&name) {
-            Some(m) => Ok(m),
-            None => Err(MacroNotFound(self.name.clone(), name.to_string())),
         }
     }
 }

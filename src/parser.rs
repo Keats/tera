@@ -1,7 +1,7 @@
 use std::collections::{HashMap, LinkedList};
 
 use pest::prelude::*;
-use errors::{TeraResult, TeraError};
+use errors::{Result, ErrorKind};
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -216,7 +216,7 @@ impl_rdp! {
     }
 
     process! {
-        main(&self) -> TeraResult<Node> {
+        main(&self) -> Result<Node> {
             (_: template, tpl: _template()) => {
                 match tpl {
                     Ok(t) => Ok(Node::List(t)),
@@ -225,7 +225,7 @@ impl_rdp! {
             }
         }
 
-        _template(&self) -> TeraResult<LinkedList<Node>> {
+        _template(&self) -> Result<LinkedList<Node>> {
             (_: extends_tag, &name: string, tail: _template()) => {
                 let mut tail2 = tail?;
                 tail2.push_front(Node::Extends(name.replace("\"", "").to_string()));
@@ -264,7 +264,7 @@ impl_rdp! {
         }
 
         // Option since we don't want comments in the AST
-        _content(&self) -> TeraResult<Option<Node>> {
+        _content(&self) -> Result<Option<Node>> {
             (&head: text) => {
                 Ok(Some(Node::Text(head.to_string())))
             },
@@ -294,9 +294,9 @@ impl_rdp! {
                 if name != end_name {
                     let (line_no, col_no) = self.input().line_col(self.input.pos());
                     return Err(
-                        TeraError::MismatchingEndTag(
+                        ErrorKind::MismatchingEndTag(
                             line_no, col_no, name.to_string(), end_name.to_string()
-                        )
+                        ).into()
                     );
                 }
                 Ok(Some(Node::Block {
@@ -308,9 +308,9 @@ impl_rdp! {
                 if name != end_name {
                     let (line_no, col_no) = self.input().line_col(self.input.pos());
                     return Err(
-                        TeraError::MismatchingEndTag(
+                        ErrorKind::MismatchingEndTag(
                             line_no, col_no, name.to_string(), end_name.to_string()
-                        )
+                        ).into()
                     );
                 }
                 Ok(Some(Node::Macro {
@@ -394,7 +394,7 @@ impl_rdp! {
             }
         }
 
-        _condition(&self) -> TeraResult<Node> {
+        _condition(&self) -> Result<Node> {
             // Expression with a test.
             (exp: _expression(), _: test, test_args: _test()) => {
                 let (name, params) = test_args?;
@@ -410,7 +410,7 @@ impl_rdp! {
             }
         }
 
-        _elifs(&self) -> TeraResult<LinkedList<Node>> {
+        _elifs(&self) -> Result<LinkedList<Node>> {
             (_: elif_block, node: _if(), tail: _elifs()) => {
                 let mut tail2 = tail?;
                 tail2.push_front(node?);
@@ -419,7 +419,7 @@ impl_rdp! {
             () => Ok(LinkedList::new())
         }
 
-        _if(&self) -> TeraResult<Node> {
+        _if(&self) -> Result<Node> {
             (_: if_tag, cond: _condition(), body: _template()) => {
                 Ok(Node::Conditional {
                     condition: Box::new(cond?),
@@ -434,7 +434,7 @@ impl_rdp! {
             },
         }
 
-        _fn_args(&self) -> TeraResult<HashMap<String, Node>> {
+        _fn_args(&self) -> Result<HashMap<String, Node>> {
              // first arg of the fn
             (_: fn_args, _: fn_arg, &name: simple_ident, exp: _expression(), tail: _fn_args()) => {
                 let mut tail2 = tail?;
@@ -450,7 +450,7 @@ impl_rdp! {
             () => Ok(HashMap::new())
         }
 
-        _fn(&self) -> TeraResult<Node> {
+        _fn(&self) -> Result<Node> {
             (_: fn_call, &name: simple_ident, args: _fn_args()) => {
                 Ok(Node::Filter{name: name.to_string(), params: args?})
             },
@@ -462,7 +462,7 @@ impl_rdp! {
             },
         }
 
-        _filters(&self) -> TeraResult<LinkedList<Node>> {
+        _filters(&self) -> Result<LinkedList<Node>> {
             (_: filters, filter: _fn(), tail: _filters()) => {
                 let mut tail2 = tail?;
                 tail2.push_front(filter?);
@@ -491,7 +491,7 @@ impl_rdp! {
             () => LinkedList::new()
         }
 
-        _test_fn_params(&self) -> (TeraResult<LinkedList<Node>>) {
+        _test_fn_params(&self) -> (Result<LinkedList<Node>>) {
             // first arg of many
             (_: test_fn_params, _: test_fn_param, value: _expression(), tail: _test_fn_params()) => {
                 let mut tail = tail?;
@@ -508,13 +508,13 @@ impl_rdp! {
             () => (Ok(LinkedList::new()))
         }
 
-        _test(&self) -> TeraResult<(String, LinkedList<Node>)> {
+        _test(&self) -> Result<(String, LinkedList<Node>)> {
             (_: test_fn, &name: simple_ident, params: _test_fn_params()) => {
                 Ok((name.to_string(), params?))
             },
         }
 
-        _expression(&self) -> TeraResult<Node> {
+        _expression(&self) -> Result<Node> {
             (_: add_sub, left: _expression(), sign, right: _expression()) => {
                 Ok(Node::Math {
                     lhs: Box::new(left?),
@@ -600,13 +600,13 @@ impl_rdp! {
 // We need to preserve whitespace and count whitespace as text, which
 // pest doesn't allow easily so we have a custom step before processing
 // to add all/fix all our text tokens if necessary
-pub fn parse(input: &str) -> TeraResult<Node> {
+pub fn parse(input: &str) -> Result<Node> {
     let mut parser = Rdp::new(StringInput::new(input));
 
     if !parser.template() {
         let (_, pos) = parser.expected();
         let (line_no, col_no) = parser.input().line_col(pos);
-        return Err(TeraError::InvalidSyntax(line_no, col_no));
+        return Err(ErrorKind::InvalidSyntax(line_no, col_no).into());
     }
     // println!("{:#?}", parser.queue_with_captures());
 
@@ -616,17 +616,17 @@ pub fn parse(input: &str) -> TeraResult<Node> {
             Rule::op_wrong_and => {
                 let (line_no, col_no) = parser.input().line_col(token.start);
                 return Err(
-                    TeraError::DeprecatedSyntax(
+                    ErrorKind::DeprecatedSyntax(
                         line_no, col_no, "Use `and` instead of `&&`".to_string()
-                    )
+                    ).into()
                 );
             },
             Rule::op_wrong_or => {
                 let (line_no, col_no) = parser.input().line_col(token.start);
                 return Err(
-                    TeraError::DeprecatedSyntax(
+                    ErrorKind::DeprecatedSyntax(
                         line_no, col_no, "Use `or` instead of `||`".to_string()
-                    )
+                    ).into()
                 );
             },
             _ => ()
@@ -643,7 +643,7 @@ mod tests {
     use pest::prelude::*;
 
     use super::{Rdp, Node, parse};
-    use errors::TeraError;
+    use errors::ErrorKind;
 
     #[test]
     fn test_int() {
@@ -891,8 +891,8 @@ mod tests {
         let parsed_ast = parse("{% block hey ");
         assert!(parsed_ast.is_err());
         assert_eq!(
-            parsed_ast.err().unwrap(),
-            TeraError::InvalidSyntax(1, 1)
+            parsed_ast.err().unwrap().description(),
+            ErrorKind::InvalidSyntax(1, 1).description()
         );
     }
 
@@ -901,8 +901,8 @@ mod tests {
         let parsed_ast = parse("{% extends \"base.html\" %} {% extends \"base.html\" %}");
         assert!(parsed_ast.is_err());
         assert_eq!(
-            parsed_ast.err().unwrap(),
-            TeraError::InvalidSyntax(1, 27)
+            parsed_ast.err().unwrap().description(),
+            ErrorKind::InvalidSyntax(1, 27).description()
         );
     }
 
@@ -1380,8 +1380,8 @@ mod tests {
         let parsed_ast = parse("{{ true && 1 }}");
         assert!(parsed_ast.is_err());
         assert_eq!(
-            parsed_ast.err().unwrap(),
-            TeraError::DeprecatedSyntax(1, 9, "Use `and` instead of `&&`".to_string())
+            parsed_ast.err().unwrap().description(),
+            ErrorKind::DeprecatedSyntax(1, 9, "Use `and` instead of `&&`".to_string()).description()
         );
     }
 
@@ -1390,8 +1390,8 @@ mod tests {
         let parsed_ast = parse("{{ true || 1 }}");
         assert!(parsed_ast.is_err());
         assert_eq!(
-            parsed_ast.err().unwrap(),
-            TeraError::DeprecatedSyntax(1, 9, "Use `or` instead of `||`".to_string())
+            parsed_ast.err().unwrap().description(),
+            ErrorKind::DeprecatedSyntax(1, 9, "Use `or` instead of `||`".to_string()).description()
         );
     }
 
@@ -1400,8 +1400,8 @@ mod tests {
         let parsed_ast = parse("{% block hey %}{% endblock ho %}");
         assert!(parsed_ast.is_err());
         assert_eq!(
-            parsed_ast.err().unwrap(),
-            TeraError::MismatchingEndTag(1, 33, "hey".to_string(), "ho".to_string())
+            parsed_ast.err().unwrap().description(),
+            ErrorKind::MismatchingEndTag(1, 33, "hey".to_string(), "ho".to_string()).description()
         );
     }
 

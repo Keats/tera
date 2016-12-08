@@ -2,12 +2,12 @@ extern crate tera;
 
 use std::error::Error;
 
-use tera::{Tera, Context, TeraResult};
+use tera::{Tera, Context, Result};
 
 mod common;
 use common::{Product, Review};
 
-fn render_tpl(tpl_name: &str) -> TeraResult<String> {
+fn render_tpl(tpl_name: &str) -> Result<String> {
     let tera = Tera::new("tests/render-failures/**/*");
     let mut context = Context::new();
     context.add("product", &Product::new());

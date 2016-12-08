@@ -4,8 +4,8 @@ use serde_json::value::{Value, to_value};
 
 use context::{ValueRender, ValueNumber, ValueTruthy, get_json_pointer};
 use template::Template;
-use errors::TeraResult;
-use errors::TeraError::*;
+use errors::Result;
+use errors::ErrorKind::*;
 use parser::Node;
 use parser::Node::*;
 use tera::Tera;
@@ -84,7 +84,7 @@ impl<'a> Renderer<'a> {
 
     // Lookup a variable name from the context and takes into
     // account for loops variables
-    fn lookup_variable(&self, key: &str) -> TeraResult<Value> {
+    fn lookup_variable(&self, key: &str) -> Result<Value> {
         // Differentiate between macros and general context
         let context = if self.macro_context.is_empty() {
             &self.context
@@ -97,7 +97,7 @@ impl<'a> Renderer<'a> {
             return context
                 .pointer(&get_json_pointer(key))
                 .cloned()
-                .ok_or_else(|| FieldNotFound(key.to_string()));
+                .ok_or_else(|| FieldNotFound(key.to_string()).into());
         }
 
         for for_loop in self.for_loops.iter().rev() {
@@ -112,7 +112,7 @@ impl<'a> Renderer<'a> {
                     let new_key = key.split_terminator('.').skip(1).collect::<Vec<&str>>().join(".");
                     return value.pointer(&get_json_pointer(&new_key))
                         .cloned()
-                        .ok_or_else(|| FieldNotFound(key.to_string()));
+                        .ok_or_else(|| FieldNotFound(key.to_string()).into());
                 } else {
                     return Ok(value.clone());
                 }
@@ -129,13 +129,13 @@ impl<'a> Renderer<'a> {
 
         // can get there when looking a variable in the global context while in a forloop
         context.pointer(&get_json_pointer(key)).cloned()
-            .ok_or_else(|| FieldNotFound(key.to_string()))
+            .ok_or_else(|| FieldNotFound(key.to_string()).into())
     }
 
     // Gets an identifier and return its json value
     // If there is no filter, it's itself, otherwise call the filters in order
     // an return their result
-    fn eval_ident(&self, node: &Node) -> TeraResult<Value> {
+    fn eval_ident(&self, node: &Node) -> Result<Value> {
         match *node {
             Identifier { ref name, ref filters } => {
                 let mut value = self.lookup_variable(name)?;
@@ -173,13 +173,13 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn eval_math(&self, node: &Node) -> TeraResult<f32> {
+    fn eval_math(&self, node: &Node) -> Result<f32> {
         match *node {
             Identifier { ref name, .. } => {
                 let value = self.eval_ident(node)?;
                 match value.to_number() {
                     Ok(v) =>  Ok(v),
-                    Err(_) => Err(NotANumber(name.to_string()))
+                    Err(_) => Err(NotANumber(name.to_string()).into())
                 }
             },
             Int(s) => Ok(s as f32),
@@ -205,7 +205,7 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn eval_expression(&self, node: Node) -> TeraResult<Value> {
+    fn eval_expression(&self, node: Node) -> Result<Value> {
         match node {
             Identifier { .. } => {
                 Ok(self.eval_ident(&node)?)
@@ -234,7 +234,7 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn eval_condition(&self, node: Node) -> TeraResult<bool> {
+    fn eval_condition(&self, node: Node) -> Result<bool> {
         match node {
             Identifier { .. } => {
                 Ok(self.eval_ident(&node).map(|v| v.is_truthy()).unwrap_or(false))
@@ -305,7 +305,7 @@ impl<'a> Renderer<'a> {
     // eval all the values in a {{ }} block
     // Macro calls and super are NOT variable blocks in the AST, they have
     // their own nodes
-    fn render_variable_block(&mut self, node: Node) -> TeraResult<String>  {
+    fn render_variable_block(&mut self, node: Node) -> Result<String>  {
         match node {
             Identifier { .. } => Ok(self.eval_ident(&node)?.render()),
             Math { .. } => Ok(self.eval_math(&node)?.to_string()),
@@ -314,7 +314,7 @@ impl<'a> Renderer<'a> {
     }
 
     // evaluates conditions and render bodies accordingly
-    fn render_if(&mut self, condition_nodes: LinkedList<Node>, else_node: Option<Box<Node>>) -> TeraResult<String> {
+    fn render_if(&mut self, condition_nodes: LinkedList<Node>, else_node: Option<Box<Node>>) -> Result<String> {
         let mut skip_else = false;
         let mut output = String::new();
         for node in condition_nodes {
@@ -344,11 +344,11 @@ impl<'a> Renderer<'a> {
         Ok(output.trim_right().to_string())
     }
 
-    fn render_for(&mut self, variable_name: String, array_name: String, body: Box<Node>) -> TeraResult<String> {
+    fn render_for(&mut self, variable_name: String, array_name: String, body: Box<Node>) -> Result<String> {
         let list = self.lookup_variable(&array_name)?;
 
         if !list.is_array() {
-            return Err(NotAnArray(array_name.to_string()));
+            return Err(NotAnArray(array_name.to_string()).into());
         }
 
         // Safe unwrap
@@ -379,7 +379,7 @@ impl<'a> Renderer<'a> {
         Ok(output.trim_right().to_string())
     }
 
-    fn render_macro(&mut self, call_node: Node) -> TeraResult<String> {
+    fn render_macro(&mut self, call_node: Node) -> Result<String> {
         if let MacroCall {namespace, name: macro_name, params: call_params} = call_node {
             // We need to find the active namespace in Tera if `self` is used
             // Since each macro (other than the `self` ones) pushes its own namespace
@@ -412,7 +412,7 @@ impl<'a> Renderer<'a> {
                 // fail fast if the number of args don't match
                 if params.len() != call_params.len() {
                     let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
-                    return Err(MacroCallWrongArgs(macro_name, params, params_seen));
+                    return Err(MacroCallWrongArgs(macro_name, params, params_seen).into());
                 }
 
                 // We need to make a new context for the macro from the arguments given
@@ -421,7 +421,7 @@ impl<'a> Renderer<'a> {
                 for (param_name, exp) in call_params.clone() {
                     if !params.contains(&param_name) {
                         let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
-                        return Err(MacroCallWrongArgs(macro_name, params, params_seen));
+                        return Err(MacroCallWrongArgs(macro_name, params, params_seen).into());
                     }
                     context.insert(param_name.to_string(), self.eval_expression(exp)?);
                 }
@@ -448,14 +448,14 @@ impl<'a> Renderer<'a> {
 
                 return Ok(output.trim().to_string());
             } else {
-                return Err(MacroNotFound(active_namespace, macro_name));
+                return Err(MacroNotFound(active_namespace, macro_name).into());
             }
         } else {
             unreachable!("Got a node other than a MacroCall when rendering a macro")
         }
     }
 
-    fn import_macros(&mut self, tpl_name: String) -> TeraResult<bool> {
+    fn import_macros(&mut self, tpl_name: String) -> Result<bool> {
         let tpl = self.tera.get_template(&tpl_name)?;
         if tpl.imported_macro_files.len() == 0 {
             return Ok(false);
@@ -470,7 +470,7 @@ impl<'a> Renderer<'a> {
         Ok(true)
     }
 
-    pub fn render_node(&mut self, node: Node) -> TeraResult<String> {
+    pub fn render_node(&mut self, node: Node) -> Result<String> {
         match node {
             Include(p) => {
                 let ast = self.tera.get_template(&p)?.ast.get_children();
@@ -490,7 +490,7 @@ impl<'a> Renderer<'a> {
                 };
                 map.insert(name.to_string(), tpl.macros.clone());
                 self.macros.push(map);
-                // In theory, the render_node should return TeraResult<Option<String>>
+                // In theory, the render_node should return Result<Option<String>>
                 // but in practice there's no difference so keeping this hack
                 Ok("".to_string())
             },
@@ -573,7 +573,7 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    pub fn render(&mut self) -> TeraResult<String> {
+    pub fn render(&mut self) -> Result<String> {
         let ast = if self.template.parents.len() > 0 {
             let parent = self.tera.get_template(
                 &self.template.parents.last().expect("Couldn't get first ancestor template")
@@ -595,10 +595,10 @@ impl<'a> Renderer<'a> {
 #[cfg(test)]
 mod tests {
     use context::Context;
-    use errors::TeraResult;
+    use errors::Result;
     use tera::Tera;
 
-    fn render_template(content: &str, context: Context) -> TeraResult<String> {
+    fn render_template(content: &str, context: Context) -> Result<String> {
         let mut tera = Tera::default();
         tera.add_template("hello", content);
 

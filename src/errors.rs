@@ -2,12 +2,8 @@ use std::collections::{LinkedList};
 
 use serde_json::value::Value;
 
-/// Library generic result type.
-pub type TeraResult<T> = Result<T, TeraError>;
-
-quick_error! {
-    #[derive(PartialEq, Debug, Clone)]
-    pub enum TeraError {
+error_chain! {
+    errors {
         MismatchingEndTag(line_no: usize, col_no: usize, expected: String, found: String) {
             display("Was expecting block with name `{}` to be closed, but `{}` is closing at line {:?}, column {:?}",
                     expected, found, line_no, col_no)

@@ -1,66 +1,66 @@
-use errors::{TeraResult, TeraError};
+use errors::{Result, ErrorKind};
 use serde_json::value::{Value};
 use context::ValueNumber;
 
 
 
-pub type TesterFn = fn(&str, Option<Value>, Vec<Value>) -> TeraResult<bool>;
+pub type TesterFn = fn(&str, Option<Value>, Vec<Value>) -> Result<bool>;
 
 
 // Some helper functions to remove boilerplate with tester error handling
-fn number_args_allowed(arg_name: &str, tester_name: &str, max: usize, args_len: usize) -> TeraResult<()> {
+fn number_args_allowed(arg_name: &str, tester_name: &str, max: usize, args_len: usize) -> Result<()> {
     if max == 0 && args_len > max {
-        return Err(TeraError::TestError(
+        return Err(ErrorKind::TestError(
             tester_name.to_string(),
             format!(
                 "{} was called on the variable {} with some arguments \
                 but this test doesn't take arguments.",
                 tester_name, arg_name
             )
-        ))
+        ).into())
     }
 
     if args_len > max {
-        return Err(TeraError::TestError(
+        return Err(ErrorKind::TestError(
             tester_name.to_string(),
             format!(
                 "{} was called on the variable {} with {} arguments, the max number is {}. ",
                 tester_name, arg_name, args_len, max
             )
-        ))
+        ).into())
     }
 
     Ok(())
 }
 
 // Called to check if the Value is defined and return an Err if not
-fn value_defined(arg_name: &str, tester_name: &str, value: &Option<Value>) -> TeraResult<()> {
+fn value_defined(arg_name: &str, tester_name: &str, value: &Option<Value>) -> Result<()> {
     if value.is_none() {
-        return Err(TeraError::TestError(
+        return Err(ErrorKind::TestError(
             tester_name.to_string(),
             format!("{} was called on the variable {}, which is undefined", tester_name, arg_name)
-        ));
+        ).into());
     }
 
     Ok(())
 }
 
 /// Returns true if `value` is defined. Otherwise, returns false.
-pub fn defined(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
+pub fn defined(name: &str, value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     number_args_allowed(name, "defined", 0, params.len())?;
 
     Ok(value.is_some())
 }
 
 /// Returns true if `value` is undefined. Otherwise, returns false.
-pub fn undefined(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
+pub fn undefined(name: &str, value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     number_args_allowed(name, "undefined", 0, params.len())?;
 
     Ok(value.is_none())
 }
 
 /// Returns true if `value` is a string. Otherwise, returns false.
-pub fn string(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
+pub fn string(name: &str, value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     number_args_allowed(name, "string", 0, params.len())?;
     value_defined(name, "string", &value)?;
 
@@ -71,7 +71,7 @@ pub fn string(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResul
 }
 
 /// Returns true if `value` is a number. Otherwise, returns false.
-pub fn number(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
+pub fn number(name: &str, value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     number_args_allowed(name, "number", 0, params.len())?;
     value_defined(name, "number", &value)?;
 
@@ -82,22 +82,22 @@ pub fn number(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResul
 }
 
 /// Returns true if `value` is an odd number. Otherwise, returns false.
-pub fn odd(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
+pub fn odd(name: &str, value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     number_args_allowed(name, "odd", 0, params.len())?;
     value_defined(name, "odd", &value)?;
 
     match value.and_then(|v| v.to_number().ok()) {
         Some(f) => Ok(f % 2.0 != 0.0),
-        _ => Err(TeraError::TestError(
+        _ => Err(ErrorKind::TestError(
             "odd".to_string(),
             "odd can only be called on numbers".to_string()
-        ))
+        ).into())
     }
 }
 
 
 /// Returns true if `value` is an even number. Otherwise, returns false.
-pub fn even(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
+pub fn even(name: &str, value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     number_args_allowed(name, "even", 0, params.len())?;
     value_defined(name, "even", &value)?;
 

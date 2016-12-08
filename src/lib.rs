@@ -11,7 +11,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate glob;
 #[macro_use] extern crate pest;
-#[macro_use] extern crate quick_error;
+#[macro_use] extern crate error_chain;
 extern crate slug;
 extern crate regex;
 #[macro_use] extern crate lazy_static;
@@ -36,7 +36,7 @@ mod utils;
 #[doc(hidden)] pub use template::Template;
 pub use context::Context;
 pub use tera::Tera;
-pub use errors::{TeraResult, TeraError};
+pub use errors::{Result, ErrorKind};
 pub use utils::{escape_html};
 // Re-export Value so apps/tools can encode data in Tera types
 // for now it's serde_json
