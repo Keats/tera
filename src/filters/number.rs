@@ -48,12 +48,12 @@ pub fn round(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
 /// Returns a human-readable file size (i.e. '110 MB') from an integer
 pub fn filesizeformat(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
     let num = try_get_value!("filesizeformat", "value", i32, value);
-    let formatted = try!(
-        num.file_size(file_size_opts::CONVENTIONAL)
-            .or(Err(
-                TeraError::Internal(format!("Tried to called filesizeformat on a negative number: {}", num))
-            ))
-    );
+    let formatted = num
+        .file_size(file_size_opts::CONVENTIONAL)
+        .or(Err(
+            TeraError::Internal(format!("Tried to called filesizeformat on a negative number: {}", num))
+        ))?;
+
 
     Ok(to_value(formatted))
 }

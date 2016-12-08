@@ -133,7 +133,7 @@ impl Tera {
 
     /// Renders a Tera template given a `Context`.
     pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
-        let template = try!(self.get_template(template_name));
+        let template = self.get_template(template_name)?;
         let mut renderer = Renderer::new(template, self, data.as_json());
 
         renderer.render()
@@ -148,7 +148,7 @@ impl Tera {
             return Err(TeraError::InvalidValue(template_name.to_string()))
         }
 
-        let template = try!(self.get_template(template_name));
+        let template = self.get_template(template_name)?;
         let mut renderer = Renderer::new(template, self, value);
         renderer.render()
     }
@@ -266,17 +266,17 @@ impl Default for Tera {
 // Needs a manual implementation since borrows in Fn's don't implement Debug.
 impl fmt::Debug for Tera {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "Tera {}", "{"));
+        write!(f, "Tera {}", "{")?;
         for template in self.templates.keys() {
-            try!(write!(f, "template={},", template));
+            write!(f, "template={},", template)?;
         }
 
         for filter in self.filters.keys() {
-            try!(write!(f, "filters={},", filter));
+            write!(f, "filters={},", filter)?;
         }
 
         for tester in self.testers.keys() {
-            try!(write!(f, "tester={},", tester));
+            write!(f, "tester={},", tester)?;
         }
 
         write!(f, "{}", "}")

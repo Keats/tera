@@ -227,7 +227,7 @@ impl_rdp! {
 
         _template(&self) -> TeraResult<LinkedList<Node>> {
             (_: extends_tag, &name: string, tail: _template()) => {
-                let mut tail2 = try!(tail);
+                let mut tail2 = tail?;
                 tail2.push_front(Node::Extends(name.replace("\"", "").to_string()));
                 Ok(tail2)
             },
@@ -237,24 +237,24 @@ impl_rdp! {
                 Ok(body)
             },
             (_: content, node: _content(), tail: _template()) => {
-                let mut tail2 = try!(tail);
-                match try!(node) {
+                let mut tail2 = tail?;
+                match node? {
                     Some(n) => { tail2.push_front(n); }
                     None => ()
                 };
                 Ok(tail2)
             },
             (_: macro_content, node: _content(), tail: _template()) => {
-                let mut tail2 = try!(tail);
-                match try!(node) {
+                let mut tail2 = tail?;
+                match node? {
                     Some(n) => { tail2.push_front(n); }
                     None => ()
                 };
                 Ok(tail2)
             },
             (_: block_content, node: _content(), tail: _template()) => {
-                let mut tail2 = try!(tail);
-                match try!(node) {
+                let mut tail2 = tail?;
+                match node? {
                     Some(n) => { tail2.push_front(n); }
                     None => ()
                 };
@@ -281,11 +281,11 @@ impl_rdp! {
                 Ok(Some(Node::MacroCall {
                     namespace: namespace.to_string(),
                     name: name.to_string(),
-                    params: try!(params)
+                    params: params?
                 }))
             },
             (_: variable_tag, exp: _expression()) => {
-                Ok(Some(Node::VariableBlock(Box::new(try!(exp)))))
+                Ok(Some(Node::VariableBlock(Box::new(exp?))))
             },
             (_: raw_tag, &body: raw_text, _: endraw_tag) => {
                 Ok(Some(Node::Raw(body.to_string())))
@@ -301,7 +301,7 @@ impl_rdp! {
                 }
                 Ok(Some(Node::Block {
                     name: name.to_string(),
-                    body: Box::new(Node::List(try!(body)))
+                    body: Box::new(Node::List(body?))
                 }))
             },
             (_: macro_tag, &name: identifier, params: _macro_def_params(), body: _template(), _: endmacro_tag, &end_name: identifier) => {
@@ -316,22 +316,22 @@ impl_rdp! {
                 Ok(Some(Node::Macro {
                     name: name.to_string(),
                     params: params,
-                    body: Box::new(Node::List(try!(body)))
+                    body: Box::new(Node::List(body?))
                 }))
             },
             (_: for_tag, &variable: identifier, &array: identifier, body: _template(), _: endfor_tag) => {
                 Ok(Some(Node::For {
                     variable: variable.to_string(),
                     array: array.to_string(),
-                    body: Box::new(Node::List(try!(body)))
+                    body: Box::new(Node::List(body?))
                 }))
             },
             // only if
             (_: if_tag, cond: _condition(), body: _template(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 });
 
                 Ok(Some(Node::If {
@@ -343,28 +343,28 @@ impl_rdp! {
             (_: if_tag, cond: _condition(), body: _template(), elifs: _elifs(), _: else_tag, else_body: _template(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 });
 
-                for elif in try!(elifs) {
+                for elif in elifs? {
                     condition_nodes.push_back(elif)
                 }
 
                 Ok(Some(Node::If {
                     condition_nodes: condition_nodes,
-                    else_node: Some(Box::new(Node::List(try!(else_body)))),
+                    else_node: Some(Box::new(Node::List(else_body?))),
                 }))
             },
             // if/elifs
             (_: if_tag, cond: _condition(), body: _template(), elifs: _elifs(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 });
 
-                for elif in try!(elifs) {
+                for elif in elifs? {
                     condition_nodes.push_back(elif)
                 }
 
@@ -377,13 +377,13 @@ impl_rdp! {
             (_: if_tag, cond: _condition(), body: _template(), _: else_tag, else_body: _template(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 });
 
                 Ok(Some(Node::If {
                     condition_nodes: condition_nodes,
-                    else_node: Some(Box::new(Node::List(try!(else_body)))),
+                    else_node: Some(Box::new(Node::List(else_body?))),
                 }))
             },
             (_: super_tag) => {
@@ -397,9 +397,9 @@ impl_rdp! {
         _condition(&self) -> TeraResult<Node> {
             // Expression with a test.
             (exp: _expression(), _: test, test_args: _test()) => {
-                let (name, params) = try!(test_args);
+                let (name, params) = test_args?;
                 Ok(Node::Test {
-                    expression: Box::new(try!(exp)),
+                    expression: Box::new(exp?),
                     name: name,
                     params: params,
                 })
@@ -412,8 +412,8 @@ impl_rdp! {
 
         _elifs(&self) -> TeraResult<LinkedList<Node>> {
             (_: elif_block, node: _if(), tail: _elifs()) => {
-                let mut tail2 = try!(tail);
-                tail2.push_front(try!(node));
+                let mut tail2 = tail?;
+                tail2.push_front(node?);
                 Ok(tail2)
             },
             () => Ok(LinkedList::new())
@@ -422,14 +422,14 @@ impl_rdp! {
         _if(&self) -> TeraResult<Node> {
             (_: if_tag, cond: _condition(), body: _template()) => {
                 Ok(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 })
             },
             (_: elif_tag, cond: _condition(), body: _template()) => {
                 Ok(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 })
             },
         }
@@ -437,14 +437,14 @@ impl_rdp! {
         _fn_args(&self) -> TeraResult<HashMap<String, Node>> {
              // first arg of the fn
             (_: fn_args, _: fn_arg, &name: simple_ident, exp: _expression(), tail: _fn_args()) => {
-                let mut tail2 = try!(tail);
-                tail2.insert(name.to_string(), try!(exp));
+                let mut tail2 = tail?;
+                tail2.insert(name.to_string(), exp?);
                 Ok(tail2)
             },
             // arguments after the first
             (_: fn_arg, &name: simple_ident, exp: _expression(), tail: _fn_args()) => {
-                let mut tail2 = try!(tail);
-                tail2.insert(name.to_string(), try!(exp));
+                let mut tail2 = tail?;
+                tail2.insert(name.to_string(), exp?);
                 Ok(tail2)
             },
             () => Ok(HashMap::new())
@@ -452,25 +452,25 @@ impl_rdp! {
 
         _fn(&self) -> TeraResult<Node> {
             (_: fn_call, &name: simple_ident, args: _fn_args()) => {
-                Ok(Node::Filter{name: name.to_string(), params: try!(args)})
+                Ok(Node::Filter{name: name.to_string(), params: args?})
             },
             // The filters parser will need to consume the `fn_call` token
             // It might not be needed in next version of pest
             // https://github.com/dragostis/pest/issues/74
             (&name: simple_ident, args: _fn_args()) => {
-                Ok(Node::Filter{name: name.to_string(), params: try!(args)})
+                Ok(Node::Filter{name: name.to_string(), params: args?})
             },
         }
 
         _filters(&self) -> TeraResult<LinkedList<Node>> {
             (_: filters, filter: _fn(), tail: _filters()) => {
-                let mut tail2 = try!(tail);
-                tail2.push_front(try!(filter));
+                let mut tail2 = tail?;
+                tail2.push_front(filter?);
                 Ok(tail2)
             },
             (_: fn_call, filter: _fn(), tail: _filters()) => {
-                let mut tail2 = try!(tail);
-                tail2.push_front(try!(filter));
+                let mut tail2 = tail?;
+                tail2.push_front(filter?);
                 Ok(tail2)
             },
             () => Ok(LinkedList::new())
@@ -494,14 +494,14 @@ impl_rdp! {
         _test_fn_params(&self) -> (TeraResult<LinkedList<Node>>) {
             // first arg of many
             (_: test_fn_params, _: test_fn_param, value: _expression(), tail: _test_fn_params()) => {
-                let mut tail = try!(tail);
-                tail.push_front(try!(value));
+                let mut tail = tail?;
+                tail.push_front(value?);
                 Ok(tail)
             },
             // arguments after the first of many
             (_: test_fn_param, value: _expression(), tail: _test_fn_params()) => {
-                let mut tail = try!(tail);
-                tail.push_front(try!(value));
+                let mut tail = tail?;
+                tail.push_front(value?);
                 Ok(tail)
             },
             // Base case.
@@ -510,15 +510,15 @@ impl_rdp! {
 
         _test(&self) -> TeraResult<(String, LinkedList<Node>)> {
             (_: test_fn, &name: simple_ident, params: _test_fn_params()) => {
-                Ok((name.to_string(), try!(params)))
+                Ok((name.to_string(), params?))
             },
         }
 
         _expression(&self) -> TeraResult<Node> {
             (_: add_sub, left: _expression(), sign, right: _expression()) => {
                 Ok(Node::Math {
-                    lhs: Box::new(try!(left)),
-                    rhs: Box::new(try!(right)),
+                    lhs: Box::new(left?),
+                    rhs: Box::new(right?),
                     operator: match sign.rule {
                         Rule::op_plus => "+".to_string(),
                         Rule::op_minus => "-".to_string(),
@@ -528,8 +528,8 @@ impl_rdp! {
             },
             (_: mul_div, left: _expression(), sign, right: _expression()) => {
                 Ok(Node::Math {
-                    lhs: Box::new(try!(left)),
-                    rhs: Box::new(try!(right)),
+                    lhs: Box::new(left?),
+                    rhs: Box::new(right?),
                     operator: match sign.rule {
                         Rule::op_times => "*".to_string(),
                         Rule::op_slash => "/".to_string(),
@@ -539,8 +539,8 @@ impl_rdp! {
             },
             (_: comparison, left: _expression(), sign, right: _expression()) => {
                 Ok(Node::Logic {
-                    lhs: Box::new(try!(left)),
-                    rhs: Box::new(try!(right)),
+                    lhs: Box::new(left?),
+                    rhs: Box::new(right?),
                     operator: match sign.rule {
                         Rule::op_gt => ">".to_string(),
                         Rule::op_lt => "<".to_string(),
@@ -554,22 +554,22 @@ impl_rdp! {
             },
             (_: and, left: _expression(), _, right: _expression()) => {
                 Ok(Node::Logic {
-                    lhs: Box::new(try!(left)),
-                    rhs: Box::new(try!(right)),
+                    lhs: Box::new(left?),
+                    rhs: Box::new(right?),
                     operator: "and".to_string()
                 })
             },
             (_: or, left: _expression(), _, right: _expression()) => {
                 Ok(Node::Logic {
-                    lhs: Box::new(try!(left)),
-                    rhs: Box::new(try!(right)),
+                    lhs: Box::new(left?),
+                    rhs: Box::new(right?),
                     operator: "or".to_string()
                 })
             },
             (_: identifier_with_filter, &ident: identifier, tail: _filters()) => {
                 Ok(Node::Identifier {
                     name: ident.to_string(),
-                    filters: Some(try!(tail)),
+                    filters: Some(tail?),
                 })
             },
             (&ident: identifier) => {

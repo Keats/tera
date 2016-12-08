@@ -39,7 +39,6 @@ pub fn escape_html(input: &str) -> String {
 mod tests {
     use super::{escape_html};
 
-
     #[test]
     fn test_escape_html() {
         let tests = vec![

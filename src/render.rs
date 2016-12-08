@@ -138,7 +138,7 @@ impl<'a> Renderer<'a> {
     fn eval_ident(&self, node: &Node) -> TeraResult<Value> {
         match *node {
             Identifier { ref name, ref filters } => {
-                let mut value = try!(self.lookup_variable(name));
+                let mut value = self.lookup_variable(name)?;
                 let mut is_safe = false;
 
                 if let Some(ref _filters) = *filters {
@@ -149,12 +149,12 @@ impl<'a> Renderer<'a> {
                                     is_safe = true;
                                     continue;
                                 }
-                                let filter_fn = try!(self.tera.get_filter(name));
+                                let filter_fn = self.tera.get_filter(name)?;
                                 let mut all_args = HashMap::new();
                                 for (arg_name, exp) in params {
-                                    all_args.insert(arg_name.to_string(), try!(self.eval_expression(exp.clone())));
+                                    all_args.insert(arg_name.to_string(), self.eval_expression(exp.clone())?);
                                 }
-                                value = try!(filter_fn(value, all_args));
+                                value = filter_fn(value, all_args)?;
                             },
                             _ => unreachable!(),
                         };
@@ -176,7 +176,7 @@ impl<'a> Renderer<'a> {
     fn eval_math(&self, node: &Node) -> TeraResult<f32> {
         match *node {
             Identifier { ref name, .. } => {
-                let value = try!(self.eval_ident(node));
+                let value = self.eval_ident(node)?;
                 match value.to_number() {
                     Ok(v) =>  Ok(v),
                     Err(_) => Err(NotANumber(name.to_string()))
@@ -185,8 +185,8 @@ impl<'a> Renderer<'a> {
             Int(s) => Ok(s as f32),
             Float(s) => Ok(s),
             Math { ref lhs, ref rhs, ref operator } => {
-                let l = try!(self.eval_math(lhs));
-                let r = try!(self.eval_math(rhs));
+                let l = self.eval_math(lhs)?;
+                let r = self.eval_math(rhs)?;
                 let mut result = match operator.as_str() {
                     "*" => l * r,
                     "/" => l / r,
@@ -208,15 +208,14 @@ impl<'a> Renderer<'a> {
     fn eval_expression(&self, node: Node) -> TeraResult<Value> {
         match node {
             Identifier { .. } => {
-                let value = try!(self.eval_ident(&node));
-                Ok(value)
+                Ok(self.eval_ident(&node)?)
             },
             l @ Logic { .. } => {
-                let value = try!(self.eval_condition(l));
+                let value = self.eval_condition(l)?;
                 Ok(Value::Bool(value))
             },
             m @ Math { .. } => {
-                let result = try!(self.eval_math(&m));
+                let result = self.eval_math(&m)?;
                 Ok(Value::F64(result as f64))
             },
             Int(val) => {
@@ -241,28 +240,26 @@ impl<'a> Renderer<'a> {
                 Ok(self.eval_ident(&node).map(|v| v.is_truthy()).unwrap_or(false))
             },
             Test { expression, name, params } => {
-                let tester = try!(self.tera.get_tester(&name));
+                let tester = self.tera.get_tester(&name)?;
                 let mut value_params = vec![];
                 for param in params {
-                    value_params.push(try!(self.eval_expression(param)));
+                    value_params.push(self.eval_expression(param)?);
                 }
                 tester(&name, self.eval_expression(*expression).ok(), value_params)
             },
             Logic { lhs, rhs, operator } => {
                 match operator.as_str() {
                     "or" => {
-                        let result = try!(self.eval_condition(*lhs))
-                            || try!(self.eval_condition(*rhs));
+                        let result = self.eval_condition(*lhs)? || self.eval_condition(*rhs)?;
                         Ok(result)
                     },
                     "and" => {
-                        let result = try!(self.eval_condition(*lhs))
-                            && try!(self.eval_condition(*rhs));
+                        let result = self.eval_condition(*lhs)? && self.eval_condition(*rhs)?;
                         Ok(result)
                     },
                     ">=" | ">" | "<=" | "<" => {
-                        let l = try!(self.eval_math(&lhs));
-                        let r = try!(self.eval_math(&rhs));
+                        let l = self.eval_math(&lhs)?;
+                        let r = self.eval_math(&rhs)?;
                         let result = match operator.as_str() {
                             ">=" => l >= r,
                             ">" => l > r,
@@ -273,8 +270,8 @@ impl<'a> Renderer<'a> {
                         Ok(result)
                     },
                     "==" | "!=" => {
-                        let mut lhs_val = try!(self.eval_expression(*lhs));
-                        let mut rhs_val = try!(self.eval_expression(*rhs));
+                        let mut lhs_val = self.eval_expression(*lhs)?;
+                        let mut rhs_val = self.eval_expression(*rhs)?;
 
                         // Monomorphize number vals.
                         if lhs_val.is_number() || rhs_val.is_number() {
@@ -310,14 +307,8 @@ impl<'a> Renderer<'a> {
     // their own nodes
     fn render_variable_block(&mut self, node: Node) -> TeraResult<String>  {
         match node {
-            Identifier { .. } => {
-                let value = try!(self.eval_ident(&node));
-                Ok(value.render())
-            },
-            Math { .. } => {
-                let result = try!(self.eval_math(&node));
-                Ok(result.to_string())
-            }
+            Identifier { .. } => Ok(self.eval_ident(&node)?.render()),
+            Math { .. } => Ok(self.eval_math(&node)?.to_string()),
             _ => unreachable!()
         }
     }
@@ -329,10 +320,10 @@ impl<'a> Renderer<'a> {
         for node in condition_nodes {
             match node {
                 Conditional {condition, body } => {
-                    if try!(self.eval_condition(*condition)) {
+                    if self.eval_condition(*condition)? {
                         skip_else = true;
                         // Remove if/elif whitespace
-                        output.push_str(try!(self.render_node(*body.clone())).trim_left());
+                        output.push_str(self.render_node(*body.clone())?.trim_left());
                     }
                 },
                 _ => unreachable!()
@@ -346,7 +337,7 @@ impl<'a> Renderer<'a> {
 
         if let Some(e) = else_node {
             // Remove else whitespace
-            output.push_str(try!(self.render_node(*e)).trim_left());
+            output.push_str(self.render_node(*e)?.trim_left());
         };
 
         // Remove endif whitespace
@@ -354,7 +345,7 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_for(&mut self, variable_name: String, array_name: String, body: Box<Node>) -> TeraResult<String> {
-        let list = try!(self.lookup_variable(&array_name));
+        let list = self.lookup_variable(&array_name)?;
 
         if !list.is_array() {
             return Err(NotAnArray(array_name.to_string()));
@@ -368,7 +359,7 @@ impl<'a> Renderer<'a> {
         let mut output = String::new();
         if length > 0 {
             loop {
-                output.push_str(try!(self.render_node(*body.clone())).trim_left());
+                output.push_str(self.render_node(*body.clone())?.trim_left());
                 // Safe unwrap
                 self.for_loops.last_mut().unwrap().increment();
                 if i == length - 1 {
@@ -432,7 +423,7 @@ impl<'a> Renderer<'a> {
                         let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
                         return Err(MacroCallWrongArgs(macro_name, params, params_seen));
                     }
-                    context.insert(param_name.to_string(), try!(self.eval_expression(exp)));
+                    context.insert(param_name.to_string(), self.eval_expression(exp)?);
                 }
 
                 // Push this context to our stack of macro context so the renderer can pick variables
@@ -442,7 +433,7 @@ impl<'a> Renderer<'a> {
                 // We render the macro body as a normal node
                 let mut output = String::new();
                 for node in body.get_children() {
-                    output.push_str(&try!(self.render_node(node)));
+                    output.push_str(&self.render_node(node)?);
                 }
 
                 // If the current namespace wasn't `self`, we remove it since it's not needed anymore
@@ -465,14 +456,14 @@ impl<'a> Renderer<'a> {
     }
 
     fn import_macros(&mut self, tpl_name: String) -> TeraResult<bool> {
-        let tpl = try!(self.tera.get_template(&tpl_name));
+        let tpl = self.tera.get_template(&tpl_name)?;
         if tpl.imported_macro_files.len() == 0 {
             return Ok(false);
         }
         let mut map = HashMap::new();
 
         for &(ref filename, ref namespace) in &tpl.imported_macro_files {
-            let macro_tpl = try!(self.tera.get_template(&filename));
+            let macro_tpl = self.tera.get_template(&filename)?;
             map.insert(namespace.to_string(), macro_tpl.macros.clone());
         }
         self.macros.push(map);
@@ -482,16 +473,16 @@ impl<'a> Renderer<'a> {
     pub fn render_node(&mut self, node: Node) -> TeraResult<String> {
         match node {
             Include(p) => {
-                let ast = try!(self.tera.get_template(&p)).ast.get_children();
+                let ast = self.tera.get_template(&p)?.ast.get_children();
                 let mut output = String::new();
                 for node in ast {
-                    output.push_str(&try!(self.render_node(node)));
+                    output.push_str(&self.render_node(node)?);
                 }
 
                 Ok(output.trim_left().to_string())
             },
             ImportMacro {tpl_name, name} => {
-                let tpl = try!(self.tera.get_template(&tpl_name));
+                let tpl = self.tera.get_template(&tpl_name)?;
                 let mut map = if self.macros.len() == 0 {
                     HashMap::new()
                 } else {
@@ -513,7 +504,7 @@ impl<'a> Renderer<'a> {
             List(body) => {
                 let mut output = String::new();
                 for n in body {
-                    output.push_str(&try!(self.render_node(n)));
+                    output.push_str(&self.render_node(n)?);
                 }
                 Ok(output)
             },
@@ -530,7 +521,7 @@ impl<'a> Renderer<'a> {
                         match b[0].clone() {
                             (tpl_name, Block {body, ..}) => {
                                 self.blocks.push((name.clone(), 0));
-                                let has_macro = try!(self.import_macros(tpl_name));
+                                let has_macro = self.import_macros(tpl_name)?;
                                 let res = self.render_node(*body.clone());
                                 if has_macro {
                                     self.macros.pop();
@@ -554,7 +545,7 @@ impl<'a> Renderer<'a> {
                             match b[new_level].clone() {
                                 (tpl_name, Block { body, .. }) => {
                                     self.blocks.push((name.clone(), new_level));
-                                    let has_macro = try!(self.import_macros(tpl_name));
+                                    let has_macro = self.import_macros(tpl_name)?;
                                     let res = self.render_node(*body.clone());
                                     if has_macro {
                                         self.macros.pop();
@@ -584,7 +575,9 @@ impl<'a> Renderer<'a> {
 
     pub fn render(&mut self) -> TeraResult<String> {
         let ast = if self.template.parents.len() > 0 {
-            let parent = try!(self.tera.get_template(&self.template.parents.last().expect("Couldn't get first ancestor template")));
+            let parent = self.tera.get_template(
+                &self.template.parents.last().expect("Couldn't get first ancestor template")
+            )?;
             parent.ast.get_children()
         } else {
             self.template.ast.get_children()
@@ -592,7 +585,7 @@ impl<'a> Renderer<'a> {
 
         let mut output = String::new();
         for node in ast {
-            output.push_str(&try!(self.render_node(node)));
+            output.push_str(&self.render_node(node)?);
         }
 
         Ok(output)

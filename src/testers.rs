@@ -47,22 +47,22 @@ fn value_defined(arg_name: &str, tester_name: &str, value: &Option<Value>) -> Te
 
 /// Returns true if `value` is defined. Otherwise, returns false.
 pub fn defined(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
-    try!(number_args_allowed(name, "defined", 0, params.len()));
+    number_args_allowed(name, "defined", 0, params.len())?;
 
     Ok(value.is_some())
 }
 
 /// Returns true if `value` is undefined. Otherwise, returns false.
 pub fn undefined(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
-    try!(number_args_allowed(name, "undefined", 0, params.len()));
+    number_args_allowed(name, "undefined", 0, params.len())?;
 
     Ok(value.is_none())
 }
 
 /// Returns true if `value` is a string. Otherwise, returns false.
 pub fn string(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
-    try!(number_args_allowed(name, "string", 0, params.len()));
-    try!(value_defined(name, "string", &value));
+    number_args_allowed(name, "string", 0, params.len())?;
+    value_defined(name, "string", &value)?;
 
     match value {
         Some(Value::String(_)) => Ok(true),
@@ -72,8 +72,8 @@ pub fn string(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResul
 
 /// Returns true if `value` is a number. Otherwise, returns false.
 pub fn number(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
-    try!(number_args_allowed(name, "number", 0, params.len()));
-    try!(value_defined(name, "number", &value));
+    number_args_allowed(name, "number", 0, params.len())?;
+    value_defined(name, "number", &value)?;
 
     match value {
         Some(Value::I64(_)) | Some(Value::F64(_)) | Some(Value::U64(_)) => Ok(true),
@@ -83,8 +83,8 @@ pub fn number(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResul
 
 /// Returns true if `value` is an odd number. Otherwise, returns false.
 pub fn odd(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
-    try!(number_args_allowed(name, "odd", 0, params.len()));
-    try!(value_defined(name, "odd", &value));
+    number_args_allowed(name, "odd", 0, params.len())?;
+    value_defined(name, "odd", &value)?;
 
     match value.and_then(|v| v.to_number().ok()) {
         Some(f) => Ok(f % 2.0 != 0.0),
@@ -98,10 +98,10 @@ pub fn odd(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<b
 
 /// Returns true if `value` is an even number. Otherwise, returns false.
 pub fn even(name: &str, value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
-    try!(number_args_allowed(name, "even", 0, params.len()));
-    try!(value_defined(name, "even", &value));
+    number_args_allowed(name, "even", 0, params.len())?;
+    value_defined(name, "even", &value)?;
 
-    let is_odd = try!(odd(name, value, params));
+    let is_odd = odd(name, value, params)?;
     Ok(!is_odd)
 }
 
