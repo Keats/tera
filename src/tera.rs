@@ -162,9 +162,10 @@ impl Tera {
         }
     }
 
-    // Can panic!
-    // Only for internal tests, do not use publicly
-    #[doc(hidden)]
+    /// Add a single template to the Tera instance
+    /// Will error if the inheritance chain can't be built, such as adding a child
+    /// template without the parent one.
+    /// If you want to add several templates, use `Tera::add_templates`
     pub fn add_template(&mut self, name: &str, content: &str) -> Result<()> {
         let tpl = Template::new(name, content)
             .chain_err(|| format!("Failed to parse '{}'", name))?;
@@ -173,9 +174,7 @@ impl Tera {
         Ok(())
     }
 
-    // Can panic!
-    // Only for internal tests, do not use publicly
-    #[doc(hidden)]
+    /// Add all the templates given to the Tera instance
     pub fn add_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()>  {
         for (name, content) in templates {
             let tpl = Template::new(name, content)

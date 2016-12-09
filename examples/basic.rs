@@ -1,5 +1,5 @@
 
-extern crate tera;
+#[macro_use] extern crate tera;
 #[macro_use] extern crate lazy_static;
 
 use tera::{Tera, Context};
@@ -7,16 +7,7 @@ use tera::{Tera, Context};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
-        let mut tera = match Tera::new("examples/templates/**/*") {
-            Ok(t) => t,
-            Err(e) => {
-                println!("Error: {}", e);
-                for e in e.iter().skip(1) {
-                    println!("Reason: {}", e);
-                }
-                ::std::process::exit(1);
-            }
-        };
+        let mut tera = compile_templates!("examples/templates/**/*");
         tera.autoescape_on(vec!["html", ".sql"]);
         tera
     };

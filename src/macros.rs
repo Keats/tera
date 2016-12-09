@@ -16,3 +16,21 @@ macro_rules! try_get_value {
         }
     }};
 }
+
+/// Simple macro to compile templates
+/// If it fails, it prints the errors and exit the process
+#[macro_export]
+macro_rules! compile_templates {
+    ($glob:expr) => {{
+        match Tera::new($glob) {
+            Ok(t) => t,
+            Err(e) => {
+                println!("Error: {}", e);
+                for e in e.iter().skip(1) {
+                    println!("Reason: {}", e);
+                }
+                ::std::process::exit(1);
+            }
+        }
+    }};
+}
