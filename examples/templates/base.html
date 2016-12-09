@@ -1,4 +1,6 @@
+{% import "macros.html" as macros %}
 <h1>Hello</h1>
 
 {% block content %}
 {% endblock content %}
+{{ macros::hello_world(greeting="世界") }}
