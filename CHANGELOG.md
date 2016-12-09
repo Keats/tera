@@ -8,7 +8,6 @@ A few breaking changes in this one
 - Tera no longer panics when parsing templates, it returns an error instead
 - Tester fn signature changes from `fn(&str, Option<Value>, Vec<Value>) -> Result<bool>` to `fn(Option<Value>, Vec<Value>) -> Result<bool>`
 - Rename `TeraResult` export to `Result`
-- Remove `TeraError` export
 
 ### Others
 - Stabilized `Tera::add_template` and `Tera::add_templates`

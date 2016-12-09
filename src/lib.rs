@@ -36,7 +36,7 @@ mod utils;
 #[doc(hidden)] pub use template::Template;
 pub use context::Context;
 pub use tera::Tera;
-pub use errors::Result;
+pub use errors::{Result, Error, ErrorKind};
 pub use utils::{escape_html};
 // Re-export Value so apps/tools can encode data in Tera types
 // for now it's serde_json
