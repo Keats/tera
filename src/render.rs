@@ -1,5 +1,6 @@
 use std::collections::{LinkedList, HashMap};
 
+use serde_json::to_string_pretty;
 use serde_json::value::{Value, to_value};
 
 use context::{ValueRender, ValueNumber, ValueTruthy, get_json_pointer};
@@ -89,6 +90,13 @@ impl<'a> Renderer<'a> {
             Some(c) => c,
             None => &self.context
         };
+
+        // Magical variable that just dumps the context
+        if key == "__tera_context" {
+            return Ok(to_value(
+                to_string_pretty(context).expect("Couldn't serialize context for `__tera_context`")
+            ));
+        }
 
         // small helper fn to reduce duplication code in the 3 spots in `lookup_variable` where we
         // need to actually do the variable lookup
@@ -391,7 +399,9 @@ impl<'a> Renderer<'a> {
             let active_namespace = match namespace.as_ref() {
                 "self" => {
                     // TODO: handle error if we don't have a namespace
-                    // This can only happen when calling {{ self:: }} outside of a macro afaik
+                    // This can (maybe) happen when calling {{ self:: }} outside of a macro
+                    // This happens when calling a macro defined in the file itself without imports
+                    // that means macros need to be put in another file to work, which seems ok
                     self.macro_namespaces
                         .last()
                         .expect("Open an issue with a template sample please (mention `self namespace macro`)!")

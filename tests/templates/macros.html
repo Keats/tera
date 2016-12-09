@@ -16,3 +16,7 @@
 {% macro include(greeting) %}
     {% include "macro_included.html" %}
 {% endmacro include %}
+
+{% macro dump(name) %}
+    {{ __tera_context }}
+{% endmacro dump %}

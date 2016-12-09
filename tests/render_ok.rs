@@ -138,3 +138,9 @@ fn test_ok_macros() {
         vec!["tests/templates/macros.html", "tests/templates/macro_included.html"]
     );
 }
+
+
+#[test]
+fn test_magical_variable_dumps_context() {
+    assert_template_ok("tests/templates/magical_variable.html", vec!["tests/templates/macros.html"]);
+}

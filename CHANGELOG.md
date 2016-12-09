@@ -15,6 +15,7 @@ A few breaking changes in this one
 - Added `compile_templates!` macro  to try to compile all templates and, in case of errors,
 print them and exit the process
 - Much improved error messages
+- Add a magical variable `__tera_context` that will pretty print the current context
 
 ## 0.4.1 (2016/12/07)
 
