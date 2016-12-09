@@ -4,11 +4,11 @@ use std::collections::HashMap;
 use serde_json::value::{Value, to_value};
 use humansize::{FileSize, file_size_opts};
 
-use errors::{TeraResult, TeraError};
+use errors::Result;
 
 
 /// Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
-pub fn pluralize(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("pluralize", "value", f32, value);
     let suffix = match args.get("suffix") {
         Some(val) => try_get_value!("pluralize", "suffix", String, val.clone()),
@@ -25,7 +25,7 @@ pub fn pluralize(value: Value, args: HashMap<String, Value>) -> TeraResult<Value
 /// Returns a rounded number using the `method` arg given. `method` defaults to `common` which
 /// will round to the nearest number.
 /// `ceil` and `floor` are also available as method.
-pub fn round(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn round(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("round", "value", f32, value);
     let method = match args.get("method") {
         Some(val) => try_get_value!("round", "method", String, val.clone()),
@@ -36,26 +36,22 @@ pub fn round(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
         "common" => Ok(to_value(num.round())),
         "ceil" => Ok(to_value(num.ceil())),
         "floor" => Ok(to_value(num.floor())),
-        _ => Err(
-            TeraError::Internal(
-                format!("round filter received an incorrect value for `method` argument: {}", method)
+        _ => bail!(
+                "Filter `round` received an incorrect value for arg `method`: got `{:?}`, \
+                only common, ceil and floor are allowed",
+                method
             )
-        )
     }
 }
 
 
 /// Returns a human-readable file size (i.e. '110 MB') from an integer
-pub fn filesizeformat(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn filesizeformat(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("filesizeformat", "value", i32, value);
-    let formatted = try!(
-        num.file_size(file_size_opts::CONVENTIONAL)
-            .or(Err(
-                TeraError::Internal(format!("Tried to called filesizeformat on a negative number: {}", num))
-            ))
-    );
-
-    Ok(to_value(formatted))
+    num
+        .file_size(file_size_opts::CONVENTIONAL)
+        .or(Err(format!("Filter `filesizeformat` was called on a negative number: {}", num).into()))
+        .map(to_value)
 }
 
 

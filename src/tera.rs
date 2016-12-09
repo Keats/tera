@@ -10,7 +10,7 @@ use serde_json::value::to_value;
 use template::Template;
 use filters::{FilterFn, string, array, common, number};
 use context::Context;
-use errors::{TeraResult, TeraError};
+use errors::{Result, ResultExt};
 use render::Renderer;
 use testers::{self, TesterFn};
 
@@ -26,10 +26,9 @@ pub struct Tera {
 
 
 impl Tera {
-    pub fn new(dir: &str) -> Tera {
-        // TODO: add tests
+    pub fn new(dir: &str) -> Result<Tera> {
         if dir.find('*').is_none() {
-            panic!("Tera expects a glob as input, no * were found in {}", dir);
+            bail!("Tera expects a glob as input, no * were found in `{}`", dir);
         }
 
         let mut templates = HashMap::new();
@@ -45,11 +44,14 @@ impl Tera {
                 let filepath = path.to_string_lossy()
                     .replace("\\", "/") // change windows slash to forward slash
                     .replace(parent_dir, "");
+
                 // we know the file exists so unwrap all the things
                 let mut f = File::open(path).unwrap();
                 let mut input = String::new();
                 f.read_to_string(&mut input).unwrap();
-                templates.insert(filepath.to_string(), Template::new(&filepath, &input));
+                let tpl = Template::new(&filepath, &input)
+                    .chain_err(|| format!("Failed to parse '{}'", filepath))?;
+                templates.insert(filepath.to_string(), tpl);
             }
         }
 
@@ -60,10 +62,10 @@ impl Tera {
             autoescape_extensions: vec![".html", ".htm", ".xml"]
         };
 
-        tera.build_inheritance_chains();
+        tera.build_inheritance_chains()?;
         tera.register_tera_filters();
         tera.register_tera_testers();
-        tera
+        Ok(tera)
     }
 
     // We need to know the hierarchy of templates to be able to render multiple extends level
@@ -72,12 +74,12 @@ impl Tera {
     // circular extends.
     // It also builds the block inheritance chain and detects when super() is called in a place
     // where it can't possibly work
-    fn build_inheritance_chains(&mut self) {
+    fn build_inheritance_chains(&mut self) -> Result<()> {
         // Recursive fn that finds all the parents and put them in an ordered Vec from closest to main
         // parent template
-        fn build_chain(tera: &Tera, start: &Template, template: &Template, mut parents: Vec<String>) -> Vec<String> {
+        fn build_chain(tera: &Tera, start: &Template, template: &Template, mut parents: Vec<String>) -> Result<Vec<String>> {
             if parents.len() > 0 && start.name == template.name {
-                panic!("Circular extend detected for template {:?}. Inheritance chain: {:?}", start.name, parents);
+                bail!("Circular extend detected for template '{}'. Inheritance chain: `{:?}`", start.name, parents);
             }
 
             match template.parent {
@@ -88,16 +90,14 @@ impl Tera {
                             build_chain(tera, start, parent, parents)
                         },
                         Err(_) => {
-                            panic!(
-                                format!(
-                                    "Template {:?} is inheriting from {:?}, which doesn't exist or isn't loaded.",
-                                    template.name, p
-                                )
+                            bail!(
+                                "Template '{}' is inheriting from '{}', which doesn't exist or isn't loaded.",
+                                template.name, p
                             );
                         }
                     }
                 },
-                None => parents
+                None => Ok(parents)
             }
         }
 
@@ -107,7 +107,7 @@ impl Tera {
         let mut templates = HashMap::new();
         for (_, template) in &self.templates {
             let mut tpl = template.clone();
-            tpl.parents = build_chain(self, template, template, vec![]);
+            tpl.parents = build_chain(self, template, template, vec![])?;
 
             // TODO: iterate over both blocks and templates and try to find the parents blocks
             // insert that into the tpl object once done so it's available directly in the template
@@ -118,7 +118,8 @@ impl Tera {
 
                 // and then see if our parents have it
                 for parent in &tpl.parents {
-                    let t = self.get_template(&parent).expect("Couldn't find template");
+                    let t = self.get_template(&parent)
+                        .chain_err(|| format!("Couldn't find template {} while building inheritance chains", parent))?;
                     match t.blocks.get(block_name) {
                         Some(b) => definitions.push((t.name.clone(), b.clone())),
                         None => (),
@@ -129,59 +130,65 @@ impl Tera {
             templates.insert(tpl.name.clone(), tpl);
         }
         self.templates = templates;
+        Ok(())
     }
 
     /// Renders a Tera template given a `Context`.
-    pub fn render(&self, template_name: &str, data: Context) -> TeraResult<String> {
-        let template = try!(self.get_template(template_name));
+    pub fn render(&self, template_name: &str, data: Context) -> Result<String> {
+        let template = self.get_template(template_name)?;
         let mut renderer = Renderer::new(template, self, data.as_json());
 
         renderer.render()
     }
 
     /// Renders a Tera template given a `Serializeable` object.
-    pub fn value_render<T>(&self, template_name: &str, data: &T) -> TeraResult<String>
+    pub fn value_render<T>(&self, template_name: &str, data: &T) -> Result<String>
         where T: Serialize
     {
         let value = to_value(data);
         if !value.is_object() {
-            return Err(TeraError::InvalidValue(template_name.to_string()))
+            bail!("Failed to value_render '{}': context isn't an object", template_name);
         }
 
-        let template = try!(self.get_template(template_name));
+        let template = self.get_template(template_name)?;
         let mut renderer = Renderer::new(template, self, value);
         renderer.render()
     }
 
-    pub fn get_template(&self, template_name: &str) -> TeraResult<&Template> {
+    pub fn get_template(&self, template_name: &str) -> Result<&Template> {
         match self.templates.get(template_name) {
-            Some(tmpl) => Ok(tmpl),
-            None => Err(TeraError::TemplateNotFound(template_name.to_string())),
+            Some(tpl) => Ok(tpl),
+            None => bail!("Template '{}' not found", template_name),
         }
     }
 
-    // Can panic!
-    // Only for internal tests, do not use publicly
-    #[doc(hidden)]
-    pub fn add_template(&mut self, name: &str, content: &str) {
-        self.templates.insert(name.to_string(), Template::new(name, content));
-        self.build_inheritance_chains();
+    /// Add a single template to the Tera instance
+    /// Will error if the inheritance chain can't be built, such as adding a child
+    /// template without the parent one.
+    /// If you want to add several templates, use `Tera::add_templates`
+    pub fn add_template(&mut self, name: &str, content: &str) -> Result<()> {
+        let tpl = Template::new(name, content)
+            .chain_err(|| format!("Failed to parse '{}'", name))?;
+        self.templates.insert(name.to_string(),tpl);
+        self.build_inheritance_chains()?;
+        Ok(())
     }
 
-    // Can panic!
-    // Only for internal tests, do not use publicly
-    #[doc(hidden)]
-    pub fn add_templates(&mut self, templates: Vec<(&str, &str)>) {
+    /// Add all the templates given to the Tera instance
+    pub fn add_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()>  {
         for (name, content) in templates {
-            self.templates.insert(name.to_string(), Template::new(name, content));
+            let tpl = Template::new(name, content)
+                .chain_err(|| format!("Failed to parse '{}'", name))?;
+            self.templates.insert(name.to_string(),tpl);
         }
-        self.build_inheritance_chains();
+        self.build_inheritance_chains()?;
+        Ok(())
     }
 
-    pub fn get_filter(&self, filter_name: &str) -> TeraResult<&FilterFn> {
+    pub fn get_filter(&self, filter_name: &str) -> Result<&FilterFn> {
         match self.filters.get(filter_name) {
             Some(fil) => Ok(fil),
-            None => Err(TeraError::FilterNotFound(filter_name.to_string())),
+            None => bail!("Filter '{}' not found", filter_name),
         }
     }
 
@@ -191,10 +198,10 @@ impl Tera {
         self.filters.insert(name.to_string(), filter);
     }
 
-    pub fn get_tester(&self, tester_name: &str) -> TeraResult<&TesterFn> {
+    pub fn get_tester(&self, tester_name: &str) -> Result<&TesterFn> {
         match self.testers.get(tester_name) {
             Some(t) => Ok(t),
-            None => Err(TeraError::TesterNotFound(tester_name.to_string())),
+            None => bail!("Tester '{}' not found", tester_name),
         }
     }
 
@@ -266,20 +273,27 @@ impl Default for Tera {
 // Needs a manual implementation since borrows in Fn's don't implement Debug.
 impl fmt::Debug for Tera {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "Tera {}", "{"));
+        write!(f, "Tera {}", "{")?;
+        write!(f, "\n\ttemplates: [\n")?;
+
         for template in self.templates.keys() {
-            try!(write!(f, "template={},", template));
+            writeln!(f, "\t\t{},", template)?;
         }
+        write!(f, "\t]")?;
+        write!(f, "\n\tfilters: [\n")?;
 
         for filter in self.filters.keys() {
-            try!(write!(f, "filters={},", filter));
+            writeln!(f, "\t\t{},", filter)?;
         }
+        write!(f, "\t]")?;
+        write!(f, "\n\ttesters: [\n")?;
 
         for tester in self.testers.keys() {
-            try!(write!(f, "tester={},", tester));
+            writeln!(f, "\t\t{},", tester)?;
         }
+        write!(f, "\t]\n")?;
 
-        write!(f, "{}", "}")
+        writeln!(f, "{}", "}")
     }
 }
 
@@ -295,7 +309,7 @@ mod tests {
             ("b", "{% extends \"c\" %}"),
             ("c", "{% extends \"d\" %}"),
             ("d", ""),
-        ]);
+        ]).unwrap();
 
         assert_eq!(
             tera.get_template("a").unwrap().parents,
@@ -318,21 +332,24 @@ mod tests {
         );
     }
 
-    #[should_panic(expected = "Template \"a\" is inheriting from \"b\", which doesn't exist or isn't loaded.")]
     #[test]
     fn test_missing_parent_template() {
         let mut tera = Tera::default();
-        tera.add_template("a", "{% extends \"b\" %}");
+        assert_eq!(
+            tera.add_template("a", "{% extends \"b\" %}").unwrap_err().description(),
+            "Template \'a\' is inheriting from \'b\', which doesn\'t exist or isn\'t loaded."
+        );
     }
 
-    #[should_panic(expected = "Circular extend detected for template ")]
     #[test]
     fn test_circular_extends() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        let err = tera.add_templates(vec![
             ("a", "{% extends \"b\" %}"),
             ("b", "{% extends \"a\" %}"),
-        ]);
+        ]).unwrap_err();
+
+        assert!(err.description().contains("Circular extend detected for template"));
     }
 
     #[test]
@@ -342,7 +359,7 @@ mod tests {
             ("grandparent", "{% block hey %}hello{% endblock hey %} {% block ending %}sincerely{% endblock ending %}"),
             ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }}{% endblock hey %}"),
             ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
-        ]);
+        ]).unwrap();
 
         let hey_definitions = tera.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
         assert_eq!(hey_definitions.len(), 3);
@@ -357,7 +374,7 @@ mod tests {
             ("grandparent", "{% block hey %}hello{% endblock hey %}"),
             ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}"),
             ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
-        ]);
+        ]).unwrap();
 
         let hey_definitions = tera.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
         assert_eq!(hey_definitions.len(), 3);

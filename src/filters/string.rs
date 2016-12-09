@@ -5,7 +5,7 @@ use serde_json::value::{Value, to_value};
 use slug;
 use url::percent_encoding::{utf8_percent_encode, EncodeSet};
 
-use errors::{TeraResult, TeraError};
+use errors::Result;
 use utils;
 
 use regex::{Regex, Captures};
@@ -18,28 +18,28 @@ lazy_static! {
 
 
 /// Convert a value to uppercase.
-pub fn upper(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn upper(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("upper", "value", String, value);
 
     Ok(to_value(&s.to_uppercase()))
 }
 
 /// Convert a value to lowercase.
-pub fn lower(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn lower(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("lower", "value", String, value);
 
     Ok(to_value(&s.to_lowercase()))
 }
 
 /// Strip leading and trailing whitespace.
-pub fn trim(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn trim(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("trim", "value", String, value);
 
     Ok(to_value(&s.trim()))
 }
 
 /// Truncates a string to the indicated length
-pub fn truncate(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn truncate(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("truncate", "value", String, value);
     let length = match args.get("length") {
         Some(l) => try_get_value!("truncate", "length", usize, l.clone()),
@@ -56,35 +56,31 @@ pub fn truncate(value: Value, args: HashMap<String, Value>) -> TeraResult<Value>
 }
 
 /// Gets the number of words in a string.
-pub fn wordcount(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn wordcount(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("wordcount", "value", String, value);
 
     Ok(to_value(&s.split_whitespace().count()))
 }
 
 /// Replaces given `from` substring with `to` string.
-pub fn replace(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn replace(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("replace", "value", String, value);
 
     let from = match args.get("from") {
         Some(val) => try_get_value!("replace", "from", String, val.clone()),
-        None => {
-            return Err(TeraError::FilterMissingArg("replace".to_string(), "from".to_string()));
-        }
+        None => bail!("Filter `replace` expected an arg called `from`")
     };
 
     let to = match args.get("to") {
         Some(val) => try_get_value!("replace", "to", String, val.clone()),
-        None => {
-            return Err(TeraError::FilterMissingArg("replace".to_string(), "to".to_string()));
-        }
+        None => bail!("Filter `replace` expected an arg called `to`")
     };
 
     Ok(to_value(&s.replace(&from, &to)))
 }
 
 /// First letter of the string is uppercase rest is lowercase
-pub fn capitalize(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn capitalize(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("capitalize", "value", String, value);
     let mut chars = s.chars();
     match chars.next() {
@@ -123,7 +119,7 @@ impl EncodeSet for UrlEncodeSet {
 }
 
 /// Percent-encodes reserved URI characters
-pub fn urlencode(value: Value, args: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn urlencode(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("urlencode", "value", String, value);
     let safe = match args.get("safe") {
         Some(l) => try_get_value!("urlencode", "safe", String, l.clone()),
@@ -135,19 +131,19 @@ pub fn urlencode(value: Value, args: HashMap<String, Value>) -> TeraResult<Value
 }
 
 /// Escapes quote characters
-pub fn addslashes(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn addslashes(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("addslashes", "value", String, value);
     Ok(to_value(&s.replace("\\","\\\\").replace("\"", "\\\"").replace("\'", "\\\'")))
 }
 
 /// Transform a string into a slug
-pub fn slugify(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn slugify(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("slugify", "value", String, value);
     Ok(to_value(&slug::slugify(s)))
 }
 
 /// Capitalizes each word in the string
-pub fn title(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn title(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("title", "value", String, value);
 
     Ok(to_value(
@@ -161,14 +157,14 @@ pub fn title(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
 }
 
 /// Removes html tags from string
-pub fn striptags(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn striptags(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("striptags", "value", String, value);
     Ok(to_value(&STRIPTAGS_RE.replace_all(&s, "")))
 }
 
 /// Returns the given text with ampersands, quotes and angle brackets encoded
 /// for use in HTML.
-pub fn escape_html(value: Value, _: HashMap<String, Value>) -> TeraResult<Value> {
+pub fn escape_html(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("escape_html", "value", String, value);
     Ok(to_value(utils::escape_html(&s)))
 }
@@ -180,9 +176,8 @@ mod tests {
 
     use serde_json::value::{to_value};
 
-    use errors::TeraError::*;
-
     use super::*;
+
 
     #[test]
     fn test_upper() {
@@ -196,8 +191,8 @@ mod tests {
         let result = upper(to_value(&50), HashMap::new());
         assert!(result.is_err());
         assert_eq!(
-            result.err().unwrap(),
-            FilterIncorrectArgType("upper".to_string(), "value".to_string(), to_value(&50), "String".to_string())
+            result.err().unwrap().description(),
+            "Filter `upper` received an incorrect type for arg `value`: got `50` but expected a String"
         );
     }
 
@@ -257,8 +252,8 @@ mod tests {
         let result = replace(to_value(&"Hello world!"), args);
         assert!(result.is_err());
         assert_eq!(
-            result.err().unwrap(),
-            FilterMissingArg("replace".to_string(), "to".to_string())
+            result.err().unwrap().description(),
+            "Filter `replace` expected an arg called `to`"
         );
     }
 

@@ -1,8 +1,7 @@
 use std::collections::{HashMap, LinkedList};
 
 use parser::{parse, Node};
-use errors::TeraResult;
-use errors::TeraError::MacroNotFound;
+use errors::{Result};
 
 
 // This is the parsed equivalent of a template file
@@ -32,11 +31,8 @@ pub struct Template {
 }
 
 impl Template {
-    pub fn new(tpl_name: &str, input: &str) -> Template {
-        let ast = match parse(input) {
-            Ok(a) => a,
-            Err(e) => panic!("Error when parsing `{}`:\n{}", tpl_name, e)
-        };
+    pub fn new(tpl_name: &str, input: &str) -> Result<Template> {
+        let ast = parse(input)?;
 
         // Figure out if there is a parent at compile time
         let parent = match ast.get_children().front() {
@@ -51,23 +47,24 @@ impl Template {
 
         // We find all those blocks at first so we don't need to do it for each render
         // Recursive because we can have blocks inside blocks
-        fn find_blocks(tpl_name: String, ast: LinkedList<Node>, blocks: &mut HashMap<String, Node>) {
+        fn find_blocks(tpl_name: String, ast: LinkedList<Node>, blocks: &mut HashMap<String, Node>) -> Result<()> {
             //let t: () = blocks;
             for node in ast {
                 match node {
                     Node::Block { ref name, ref body } => {
                         if blocks.contains_key(name) {
-                            panic!("Error when parsing `{}`:\n{} block is duplicated", tpl_name, name);
+                            bail!("Block `{}` is duplicated", name);
                         }
                         blocks.insert(name.to_string(), node.clone());
-                        find_blocks(tpl_name.clone(), body.get_children(), blocks);
+                        find_blocks(tpl_name.clone(), body.get_children(), blocks)?;
                     },
                     _ => continue,
                 };
             }
-        }
-        find_blocks(tpl_name.to_string(), ast.get_children(), &mut blocks);
 
+            Ok(())
+        }
+        find_blocks(tpl_name.to_string(), ast.get_children(), &mut blocks)?;
 
         // We also find all macros defined/imported in the template file
         let mut macros = HashMap::new();
@@ -76,7 +73,7 @@ impl Template {
             match node {
                 Node::Macro { ref name, .. } => {
                     if macros.contains_key(name) {
-                        panic!("Error when parsing `{}`:\n{} macro is duplicated", tpl_name, name);
+                        bail!("Macro `{}` is duplicated", name);
                     }
                     macros.insert(name.to_string(), node.clone());
                 },
@@ -87,7 +84,7 @@ impl Template {
             };
         }
 
-        Template {
+        Ok(Template {
             name: tpl_name.to_string(),
             ast: ast,
             parent: parent,
@@ -97,14 +94,7 @@ impl Template {
 
             parents: vec![],
             blocks_definitions: HashMap::new(),
-        }
-    }
-
-    pub fn get_macro(&self, name: String) -> TeraResult<&Node> {
-        match self.macros.get(&name) {
-            Some(m) => Ok(m),
-            None => Err(MacroNotFound(self.name.clone(), name.to_string())),
-        }
+        })
     }
 }
 
@@ -115,12 +105,12 @@ mod tests {
 
     #[test]
     fn test_can_parse_ok_template() {
-        Template::new("hello", "Hello {{ world }}.");
+        Template::new("hello", "Hello {{ world }}.").unwrap();
     }
 
     #[test]
     fn test_can_find_parent_template() {
-        let tpl = Template::new("hello", "{% extends \"base.html\" %}");
+        let tpl = Template::new("hello", "{% extends \"base.html\" %}").unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
     }
@@ -130,7 +120,7 @@ mod tests {
         let tpl = Template::new(
             "hello",
             "{% extends \"base.html\" %}{% block hey %}{% endblock hey %}"
-        );
+        ).unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
         assert_eq!(tpl.blocks.contains_key("hey"), true);
@@ -141,7 +131,7 @@ mod tests {
         let tpl = Template::new(
             "hello",
             "{% extends \"base.html\" %}{% block hey %}{% block extrahey %}{% endblock extrahey %}{% endblock hey %}"
-        );
+        ).unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
         assert_eq!(tpl.blocks.contains_key("hey"), true);
@@ -150,13 +140,13 @@ mod tests {
 
     #[test]
     fn test_can_find_macros() {
-        let tpl = Template::new("hello", "{% macro hey() %}{% endmacro hey %}");
+        let tpl = Template::new("hello", "{% macro hey() %}{% endmacro hey %}").unwrap();
         assert_eq!(tpl.macros.contains_key("hey"), true);
     }
 
     #[test]
     fn test_can_find_imported_macros() {
-        let tpl = Template::new("hello", "{% import \"macros.html\" as macros %}");
+        let tpl = Template::new("hello", "{% import \"macros.html\" as macros %}").unwrap();
         assert_eq!(tpl.imported_macro_files, vec![("macros.html".to_string(), "macros".to_string())]);
     }
 }
