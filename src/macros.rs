@@ -25,10 +25,7 @@ macro_rules! compile_templates {
         match Tera::new($glob) {
             Ok(t) => t,
             Err(e) => {
-                println!("Error: {}", e);
-                for e in e.iter().skip(1) {
-                    println!("Reason: {}", e);
-                }
+                println!("Parsing error(s): {}", e);
                 ::std::process::exit(1);
             }
         }

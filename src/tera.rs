@@ -32,6 +32,7 @@ impl Tera {
         }
 
         let mut templates = HashMap::new();
+        let mut errors = String::new();
 
         // We are parsing all the templates on instantiation
         for entry in glob(dir).unwrap().filter_map(|e| e.ok()) {
@@ -49,10 +50,20 @@ impl Tera {
                 let mut f = File::open(path).unwrap();
                 let mut input = String::new();
                 f.read_to_string(&mut input).unwrap();
-                let tpl = Template::new(&filepath, &input)
-                    .chain_err(|| format!("Failed to parse '{}'", filepath))?;
-                templates.insert(filepath.to_string(), tpl);
+
+                match Template::new(&filepath, &input).chain_err(|| format!("Failed to parse '{}'", filepath)) {
+                    Ok(tpl) => { templates.insert(filepath.to_string(), tpl); },
+                    Err(e) => {
+                        errors += &format!("\n* {}", e);
+                        for e in e.iter().skip(1) {
+                            errors += &format!("\n-- {}", e);
+                        }
+                    }
+                }
             }
+        }
+        if errors != "" {
+            bail!("{}", errors);
         }
 
         let mut tera = Tera {
