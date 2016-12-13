@@ -12,6 +12,9 @@ use tera::Tera;
 use utils::escape_html;
 
 
+
+static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
+
 // we need to have some data in the renderer for when we are in a ForLoop
 // For example, accessing the local variable would fail when
 // looking it up in the context
@@ -92,7 +95,7 @@ impl<'a> Renderer<'a> {
         };
 
         // Magical variable that just dumps the context
-        if key == "__tera_context" {
+        if key == MAGICAL_DUMP_VAR {
             return Ok(to_value(
                 to_string_pretty(context).expect("Couldn't serialize context for `__tera_context`")
             ));
@@ -171,7 +174,7 @@ impl<'a> Renderer<'a> {
                 }
 
                 // Escaping strings if wanted for that template
-                if self.should_escape && !is_safe {
+                if name != MAGICAL_DUMP_VAR && self.should_escape && !is_safe {
                     if let Value::String(s) = value {
                         value = to_value(escape_html(s.as_str()));
                     }
