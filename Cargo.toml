@@ -4,10 +4,10 @@ version = "0.4.1"
 authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
 license = "MIT"
 readme = "README.md"
-description = "Template engine based on Jinja2/Django"
+description = "Template engine based on Jinja2/Django templates"
 homepage = "https://github.com/Keats/tera"
 repository = "https://github.com/Keats/tera"
-keywords = ["template", "html", "jinja", "django", "markup"]
+keywords = ["template", "html", "jinja", "django", "markup", "jinja2"]
 
 [dependencies]
 glob = "0.2"
