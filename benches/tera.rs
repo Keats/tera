@@ -4,7 +4,7 @@ extern crate tera;
 extern crate serde;
 extern crate serde_json;
 
-use tera::{Tera, Template, Context};
+use tera::{Tera, Template, Context, escape_html};
 
 
 static VARIABLE_ONLY: &'static str = "{{product.name}}";
@@ -187,4 +187,10 @@ fn bench_rendering_inheritance_and_macros(b: &mut test::Bencher) {
     context.add("username", &"bob");
 
     b.iter(|| tera.render("child.html", context.clone()));
+}
+
+
+#[bench]
+fn bench_escape_html(b: &mut test::Bencher) {
+    b.iter(|| escape_html(r#"Hello word <script></script>"#));
 }
