@@ -8,7 +8,7 @@ Tera is a template engine based on [Jinja2](http://jinja.pocoo.org/) and the [Dj
 
 It is subject to lots of API changes as users provide feedback.
 
-While Tera is inspired by the engines above, it doesn't have the backward compatibility to maintain and we can improve on those if possible. One of the goal is to avoid putting too much logic in the templates so it's closer to the Django ones in that respect, except it has math operations built-in.
+While Tera is inspired by the engines above, it doesn't have the backward compatibility to maintain and we can improve on those if possible. One of the goals is to avoid putting too much logic in the templates, so it's closer to the Django ones in that respect, except it has math operations built-in.
 
 Example of a template file:
 
