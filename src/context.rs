@@ -5,22 +5,35 @@ use serde_json::value::{Value, to_value};
 
 pub type TemplateContext = BTreeMap<String, Value>;
 
+/// The struct that holds the context of a template rendering.
+///
+/// Light wrapper around a BTreeMap for easier insertions of Serializable
+/// values
 #[derive(Debug, Clone)]
 pub struct Context {
     data: BTreeMap<String, Value>,
 }
 
 impl Context {
+    /// Initializes an empty context
     pub fn new() -> Context {
         Context {
             data: BTreeMap::new()
         }
     }
 
-    pub fn add<T: Serialize>(&mut self, key: &str, d: &T) {
-        self.data.insert(key.to_owned(), to_value(d));
+    /// Converts the `val` parameter to `Value` and insert it into the context
+    ///
+    /// ```rust,ignore
+    /// let mut context = Context::new();
+    /// // user is an instance of a struct implementing `Serialize`
+    /// context.add("number_users", 42);
+    /// ```
+    pub fn add<T: Serialize>(&mut self, key: &str, val: &T) {
+        self.data.insert(key.to_owned(), to_value(val));
     }
 
+    #[doc(hidden)]
     pub fn as_json(&self) -> Value {
         to_value(&self.data)
     }
@@ -35,6 +48,7 @@ impl Default for Context {
 pub trait ValueRender {
     fn render(&self) -> String;
 }
+
 // Needed to render variables
 // From handlebars-rust
 impl ValueRender for Value {

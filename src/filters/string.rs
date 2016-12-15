@@ -192,7 +192,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.err().unwrap().description(),
-            "Filter `upper` received an incorrect type for arg `value`: got `50` but expected a String"
+            "Filter `upper` was called on an incorrect value: got `50` but expected a String"
         );
     }
 

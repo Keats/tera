@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 // Needed by pest
 #![recursion_limit = "300"]
 

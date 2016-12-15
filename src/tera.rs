@@ -15,17 +15,35 @@ use render::Renderer;
 use testers::{self, TesterFn};
 
 
+/// The main point of interaction in this library.
 pub struct Tera {
+    #[doc(hidden)]
     pub templates: HashMap<String, Template>,
+    #[doc(hidden)]
     pub filters: HashMap<String, FilterFn>,
+    #[doc(hidden)]
     pub testers: HashMap<String, TesterFn>,
     // Which extensions does Tera automatically autoescape on.
     // Defaults to [".html", ".htm", ".xml"]
+    #[doc(hidden)]
     pub autoescape_extensions: Vec<&'static str>,
 }
 
 
 impl Tera {
+    /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
+    ///
+    /// The example below is what the [compile_templates](macro.compile_templates.html) macros expands to.
+    ///
+    /// ```rust,ignore
+    ///match Tera::new("templates/**/*") {
+    ///    Ok(t) => t,
+    ///    Err(e) => {
+    ///        println!("Parsing error(s): {}", e);
+    ///        ::std::process::exit(1);
+    ///    }
+    ///}
+    /// ```
     pub fn new(dir: &str) -> Result<Tera> {
         if dir.find('*').is_none() {
             bail!("Tera expects a glob as input, no * were found in `{}`", dir);
@@ -144,7 +162,13 @@ impl Tera {
         Ok(())
     }
 
-    /// Renders a Tera template given a `Context`.
+    /// Renders a Tera template given a `Context` object.
+    ///
+    /// To render a template with an empty context, simply pass a new `Context` object
+    ///
+    /// ```rust,ignore
+    /// tera.render("hello.html", Context::new());
+    /// ```
     pub fn render(&self, template_name: &str, data: Context) -> Result<String> {
         let template = self.get_template(template_name)?;
         let mut renderer = Renderer::new(template, self, data.as_json());
@@ -153,6 +177,12 @@ impl Tera {
     }
 
     /// Renders a Tera template given a `Serializeable` object.
+    ///
+    /// If `data` is not an object, an error will be returned.
+    ///
+    /// ```rust,ignore
+    /// tera.render("hello.html", &user);
+    /// ```
     pub fn value_render<T>(&self, template_name: &str, data: &T) -> Result<String>
         where T: Serialize
     {
@@ -166,6 +196,7 @@ impl Tera {
         renderer.render()
     }
 
+    #[doc(hidden)]
     pub fn get_template(&self, template_name: &str) -> Result<&Template> {
         match self.templates.get(template_name) {
             Some(tpl) => Ok(tpl),
@@ -174,9 +205,14 @@ impl Tera {
     }
 
     /// Add a single template to the Tera instance
-    /// Will error if the inheritance chain can't be built, such as adding a child
+    ///
+    /// This will error if the inheritance chain can't be built, such as adding a child
     /// template without the parent one.
-    /// If you want to add several templates, use `Tera::add_templates`
+    /// If you want to add several templates, use [Tera::add_templates](struct.Tera.html#method.add_templates)
+    ///
+    /// ```rust,ignore
+    /// tera.add_template("new.html", "Blabla");
+    /// ```
     pub fn add_template(&mut self, name: &str, content: &str) -> Result<()> {
         let tpl = Template::new(name, content)
             .chain_err(|| format!("Failed to parse '{}'", name))?;
@@ -186,6 +222,16 @@ impl Tera {
     }
 
     /// Add all the templates given to the Tera instance
+    ///
+    /// This will error if the inheritance chain can't be built, such as adding a child
+    /// template without the parent one.
+    ///
+    /// ```rust,ignore
+    /// tera.add_templates(vec![
+    ///     ("new.html", "blabla"),
+    ///     ("new2.html", "hello"),
+    /// ]);
+    /// ```
     pub fn add_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()>  {
         for (name, content) in templates {
             let tpl = Template::new(name, content)
@@ -196,6 +242,8 @@ impl Tera {
         Ok(())
     }
 
+
+    #[doc(hidden)]
     pub fn get_filter(&self, filter_name: &str) -> Result<&FilterFn> {
         match self.filters.get(filter_name) {
             Some(fil) => Ok(fil),
@@ -204,11 +252,17 @@ impl Tera {
     }
 
     /// Register a filter with Tera.
+    ///
     /// If a filter with that name already exists, it will be overwritten
+    ///
+    /// ```rust,ignore
+    /// tera.register_filter("upper", string::upper);
+    /// ```
     pub fn register_filter(&mut self, name: &str, filter: FilterFn) {
         self.filters.insert(name.to_string(), filter);
     }
 
+    #[doc(hidden)]
     pub fn get_tester(&self, tester_name: &str) -> Result<&TesterFn> {
         match self.testers.get(tester_name) {
             Some(t) => Ok(t),
@@ -217,7 +271,12 @@ impl Tera {
     }
 
     /// Register a tester with Tera.
+    ///
     /// If a tester with that name already exists, it will be overwritten
+    ///
+    /// ```rust,ignore
+    /// tera.register_tester("odd", testers::odd);
+    /// ```
     pub fn register_tester(&mut self, name: &str, tester: TesterFn) {
         self.testers.insert(name.to_string(), tester);
     }
@@ -234,6 +293,8 @@ impl Tera {
         self.register_filter("striptags", string::striptags);
         self.register_filter("urlencode", string::urlencode);
         self.register_filter("escape", string::escape_html);
+        self.register_filter("slugify", string::slugify);
+        self.register_filter("addslashes", string::addslashes);
 
         self.register_filter("first", array::first);
         self.register_filter("last", array::last);
@@ -241,6 +302,7 @@ impl Tera {
 
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
+        self.register_filter("filesizeformat", number::filesizeformat);
 
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
@@ -255,12 +317,18 @@ impl Tera {
         self.register_tester("number", testers::number);
     }
 
-    /// Select which extension(s) to automatically do HTML escaping on.
-    /// Pass an empty vec to completely disable autoescape
-    /// Note that autoescape will happen if the template name ends with one
-    /// of the extensions given.
-    /// Example: a file named `template.html` will be escaped by default but
-    /// won't if you set pass `[".php.html"]` to that method.
+    /// Select which suffix(es) to automatically do HTML escaping on,
+    ///`[".html", ".htm", ".xml"]` by default.
+    ///
+    /// Only call this function if you wish to change the defaults.
+    ///
+    ///
+    /// ```rust,ignore
+    /// // escape only files ending with `.php.html`
+    /// tera.autoescape_on(vec![".php.html"]);
+    /// // disable autoescaping completely
+    /// tera.autoescape_on(vec![]);
+    /// ```
     pub fn autoescape_on(&mut self, extensions: Vec<&'static str>) {
         self.autoescape_extensions = extensions;
     }

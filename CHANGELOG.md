@@ -15,6 +15,8 @@ A few breaking changes in this one
 print them and exit the process
 - Much improved error messages
 - Add a magical variable `__tera_context` that will pretty print the current context
+- More documentation inside the crate itself
+- Actually register the `filesizeformat`, `slugify`, `addslashes`, good thing no one noticed
 
 ## 0.4.1 (2016/12/07)
 
