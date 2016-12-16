@@ -9,8 +9,8 @@ pub enum Node {
     List(LinkedList<Node>),
 
     Text(String),
-    Int(i32),
-    Float(f32),
+    Int(i64),
+    Float(f64),
     Bool(bool),
 
     Math {lhs: Box<Node>, rhs: Box<Node>, operator: String},
@@ -574,10 +574,10 @@ impl_rdp! {
                 Ok(Node::Identifier {name: ident.to_string(), filters: None })
             },
             (&number: int) => {
-                Ok(Node::Int(number.parse::<i32>().unwrap()))
+                Ok(Node::Int(number.parse::<i64>().unwrap()))
             },
             (&number: float) => {
-                Ok(Node::Float(number.parse::<f32>().unwrap()))
+                Ok(Node::Float(number.parse::<f64>().unwrap()))
             },
             (_: op_true) => {
                 Ok(Node::Bool(true))

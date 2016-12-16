@@ -181,7 +181,7 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn eval_math(&self, node: &Node) -> Result<f32> {
+    fn eval_math(&self, node: &Node) -> Result<f64> {
         match *node {
             Identifier { ref name, .. } => {
                 self.eval_ident(node)?
@@ -192,7 +192,7 @@ impl<'a> Renderer<'a> {
                         ).into()
                     ))
             },
-            Int(s) => Ok(s as f32),
+            Int(s) => Ok(s as f64),
             Float(s) => Ok(s),
             Math { ref lhs, ref rhs, ref operator } => {
                 let l = self.eval_math(lhs)?;
@@ -671,8 +671,16 @@ mod tests {
 
     #[test]
     fn test_render_math() {
-        let result = render_template("This is {{ 2000 + 16 }}.", Context::new());
-        assert_eq!(result.unwrap(), "This is 2016.".to_owned());
+        assert_eq!(render_template("{{ 1 + 1 }}", Context::new()).unwrap(), "2".to_owned());
+        assert_eq!(render_template("{{ 1 + 1.1 }}", Context::new()).unwrap(), "2.1".to_owned());
+        assert_eq!(render_template("{{ 3 - 1 }}", Context::new()).unwrap(), "2".to_owned());
+        assert_eq!(render_template("{{ 3 - 1.1 }}", Context::new()).unwrap(), "1.9".to_owned());
+        assert_eq!(render_template("{{ 2 * 5 }}", Context::new()).unwrap(), "10".to_owned());
+        assert_eq!(render_template("{{ 2 * 5 }}", Context::new()).unwrap(), "10".to_owned());
+        assert_eq!(render_template("{{ 10 / 5 }}", Context::new()).unwrap(), "2".to_owned());
+        assert_eq!(render_template("{{ 2.1 * 5 }}", Context::new()).unwrap(), "10.5".to_owned());
+        assert_eq!(render_template("{{ 2 / 0.5 }}", Context::new()).unwrap(), "4".to_owned());
+        assert_eq!(render_template("This is {{ 2000 + 16 }}.", Context::new()).unwrap(), "This is 2016.".to_owned());
     }
 
     #[test]

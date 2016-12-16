@@ -77,16 +77,16 @@ impl ValueRender for Value {
 
 
 pub trait ValueNumber {
-    fn to_number(&self) -> Result<f32, ()>;
+    fn to_number(&self) -> Result<f64, ()>;
 }
 // Needed for all the maths
-// Convert everything to f32, seems like a terrible idea
+// Convert everything to f64, seems like a terrible idea
 impl ValueNumber for Value {
-    fn to_number(&self) -> Result<f32, ()> {
+    fn to_number(&self) -> Result<f64, ()> {
         match *self {
-            Value::I64(i) => Ok(i as f32),
-            Value::U64(i) => Ok(i as f32),
-            Value::F64(f) => Ok(f as f32),
+            Value::I64(i) => Ok(i as f64),
+            Value::U64(i) => Ok(i as f64),
+            Value::F64(f) => Ok(f as f64),
             _ => Err(())
         }
     }
