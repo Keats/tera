@@ -17,6 +17,24 @@ impl Context {
         }
     }
 
+    /// Use `btreemap!{}` create data to separation of data and rendering process.
+    ///
+    /// ```rust
+    /// #[macro_use] extern crate maplit;
+    /// ...
+    /// let data = btreemap!{
+    ///     "name".to_string() => to_value("konoha"),
+    ///     "age".to_string() =>  to_value(2)
+    /// };
+    /// let context = Context::from_btreemap(data)
+    /// ...
+    /// ```
+    pub fn from_btreemap(m: TemplateContext) -> Context {
+        Context {
+            data: m
+        }
+    }
+
     pub fn add<T: Serialize>(&mut self, key: &str, d: &T) {
         self.data.insert(key.to_owned(), to_value(d));
     }
