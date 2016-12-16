@@ -19,15 +19,15 @@ macro_rules! try_get_value {
             Ok(s) => s,
             Err(_) => {
                 if $var_name == "value" {
-                    bail!(
+                    return Err(format!(
                         "Filter `{}` was called on an incorrect value: got `{:?}` but expected a {}",
                         $filter_name, $val, stringify!($ty)
-                    );
+                    ).into());
                 } else {
-                    bail!(
+                    return Err(format!(
                         "Filter `{}` received an incorrect type for arg `{}`: got `{:?}` but expected a {}",
                         $filter_name, $var_name, $val, stringify!($ty)
-                    );
+                    ).into());
                 }
             }
         }
