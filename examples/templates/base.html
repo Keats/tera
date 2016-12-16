@@ -1,6 +1,10 @@
 {% import "macros.html" as macros %}
 <h1>Hello</h1>
-
+{% if my_var %}
+    {{ my_var }}
+{% else %}
+    Sorry, my_var isn't defined.
+{% endif %}
 {% block content %}
 {% endblock content %}
 {{ macros::hello_world(greeting="世界") }}
