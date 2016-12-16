@@ -8,7 +8,7 @@ macro_rules! try_get_value {
         match ::serde_json::value::from_value::<$ty>($val.clone()) {
             Ok(s) => s,
             Err(_) => {
-                return Err(::errors::TeraError::FilterIncorrectArgType(
+                return Err(::tera::TeraError::FilterIncorrectArgType(
                     $filter_name.to_string(),
                     $var_name.to_string(),
                     $val,
