@@ -493,7 +493,7 @@ impl<'a> Renderer<'a> {
                     output.push_str(&self.render_node(node)?);
                 }
 
-                Ok(output.trim_left().to_string())
+                Ok(output.trim().to_string())
             },
             ImportMacro {tpl_name, name} => {
                 let tpl = self.tera.get_template(&tpl_name)?;
