@@ -81,7 +81,7 @@ impl Tera {
             }
         }
         if errors != "" {
-            bail!("{}", errors);
+            bail!(errors);
         }
 
         let mut tera = Tera {
@@ -107,7 +107,7 @@ impl Tera {
         // Recursive fn that finds all the parents and put them in an ordered Vec from closest to main
         // parent template
         fn build_chain(tera: &Tera, start: &Template, template: &Template, mut parents: Vec<String>) -> Result<Vec<String>> {
-            if parents.len() > 0 && start.name == template.name {
+            if !parents.is_empty() && start.name == template.name {
                 bail!("Circular extend detected for template '{}'. Inheritance chain: `{:?}`", start.name, parents);
             }
 
@@ -134,7 +134,7 @@ impl Tera {
         // If we do so, we run into a borrow issue since we need to pass the tera instance
         // to the build chain fn
         let mut templates = HashMap::new();
-        for (_, template) in &self.templates {
+        for template in self.templates.values() {
             let mut tpl = template.clone();
             tpl.parents = build_chain(self, template, template, vec![])?;
 
@@ -147,12 +147,11 @@ impl Tera {
 
                 // and then see if our parents have it
                 for parent in &tpl.parents {
-                    let t = self.get_template(&parent)
+                    let t = self.get_template(parent)
                         .chain_err(|| format!("Couldn't find template {} while building inheritance chains", parent))?;
-                    match t.blocks.get(block_name) {
-                        Some(b) => definitions.push((t.name.clone(), b.clone())),
-                        None => (),
-                    };
+                    if let Some(b) = t.blocks.get(block_name) {
+                        definitions.push((t.name.clone(), b.clone()));
+                    }
                 }
                 tpl.blocks_definitions.insert(block_name.clone(), definitions);
             }

@@ -186,7 +186,7 @@ impl<'a> Renderer<'a> {
             Identifier { ref name, .. } => {
                 self.eval_ident(node)?
                     .to_number()
-                    .or(Err(
+                    .or_else(|_| Err(
                         format!(
                             "Variable `{}` was used in a math operation but is not a number", name
                         ).into()
@@ -471,13 +471,13 @@ impl<'a> Renderer<'a> {
 
     fn import_macros(&mut self, tpl_name: String) -> Result<bool> {
         let tpl = self.tera.get_template(&tpl_name)?;
-        if tpl.imported_macro_files.len() == 0 {
+        if tpl.imported_macro_files.is_empty() {
             return Ok(false);
         }
         let mut map = HashMap::new();
 
         for &(ref filename, ref namespace) in &tpl.imported_macro_files {
-            let macro_tpl = self.tera.get_template(&filename)?;
+            let macro_tpl = self.tera.get_template(filename)?;
             map.insert(namespace.to_string(), macro_tpl.macros.clone());
         }
         self.macros.push(map);
@@ -497,7 +497,7 @@ impl<'a> Renderer<'a> {
             },
             ImportMacro {tpl_name, name} => {
                 let tpl = self.tera.get_template(&tpl_name)?;
-                let mut map = if self.macros.len() == 0 {
+                let mut map = if self.macros.is_empty() {
                     HashMap::new()
                 } else {
                     self.macros.pop().unwrap()
@@ -542,7 +542,7 @@ impl<'a> Renderer<'a> {
                                 }
                                 res
                             },
-                            x @ _ => unreachable!("render_node Block {:?}", x)
+                            x => unreachable!("render_node Block {:?}", x)
                         }
                     },
                     None => {
@@ -571,7 +571,7 @@ impl<'a> Renderer<'a> {
                                     }
                                     res
                                 },
-                                x @ _ => unreachable!("render_node Block {:?}", x)
+                                x => unreachable!("render_node Block {:?}", x)
                             }
                         },
                         None => unreachable!("render_node -> didn't get block")
@@ -582,9 +582,8 @@ impl<'a> Renderer<'a> {
                     unreachable!("Super called outside of a block or in base template")
                 }
             },
-            Extends(_) => Ok("".to_string()),
-            Macro {..} => Ok("".to_string()),
-            x @ _ => unreachable!("render_node -> unexpected node: {:?}", x)
+            Extends(_) | Macro {..} => Ok("".to_string()),
+            x => unreachable!("render_node -> unexpected node: {:?}", x)
         }
     }
 
@@ -610,20 +609,18 @@ impl<'a> Renderer<'a> {
                     error_location += &format!(" (error happened in '{}').", tpl_name);
                 }
             }
-        } else {
+        } else if let Some(parent) = self.template.parents.last() {
             // Error happened in the base template, outside of blocks
-            if let Some(parent) = self.template.parents.last() {
-                error_location += &format!(" (error happened in '{}').", parent);
-            }
+            error_location += &format!(" (error happened in '{}').", parent);
         }
 
         error_location
     }
 
     pub fn render(&mut self) -> Result<String> {
-        let ast = if self.template.parents.len() > 0 {
+        let ast = if !self.template.parents.is_empty() {
             let parent = self.tera.get_template(
-                &self.template.parents.last().expect("Couldn't get first ancestor template")
+                self.template.parents.last().expect("Couldn't get first ancestor template")
             ).chain_err(|| format!("Failed to render '{}'", self.template.name))?;
             parent.ast.get_children()
         } else {

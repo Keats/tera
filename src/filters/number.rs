@@ -50,7 +50,7 @@ pub fn filesizeformat(value: Value, _: HashMap<String, Value>) -> Result<Value> 
     let num = try_get_value!("filesizeformat", "value", i64, value);
     num
         .file_size(file_size_opts::CONVENTIONAL)
-        .or(Err(format!("Filter `filesizeformat` was called on a negative number: {}", num).into()))
+        .or_else(|_| Err(format!("Filter `filesizeformat` was called on a negative number: {}", num).into()))
         .map(to_value)
 }
 

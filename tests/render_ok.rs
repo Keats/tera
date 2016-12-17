@@ -16,7 +16,7 @@ fn assert_template_ok(path: &str, others: Vec<&str>) {
 
     for p in others {
         let base = p.to_string();
-        let split = base.split("/").collect::<Vec<&str>>();
+        let split = base.split('/').collect::<Vec<&str>>();
         let name = split.last().unwrap();
         tera.add_template(name, &read_file(&base)).unwrap();
     }

@@ -8,9 +8,7 @@
 // Needed by pest
 #![recursion_limit = "300"]
 
-#![cfg_attr(feature = "dev", feature(plugin))]
-#![cfg_attr(feature = "dev", plugin(clippy))]
-#![cfg_attr(feature = "dev", allow(block_in_if_condition_stmt, linkedlist))]
+#![cfg_attr(feature = "cargo-clippy", allow(block_in_if_condition_stmt, linkedlist, eq_op))]
 
 extern crate serde;
 extern crate serde_json;

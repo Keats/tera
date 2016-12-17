@@ -1,6 +1,6 @@
 [package]
 name = "tera"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
 license = "MIT"
 readme = "README.md"
@@ -13,7 +13,6 @@ keywords = ["template", "html", "jinja", "django", "markup", "jinja2"]
 glob = "0.2"
 serde = "0.8"
 serde_json = "0.8"
-clippy = {version = "~0.0.77", optional = true}
 pest = "0.4"
 error-chain = "0.7"
 
@@ -30,4 +29,4 @@ humansize = "0.1.1"
 
 [features]
 default = []
-dev = ["clippy"]
+clippy = []

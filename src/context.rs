@@ -7,7 +7,7 @@ pub type TemplateContext = BTreeMap<String, Value>;
 
 /// The struct that holds the context of a template rendering.
 ///
-/// Light wrapper around a BTreeMap for easier insertions of Serializable
+/// Light wrapper around a `BTreeMap` for easier insertions of Serializable
 /// values
 #[derive(Debug, Clone)]
 pub struct Context {
