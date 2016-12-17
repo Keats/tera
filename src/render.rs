@@ -197,18 +197,14 @@ impl<'a> Renderer<'a> {
             Math { ref lhs, ref rhs, ref operator } => {
                 let l = self.eval_math(lhs)?;
                 let r = self.eval_math(rhs)?;
-                let mut result = match operator.as_str() {
+                let result = match operator.as_str() {
                     "*" => l * r,
                     "/" => l / r,
                     "+" => l + r,
                     "-" => l - r,
                     _ => unreachable!()
                 };
-                // TODO: fix properly
-                // TODO: add tests for float maths arithmetics
-                if result.fract() < 0.01 {
-                    result = result.round();
-                }
+
                 Ok(result)
             }
             Text(ref s) => bail!("Tried to do math with a String: `{}`", s),
@@ -291,10 +287,6 @@ impl<'a> Renderer<'a> {
                                 return Ok(false);
                             }
 
-                            // Since Tera only support 32 bit integers, this
-                            // actually preserves all of the precision. If Tera
-                            // switches to 64-bit values, use std::f32::EPSILON
-                            // to get an approximation as before.
                             lhs_val = Value::F64(lhs_val.as_f64().unwrap());
                             rhs_val = Value::F64(rhs_val.as_f64().unwrap());
                         }
@@ -668,16 +660,22 @@ mod tests {
 
     #[test]
     fn test_render_math() {
-        assert_eq!(render_template("{{ 1 + 1 }}", Context::new()).unwrap(), "2".to_owned());
-        assert_eq!(render_template("{{ 1 + 1.1 }}", Context::new()).unwrap(), "2.1".to_owned());
-        assert_eq!(render_template("{{ 3 - 1 }}", Context::new()).unwrap(), "2".to_owned());
-        assert_eq!(render_template("{{ 3 - 1.1 }}", Context::new()).unwrap(), "1.9".to_owned());
-        assert_eq!(render_template("{{ 2 * 5 }}", Context::new()).unwrap(), "10".to_owned());
-        assert_eq!(render_template("{{ 2 * 5 }}", Context::new()).unwrap(), "10".to_owned());
-        assert_eq!(render_template("{{ 10 / 5 }}", Context::new()).unwrap(), "2".to_owned());
-        assert_eq!(render_template("{{ 2.1 * 5 }}", Context::new()).unwrap(), "10.5".to_owned());
-        assert_eq!(render_template("{{ 2 / 0.5 }}", Context::new()).unwrap(), "4".to_owned());
-        assert_eq!(render_template("This is {{ 2000 + 16 }}.", Context::new()).unwrap(), "This is 2016.".to_owned());
+        let tests = vec![
+            ("{{ 1 + 1 }}", "2".to_string()),
+            ("{{ 1 + 1.1 }}", "2.1".to_string()),
+            ("{{ 3 - 1 }}", "2".to_string()),
+            ("{{ 3 - 1.1 }}", "1.9".to_string()),
+            ("{{ 2 * 5 }}", "10".to_string()),
+            ("{{ 10 / 5 }}", "2".to_string()),
+            ("{{ 2.1 * 5 }}", "10.5".to_string()),
+            ("{{ 2.1 * 5.05 }}", "10.605".to_string()),
+            ("{{ 2 / 0.5 }}", "4".to_string()),
+            ("{{ 2.1 / 0.5 }}", "4.2".to_string()),
+        ];
+
+        for (input, expected) in tests {
+            assert_eq!(render_template(input, Context::new()).unwrap(), expected);
+        }
     }
 
     #[test]
