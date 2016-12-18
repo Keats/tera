@@ -92,9 +92,25 @@ pub fn even(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     Ok(!is_odd)
 }
 
+
+/// Returns true if `value` is divisible by the first param. Otherwise, returns false.
+pub fn divisible_by(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
+    number_args_allowed("divisibleby", 1, params.len())?;
+    value_defined("divisibleby", &value)?;
+
+    match value.and_then(|v| v.to_number().ok()) {
+        Some(val) => match params.first().and_then(|v| v.to_number().ok()) {
+            Some(p) => Ok(val % p == 0.0),
+            None => bail!("Tester `divisibleby` was called with a parameter that isn't a number")
+        },
+        None => bail!("Tester `divisibleby` was called on a variable that isn't a number")
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
-    use super::{defined, string};
+    use super::{defined, string, divisible_by};
 
     use serde_json::value::{to_value};
 
@@ -111,5 +127,23 @@ mod tests {
     #[test]
     fn test_value_defined() {
         assert!(string(None, vec![]).is_err())
+    }
+
+    #[test]
+    fn test_divisible_by() {
+        let tests = vec![
+            (1.0, 2.0, false),
+            (4.0, 2.0, true),
+            (4.0, 2.1, false),
+            (10.0, 2.0, true),
+            (10.0, 0.0, false),
+        ];
+
+        for (val, divisor, expected) in tests {
+            assert_eq!(
+                divisible_by(Some(to_value(val)), vec![to_value(divisor)]).unwrap(),
+                expected
+            );
+        }
     }
 }

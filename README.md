@@ -342,6 +342,10 @@ Returns true if the given variable is a string.
 #### number
 Returns true if the given variable is a number.
 
+#### divisibleby
+Returns true if the given expression is divisible by the arg given.
+
+
 ### Filters
 Variables can be modified by filters before being rendered. 
 Filters are separated from the variable by a pipe symbol (`|`) and may have named arguments in parentheses. 
