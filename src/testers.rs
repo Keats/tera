@@ -108,9 +108,19 @@ pub fn divisible_by(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
 }
 
 
+/// Returns true if `value` can be iterated over in Tera (ie is an array/tuple).
+/// Otherwise, returns false.
+pub fn iterable(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
+    number_args_allowed("iterable", 0, params.len())?;
+    value_defined("iterable", &value)?;
+
+    Ok(value.unwrap().is_array())
+}
+
+
 #[cfg(test)]
 mod tests {
-    use super::{defined, string, divisible_by};
+    use super::{defined, string, divisible_by, iterable};
 
     use serde_json::value::{to_value};
 
@@ -145,5 +155,12 @@ mod tests {
                 expected
             );
         }
+    }
+
+    #[test]
+    fn test_iterable() {
+        assert_eq!(iterable(Some(to_value(vec!["1"])), vec![]).unwrap(), true);
+        assert_eq!(iterable(Some(to_value(1)), vec![]).unwrap(), false);
+        assert_eq!(iterable(Some(to_value("hello")), vec![]).unwrap(), false);
     }
 }

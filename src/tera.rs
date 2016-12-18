@@ -315,6 +315,7 @@ impl Tera {
         self.register_tester("string", testers::string);
         self.register_tester("number", testers::number);
         self.register_tester("divisibleby", testers::divisible_by);
+        self.register_tester("iterable", testers::iterable);
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on,

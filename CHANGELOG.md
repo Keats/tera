@@ -17,6 +17,7 @@ print them and exit the process
 - Add a magical variable `__tera_context` that will pretty print the current context
 - More documentation inside the crate itself
 - Actually register the `filesizeformat`, `slugify`, `addslashes`, good thing no one noticed
+- Add `divisibleby` and `iterable` test
 
 ## 0.4.1 (2016/12/07)
 

@@ -345,6 +345,15 @@ Returns true if the given variable is a number.
 #### divisibleby
 Returns true if the given expression is divisible by the arg given.
 
+Example:
+```jinja2
+{% if rating is divisibleby 2 %}
+    Divisible
+{% endif %}
+```
+
+#### iterable
+Returns true if the given variable can be iterated over in Tera (ie is an array/tuple).
 
 ### Filters
 Variables can be modified by filters before being rendered. 
