@@ -18,6 +18,7 @@ print them and exit the process
 - More documentation inside the crate itself
 - Actually register the `filesizeformat`, `slugify`, `addslashes`, good thing no one noticed
 - Add `divisibleby` and `iterable` test
+- Made `try_get_value!` macro work outside of Tera
 
 ## 0.4.1 (2016/12/07)
 
