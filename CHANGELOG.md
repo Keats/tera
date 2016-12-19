@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0 (Unreleased)
+## 0.5.0 (2016-12-19)
 
 A few breaking changes in this one
 
