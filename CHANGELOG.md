@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.0 (Unreleased)
+
+A few breaking changes in this one
+
+### BREAKING CHANGES
+- Tera no longer panics when parsing templates, it returns an error instead
+- Tester fn signature changes from `fn(&str, Option<Value>, Vec<Value>) -> Result<bool>` to `fn(Option<Value>, Vec<Value>) -> Result<bool>`
+- Rename `TeraResult` export to `Result`
+
+### Others
+- Stabilized `Tera::add_template` and `Tera::add_templates`
+- Added `compile_templates!` macro to try to compile all templates and, in case of errors,
+print them and exit the process
+- Much improved error messages
+- Add a magical variable `__tera_context` that will pretty print the current context
+- More documentation inside the crate itself
+- Actually register the `filesizeformat`, `slugify`, `addslashes`, good thing no one noticed
+- Add `divisibleby` and `iterable` test
+- Made `try_get_value!` macro work outside of Tera
+
 ## 0.4.1 (2016/12/07)
 
 - Remove println! left behind

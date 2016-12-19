@@ -1,7 +1,7 @@
 use std::collections::{HashMap, LinkedList};
 
 use pest::prelude::*;
-use errors::{TeraResult, TeraError};
+use errors::Result;
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -9,8 +9,8 @@ pub enum Node {
     List(LinkedList<Node>),
 
     Text(String),
-    Int(i32),
-    Float(f32),
+    Int(i64),
+    Float(f64),
     Bool(bool),
 
     Math {lhs: Box<Node>, rhs: Box<Node>, operator: String},
@@ -216,7 +216,7 @@ impl_rdp! {
     }
 
     process! {
-        main(&self) -> TeraResult<Node> {
+        main(&self) -> Result<Node> {
             (_: template, tpl: _template()) => {
                 match tpl {
                     Ok(t) => Ok(Node::List(t)),
@@ -225,9 +225,9 @@ impl_rdp! {
             }
         }
 
-        _template(&self) -> TeraResult<LinkedList<Node>> {
+        _template(&self) -> Result<LinkedList<Node>> {
             (_: extends_tag, &name: string, tail: _template()) => {
-                let mut tail2 = try!(tail);
+                let mut tail2 = tail?;
                 tail2.push_front(Node::Extends(name.replace("\"", "").to_string()));
                 Ok(tail2)
             },
@@ -237,24 +237,24 @@ impl_rdp! {
                 Ok(body)
             },
             (_: content, node: _content(), tail: _template()) => {
-                let mut tail2 = try!(tail);
-                match try!(node) {
+                let mut tail2 = tail?;
+                match node? {
                     Some(n) => { tail2.push_front(n); }
                     None => ()
                 };
                 Ok(tail2)
             },
             (_: macro_content, node: _content(), tail: _template()) => {
-                let mut tail2 = try!(tail);
-                match try!(node) {
+                let mut tail2 = tail?;
+                match node? {
                     Some(n) => { tail2.push_front(n); }
                     None => ()
                 };
                 Ok(tail2)
             },
             (_: block_content, node: _content(), tail: _template()) => {
-                let mut tail2 = try!(tail);
-                match try!(node) {
+                let mut tail2 = tail?;
+                match node? {
                     Some(n) => { tail2.push_front(n); }
                     None => ()
                 };
@@ -264,7 +264,7 @@ impl_rdp! {
         }
 
         // Option since we don't want comments in the AST
-        _content(&self) -> TeraResult<Option<Node>> {
+        _content(&self) -> Result<Option<Node>> {
             (&head: text) => {
                 Ok(Some(Node::Text(head.to_string())))
             },
@@ -281,11 +281,11 @@ impl_rdp! {
                 Ok(Some(Node::MacroCall {
                     namespace: namespace.to_string(),
                     name: name.to_string(),
-                    params: try!(params)
+                    params: params?
                 }))
             },
             (_: variable_tag, exp: _expression()) => {
-                Ok(Some(Node::VariableBlock(Box::new(try!(exp)))))
+                Ok(Some(Node::VariableBlock(Box::new(exp?))))
             },
             (_: raw_tag, &body: raw_text, _: endraw_tag) => {
                 Ok(Some(Node::Raw(body.to_string())))
@@ -293,45 +293,43 @@ impl_rdp! {
             (_: block_tag, &name: identifier, body: _template(), _: endblock_tag, &end_name: identifier) => {
                 if name != end_name {
                     let (line_no, col_no) = self.input().line_col(self.input.pos());
-                    return Err(
-                        TeraError::MismatchingEndTag(
-                            line_no, col_no, name.to_string(), end_name.to_string()
-                        )
+                    bail!(
+                        "Block `{}` is closing at line {}, col {} but we were expecting `{}` to be closing",
+                        end_name, line_no, col_no, name
                     );
                 }
                 Ok(Some(Node::Block {
                     name: name.to_string(),
-                    body: Box::new(Node::List(try!(body)))
+                    body: Box::new(Node::List(body?))
                 }))
             },
             (_: macro_tag, &name: identifier, params: _macro_def_params(), body: _template(), _: endmacro_tag, &end_name: identifier) => {
                 if name != end_name {
                     let (line_no, col_no) = self.input().line_col(self.input.pos());
-                    return Err(
-                        TeraError::MismatchingEndTag(
-                            line_no, col_no, name.to_string(), end_name.to_string()
-                        )
+                    bail!(
+                        "Macro `{}` is closing at line {}, col {} but we were expecting `{}` to be closing",
+                        end_name, line_no, col_no, name
                     );
                 }
                 Ok(Some(Node::Macro {
                     name: name.to_string(),
                     params: params,
-                    body: Box::new(Node::List(try!(body)))
+                    body: Box::new(Node::List(body?))
                 }))
             },
             (_: for_tag, &variable: identifier, &array: identifier, body: _template(), _: endfor_tag) => {
                 Ok(Some(Node::For {
                     variable: variable.to_string(),
                     array: array.to_string(),
-                    body: Box::new(Node::List(try!(body)))
+                    body: Box::new(Node::List(body?))
                 }))
             },
             // only if
             (_: if_tag, cond: _condition(), body: _template(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 });
 
                 Ok(Some(Node::If {
@@ -343,28 +341,28 @@ impl_rdp! {
             (_: if_tag, cond: _condition(), body: _template(), elifs: _elifs(), _: else_tag, else_body: _template(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 });
 
-                for elif in try!(elifs) {
+                for elif in elifs? {
                     condition_nodes.push_back(elif)
                 }
 
                 Ok(Some(Node::If {
                     condition_nodes: condition_nodes,
-                    else_node: Some(Box::new(Node::List(try!(else_body)))),
+                    else_node: Some(Box::new(Node::List(else_body?))),
                 }))
             },
             // if/elifs
             (_: if_tag, cond: _condition(), body: _template(), elifs: _elifs(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 });
 
-                for elif in try!(elifs) {
+                for elif in elifs? {
                     condition_nodes.push_back(elif)
                 }
 
@@ -377,13 +375,13 @@ impl_rdp! {
             (_: if_tag, cond: _condition(), body: _template(), _: else_tag, else_body: _template(), _: endif_tag) => {
                 let mut condition_nodes = LinkedList::new();
                 condition_nodes.push_front(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 });
 
                 Ok(Some(Node::If {
                     condition_nodes: condition_nodes,
-                    else_node: Some(Box::new(Node::List(try!(else_body)))),
+                    else_node: Some(Box::new(Node::List(else_body?))),
                 }))
             },
             (_: super_tag) => {
@@ -394,12 +392,12 @@ impl_rdp! {
             }
         }
 
-        _condition(&self) -> TeraResult<Node> {
+        _condition(&self) -> Result<Node> {
             // Expression with a test.
             (exp: _expression(), _: test, test_args: _test()) => {
-                let (name, params) = try!(test_args);
+                let (name, params) = test_args?;
                 Ok(Node::Test {
-                    expression: Box::new(try!(exp)),
+                    expression: Box::new(exp?),
                     name: name,
                     params: params,
                 })
@@ -410,67 +408,67 @@ impl_rdp! {
             }
         }
 
-        _elifs(&self) -> TeraResult<LinkedList<Node>> {
+        _elifs(&self) -> Result<LinkedList<Node>> {
             (_: elif_block, node: _if(), tail: _elifs()) => {
-                let mut tail2 = try!(tail);
-                tail2.push_front(try!(node));
+                let mut tail2 = tail?;
+                tail2.push_front(node?);
                 Ok(tail2)
             },
             () => Ok(LinkedList::new())
         }
 
-        _if(&self) -> TeraResult<Node> {
+        _if(&self) -> Result<Node> {
             (_: if_tag, cond: _condition(), body: _template()) => {
                 Ok(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 })
             },
             (_: elif_tag, cond: _condition(), body: _template()) => {
                 Ok(Node::Conditional {
-                    condition: Box::new(try!(cond)),
-                    body: Box::new(Node::List(try!(body))),
+                    condition: Box::new(cond?),
+                    body: Box::new(Node::List(body?)),
                 })
             },
         }
 
-        _fn_args(&self) -> TeraResult<HashMap<String, Node>> {
+        _fn_args(&self) -> Result<HashMap<String, Node>> {
              // first arg of the fn
             (_: fn_args, _: fn_arg, &name: simple_ident, exp: _expression(), tail: _fn_args()) => {
-                let mut tail2 = try!(tail);
-                tail2.insert(name.to_string(), try!(exp));
+                let mut tail2 = tail?;
+                tail2.insert(name.to_string(), exp?);
                 Ok(tail2)
             },
             // arguments after the first
             (_: fn_arg, &name: simple_ident, exp: _expression(), tail: _fn_args()) => {
-                let mut tail2 = try!(tail);
-                tail2.insert(name.to_string(), try!(exp));
+                let mut tail2 = tail?;
+                tail2.insert(name.to_string(), exp?);
                 Ok(tail2)
             },
             () => Ok(HashMap::new())
         }
 
-        _fn(&self) -> TeraResult<Node> {
+        _fn(&self) -> Result<Node> {
             (_: fn_call, &name: simple_ident, args: _fn_args()) => {
-                Ok(Node::Filter{name: name.to_string(), params: try!(args)})
+                Ok(Node::Filter{name: name.to_string(), params: args?})
             },
             // The filters parser will need to consume the `fn_call` token
             // It might not be needed in next version of pest
             // https://github.com/dragostis/pest/issues/74
             (&name: simple_ident, args: _fn_args()) => {
-                Ok(Node::Filter{name: name.to_string(), params: try!(args)})
+                Ok(Node::Filter{name: name.to_string(), params: args?})
             },
         }
 
-        _filters(&self) -> TeraResult<LinkedList<Node>> {
+        _filters(&self) -> Result<LinkedList<Node>> {
             (_: filters, filter: _fn(), tail: _filters()) => {
-                let mut tail2 = try!(tail);
-                tail2.push_front(try!(filter));
+                let mut tail2 = tail?;
+                tail2.push_front(filter?);
                 Ok(tail2)
             },
             (_: fn_call, filter: _fn(), tail: _filters()) => {
-                let mut tail2 = try!(tail);
-                tail2.push_front(try!(filter));
+                let mut tail2 = tail?;
+                tail2.push_front(filter?);
                 Ok(tail2)
             },
             () => Ok(LinkedList::new())
@@ -491,34 +489,34 @@ impl_rdp! {
             () => LinkedList::new()
         }
 
-        _test_fn_params(&self) -> (TeraResult<LinkedList<Node>>) {
+        _test_fn_params(&self) -> (Result<LinkedList<Node>>) {
             // first arg of many
             (_: test_fn_params, _: test_fn_param, value: _expression(), tail: _test_fn_params()) => {
-                let mut tail = try!(tail);
-                tail.push_front(try!(value));
+                let mut tail = tail?;
+                tail.push_front(value?);
                 Ok(tail)
             },
             // arguments after the first of many
             (_: test_fn_param, value: _expression(), tail: _test_fn_params()) => {
-                let mut tail = try!(tail);
-                tail.push_front(try!(value));
+                let mut tail = tail?;
+                tail.push_front(value?);
                 Ok(tail)
             },
             // Base case.
             () => (Ok(LinkedList::new()))
         }
 
-        _test(&self) -> TeraResult<(String, LinkedList<Node>)> {
+        _test(&self) -> Result<(String, LinkedList<Node>)> {
             (_: test_fn, &name: simple_ident, params: _test_fn_params()) => {
-                Ok((name.to_string(), try!(params)))
+                Ok((name.to_string(), params?))
             },
         }
 
-        _expression(&self) -> TeraResult<Node> {
+        _expression(&self) -> Result<Node> {
             (_: add_sub, left: _expression(), sign, right: _expression()) => {
                 Ok(Node::Math {
-                    lhs: Box::new(try!(left)),
-                    rhs: Box::new(try!(right)),
+                    lhs: Box::new(left?),
+                    rhs: Box::new(right?),
                     operator: match sign.rule {
                         Rule::op_plus => "+".to_string(),
                         Rule::op_minus => "-".to_string(),
@@ -528,8 +526,8 @@ impl_rdp! {
             },
             (_: mul_div, left: _expression(), sign, right: _expression()) => {
                 Ok(Node::Math {
-                    lhs: Box::new(try!(left)),
-                    rhs: Box::new(try!(right)),
+                    lhs: Box::new(left?),
+                    rhs: Box::new(right?),
                     operator: match sign.rule {
                         Rule::op_times => "*".to_string(),
                         Rule::op_slash => "/".to_string(),
@@ -539,8 +537,8 @@ impl_rdp! {
             },
             (_: comparison, left: _expression(), sign, right: _expression()) => {
                 Ok(Node::Logic {
-                    lhs: Box::new(try!(left)),
-                    rhs: Box::new(try!(right)),
+                    lhs: Box::new(left?),
+                    rhs: Box::new(right?),
                     operator: match sign.rule {
                         Rule::op_gt => ">".to_string(),
                         Rule::op_lt => "<".to_string(),
@@ -554,32 +552,32 @@ impl_rdp! {
             },
             (_: and, left: _expression(), _, right: _expression()) => {
                 Ok(Node::Logic {
-                    lhs: Box::new(try!(left)),
-                    rhs: Box::new(try!(right)),
+                    lhs: Box::new(left?),
+                    rhs: Box::new(right?),
                     operator: "and".to_string()
                 })
             },
             (_: or, left: _expression(), _, right: _expression()) => {
                 Ok(Node::Logic {
-                    lhs: Box::new(try!(left)),
-                    rhs: Box::new(try!(right)),
+                    lhs: Box::new(left?),
+                    rhs: Box::new(right?),
                     operator: "or".to_string()
                 })
             },
             (_: identifier_with_filter, &ident: identifier, tail: _filters()) => {
                 Ok(Node::Identifier {
                     name: ident.to_string(),
-                    filters: Some(try!(tail)),
+                    filters: Some(tail?),
                 })
             },
             (&ident: identifier) => {
                 Ok(Node::Identifier {name: ident.to_string(), filters: None })
             },
             (&number: int) => {
-                Ok(Node::Int(number.parse::<i32>().unwrap()))
+                Ok(Node::Int(number.parse::<i64>().unwrap()))
             },
             (&number: float) => {
-                Ok(Node::Float(number.parse::<f32>().unwrap()))
+                Ok(Node::Float(number.parse::<f64>().unwrap()))
             },
             (_: op_true) => {
                 Ok(Node::Bool(true))
@@ -597,37 +595,26 @@ impl_rdp! {
     }
 }
 
-// We need to preserve whitespace and count whitespace as text, which
-// pest doesn't allow easily so we have a custom step before processing
-// to add all/fix all our text tokens if necessary
-pub fn parse(input: &str) -> TeraResult<Node> {
+// We need a little bit of post-processing to
+pub fn parse(input: &str) -> Result<Node> {
     let mut parser = Rdp::new(StringInput::new(input));
 
     if !parser.template() {
         let (_, pos) = parser.expected();
         let (line_no, col_no) = parser.input().line_col(pos);
-        return Err(TeraError::InvalidSyntax(line_no, col_no));
+        bail!("Invalid Tera syntax at line {}, column {}", line_no, col_no);
     }
-    // println!("{:#?}", parser.queue_with_captures());
 
     // We need to check for deprecated syntaxes
     for token in parser.queue() {
         match token.rule {
             Rule::op_wrong_and => {
                 let (line_no, col_no) = parser.input().line_col(token.start);
-                return Err(
-                    TeraError::DeprecatedSyntax(
-                        line_no, col_no, "Use `and` instead of `&&`".to_string()
-                    )
-                );
+                bail!("Use `and` instead of `&&` at line {}, column {}", line_no, col_no);
             },
             Rule::op_wrong_or => {
                 let (line_no, col_no) = parser.input().line_col(token.start);
-                return Err(
-                    TeraError::DeprecatedSyntax(
-                        line_no, col_no, "Use `or` instead of `||`".to_string()
-                    )
-                );
+                bail!("Use `or` instead of `||` at line {}, column {}", line_no, col_no);
             },
             _ => ()
         };
@@ -643,7 +630,6 @@ mod tests {
     use pest::prelude::*;
 
     use super::{Rdp, Node, parse};
-    use errors::TeraError;
 
     #[test]
     fn test_int() {
@@ -891,8 +877,8 @@ mod tests {
         let parsed_ast = parse("{% block hey ");
         assert!(parsed_ast.is_err());
         assert_eq!(
-            parsed_ast.err().unwrap(),
-            TeraError::InvalidSyntax(1, 1)
+            parsed_ast.err().unwrap().description(),
+            "Invalid Tera syntax at line 1, column 1"
         );
     }
 
@@ -901,8 +887,8 @@ mod tests {
         let parsed_ast = parse("{% extends \"base.html\" %} {% extends \"base.html\" %}");
         assert!(parsed_ast.is_err());
         assert_eq!(
-            parsed_ast.err().unwrap(),
-            TeraError::InvalidSyntax(1, 27)
+            parsed_ast.err().unwrap().description(),
+            "Invalid Tera syntax at line 1, column 27"
         );
     }
 
@@ -1380,8 +1366,8 @@ mod tests {
         let parsed_ast = parse("{{ true && 1 }}");
         assert!(parsed_ast.is_err());
         assert_eq!(
-            parsed_ast.err().unwrap(),
-            TeraError::DeprecatedSyntax(1, 9, "Use `and` instead of `&&`".to_string())
+            parsed_ast.err().unwrap().description(),
+            "Use `and` instead of `&&` at line 1, column 9"
         );
     }
 
@@ -1390,8 +1376,8 @@ mod tests {
         let parsed_ast = parse("{{ true || 1 }}");
         assert!(parsed_ast.is_err());
         assert_eq!(
-            parsed_ast.err().unwrap(),
-            TeraError::DeprecatedSyntax(1, 9, "Use `or` instead of `||`".to_string())
+            parsed_ast.err().unwrap().description(),
+            "Use `or` instead of `||` at line 1, column 9"
         );
     }
 
@@ -1400,8 +1386,8 @@ mod tests {
         let parsed_ast = parse("{% block hey %}{% endblock ho %}");
         assert!(parsed_ast.is_err());
         assert_eq!(
-            parsed_ast.err().unwrap(),
-            TeraError::MismatchingEndTag(1, 33, "hey".to_string(), "ho".to_string())
+            parsed_ast.err().unwrap().description(),
+            "Block `ho` is closing at line 1, col 33 but we were expecting `hey` to be closing"
         );
     }
 

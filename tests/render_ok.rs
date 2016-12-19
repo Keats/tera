@@ -16,11 +16,11 @@ fn assert_template_ok(path: &str, others: Vec<&str>) {
 
     for p in others {
         let base = p.to_string();
-        let split = base.split("/").collect::<Vec<&str>>();
+        let split = base.split('/').collect::<Vec<&str>>();
         let name = split.last().unwrap();
-        tera.add_template(name, &read_file(&base));
+        tera.add_template(name, &read_file(&base)).unwrap();
     }
-    tera.add_template("tpl", &read_file(path));
+    tera.add_template("tpl.html", &read_file(path)).unwrap();
     let expected = read_file(&path.replace("templates", "expected"));
 
     let mut context = Context::new();
@@ -35,7 +35,7 @@ fn assert_template_ok(path: &str, others: Vec<&str>) {
     let empty: Vec<Review> = Vec::new();
     context.add("empty", &empty);
 
-    let rendered = tera.render("tpl", context).unwrap();
+    let rendered = tera.render("tpl.html", context).unwrap();
     if rendered != expected {
         println!("Template {:?} was rendered incorrectly", path);
         println!("Got: \n {:#?}", rendered);
@@ -118,7 +118,7 @@ fn test_ok_include_template() {
 fn test_ok_value_render() {
     let path = "tests/templates/value_render.html";
     let mut tera = Tera::default();
-    tera.add_template("tpl", &read_file(path));
+    tera.add_template("tpl", &read_file(path)).unwrap();
     let expected = read_file(&path.replace("templates", "expected"));
     let rendered = tera.value_render("tpl", &Product::new()).unwrap();
     if rendered != expected {
@@ -136,5 +136,14 @@ fn test_ok_macros() {
     assert_template_ok(
         "tests/templates/use_macros.html",
         vec!["tests/templates/macros.html", "tests/templates/macro_included.html"]
+    );
+}
+
+
+#[test]
+fn test_magical_variable_dumps_context() {
+    assert_template_ok(
+        "tests/templates/magical_variable.html",
+        vec!["tests/templates/macros.html"]
     );
 }
