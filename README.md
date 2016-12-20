@@ -464,10 +464,10 @@ Example: `{{ num | filesizeformat }}`
 #### escape
 Escapes a string's HTML. Specifically, it makes these replacements:
 
-- & is converted to &amp;
-- < is converted to &lt;
-- > is converted to &gt;
-- " (double quote) is converted to &quot;
-- ' (single quote) is converted to &#x27;
-- / is converted to &#x27;
-- ` is converted to &#96;
+- & is converted to `&amp;`
+- < is converted to `&lt;`
+- > is converted to `&gt;`
+- " (double quote) is converted to `&quot;`
+- ' (single quote) is converted to `&#x27;`
+- / is converted to `&#x27;`
+- ` is converted to `&#96;`
