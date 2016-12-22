@@ -485,4 +485,4 @@ Escapes a string's HTML. Specifically, it makes these replacements:
 - " (double quote) is converted to `&quot;`
 - ' (single quote) is converted to `&#x27;`
 - / is converted to `&#x27;`
-- ` is converted to `&#96;`
+- `` ` `` is converted to `&#96;`
