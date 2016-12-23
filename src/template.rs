@@ -4,33 +4,37 @@ use parser::{parse, Node};
 use errors::{Result};
 
 
-// This is the parsed equivalent of a template file
+/// This is the parsed equivalent of a template file
+/// Not mean to be used directly unless you want a one-off template rendering
 #[derive(Debug, Clone)]
 pub struct Template {
-    pub name: String, // filename
+    /// filename
+    pub name: String,
+    /// Parsed ast
     pub ast: Node,
-    // macros defined in that file
+    /// macros defined in that file
     pub macros: HashMap<String, Node>,
-    // (filename, namespace) for the macros imported in that file
+    /// (filename, namespace) for the macros imported in that file
     pub imported_macro_files: Vec<(String, String)>,
-    // Only used during initial parsing. Rendering will use `self.parents`
+    /// Only used during initial parsing. Rendering will use `self.parents`
     pub parent: Option<String>,
-    // only used during initial parsing. Rendering will use `self.blocks_definitions`
+    /// only used during initial parsing. Rendering will use `self.blocks_definitions`
     pub blocks: HashMap<String, Node>,
 
-    // Filled when all templates have been parsed: contains the full list of parent templates
-    // as opposed to Tera::Template which only contains the optional parent
+    /// Filled when all templates have been parsed: contains the full list of parent templates
+    /// as opposed to Tera::Template which only contains the optional parent
     pub parents: Vec<String>,
-    // Filled when all templates have been parsed: contains the definition of all the blocks for
-    // the current template and the definition of parent templates if there is. Needed for super()
-    // to work without having to find them each time.
-    // The value is a Vec of all the definitions in order, with the tpl name from where it comes from
-    // Order is from highest in hierarchy to current template
-    // The tpl name is needed in order to load its macros
+    /// Filled when all templates have been parsed: contains the definition of all the blocks for
+    /// the current template and the definition of parent templates if there is. Needed for super()
+    /// to work without having to find them each time.
+    /// The value is a Vec of all the definitions in order, with the tpl name from where it comes from
+    /// Order is from highest in hierarchy to current template
+    /// The tpl name is needed in order to load its macros
     pub blocks_definitions: HashMap<String, Vec<(String, Node)>>,
 }
 
 impl Template {
+    /// Parse the template string given
     pub fn new(tpl_name: &str, input: &str) -> Result<Template> {
         let ast = parse(input)?;
 

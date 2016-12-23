@@ -7,6 +7,7 @@
 
 // Needed by pest
 #![recursion_limit = "300"]
+#![deny(missing_docs)]
 
 #![cfg_attr(feature = "cargo-clippy", allow(block_in_if_condition_stmt, linkedlist, eq_op))]
 

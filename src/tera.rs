@@ -166,6 +166,7 @@ impl Tera {
     /// To render a template with an empty context, simply pass a new `Context` object
     ///
     /// ```rust,ignore
+    /// // Rendering a template with an empty content
     /// tera.render("hello.html", Context::new());
     /// ```
     pub fn render(&self, template_name: &str, data: Context) -> Result<String> {
@@ -193,6 +194,28 @@ impl Tera {
         let template = self.get_template(template_name)?;
         let mut renderer = Renderer::new(template, self, value);
         renderer.render()
+    }
+
+    /// Renders a one off template (for example a template coming from a user input)
+    ///
+    /// This creates a separate instance of Tera with no possibilities of adding custom filters
+    /// or testers, parses the template and render it immediately.
+    /// Any errors will mention the `one_off` template: this is the name given to the template by
+    /// Tera
+    ///
+    /// ```rust,ignore
+    /// let mut context = Context::new();
+    /// context.add("greeting", &"hello");
+    /// Tera::one_off("{{ greeting }} world", context);
+    /// ```
+    pub fn one_off(input: &str, data: Context, autoescape: bool) -> Result<String> {
+        let mut tera = Tera::default();
+        tera.add_template("one_off", input)?;
+        if autoescape {
+            tera.autoescape_on(vec!["one_off"]);
+        }
+
+        tera.render("one_off", data)
     }
 
     #[doc(hidden)]
@@ -380,6 +403,7 @@ impl fmt::Debug for Tera {
 #[cfg(test)]
 mod tests {
     use super::{Tera};
+    use context::Context;
 
     #[test]
     fn test_get_inheritance_chain() {
@@ -460,5 +484,23 @@ mod tests {
         assert_eq!(hey_definitions.len(), 3);
         let ending_definitions = tera.get_template("parent").unwrap().blocks_definitions.get("ending").unwrap();
         assert_eq!(ending_definitions.len(), 1);
+    }
+
+    #[test]
+    fn test_can_autoescape_one_off_template() {
+        let mut context = Context::new();
+        context.add("greeting", &"<p>");
+        let result = Tera::one_off("{{ greeting }} world", context, true).unwrap();
+
+        assert_eq!(result, "&lt;p&gt; world");
+    }
+
+    #[test]
+    fn test_can_disable_autoescape_one_off_template() {
+        let mut context = Context::new();
+        context.add("greeting", &"<p>");
+        let result = Tera::one_off("{{ greeting }} world", context, false).unwrap();
+
+        assert_eq!(result, "<p> world");
     }
 }

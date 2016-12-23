@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0 (unreleased)
+
+- Added `#![deny(missing_docs)]` to the crate
+- Added `Tera::one_off` to render a single template
+
 ## 0.5.0 (2016-12-19)
 
 A few breaking changes in this one

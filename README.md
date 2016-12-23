@@ -108,6 +108,15 @@ tera.value_render("products/product.html", &product);
 ```
 Note that this method only works for objects that would be converted to JSON objects, like structs and maps.
  
+
+Want to render a single template? For example a user given one? Tera provides the `one_off` function for that.
+
+```rust
+// The last parameter is whether we want to autoescape the template or not.
+// Should be true in 99% of the cases for HTML
+let result = Tera::one_off(user_tpl, context, true);
+```
+
 ### Autoescaping
 By default, autoescaping is turned on for files ending in `.html`, `.htm` and `.xml`.
 You can change that by calling `Tera::autoescape_on` with a Vec of suffixes. Suffixes don't have to be extensions.
