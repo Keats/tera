@@ -15,6 +15,7 @@ pub enum Node {
 
     Math {lhs: Box<Node>, rhs: Box<Node>, operator: String},
     Logic {lhs: Box<Node>, rhs: Box<Node>, operator: String},
+    Not(Box<Node>),
 
     If {condition_nodes: LinkedList<Node>, else_node: Option<Box<Node>>},
     // represents if/elif. condition (Bool, Math, Logic, Test), body (a List)
@@ -65,6 +66,7 @@ impl_rdp! {
         op_wrong_or  = { ["||"] }
         op_and       = { ["and"] }
         op_wrong_and = { ["&&"] }
+        op_not       = { ["not"] }
         op_lte       = { ["<="] }
         op_gte       = { [">="] }
         op_lt        = { ["<"] }
@@ -131,11 +133,15 @@ impl_rdp! {
         expression = _{
             // boolean first so they are not caught as identifiers
             { boolean | string | idents | float | int }
-            or          = { op_or | op_wrong_or }
-            and         = { op_and | op_wrong_and }
             comparison  = { op_gt | op_lt | op_eq | op_ineq | op_lte | op_gte }
             add_sub     = { op_plus | op_minus }
             mul_div     = { op_times | op_slash }
+        }
+
+        logic_expression = _{
+            { op_not? ~ expression }
+            or          = { op_or | op_wrong_or }
+            and         = { op_and | op_wrong_and }
         }
 
         // Tera specific things
@@ -153,13 +159,13 @@ impl_rdp! {
         include_tag      = !@{ tag_start ~ ["include"] ~ string ~ tag_end }
         import_macro_tag = !@{ tag_start ~ ["import"] ~ string ~ ["as"] ~ simple_ident ~ tag_end}
         extends_tag      = !@{ tag_start ~ ["extends"] ~ string ~ tag_end }
-        variable_tag     = !@{ variable_start ~ (macro_call | expression) ~ variable_end }
+        variable_tag     = !@{ variable_start ~ (macro_call | logic_expression) ~ variable_end }
         super_tag        = !@{ variable_start ~ ["super()"] ~ variable_end }
         comment_tag      = !@{ comment_start ~ (!comment_end ~ any )* ~ comment_end }
         block_tag        = !@{ tag_start ~ ["block"] ~ identifier ~ tag_end }
         macro_tag        = !@{ tag_start ~ ["macro"] ~ macro_definition ~ tag_end }
-        if_tag           = !@{ tag_start ~ ["if"] ~ expression ~ test? ~ tag_end }
-        elif_tag         = !@{ tag_start ~ ["elif"] ~ expression ~ test? ~ tag_end }
+        if_tag           = !@{ tag_start ~ ["if"] ~ logic_expression ~ test? ~ tag_end }
+        elif_tag         = !@{ tag_start ~ ["elif"] ~ logic_expression ~ test? ~ tag_end }
         else_tag         = !@{ tag_start ~ ["else"] ~ tag_end }
         for_tag          = !@{ tag_start ~ ["for"] ~ identifier ~ ["in"] ~ idents ~ tag_end }
         raw_tag          = !@{ tag_start ~ ["raw"] ~ tag_end }
@@ -558,6 +564,8 @@ impl_rdp! {
                 })
             },
             (_: or, left: _expression(), _, right: _expression()) => {
+                println!("{:?}", left);
+                println!("{:?}", right);
                 Ok(Node::Logic {
                     lhs: Box::new(left?),
                     rhs: Box::new(right?),
@@ -569,6 +577,10 @@ impl_rdp! {
                     name: ident.to_string(),
                     filters: Some(tail?),
                 })
+            },
+            // single not used {% if not admin %} => equivalent to {% if admin == false %}
+            (_: op_not, exp: _expression()) => {
+                Ok(Node::Not(Box::new(exp?)))
             },
             (&ident: identifier) => {
                 Ok(Node::Identifier {name: ident.to_string(), filters: None })
@@ -750,21 +762,36 @@ mod tests {
     #[test]
     fn test_expression_math() {
         let mut parser = Rdp::new(StringInput::new("1 + 2 + 3 * 9/2 + 2"));
-        assert!(parser.expression());
+        assert!(parser.logic_expression());
         assert!(parser.end());
     }
 
     #[test]
     fn test_expression_identifier_logic_simple() {
         let mut parser = Rdp::new(StringInput::new("index + 1 > 1"));
-        assert!(parser.expression());
+        assert!(parser.logic_expression());
         assert!(parser.end());
     }
 
     #[test]
     fn test_expression_identifier_logic_complex() {
         let mut parser = Rdp::new(StringInput::new("1 > 2 or 3 == 4 and admin"));
-        assert!(parser.expression());
+        assert!(parser.logic_expression());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_logic_expression_not_simple() {
+        let mut parser = Rdp::new(StringInput::new("not admin"));
+        assert!(parser.logic_expression());
+        println!("{:?}", parser.queue_with_captures());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_logic_expression_not_expression() {
+        let mut parser = Rdp::new(StringInput::new("not user_count or true"));
+        assert!(parser.logic_expression());
         assert!(parser.end());
     }
 
@@ -1159,6 +1186,60 @@ mod tests {
     }
 
     #[test]
+    fn test_ast_not_condition_and() {
+        let parsed_ast = parse("{% if admin and not superadmin %}Admin{% endif %}");
+        let mut ast = LinkedList::new();
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Admin".to_string()));
+
+        let mut condition_nodes = LinkedList::new();
+        condition_nodes.push_back(Node::Conditional {
+            condition: Box::new(Node::Logic {
+                lhs: Box::new(Node::Identifier {name: "admin".to_string(), filters: None}),
+                rhs: Box::new(Node::Not(Box::new(Node::Identifier {name: "superadmin".to_string(), filters: None}))),
+                operator: "and".to_string(),
+            }),
+            body: Box::new(Node::List(body.clone()))
+        });
+
+        ast.push_front(Node::If {
+            condition_nodes: condition_nodes,
+            else_node: None,
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_not_condition_or() {
+        let parsed_ast = parse("{% if not active or number_users > 10 %}Login{% endif %}");
+        let mut ast = LinkedList::new();
+        let mut body = LinkedList::new();
+        body.push_front(Node::Text("Login".to_string()));
+
+        let mut condition_nodes = LinkedList::new();
+        condition_nodes.push_back(Node::Conditional {
+            condition: Box::new(Node::Logic {
+                lhs: Box::new(Node::Not(Box::new(Node::Identifier {name: "active".to_string(), filters: None}))),
+                rhs: Box::new(Node::Logic {
+                    lhs: Box::new(Node::Identifier {name: "number_users".to_string(), filters: None}),
+                    rhs: Box::new(Node::Int(10)),
+                    operator: ">".to_string(),
+                }),
+                operator: "or".to_string(),
+            }),
+            body: Box::new(Node::List(body.clone()))
+        });
+
+        ast.push_front(Node::If {
+            condition_nodes: condition_nodes,
+            else_node: None,
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
     fn test_nullary_test() {
         let mut parser = Rdp::new(StringInput::new("is defined"));
         assert!(parser.test());
@@ -1167,7 +1248,6 @@ mod tests {
 
     #[test]
     fn test_unary_test() {
-        // TODO: remove that syntax
         let mut parser = Rdp::new(StringInput::new("is equalto other"));
         assert!(parser.test());
         assert!(parser.end());

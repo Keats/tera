@@ -143,7 +143,7 @@ Conditionals are fully supported and are identical to the ones in Python.
 ```jinja
 {% if price < 10 or always_show %}
    Price is {{ price }}.
-{% elif price > 1000 %}
+{% elif price > 1000 and not rich %}
    That's expensive!
 {% else %}
     N/A

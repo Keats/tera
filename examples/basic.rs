@@ -27,6 +27,7 @@ fn main() {
     let mut context = Context::new();
     context.add("username", &"Bob");
     context.add("numbers", &vec![1,2,3]);
+    context.add("show_all", &false);
     context.add("bio", &"<script>alert('pwnd');</script>");
 
     // A one off template

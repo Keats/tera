@@ -68,3 +68,9 @@ fn test_error_parser_unexpected_terminator() {
 fn test_error_parser_invalid_content_macro() {
     load_template("tests/parser-failures/invalid_content_macro.html");
 }
+
+#[should_panic]
+#[test]
+fn test_error_parser_missing_not_expression() {
+    load_template("tests/parser-failures/missing_not_expression.html");
+}

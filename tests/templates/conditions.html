@@ -6,7 +6,7 @@
     <h1>{{ product.name }} - {{ product.manufacturer }}</h1>
     <p>{{ product.summary }}</p>
     <p>£{{ product.price * 1.20 }} (VAT inc.)</p>
-    {% if friend_reviewed %}
+    {% if not hide_reviews and friend_reviewed %}
       <p>Look at reviews from your friends {{ username }}</p>
       {% if number_reviews > 10 or show_more %}
         <p>See all reviews</p>

@@ -2,8 +2,13 @@
 
 ## 0.6.0 (unreleased)
 
+### BREAKING CHANGES
+- `not` is now a Tera keyword
+
+### Others
 - Added `#![deny(missing_docs)]` to the crate
 - Added `Tera::one_off` to render a single template
+- Added `not` operator in conditions to mean falsiness (equivalent to `!` in Rust)
 
 ## 0.5.0 (2016-12-19)
 

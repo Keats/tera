@@ -302,6 +302,9 @@ impl<'a> Renderer<'a> {
                     _ => unreachable!()
                 }
             }
+            Not(n) => {
+                Ok(self.eval_expression(*n).map(|v| !v.is_truthy()).unwrap_or(true))
+            },
             _ => unreachable!()
         }
     }
@@ -944,6 +947,50 @@ mod tests {
         let result = tera.render("child", Context::new());
 
         assert_eq!(result.unwrap(), "Hello/Hello".to_string());
+    }
+
+    #[test]
+    fn test_render_not_condition_simple_value_exists() {
+        let mut context = Context::new();
+        context.add("logged_in", &false);
+        let mut tera = Tera::default();
+        tera.add_template("hello.html", "{% if not logged_in %}Login{% endif %}").unwrap();
+        let result = tera.render("hello.html", context);
+
+        assert_eq!(result.unwrap(), "Login".to_string());
+    }
+
+    #[test]
+    fn test_render_not_condition_simple_value_does_not_exist() {
+        let mut tera = Tera::default();
+        tera.add_template("hello.html", "{% if not logged_in %}Login{% endif %}").unwrap();
+        let result = tera.render("hello.html", Context::new());
+
+        assert_eq!(result.unwrap(), "Login".to_string());
+    }
+
+    #[test]
+    fn test_render_not_complex_condition_and() {
+        let mut context = Context::new();
+        context.add("logged_in", &false);
+        context.add("active", &true);
+        let mut tera = Tera::default();
+        tera.add_template("hello.html", "{% if not logged_in and active %}Login{% endif %}").unwrap();
+        let result = tera.render("hello.html", context);
+
+        assert_eq!(result.unwrap(), "Login".to_string());
+    }
+
+    #[test]
+    fn test_render_not_complex_condition_or() {
+        let mut context = Context::new();
+        context.add("number_users", &11);
+        context.add("active", &true);
+        let mut tera = Tera::default();
+        tera.add_template("hello.html", "{% if not active or number_users > 10 %}Login{% endif %}").unwrap();
+        let result = tera.render("hello.html", context);
+
+        assert_eq!(result.unwrap(), "Login".to_string());
     }
 
     #[test]
