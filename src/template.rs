@@ -38,21 +38,10 @@ impl Template {
     pub fn new(tpl_name: &str, input: &str) -> Result<Template> {
         let ast = parse(input)?;
 
-        // Figure out if there is a parent at compile time
-        let parent = match ast.get_children().front() {
-            Some(f) => match *f {
-                Node::Extends(ref name) => Some(name.to_string()),
-                _ => None
-            },
-            None => None
-        };
-
         let mut blocks = HashMap::new();
-
         // We find all those blocks at first so we don't need to do it for each render
         // Recursive because we can have blocks inside blocks
         fn find_blocks(tpl_name: String, ast: LinkedList<Node>, blocks: &mut HashMap<String, Node>) -> Result<()> {
-            //let t: () = blocks;
             for node in ast {
                 match node {
                     Node::Block { ref name, ref body } => {
@@ -73,8 +62,12 @@ impl Template {
         // We also find all macros defined/imported in the template file
         let mut macros = HashMap::new();
         let mut imported_macro_files = vec![];
+        let mut parent = None;
         for node in ast.get_children() {
             match node {
+                Node::Extends(ref name) => {
+                    parent = Some(name.to_string());
+                },
                 Node::Macro { ref name, .. } => {
                     if macros.contains_key(name) {
                         bail!("Macro `{}` is duplicated", name);

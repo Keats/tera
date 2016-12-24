@@ -4,3 +4,4 @@ target/
 Cargo.lock
 notes
 out.html
+*.bench

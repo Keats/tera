@@ -1,7 +1,48 @@
 use std::collections::{HashMap, LinkedList};
+use std::fmt;
 
 use pest::prelude::*;
 use errors::Result;
+
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Operator {
+    Add,
+    Sub,
+    Mul,
+    Div,
+
+    Gt,
+    Gte,
+    Lt,
+    Lte,
+    Eq,
+    NotEq,
+
+    And,
+    Or,
+}
+
+impl fmt::Display for Operator {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match *self {
+            Operator::Add => "+",
+            Operator::Sub => "-",
+            Operator::Mul => "*",
+            Operator::Div => "/",
+
+            Operator::Gt => ">",
+            Operator::Gte => ">=",
+            Operator::Lt => "<",
+            Operator::Lte => "<=",
+            Operator::Eq => "==",
+            Operator::NotEq => "!=",
+
+            Operator::And => "and",
+            Operator::Or => "or",
+        })
+    }
+}
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -13,8 +54,8 @@ pub enum Node {
     Float(f64),
     Bool(bool),
 
-    Math {lhs: Box<Node>, rhs: Box<Node>, operator: String},
-    Logic {lhs: Box<Node>, rhs: Box<Node>, operator: String},
+    Math {lhs: Box<Node>, rhs: Box<Node>, operator: Operator},
+    Logic {lhs: Box<Node>, rhs: Box<Node>, operator: Operator},
     Not(Box<Node>),
 
     If {condition_nodes: LinkedList<Node>, else_node: Option<Box<Node>>},
@@ -63,9 +104,7 @@ impl_rdp! {
 
         // basic blocks of the language
         op_or        = { ["or"] }
-        op_wrong_or  = { ["||"] }
         op_and       = { ["and"] }
-        op_wrong_and = { ["&&"] }
         op_not       = { ["not"] }
         op_lte       = { ["<="] }
         op_gte       = { [">="] }
@@ -140,8 +179,8 @@ impl_rdp! {
 
         logic_expression = _{
             { op_not? ~ expression }
-            or          = { op_or | op_wrong_or }
-            and         = { op_and | op_wrong_and }
+            or          = { op_or }
+            and         = { op_and }
         }
 
         // Tera specific things
@@ -524,8 +563,8 @@ impl_rdp! {
                     lhs: Box::new(left?),
                     rhs: Box::new(right?),
                     operator: match sign.rule {
-                        Rule::op_plus => "+".to_string(),
-                        Rule::op_minus => "-".to_string(),
+                        Rule::op_plus => Operator::Add,
+                        Rule::op_minus => Operator::Sub,
                         _ => unreachable!()
                     }
                 })
@@ -535,8 +574,8 @@ impl_rdp! {
                     lhs: Box::new(left?),
                     rhs: Box::new(right?),
                     operator: match sign.rule {
-                        Rule::op_times => "*".to_string(),
-                        Rule::op_slash => "/".to_string(),
+                        Rule::op_times => Operator::Mul,
+                        Rule::op_slash => Operator::Div,
                         _ => unreachable!()
                     }
                 })
@@ -546,12 +585,12 @@ impl_rdp! {
                     lhs: Box::new(left?),
                     rhs: Box::new(right?),
                     operator: match sign.rule {
-                        Rule::op_gt => ">".to_string(),
-                        Rule::op_lt => "<".to_string(),
-                        Rule::op_eq => "==".to_string(),
-                        Rule::op_ineq => "!=".to_string(),
-                        Rule::op_lte => "<=".to_string(),
-                        Rule::op_gte => ">=".to_string(),
+                        Rule::op_gt => Operator::Gt,
+                        Rule::op_lt => Operator::Lt,
+                        Rule::op_eq => Operator::Eq,
+                        Rule::op_ineq => Operator::NotEq,
+                        Rule::op_lte => Operator::Lte,
+                        Rule::op_gte => Operator::Gte,
                         _ => unreachable!()
                     }
                 })
@@ -560,16 +599,14 @@ impl_rdp! {
                 Ok(Node::Logic {
                     lhs: Box::new(left?),
                     rhs: Box::new(right?),
-                    operator: "and".to_string()
+                    operator: Operator::And,
                 })
             },
             (_: or, left: _expression(), _, right: _expression()) => {
-                println!("{:?}", left);
-                println!("{:?}", right);
                 Ok(Node::Logic {
                     lhs: Box::new(left?),
                     rhs: Box::new(right?),
-                    operator: "or".to_string()
+                    operator: Operator::Or,
                 })
             },
             (_: identifier_with_filter, &ident: identifier, tail: _filters()) => {
@@ -617,21 +654,6 @@ pub fn parse(input: &str) -> Result<Node> {
         bail!("Invalid Tera syntax at line {}, column {}", line_no, col_no);
     }
 
-    // We need to check for deprecated syntaxes
-    for token in parser.queue() {
-        match token.rule {
-            Rule::op_wrong_and => {
-                let (line_no, col_no) = parser.input().line_col(token.start);
-                bail!("Use `and` instead of `&&` at line {}, column {}", line_no, col_no);
-            },
-            Rule::op_wrong_or => {
-                let (line_no, col_no) = parser.input().line_col(token.start);
-                bail!("Use `or` instead of `||` at line {}, column {}", line_no, col_no);
-            },
-            _ => ()
-        };
-    }
-
     parser.main()
 }
 
@@ -641,7 +663,7 @@ mod tests {
 
     use pest::prelude::*;
 
-    use super::{Rdp, Node, parse};
+    use super::{Rdp, Node, parse, Operator};
 
     #[test]
     fn test_int() {
@@ -929,9 +951,9 @@ mod tests {
                 rhs: Box::new(Node::Logic {
                     lhs: Box::new(Node::Bool(false)),
                     rhs: Box::new(Node::Int(1)),
-                    operator: "and".to_string()
+                    operator: Operator::And
                 }),
-                operator: "or".to_string()
+                operator: Operator::Or
             })
         ));
         ast.push_front(Node::Text(" ".to_string()));
@@ -941,9 +963,9 @@ mod tests {
                 rhs: Box::new(Node::Math {
                     lhs: Box::new(Node::Int(1)),
                     rhs: Box::new(Node::Float(2.5)),
-                    operator: "*".to_string()
+                    operator: Operator::Mul
                 }),
-                operator: "+".to_string()
+                operator: Operator::Add
             })
         ));
         ast.push_front(Node::Text(" Hello ".to_string()));
@@ -1197,7 +1219,7 @@ mod tests {
             condition: Box::new(Node::Logic {
                 lhs: Box::new(Node::Identifier {name: "admin".to_string(), filters: None}),
                 rhs: Box::new(Node::Not(Box::new(Node::Identifier {name: "superadmin".to_string(), filters: None}))),
-                operator: "and".to_string(),
+                operator: Operator::And,
             }),
             body: Box::new(Node::List(body.clone()))
         });
@@ -1224,9 +1246,9 @@ mod tests {
                 rhs: Box::new(Node::Logic {
                     lhs: Box::new(Node::Identifier {name: "number_users".to_string(), filters: None}),
                     rhs: Box::new(Node::Int(10)),
-                    operator: ">".to_string(),
+                    operator: Operator::Gt,
                 }),
-                operator: "or".to_string(),
+                operator: Operator::Or,
             }),
             body: Box::new(Node::List(body.clone()))
         });
@@ -1429,7 +1451,7 @@ mod tests {
         params.insert("hey".to_string(), Node::Math {
             lhs: Box::new(Node::Int(1)),
             rhs: Box::new(Node::Int(2)),
-            operator: "+".to_string(),
+            operator: Operator::Add,
         });
         ast.push_front(Node::MacroCall {
             namespace: "macros".to_string(),
@@ -1439,26 +1461,6 @@ mod tests {
 
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
-    }
-
-    #[test]
-    fn test_ast_error_old_and() {
-        let parsed_ast = parse("{{ true && 1 }}");
-        assert!(parsed_ast.is_err());
-        assert_eq!(
-            parsed_ast.err().unwrap().description(),
-            "Use `and` instead of `&&` at line 1, column 9"
-        );
-    }
-
-    #[test]
-    fn test_ast_error_old_or() {
-        let parsed_ast = parse("{{ true || 1 }}");
-        assert!(parsed_ast.is_err());
-        assert_eq!(
-            parsed_ast.err().unwrap().description(),
-            "Use `or` instead of `||` at line 1, column 9"
-        );
     }
 
     #[test]

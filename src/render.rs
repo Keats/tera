@@ -6,7 +6,7 @@ use serde_json::value::{Value, to_value};
 use context::{ValueRender, ValueNumber, ValueTruthy, get_json_pointer};
 use template::Template;
 use errors::{Result, ResultExt};
-use parser::Node;
+use parser::{Node, Operator};
 use parser::Node::*;
 use tera::Tera;
 use utils::escape_html;
@@ -34,14 +34,17 @@ impl ForLoop {
         }
     }
 
+    #[inline]
     pub fn increment(&mut self) {
         self.current += 1;
     }
 
+    #[inline]
     pub fn get(&self) -> Option<&Value> {
         self.values.get(self.current)
     }
 
+    #[inline]
     pub fn len(&self) -> usize {
         self.values.len()
     }
@@ -99,9 +102,10 @@ impl<'a> Renderer<'a> {
 
         // small helper fn to reduce duplication code in the 3 spots in `lookup_variable` where we
         // need to actually do the variable lookup
+        #[inline]
         fn find_variable(context: &Value, key: &str, tpl_name: &str) -> Result<Value> {
-            match context.pointer(&get_json_pointer(key)).cloned() {
-                Some(v) => Ok(v),
+            match context.pointer(&get_json_pointer(key)) {
+                Some(v) => Ok(v.clone()),
                 None => bail!("Field `{}` not found in context while rendering '{}'", key, tpl_name)
             }
         }
@@ -197,11 +201,11 @@ impl<'a> Renderer<'a> {
             Math { ref lhs, ref rhs, ref operator } => {
                 let l = self.eval_math(lhs)?;
                 let r = self.eval_math(rhs)?;
-                let result = match operator.as_str() {
-                    "*" => l * r,
-                    "/" => l / r,
-                    "+" => l + r,
-                    "-" => l - r,
+                let result = match *operator {
+                    Operator::Mul => l * r,
+                    Operator::Div => l / r,
+                    Operator::Add => l + r,
+                    Operator::Sub => l - r,
                     _ => unreachable!()
                 };
 
@@ -256,28 +260,28 @@ impl<'a> Renderer<'a> {
                 tester(self.eval_expression(*expression).ok(), value_params)
             },
             Logic { lhs, rhs, operator } => {
-                match operator.as_str() {
-                    "or" => {
+                match operator {
+                    Operator::Or => {
                         let result = self.eval_condition(*lhs)? || self.eval_condition(*rhs)?;
                         Ok(result)
                     },
-                    "and" => {
+                    Operator::And => {
                         let result = self.eval_condition(*lhs)? && self.eval_condition(*rhs)?;
                         Ok(result)
                     },
-                    ">=" | ">" | "<=" | "<" => {
+                    Operator::Gt | Operator::Gte | Operator::Lt | Operator::Lte => {
                         let l = self.eval_math(&lhs)?;
                         let r = self.eval_math(&rhs)?;
-                        let result = match operator.as_str() {
-                            ">=" => l >= r,
-                            ">" => l > r,
-                            "<=" => l <= r,
-                            "<" => l < r,
+                        let result = match operator {
+                            Operator::Gte => l >= r,
+                            Operator::Gt => l > r,
+                            Operator::Lte => l <= r,
+                            Operator::Lt => l < r,
                             _ => unreachable!()
                         };
                         Ok(result)
                     },
-                    "==" | "!=" => {
+                    Operator::Eq | Operator::NotEq => {
                         let mut lhs_val = self.eval_expression(*lhs)?;
                         let mut rhs_val = self.eval_expression(*rhs)?;
 
@@ -291,9 +295,9 @@ impl<'a> Renderer<'a> {
                             rhs_val = Value::F64(rhs_val.as_f64().unwrap());
                         }
 
-                        let result = match operator.as_str() {
-                            "==" => lhs_val == rhs_val,
-                            "!=" => lhs_val != rhs_val,
+                        let result = match operator {
+                            Operator::Eq => lhs_val == rhs_val,
+                            Operator::NotEq => lhs_val != rhs_val,
                             _ => unreachable!()
                         };
 

@@ -9,6 +9,8 @@
 - Added `#![deny(missing_docs)]` to the crate
 - Added `Tera::one_off` to render a single template
 - Added `not` operator in conditions to mean falsiness (equivalent to `!` in Rust)
+- Remove specific error message when using `||` or `&&`
+- Improved performances for parsing and rendering (~5-20%)
 
 ## 0.5.0 (2016-12-19)
 
