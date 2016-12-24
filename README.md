@@ -477,8 +477,10 @@ You can specify the suffix as an argument that way: `{{ num_messages|pluralize(s
 #### round
 Returns a number rounded following the method given. Default method is `common` which will round to the nearest integer.
 `ceil` and `floor` are available as alternative methods.
+Another optional argument, `precision`, is available to select the precision of the rounding. It defaults to `0`, which will
+round to the nearest integer for the given method.
 
-Example: `{{ num | round }} {{ num | round(method="ceil") }}`
+Example: `{{ num | round }} {{ num | round(method="ceil", precision=2) }}`
 
 #### filesizeformat
 Returns a human-readable file size (i.e. '110 MB') from an integer.

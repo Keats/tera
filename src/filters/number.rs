@@ -22,20 +22,26 @@ pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     }
 }
 
-/// Returns a rounded number using the `method` arg given. `method` defaults to `common` which
-/// will round to the nearest number.
+/// Returns a rounded number using the `method` arg and `precision` given.
+/// `method` defaults to `common` which will round to the nearest number.
 /// `ceil` and `floor` are also available as method.
+/// `precision` defaults to `0`, meaning it will round to an integer
 pub fn round(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("round", "value", f64, value);
     let method = match args.get("method") {
         Some(val) => try_get_value!("round", "method", String, val.clone()),
         None => "common".to_string(),
     };
+    let precision = match args.get("precision") {
+        Some(val) => try_get_value!("round", "precision", i32, val.clone()),
+        None => 0,
+    };
+    let multiplier = if precision == 0 { 1.0 } else { 10.0_f64.powi(precision) } ;
 
     match method.as_ref() {
-        "common" => Ok(to_value(num.round())),
-        "ceil" => Ok(to_value(num.ceil())),
-        "floor" => Ok(to_value(num.floor())),
+        "common" => Ok(to_value((multiplier * num).round() / multiplier)),
+        "ceil" => Ok(to_value((multiplier * num).ceil() / multiplier)),
+        "floor" => Ok(to_value((multiplier * num).floor() / multiplier)),
         _ => bail!(
                 "Filter `round` received an incorrect value for arg `method`: got `{:?}`, \
                 only common, ceil and floor are allowed",
@@ -92,6 +98,15 @@ mod tests {
     }
 
     #[test]
+    fn test_round_default_precision() {
+        let mut args = HashMap::new();
+        args.insert("precision".to_string(), to_value(2));
+        let result = round(to_value(3.15159265359), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(3.15));
+    }
+
+    #[test]
     fn test_round_ceil() {
         let mut args = HashMap::new();
         args.insert("method".to_string(), to_value("ceil"));
@@ -101,12 +116,32 @@ mod tests {
     }
 
     #[test]
+    fn test_round_ceil_precision() {
+        let mut args = HashMap::new();
+        args.insert("method".to_string(), to_value("ceil"));
+        args.insert("precision".to_string(), to_value(1));
+        let result = round(to_value(2.11), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(2.2));
+    }
+
+    #[test]
     fn test_round_floor() {
         let mut args = HashMap::new();
         args.insert("method".to_string(), to_value("floor"));
         let result = round(to_value(2.1), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(2.0));
+    }
+
+    #[test]
+    fn test_round_floor_precision() {
+        let mut args = HashMap::new();
+        args.insert("method".to_string(), to_value("floor"));
+        args.insert("precision".to_string(), to_value(1));
+        let result = round(to_value(2.91), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(2.9));
     }
 
     #[test]

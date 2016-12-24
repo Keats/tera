@@ -11,6 +11,7 @@
 - Added `not` operator in conditions to mean falsiness (equivalent to `!` in Rust)
 - Remove specific error message when using `||` or `&&`
 - Improved performances for parsing and rendering (~5-20%)
+- Added `precision` arg to `round` filter
 
 ## 0.5.0 (2016-12-19)
 
