@@ -7,6 +7,7 @@
 
 // Needed by pest
 #![recursion_limit = "300"]
+#![deny(missing_docs)]
 
 #![cfg_attr(feature = "cargo-clippy", allow(block_in_if_condition_stmt, linkedlist, eq_op))]
 
@@ -20,6 +21,7 @@ extern crate regex;
 #[macro_use] extern crate lazy_static;
 extern crate url;
 extern crate humansize;
+extern crate chrono;
 
 mod errors;
 #[macro_use] mod macros;

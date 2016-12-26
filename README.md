@@ -108,6 +108,15 @@ tera.value_render("products/product.html", &product);
 ```
 Note that this method only works for objects that would be converted to JSON objects, like structs and maps.
  
+
+Want to render a single template? For example a user given one? Tera provides the `one_off` function for that.
+
+```rust
+// The last parameter is whether we want to autoescape the template or not.
+// Should be true in 99% of the cases for HTML
+let result = Tera::one_off(user_tpl, context, true);
+```
+
 ### Autoescaping
 By default, autoescaping is turned on for files ending in `.html`, `.htm` and `.xml`.
 You can change that by calling `Tera::autoescape_on` with a Vec of suffixes. Suffixes don't have to be extensions.
@@ -134,7 +143,7 @@ Conditionals are fully supported and are identical to the ones in Python.
 ```jinja
 {% if price < 10 or always_show %}
    Price is {{ price }}.
-{% elif price > 1000 %}
+{% elif price > 1000 and not rich %}
    That's expensive!
 {% else %}
     N/A
@@ -468,13 +477,22 @@ You can specify the suffix as an argument that way: `{{ num_messages|pluralize(s
 #### round
 Returns a number rounded following the method given. Default method is `common` which will round to the nearest integer.
 `ceil` and `floor` are available as alternative methods.
+Another optional argument, `precision`, is available to select the precision of the rounding. It defaults to `0`, which will
+round to the nearest integer for the given method.
 
-Example: `{{ num | round }} {{ num | round(method="ceil") }}`
+Example: `{{ num | round }} {{ num | round(method="ceil", precision=2) }}`
 
 #### filesizeformat
 Returns a human-readable file size (i.e. '110 MB') from an integer.
 
 Example: `{{ num | filesizeformat }}`
+
+#### date
+Parse a timestamp into a date(time) string. Defaults to `YYYY-MM-DD` format.
+Time formatting syntax is inspired from strftime and a full reference is available 
+on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html).
+
+Example: `{{ ts | date }} {{ ts | date(format="%Y-%m-%d %H:%M")`
 
 #### escape
 Escapes a string's HTML. Specifically, it makes these replacements:

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0 (2016-12-26)
+
+### BREAKING CHANGES
+- `not` is now a Tera keyword
+
+### Others
+- Added `#![deny(missing_docs)]` to the crate
+- Added `Tera::one_off` to parse and render a single template
+- Added `not` operator in conditions to mean falsiness (equivalent to `!` in Rust)
+- Remove specific error message when using `||` or `&&`
+- Improved performances for parsing and rendering (~5-20%)
+- Added `precision` arg to `round` filter
+- Added `date` filter to format a timestamp to a date(time) string
+
 ## 0.5.0 (2016-12-19)
 
 A few breaking changes in this one

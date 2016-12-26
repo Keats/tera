@@ -104,7 +104,7 @@ impl Tera {
     // It also builds the block inheritance chain and detects when super() is called in a place
     // where it can't possibly work
     fn build_inheritance_chains(&mut self) -> Result<()> {
-        // Recursive fn that finds all the parents and put them in an ordered Vec from closest to main
+        // Recursive fn that finds all the parents and put them in an ordered Vec from closest to first parent
         // parent template
         fn build_chain(tera: &Tera, start: &Template, template: &Template, mut parents: Vec<String>) -> Result<Vec<String>> {
             if !parents.is_empty() && start.name == template.name {
@@ -130,15 +130,19 @@ impl Tera {
             }
         }
 
-        // TODO: Can we use iter_mut for the templates and modify in place?
-        // If we do so, we run into a borrow issue since we need to pass the tera instance
-        // to the build chain fn
-        let mut templates = HashMap::new();
+        let mut templates = self.templates.clone();
         for template in self.templates.values() {
-            let mut tpl = template.clone();
-            tpl.parents = build_chain(self, template, template, vec![])?;
+            // Simple template: no inheritance or blocks -> nothing to do
+            if template.parent.is_none() && template.blocks.is_empty() {
+                continue;
+            }
 
-            // TODO: iterate over both blocks and templates and try to find the parents blocks
+            let mut tpl = template.clone();
+            if tpl.parent.is_some() {
+                tpl.parents = build_chain(self, template, template, vec![])?;
+            }
+
+            // Iterate over both blocks and templates and try to find the parents blocks
             // insert that into the tpl object once done so it's available directly in the template
             // without having to fetch all the parents to build it at runtime
             for (block_name, def) in &tpl.blocks {
@@ -149,13 +153,14 @@ impl Tera {
                 for parent in &tpl.parents {
                     let t = self.get_template(parent)
                         .chain_err(|| format!("Couldn't find template {} while building inheritance chains", parent))?;
+
                     if let Some(b) = t.blocks.get(block_name) {
                         definitions.push((t.name.clone(), b.clone()));
                     }
                 }
                 tpl.blocks_definitions.insert(block_name.clone(), definitions);
             }
-            templates.insert(tpl.name.clone(), tpl);
+            templates.insert(template.name.clone(), tpl);
         }
         self.templates = templates;
         Ok(())
@@ -166,6 +171,7 @@ impl Tera {
     /// To render a template with an empty context, simply pass a new `Context` object
     ///
     /// ```rust,ignore
+    /// // Rendering a template with an empty content
     /// tera.render("hello.html", Context::new());
     /// ```
     pub fn render(&self, template_name: &str, data: Context) -> Result<String> {
@@ -195,7 +201,30 @@ impl Tera {
         renderer.render()
     }
 
+    /// Renders a one off template (for example a template coming from a user input)
+    ///
+    /// This creates a separate instance of Tera with no possibilities of adding custom filters
+    /// or testers, parses the template and render it immediately.
+    /// Any errors will mention the `one_off` template: this is the name given to the template by
+    /// Tera
+    ///
+    /// ```rust,ignore
+    /// let mut context = Context::new();
+    /// context.add("greeting", &"hello");
+    /// Tera::one_off("{{ greeting }} world", context);
+    /// ```
+    pub fn one_off(input: &str, data: Context, autoescape: bool) -> Result<String> {
+        let mut tera = Tera::default();
+        tera.add_template("one_off", input)?;
+        if autoescape {
+            tera.autoescape_on(vec!["one_off"]);
+        }
+
+        tera.render("one_off", data)
+    }
+
     #[doc(hidden)]
+    #[inline]
     pub fn get_template(&self, template_name: &str) -> Result<&Template> {
         match self.templates.get(template_name) {
             Some(tpl) => Ok(tpl),
@@ -243,6 +272,7 @@ impl Tera {
 
 
     #[doc(hidden)]
+    #[inline]
     pub fn get_filter(&self, filter_name: &str) -> Result<&FilterFn> {
         match self.filters.get(filter_name) {
             Some(fil) => Ok(fil),
@@ -262,6 +292,7 @@ impl Tera {
     }
 
     #[doc(hidden)]
+    #[inline]
     pub fn get_tester(&self, tester_name: &str) -> Result<&TesterFn> {
         match self.testers.get(tester_name) {
             Some(t) => Ok(t),
@@ -302,6 +333,7 @@ impl Tera {
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
         self.register_filter("filesizeformat", number::filesizeformat);
+        self.register_filter("filesizeformat", number::date);
 
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
@@ -380,6 +412,7 @@ impl fmt::Debug for Tera {
 #[cfg(test)]
 mod tests {
     use super::{Tera};
+    use context::Context;
 
     #[test]
     fn test_get_inheritance_chain() {
@@ -460,5 +493,23 @@ mod tests {
         assert_eq!(hey_definitions.len(), 3);
         let ending_definitions = tera.get_template("parent").unwrap().blocks_definitions.get("ending").unwrap();
         assert_eq!(ending_definitions.len(), 1);
+    }
+
+    #[test]
+    fn test_can_autoescape_one_off_template() {
+        let mut context = Context::new();
+        context.add("greeting", &"<p>");
+        let result = Tera::one_off("{{ greeting }} world", context, true).unwrap();
+
+        assert_eq!(result, "&lt;p&gt; world");
+    }
+
+    #[test]
+    fn test_can_disable_autoescape_one_off_template() {
+        let mut context = Context::new();
+        context.add("greeting", &"<p>");
+        let result = Tera::one_off("{{ greeting }} world", context, false).unwrap();
+
+        assert_eq!(result, "<p> world");
     }
 }

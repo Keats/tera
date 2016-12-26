@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 use serde::ser::Serialize;
 use serde_json::value::{Value, to_value};
 
-pub type TemplateContext = BTreeMap<String, Value>;
 
 /// The struct that holds the context of a template rendering.
 ///
@@ -114,6 +113,7 @@ impl ValueTruthy for Value {
 
 
 /// Converts a dotted path to a json pointer one
+#[inline]
 pub fn get_json_pointer(key: &str) -> String {
     ["/", &key.replace(".", "/")].join("")
 }

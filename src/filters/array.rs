@@ -18,11 +18,7 @@ pub fn first(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 pub fn last(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("last", "value", Vec<Value>, value);
 
-    if let Some(val) = arr.last() {
-        Ok(val.clone())
-    } else {
-        Ok(to_value(&""))
-    }
+    Ok(arr.last().cloned().unwrap_or_else(|| to_value(&"")))
 }
 
 /// Joins all values in the array by the `sep` argument given
