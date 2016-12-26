@@ -487,6 +487,13 @@ Returns a human-readable file size (i.e. '110 MB') from an integer.
 
 Example: `{{ num | filesizeformat }}`
 
+#### date
+Parse a timestamp into a date(time) string. Defaults to `YYYY-MM-DD` format.
+Time formatting syntax is inspired from strftime and a full reference is available 
+on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html).
+
+Example: `{{ ts | date }} {{ ts | date(format="%Y-%m-%d %H:%M")`
+
 #### escape
 Escapes a string's HTML. Specifically, it makes these replacements:
 

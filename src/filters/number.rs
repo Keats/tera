@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use serde_json::value::{Value, to_value};
 use humansize::{FileSize, file_size_opts};
+use chrono::{NaiveDateTime};
 
 use errors::Result;
 
@@ -58,6 +59,21 @@ pub fn filesizeformat(value: Value, _: HashMap<String, Value>) -> Result<Value> 
         .file_size(file_size_opts::CONVENTIONAL)
         .or_else(|_| Err(format!("Filter `filesizeformat` was called on a negative number: {}", num).into()))
         .map(to_value)
+}
+
+
+/// Returns a formatted timestamp according to the given `format` argument.
+/// `format` defaults to the ISO 8601 `YYYY-MM-DD` format
+/// Time formatting syntax is inspired from strftime and a full reference is available
+/// on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html)
+pub fn date(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+    let timestamp = try_get_value!("date", "value", i64, value);
+    let format = match args.get("format") {
+        Some(val) => try_get_value!("date", "format", String, val.clone()),
+        None => "%Y-%m-%d".to_string(),
+    };
+    let dt = NaiveDateTime::from_timestamp(timestamp, 0);
+    Ok(to_value(&dt.format(&format).to_string()))
 }
 
 
@@ -150,5 +166,22 @@ mod tests {
         let result = filesizeformat(to_value(123456789), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("117.74 MB"));
+    }
+
+    #[test]
+    fn test_date_default() {
+        let args = HashMap::new();
+        let result = date(to_value(1482720453), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("2016-12-26"));
+    }
+
+    #[test]
+    fn test_date_custom_format() {
+        let mut args = HashMap::new();
+        args.insert("format".to_string(), to_value("%Y-%m-%d %H:%M"));
+        let result = date(to_value(1482720453), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("2016-12-26 02:47"));
     }
 }

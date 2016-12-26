@@ -12,6 +12,7 @@
 - Remove specific error message when using `||` or `&&`
 - Improved performances for parsing and rendering (~5-20%)
 - Added `precision` arg to `round` filter
+- Added `date` filter to format a timestamp to a date(time) string
 
 ## 0.5.0 (2016-12-19)
 

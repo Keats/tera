@@ -333,6 +333,7 @@ impl Tera {
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
         self.register_filter("filesizeformat", number::filesizeformat);
+        self.register_filter("filesizeformat", number::date);
 
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);

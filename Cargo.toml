@@ -15,7 +15,6 @@ serde = "0.8"
 serde_json = "0.8"
 pest = "0.4"
 error-chain = "0.7"
-
 # used in slugify filter
 slug = "0.1"
 # used in striptags filters
@@ -26,7 +25,5 @@ lazy_static = "0.2"
 url = "1.2.0"
 # used in filesizeformat filter
 humansize = "0.1.1"
-
-[features]
-default = []
-clippy = []
+# used in date format filter
+chrono = "0.2"
