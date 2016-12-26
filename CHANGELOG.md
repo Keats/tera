@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.0 (unreleased)
+## 0.6.0 (2016-12-26)
 
 ### BREAKING CHANGES
 - `not` is now a Tera keyword
