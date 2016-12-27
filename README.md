@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/Keats/tera.svg)](https://travis-ci.org/Keats/tera)
 
+Current release API docs are available on [doc.rs](https://doc.rs/tera).
 
 ## Introduction
 Tera is a template engine based on [Jinja2](http://jinja.pocoo.org/) and the [Django template language](https://docs.djangoproject.com/en/1.9/topics/templates/).
@@ -346,7 +347,14 @@ Note that testers allow expressions, so the following is a valid test as well:
 {% endif %}
 ```
 
-Here are the currently implemented testers:
+Tests are functions with the `fn(Option<Value>, Vec<Value>) -> Result<bool>` type and custom ones can be
+registered like so:
+
+```rust
+tera.register_tester("odd", testers::odd);
+```
+
+Here are the currently built-in testers:
 
 #### defined
 Returns true if the given variable is defined.
@@ -389,6 +397,15 @@ make it lowercase and then replace instances of `doctor` by `Dr.`.
 It is equivalent to `replace(lower(name), from="doctor", to="Dr.")` if we were to look at it as functions.
 
 Note that calling filters on a incorrect type like trying to capitalize an array will result in a error.
+
+Filters are functions with the `fn(Value, HashMap<String, Value>) -> Result<Value>` type and custom ones can be added
+like so:
+
+```rust
+tera.register_filter("upper", string::upper);
+```
+
+Tera has currently the following filters built-in:
 
 #### lower
 Lowercase a string
