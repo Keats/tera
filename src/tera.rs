@@ -214,13 +214,31 @@ impl Tera {
     /// Tera::one_off("{{ greeting }} world", context);
     /// ```
     pub fn one_off(input: &str, data: Context, autoescape: bool) -> Result<String> {
+        let data = data.as_json();
+        Tera::value_one_off(input, &data, autoescape)
+    }
+
+    /// Renders a one off template (for example a template coming from a user input) given
+    /// a `Serializeable` object.
+    ///
+    /// This creates a separate instance of Tera with no possibilities of adding custom filters
+    /// or testers, parses the template and render it immediately.
+    /// Any errors will mention the `one_off` template: this is the name given to the template by
+    /// Tera
+    ///
+    /// ```rust,ignore
+    /// Tera::value_one_off("{{ greeting }} world", &user);
+    /// ```
+    pub fn value_one_off<T>(input: &str, data: &T, autoescape: bool) -> Result<String>
+        where T: Serialize
+    {
         let mut tera = Tera::default();
         tera.add_template("one_off", input)?;
         if autoescape {
             tera.autoescape_on(vec!["one_off"]);
         }
 
-        tera.render("one_off", data)
+        tera.value_render("one_off", data)
     }
 
     #[doc(hidden)]
