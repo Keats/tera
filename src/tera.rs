@@ -431,6 +431,7 @@ impl fmt::Debug for Tera {
 mod tests {
     use super::{Tera};
     use context::Context;
+    use serde_json::{Map as JsonObject, Value as JsonValue};
 
     #[test]
     fn test_get_inheritance_chain() {
@@ -529,5 +530,14 @@ mod tests {
         let result = Tera::one_off("{{ greeting }} world", context, false).unwrap();
 
         assert_eq!(result, "<p> world");
+    }
+
+    #[test]
+    fn test_value_one_off_template() {
+        let mut context = JsonObject::new();
+        context.insert("greeting", JsonValue::String("Good morning".to_string()));
+        let result = Tera::value_one_off("{{ greeting }} world", &context, true).unwrap();
+
+        assert_eq!(result, "Good morning world");
     }
 }
