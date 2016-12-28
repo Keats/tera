@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1 (2016-12-28)
+
+- Added `Tera::value_one_off` to parse and render a single template using a
+Json value as context
+
 ## 0.6.0 (2016-12-26)
 
 ### BREAKING CHANGES

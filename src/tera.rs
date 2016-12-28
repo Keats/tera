@@ -214,8 +214,7 @@ impl Tera {
     /// Tera::one_off("{{ greeting }} world", context);
     /// ```
     pub fn one_off(input: &str, data: Context, autoescape: bool) -> Result<String> {
-        let data = data.as_json();
-        Tera::value_one_off(input, &data, autoescape)
+        Tera::value_one_off(input, &data.as_json(), autoescape)
     }
 
     /// Renders a one off template (for example a template coming from a user input) given
