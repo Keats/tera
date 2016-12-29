@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/Keats/tera.svg)](https://travis-ci.org/Keats/tera)
 
-Current release API docs are available on [doc.rs](https://doc.rs/tera).
+Current release API docs are available on [docs.rs](https://docs.rs/tera).
 
 ## Introduction
 Tera is a template engine based on [Jinja2](http://jinja.pocoo.org/) and the [Django template language](https://docs.djangoproject.com/en/1.9/topics/templates/).
