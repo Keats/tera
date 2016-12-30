@@ -531,10 +531,10 @@ impl<'a> Renderer<'a> {
                     Some(b) => {
                         // the indexing here is safe since we are rendering a block, we know we have
                         // at least 1
-                        match b[0].clone() {
-                            (tpl_name, Block {body, ..}) => {
-                                self.blocks.push((name.clone(), 0));
-                                let has_macro = self.import_macros(tpl_name)?;
+                        match &b[0] {
+                            &(ref tpl_name, Block { ref body, ..}) => {
+                                self.blocks.push((name, 0));
+                                let has_macro = self.import_macros(tpl_name.clone())?;
                                 let res = self.render_node(*body.clone());
                                 if has_macro {
                                     self.macros.pop();
