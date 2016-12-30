@@ -41,7 +41,7 @@ impl Template {
         let mut blocks = HashMap::new();
         // We find all those blocks at first so we don't need to do it for each render
         // Recursive because we can have blocks inside blocks
-        fn find_blocks(tpl_name: String, ast: LinkedList<Node>, blocks: &mut HashMap<String, Node>) -> Result<()> {
+        fn find_blocks(tpl_name: &str, ast: LinkedList<Node>, blocks: &mut HashMap<String, Node>) -> Result<()> {
             for node in ast {
                 match node {
                     Node::Block { ref name, ref body } => {
@@ -49,7 +49,7 @@ impl Template {
                             bail!("Block `{}` is duplicated", name);
                         }
                         blocks.insert(name.to_string(), node.clone());
-                        find_blocks(tpl_name.clone(), body.get_children(), blocks)?;
+                        find_blocks(tpl_name, body.get_children(), blocks)?;
                     },
                     _ => continue,
                 };
@@ -57,7 +57,7 @@ impl Template {
 
             Ok(())
         }
-        find_blocks(tpl_name.to_string(), ast.get_children(), &mut blocks)?;
+        find_blocks(tpl_name, ast.get_children(), &mut blocks)?;
 
         // We also find all macros defined/imported in the template file
         let mut macros = HashMap::new();

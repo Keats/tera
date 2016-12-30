@@ -431,12 +431,12 @@ impl<'a> Renderer<'a> {
                 // We need to make a new context for the macro from the arguments given
                 // Return an error if we get some unknown params
                 let mut context = HashMap::new();
-                for (param_name, exp) in call_params.clone() {
+                for (param_name, exp) in &call_params {
                     if !params.contains(&param_name) {
                         let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
                         bail!("Macro `{}` got `{:?}` for args but was expecting `{:?}` (order does not matter)", macro_name, params, params_seen);
                     }
-                    context.insert(param_name.to_string(), self.eval_expression(exp)?);
+                    context.insert(param_name.to_string(), self.eval_expression(exp.clone())?);
                 }
 
                 // Push this context to our stack of macro context so the renderer can pick variables
@@ -555,10 +555,10 @@ impl<'a> Renderer<'a> {
 
                     match self.template.blocks_definitions.get(&name) {
                         Some(b) => {
-                            match b[new_level].clone() {
-                                (tpl_name, Block { body, .. }) => {
-                                    self.blocks.push((name.clone(), new_level));
-                                    let has_macro = self.import_macros(tpl_name)?;
+                            match &b[new_level] {
+                                &(ref tpl_name, Block { ref body, .. }) => {
+                                    self.blocks.push((name, new_level));
+                                    let has_macro = self.import_macros(tpl_name.clone())?;
                                     let res = self.render_node(*body.clone());
                                     if has_macro {
                                         self.macros.pop();
