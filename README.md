@@ -126,7 +126,7 @@ you can use the `Tera::value_one_off` method.
 ```rust
 // The last parameter is whether we want to autoescape the template or not.
 // Should be true in 99% of the cases for HTML
-let result = Tera::one_off(user_tpl, &user, true);
+let result = Tera::value_one_off(user_tpl, &user, true);
 ```
 
 ### Autoescaping
