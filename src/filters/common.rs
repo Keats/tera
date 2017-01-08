@@ -5,7 +5,7 @@ use std::iter::FromIterator;
 use serde_json::value::{Value, to_value};
 use errors::Result;
 
-use chrono::{DateTime, Local, TimeZone};
+use chrono::{NaiveDateTime, DateTime, FixedOffset};
 
 // Returns the number of items in an array or the number of characters in a string.
 // Returns 0 if not an array or string.
@@ -41,20 +41,20 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 /// `format` defaults to the ISO 8601 `YYYY-MM-DD` format.
 ///
 /// Input can be an i64 timestamp (seconds since epoch) or an RFC3339 string
-/// (default serialization format for chrono::DateTime).
+/// (default serialization format for `chrono::DateTime`).
 ///
 /// Time formatting syntax is inspired from strftime and a full reference is available
 /// on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html)
 pub fn date(value: Value, args: HashMap<String, Value>) -> Result<Value> {
-    let dt: DateTime<Local> = match value {
-        Value::I64(i) => Local.timestamp(i, 0),
-        Value::U64(u) => Local.timestamp(u as i64, 0),
+    let dt = match value {
+        Value::I64(i) => NaiveDateTime::from_timestamp(i, 0),
+        Value::U64(u) => NaiveDateTime::from_timestamp(u as i64, 0),
         Value::String(s) => {
-            match s.parse::<DateTime<Local>>() {
-                Ok(val) => val,
+            match s.parse::<DateTime<FixedOffset>>() {
+                Ok(val) => val.naive_local(),
                 Err(_) => bail!("Error parsing `{:?}` as rfc3339 date", s)
             }
-        }
+        },
         _ => {
             bail!(
                 "Filter `date` received an incorrect type for arg `value`: got `{:?}` but expected i64|u64|String",
@@ -62,10 +62,12 @@ pub fn date(value: Value, args: HashMap<String, Value>) -> Result<Value> {
             );
         }
     };
+
     let format = match args.get("format") {
         Some(val) => try_get_value!("date", "format", String, val.clone()),
         None => "%Y-%m-%d".to_string(),
     };
+
     Ok(to_value(&dt.format(&format).to_string()))
 }
 

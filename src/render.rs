@@ -432,7 +432,7 @@ impl<'a> Renderer<'a> {
                 // Return an error if we get some unknown params
                 let mut context = HashMap::new();
                 for (param_name, exp) in &call_params {
-                    if !params.contains(&param_name) {
+                    if !params.contains(param_name) {
                         let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
                         bail!("Macro `{}` got `{:?}` for args but was expecting `{:?}` (order does not matter)", macro_name, params, params_seen);
                     }
