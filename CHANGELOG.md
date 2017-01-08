@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.2 (2017-01-08)
+
+- Performance improvements thanks to @wdv4758h
+- Correctly register `date` filter and make it work on a RFC3339 string as well thanks to @philwhineray
+
 ## 0.6.1 (2016-12-28)
 
 - Added `Tera::value_one_off` to parse and render a single template using a
