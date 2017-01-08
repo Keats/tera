@@ -548,7 +548,7 @@ impl_rdp! {
                 Ok(tail)
             },
             // Base case.
-            () => (Ok(LinkedList::new()))
+            () => Ok(LinkedList::new())
         }
 
         _test(&self) -> Result<(String, LinkedList<Node>)> {

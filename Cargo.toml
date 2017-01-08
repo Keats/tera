@@ -18,7 +18,7 @@ error-chain = "0.7"
 # used in slugify filter
 slug = "0.1"
 # used in striptags filters
-regex = "0.1"
+regex = "0.2"
 # used for static regex
 lazy_static = "0.2"
 # used in urlencode filter
