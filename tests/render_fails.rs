@@ -72,7 +72,8 @@ fn test_error_value_render_non_object() {
     assert_eq!(result.is_err(), true);
     assert_eq!(
         result.unwrap_err().iter().nth(0).unwrap().description(),
-        "Failed to value_render \'value_render_non_object.html\': context isn\'t an object"
+        "Failed to value_render \'value_render_non_object.html\': context isn\'t a JSON object. \
+        The value passed needs to be a key-value object: struct, hashmap for example."
     );
 }
 

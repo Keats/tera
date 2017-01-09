@@ -121,7 +121,8 @@ let result = Tera::one_off(user_tpl, context, true);
 ```
 
 If you want to render a single template using a context that is already serializable (for example a struct deriving `Serialize`),
-you can use the `Tera::value_one_off` method.
+you can use the `Tera::value_one_off` method. 
+It needs to be something that will translate to a JSON object (ie a key value object): a struct or a hashmap for example.
 
 ```rust
 // The last parameter is whether we want to autoescape the template or not.

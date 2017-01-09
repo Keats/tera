@@ -193,7 +193,11 @@ impl Tera {
     {
         let value = to_value(data);
         if !value.is_object() {
-            bail!("Failed to value_render '{}': context isn't an object", template_name);
+            bail!(
+                "Failed to value_render '{}': context isn't a JSON object. \
+                The value passed needs to be a key-value object: struct, hashmap for example.",
+                template_name
+            );
         }
 
         let template = self.get_template(template_name)?;
