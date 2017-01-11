@@ -71,7 +71,7 @@ impl Tera {
                     .replace("\\", "/") // change windows slash to forward slash
                     .replace(parent_dir, "");
 
-                if let Err(e) = tera.add_template_file_inner(&filepath, path, false) {
+                if let Err(e) = tera.add_template_file_inner(&filepath, path) {
                     errors += &format!("\n* {}", e);
                     for e in e.iter().skip(1) {
                         errors += &format!("\n-- {}", e);
@@ -247,9 +247,10 @@ impl Tera {
     }
 
     /// Add a template to the Tera instance with the name `name` at the path
-    /// `path`. Builds the inheritance chains if `build_chains` is true. This is
-    /// an internal method.
-    fn add_template_file_inner<P>(&mut self, name: &str, path: P, build_chains: bool) -> Result<()>
+    /// `path`. Does not build the inheritance chains. This is an internal
+    /// method. Return an error if the file at `path` could not be read or if
+    /// the template was invalid.
+    fn add_template_file_inner<P>(&mut self, name: &str, path: P) -> Result<()>
         where P: AsRef<Path>
     {
         // Read the template into a String.
@@ -258,15 +259,9 @@ impl Tera {
         let mut input = String::new();
         f.read_to_string(&mut input).chain_err(|| format!("Failed to read template '{:?}'", path))?;
 
-        // Try to parse the template.
+        // Try to parse the template and insert it.
         let tpl = Template::new(name, &input).chain_err(|| format!("Failed to parse '{}'", name))?;
         self.templates.insert(name.to_string(), tpl);
-
-        // Build the chains if requested.
-        if build_chains {
-            self.build_inheritance_chains()?;
-        }
-
         Ok(())
     }
 
@@ -284,7 +279,9 @@ impl Tera {
     /// tera.add_template("template_name", "/path/to/template.html");
     /// ```
     pub fn add_template_file<P: AsRef<Path>>(&mut self, name: &str, path: P) -> Result<()> {
-        self.add_template_file_inner(name, path, true)
+        self.add_template_file_inner(name, path)?;
+        self.build_inheritance_chains()?;
+        Ok(())
     }
 
     /// Add all the templates given to the Tera instance.
@@ -301,7 +298,7 @@ impl Tera {
     /// ```
     pub fn add_template_files<P: AsRef<Path>>(&mut self, templates: Vec<(&str, P)>) -> Result<()> {
         for (name, path) in templates {
-            self.add_template_file_inner(name, path, false)?;
+            self.add_template_file_inner(name, path)?;
         }
 
         self.build_inheritance_chains()?;
