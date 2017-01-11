@@ -260,7 +260,8 @@ impl Tera {
         f.read_to_string(&mut input).chain_err(|| format!("Failed to read template '{:?}'", path))?;
 
         // Try to parse the template and insert it.
-        let tpl = Template::new(name, &input).chain_err(|| format!("Failed to parse '{}'", name))?;
+        let tpl = Template::new(name, &input, Some(path))
+            .chain_err(|| format!("Failed to parse '{}'", name))?;
         self.templates.insert(name.to_string(), tpl);
         Ok(())
     }
@@ -319,7 +320,7 @@ impl Tera {
     /// tera.add_template("template_name", "valid tera template contents");
     /// ```
     pub fn add_template<S: AsRef<str>>(&mut self, name: &str, contents: S) -> Result<()> {
-        let template = Template::new(name, contents.as_ref())
+        let template = Template::new(name, contents.as_ref(), None)
             .chain_err(|| format!("Failed to parse '{}'", name))?;
 
         self.templates.insert(name.to_string(), template);
@@ -343,7 +344,7 @@ impl Tera {
     /// ```
     pub fn add_templates<S: AsRef<str>>(&mut self, templates: Vec<(&str, S)>) -> Result<()>  {
         for (name, content) in templates {
-            let template = Template::new(name, content.as_ref())
+            let template = Template::new(name, content.as_ref(), None)
                 .chain_err(|| format!("Failed to parse '{}'", name))?;
 
             self.templates.insert(name.to_string(), template);

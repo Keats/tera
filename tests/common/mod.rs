@@ -70,7 +70,7 @@ impl serde::Serialize for Review {
 
 #[allow(dead_code)]
 pub fn load_template(path: &str) -> Template {
-    Template::new("tpl", &read_file(path)).unwrap()
+    Template::new("tpl", &read_file(path), None).unwrap()
 }
 
 #[allow(dead_code)]

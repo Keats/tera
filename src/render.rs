@@ -70,7 +70,12 @@ pub struct Renderer<'a> {
 
 impl<'a> Renderer<'a> {
     pub fn new(tpl: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
-        let should_escape = tera.autoescape_extensions.iter().any(|ext| tpl.name.ends_with(ext));
+        let should_escape = tera.autoescape_extensions.iter()
+            .any(|ext| {
+                // This first part is only to deal with the one_off hack.
+                tpl.path.ends_with(ext) || tpl.path.extension().map_or(false, |e| e == &ext[1..])
+            });
+
         Renderer {
             template: tpl,
             tera: tera,
