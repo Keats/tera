@@ -44,12 +44,22 @@ impl Template {
         fn find_blocks(ast: LinkedList<Node>, blocks: &mut HashMap<String, Node>) -> Result<()> {
             for node in ast {
                 match node {
-                    Node::Block { ref name, ref body } => {
-                        if blocks.contains_key(name) {
-                            bail!("Block `{}` is duplicated", name);
-                        }
-                        blocks.insert(name.to_string(), node.clone());
-                        find_blocks(body.get_children(), blocks)?;
+                    block @ Node::Block { .. } => {
+                        let string;
+                        let children;
+
+                        if let Node::Block { ref name, ref body } = block {
+                            if blocks.contains_key(name) {
+                                bail!("Block `{}` is duplicated", name);
+                            }
+                            string = name.to_string();
+                            children = body.get_children();
+                        } else {
+                            unreachable!();
+                        };
+
+                        blocks.insert(string, block);
+                        find_blocks(children, blocks)?;
                     },
                     _ => continue,
                 };
@@ -68,11 +78,19 @@ impl Template {
                 Node::Extends(ref name) => {
                     parent = Some(name.to_string());
                 },
-                Node::Macro { ref name, .. } => {
-                    if macros.contains_key(name) {
-                        bail!("Macro `{}` is duplicated", name);
+                mnode @ Node::Macro { .. } => {
+                    let string;
+
+                    if let Node::Macro { ref name, .. } = mnode {
+                        string = name.to_string();
+                        if macros.contains_key(name) {
+                            bail!("Macro `{}` is duplicated", name);
+                        }
+                    } else {
+                        unreachable!();
                     }
-                    macros.insert(name.to_string(), node.clone());
+
+                    macros.insert(string, mnode);
                 },
                 Node::ImportMacro { tpl_name, name } => {
                     imported_macro_files.push((tpl_name.to_string(), name.to_string()));

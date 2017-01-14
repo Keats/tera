@@ -8,26 +8,30 @@ use errors::Result;
 /// Returns the first value of an array
 /// If the array is empty, returns empty string
 pub fn first(value: Value, _: HashMap<String, Value>) -> Result<Value> {
-    let arr = try_get_value!("first", "value", Vec<Value>, value);
+    let mut arr = try_get_value!("first", "value", Vec<Value>, value);
 
-    Ok(arr.first().cloned().unwrap_or_else(|| to_value(&"")))
+    if arr.is_empty() {
+        Ok(to_value(&""))
+    } else {
+        Ok(arr.swap_remove(0))
+    }
 }
 
 /// Returns the last value of an array
 /// If the array is empty, returns empty string
 pub fn last(value: Value, _: HashMap<String, Value>) -> Result<Value> {
-    let arr = try_get_value!("last", "value", Vec<Value>, value);
+    let mut arr = try_get_value!("last", "value", Vec<Value>, value);
 
-    Ok(arr.last().cloned().unwrap_or_else(|| to_value(&"")))
+    Ok(arr.pop().unwrap_or_else(|| to_value(&"")))
 }
 
 /// Joins all values in the array by the `sep` argument given
 /// If no separator is given, it will use `""` (empty string) as separator
 /// If the array is empty, returns empty string
-pub fn join(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+pub fn join(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("join", "value", Vec<Value>, value);
-    let sep = match args.get("sep") {
-        Some(val) => try_get_value!("truncate", "sep", String, val.clone()),
+    let sep = match args.remove("sep") {
+        Some(val) => try_get_value!("truncate", "sep", String, val),
         None => "".to_string(),
     };
 
