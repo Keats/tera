@@ -20,11 +20,9 @@ pub fn length(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 // Reverses the elements of an array or the characters in a string.
 pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     match value {
-        Value::Array(arr) => {
-            // Clone the array so that we don't mutate the original.
-            let mut rev = arr.clone();
-            rev.reverse();
-            Ok(to_value(&rev))
+        Value::Array(mut arr) => {
+            arr.reverse();
+            Ok(to_value(&arr))
         }
         Value::String(s) => Ok(to_value(&String::from_iter(s.chars().rev()))),
         _ => {
@@ -45,7 +43,7 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 ///
 /// Time formatting syntax is inspired from strftime and a full reference is available
 /// on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html)
-pub fn date(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
     let dt = match value {
         Value::I64(i) => NaiveDateTime::from_timestamp(i, 0),
         Value::U64(u) => NaiveDateTime::from_timestamp(u as i64, 0),
@@ -63,8 +61,8 @@ pub fn date(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         }
     };
 
-    let format = match args.get("format") {
-        Some(val) => try_get_value!("date", "format", String, val.clone()),
+    let format = match args.remove("format") {
+        Some(val) => try_get_value!("date", "format", String, val),
         None => "%Y-%m-%d".to_string(),
     };
 
