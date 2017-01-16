@@ -70,7 +70,9 @@ pub struct Renderer<'a> {
 
 impl<'a> Renderer<'a> {
     pub fn new(tpl: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
-        let should_escape = tera.autoescape_extensions.iter().any(|ext| tpl.name.ends_with(ext));
+        let should_escape = tera.autoescape_extensions.iter()
+            .any(|ext| tpl.path.to_string_lossy().ends_with(ext));
+
         Renderer {
             template: tpl,
             tera: tera,

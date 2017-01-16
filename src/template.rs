@@ -1,8 +1,8 @@
 use std::collections::{HashMap, LinkedList};
+use std::path::{Path, PathBuf};
 
 use parser::{parse, Node};
 use errors::{Result};
-
 
 /// This is the parsed equivalent of a template file
 /// Not mean to be used directly unless you want a one-off template rendering
@@ -10,6 +10,8 @@ use errors::{Result};
 pub struct Template {
     /// filename
     pub name: String,
+    /// Path to the template, or the name if there is none.
+    pub path: PathBuf,
     /// Parsed ast
     pub ast: Node,
     /// macros defined in that file
@@ -35,7 +37,7 @@ pub struct Template {
 
 impl Template {
     /// Parse the template string given
-    pub fn new(tpl_name: &str, input: &str) -> Result<Template> {
+    pub fn new(tpl_name: &str, input: &str, path: Option<&Path>) -> Result<Template> {
         let ast = parse(input)?;
 
         let mut blocks = HashMap::new();
@@ -67,6 +69,7 @@ impl Template {
 
             Ok(())
         }
+
         find_blocks(ast.get_children(), &mut blocks)?;
 
         // We also find all macros defined/imported in the template file
@@ -99,14 +102,17 @@ impl Template {
             };
         }
 
+        // Use the path if one was supplied. Otherwise, use the template name.
+        let path = path.map(|p| p.to_path_buf()).unwrap_or(PathBuf::from(tpl_name));
+
         Ok(Template {
             name: tpl_name.to_string(),
+            path: path,
             ast: ast,
             parent: parent,
             blocks: blocks,
             macros: macros,
             imported_macro_files: imported_macro_files,
-
             parents: vec![],
             blocks_definitions: HashMap::new(),
         })
@@ -120,12 +126,12 @@ mod tests {
 
     #[test]
     fn test_can_parse_ok_template() {
-        Template::new("hello", "Hello {{ world }}.").unwrap();
+        Template::new("hello", "Hello {{ world }}.", None).unwrap();
     }
 
     #[test]
     fn test_can_find_parent_template() {
-        let tpl = Template::new("hello", "{% extends \"base.html\" %}").unwrap();
+        let tpl = Template::new("hello", "{% extends \"base.html\" %}", None).unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
     }
@@ -134,7 +140,8 @@ mod tests {
     fn test_can_find_blocks() {
         let tpl = Template::new(
             "hello",
-            "{% extends \"base.html\" %}{% block hey %}{% endblock hey %}"
+            "{% extends \"base.html\" %}{% block hey %}{% endblock hey %}",
+            None
         ).unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
@@ -145,7 +152,8 @@ mod tests {
     fn test_can_find_nested_blocks() {
         let tpl = Template::new(
             "hello",
-            "{% extends \"base.html\" %}{% block hey %}{% block extrahey %}{% endblock extrahey %}{% endblock hey %}"
+            "{% extends \"base.html\" %}{% block hey %}{% block extrahey %}{% endblock extrahey %}{% endblock hey %}",
+            None
         ).unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
@@ -155,13 +163,13 @@ mod tests {
 
     #[test]
     fn test_can_find_macros() {
-        let tpl = Template::new("hello", "{% macro hey() %}{% endmacro hey %}").unwrap();
+        let tpl = Template::new("hello", "{% macro hey() %}{% endmacro hey %}", None).unwrap();
         assert_eq!(tpl.macros.contains_key("hey"), true);
     }
 
     #[test]
     fn test_can_find_imported_macros() {
-        let tpl = Template::new("hello", "{% import \"macros.html\" as macros %}").unwrap();
+        let tpl = Template::new("hello", "{% import \"macros.html\" as macros %}", None).unwrap();
         assert_eq!(tpl.imported_macro_files, vec![("macros.html".to_string(), "macros".to_string())]);
     }
 }

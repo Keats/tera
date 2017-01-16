@@ -99,7 +99,7 @@ impl serde::Serialize for Product {
 
 #[bench]
 fn bench_parsing_basic_template(b: &mut test::Bencher) {
-    b.iter(|| Template::new("bench", SIMPLE_TEMPLATE));
+    b.iter(|| Template::new("bench", SIMPLE_TEMPLATE, None));
 }
 
 #[bench]

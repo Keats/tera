@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::prelude::*;
 use std::fs::File;
 use std::fmt;
+use std::path::Path;
 
 use glob::glob;
 use serde::Serialize;
@@ -31,9 +32,11 @@ pub struct Tera {
 
 
 impl Tera {
-    /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
+    /// Create a new instance of Tera, containing all the parsed templates found
+    /// in the `dir` glob.
     ///
-    /// The example below is what the [compile_templates](macro.compile_templates.html) macros expands to.
+    /// The example below is what the
+    /// [compile_templates](macro.compile_templates.html) macros expands to.
     ///
     /// ```rust,ignore
     ///match Tera::new("templates/**/*") {
@@ -49,47 +52,37 @@ impl Tera {
             bail!("Tera expects a glob as input, no * were found in `{}`", dir);
         }
 
-        let mut templates = HashMap::new();
-        let mut errors = String::new();
+        let mut tera = Tera {
+            templates: HashMap::new(),
+            filters: HashMap::new(),
+            testers: HashMap::new(),
+            autoescape_extensions: vec![".html", ".htm", ".xml"]
+        };
 
         // We are parsing all the templates on instantiation
+        let mut errors = String::new();
         for entry in glob(dir).unwrap().filter_map(|e| e.ok()) {
             let path = entry.as_path();
-            // We only care about actual files
+
+            // Add every file to the tera instance.
             if path.is_file() {
-                // We clean the filename by removing the dir given
-                // to Tera so users don't have to prefix everytime
                 let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
                 let filepath = path.to_string_lossy()
                     .replace("\\", "/") // change windows slash to forward slash
                     .replace(parent_dir, "");
 
-                // we know the file exists so unwrap all the things
-                let mut f = File::open(path).unwrap();
-                let mut input = String::new();
-                f.read_to_string(&mut input).unwrap();
-
-                match Template::new(&filepath, &input).chain_err(|| format!("Failed to parse '{}'", filepath)) {
-                    Ok(tpl) => { templates.insert(filepath.to_string(), tpl); },
-                    Err(e) => {
-                        errors += &format!("\n* {}", e);
-                        for e in e.iter().skip(1) {
-                            errors += &format!("\n-- {}", e);
-                        }
+                if let Err(e) = tera.add_template_file_inner(&filepath, path) {
+                    errors += &format!("\n* {}", e);
+                    for e in e.iter().skip(1) {
+                        errors += &format!("\n-- {}", e);
                     }
                 }
             }
         }
-        if errors != "" {
-            bail!(errors);
-        }
 
-        let mut tera = Tera {
-            templates: templates,
-            filters: HashMap::new(),
-            testers: HashMap::new(),
-            autoescape_extensions: vec![".html", ".htm", ".xml"]
-        };
+        if !errors.is_empty() {
+            bail!(errors)
+        }
 
         tera.build_inheritance_chains()?;
         tera.register_tera_filters();
@@ -253,44 +246,113 @@ impl Tera {
         }
     }
 
-    /// Add a single template to the Tera instance
+    /// Add a template to the Tera instance with the name `name` at the path
+    /// `path`. Does not build the inheritance chains. This is an internal
+    /// method. Return an error if the file at `path` could not be read or if
+    /// the template was invalid.
+    fn add_template_file_inner<P>(&mut self, name: &str, path: P) -> Result<()>
+        where P: AsRef<Path>
+    {
+        // Read the template into a String.
+        let path = path.as_ref();
+        let mut f = File::open(path).chain_err(|| format!("Couldn't open template '{:?}'", path))?;
+        let mut input = String::new();
+        f.read_to_string(&mut input).chain_err(|| format!("Failed to read template '{:?}'", path))?;
+
+        // Try to parse the template and insert it.
+        let tpl = Template::new(name, &input, Some(path))
+            .chain_err(|| format!("Failed to parse '{}'", name))?;
+        self.templates.insert(name.to_string(), tpl);
+        Ok(())
+    }
+
+    /// Add a template to the Tera instance with the name `name` at the path
+    /// `path`.
     ///
-    /// This will error if the inheritance chain can't be built, such as adding a child
-    /// template without the parent one.
-    /// If you want to add several templates, use [Tera::add_templates](struct.Tera.html#method.add_templates)
+    /// # Error
+    ///
+    /// If the file cannot be read, and error is returned. If the inheritance
+    /// chain can't be built, such as adding a child template without the parent
+    /// one, an error is returned. If you want to add several templates, use
+    /// [Tera::add_templates](struct.Tera.html#method.add_template_files)
     ///
     /// ```rust,ignore
-    /// tera.add_template("new.html", "Blabla");
+    /// tera.add_template("template_name", "/path/to/template.html");
     /// ```
-    pub fn add_template(&mut self, name: &str, content: &str) -> Result<()> {
-        let tpl = Template::new(name, content)
-            .chain_err(|| format!("Failed to parse '{}'", name))?;
-        self.templates.insert(name.to_string(),tpl);
+    pub fn add_template_file<P: AsRef<Path>>(&mut self, name: &str, path: P) -> Result<()> {
+        self.add_template_file_inner(name, path)?;
         self.build_inheritance_chains()?;
         Ok(())
     }
 
-    /// Add all the templates given to the Tera instance
+    /// Add all the templates given to the Tera instance.
+    ///
+    /// If the file cannot be read, and error is returned. If the inheritance
+    /// chain can't be built, such as adding a child template without the parent
+    /// one, an error is returned.
+    ///
+    /// ```rust,ignore
+    /// tera.add_templates(vec![
+    ///     ("template_name_1", "/path/to/first/template.html"),
+    ///     ("second_template_name", "/path/to/second.html"),
+    /// ]);
+    /// ```
+    pub fn add_template_files<P: AsRef<Path>>(&mut self, templates: Vec<(&str, P)>) -> Result<()> {
+        for (name, path) in templates {
+            self.add_template_file_inner(name, path)?;
+        }
+
+        self.build_inheritance_chains()?;
+        Ok(())
+    }
+
+    /// Add a template to the Tera instance with the name `name` and contents
+    /// `contents`.
+    ///
+    /// # Error
+    ///
+    /// If the inheritance chain can't be built, such as adding a child template
+    /// without the parent one, an error is returned. If you want to add several
+    /// templates, use
+    /// [Tera::add_raw_templates](struct.Tera.html#method.add_templates)
+    ///
+    /// ```rust,ignore
+    /// tera.add_template("template_name", "valid tera template contents");
+    /// ```
+    pub fn add_template<S: AsRef<str>>(&mut self, name: &str, contents: S) -> Result<()> {
+        let template = Template::new(name, contents.as_ref(), None)
+            .chain_err(|| format!("Failed to parse '{}'", name))?;
+
+        self.templates.insert(name.to_string(), template);
+        self.build_inheritance_chains()?;
+        Ok(())
+    }
+
+    /// Add all of the `templates` to the Tera instance with the given names and
+    /// contents.
+    ///
+    /// # Errors
     ///
     /// This will error if the inheritance chain can't be built, such as adding a child
     /// template without the parent one.
     ///
     /// ```rust,ignore
     /// tera.add_templates(vec![
-    ///     ("new.html", "blabla"),
-    ///     ("new2.html", "hello"),
+    ///     ("template_name", "valid tera template contents"),
+    ///     ("another_name", "more valid tera template contents"),
     /// ]);
     /// ```
-    pub fn add_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()>  {
+    pub fn add_templates<S: AsRef<str>>(&mut self, templates: Vec<(&str, S)>) -> Result<()>  {
         for (name, content) in templates {
-            let tpl = Template::new(name, content)
+            let template = Template::new(name, content.as_ref(), None)
                 .chain_err(|| format!("Failed to parse '{}'", name))?;
-            self.templates.insert(name.to_string(),tpl);
+
+            self.templates.insert(name.to_string(), template);
         }
+
         self.build_inheritance_chains()?;
         Ok(())
     }
-
 
     #[doc(hidden)]
     #[inline]
