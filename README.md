@@ -69,21 +69,6 @@ If you don't want to exit the process on errors, you can call the `Tera::new` me
 Compiling templates is a step is also meant to only be ran once: use something like [lazy_static](https://crates.io/crates/lazy_static) 
 to have the `tera` variable as a global static in your app. See `examples/basic.rs` for an example.
 
-Sometimes you will want to load a template via strings instead of parsing files. This is also supported in Tera:
-
-```rust
-let mut tera = Tera::default();
-// adding only one template
-tera.add_template("my_template.html", "{{ hello }}").expect("Couldn't add template");
-// adding several templates
-tera.add_templates(vec![
-    ("my_template.html", "{{ hello }}"),
-    ("another_template.html", "My template body"),
-]).expect("Couldn't add templates");
-```
-Tera will return an error if a parsing error occurred or if an error happened while building
-the inheritance chain, such as a missing template.
-
 If no errors happened while parsing any of the files, you can now render a template like so:
 
 ```rust

@@ -645,7 +645,7 @@ mod tests {
 
     fn render_template(content: &str, context: Context) -> Result<String> {
         let mut tera = Tera::default();
-        tera.add_template("hello", content).unwrap();
+        tera.add_raw_template("hello", content).unwrap();
 
         tera.render("hello", context)
     }
@@ -653,8 +653,8 @@ mod tests {
     #[test]
     fn test_render_include() {
         let mut tera = Tera::default();
-        tera.add_template("world", "world").unwrap();
-        tera.add_template("hello", "<h1>Hello {% include \"world\" %}</h1>").unwrap();
+        tera.add_raw_template("world", "world").unwrap();
+        tera.add_raw_template("hello", "<h1>Hello {% include \"world\" %}</h1>").unwrap();
         let result = tera.render("hello", Context::new());
         assert_eq!(result.unwrap(), "<h1>Hello world</h1>".to_owned());
     }
@@ -840,7 +840,7 @@ mod tests {
         let mut context = Context::new();
         context.add("bad", &"<script>alert('pwnd');</script>");
         let mut tera = Tera::default();
-        tera.add_template("hello.html", "{{bad}}").unwrap();
+        tera.add_raw_template("hello.html", "{{bad}}").unwrap();
         let result = tera.render("hello.html", context);
 
         assert_eq!(result.unwrap(), "&lt;script&gt;alert(&#x27;pwnd&#x27;);&lt;&#x2F;script&gt;".to_string());
@@ -851,7 +851,7 @@ mod tests {
         let mut context = Context::new();
         context.add("bad", &"<script>alert('pwnd');</script>");
         let mut tera = Tera::default();
-        tera.add_template("hello.sql", "{{bad}}").unwrap();
+        tera.add_raw_template("hello.sql", "{{bad}}").unwrap();
         let result = tera.render("hello.sql", context);
 
         assert_eq!(result.unwrap(), "<script>alert('pwnd');</script>".to_string());
@@ -862,7 +862,7 @@ mod tests {
         let mut context = Context::new();
         context.add("bad", &"<script>alert('pwnd');</script>");
         let mut tera = Tera::default();
-        tera.add_template("hello.html", "{{ bad | safe }}").unwrap();
+        tera.add_raw_template("hello.html", "{{ bad | safe }}").unwrap();
         let result = tera.render("hello.html", context);
 
         assert_eq!(result.unwrap(), "<script>alert('pwnd');</script>".to_string());
@@ -871,7 +871,7 @@ mod tests {
     #[test]
     fn test_render_super_multiple_inheritance() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("grandparent", "{% block hey %}hello{% endblock hey %} {% block ending %}sincerely{% endblock ending %}"),
             ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }}{% endblock hey %}"),
             ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
@@ -884,7 +884,7 @@ mod tests {
     #[test]
     fn test_render_super_multiple_inheritance_nested_block() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("grandparent", "{% block hey %}hello{% endblock hey %}"),
             ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}"),
             ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
@@ -897,7 +897,7 @@ mod tests {
     #[test]
     fn test_render_macros() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
             ("tpl", "{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}"),
         ]).unwrap();
@@ -910,7 +910,7 @@ mod tests {
     #[test]
     fn test_render_macros_in_child_templates_same_namespace() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("grandparent", "{% block hey %}hello{% endblock hey %}"),
             ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
             ("macros2", "{% macro hi()%}Hi{% endmacro hi %}"),
@@ -926,7 +926,7 @@ mod tests {
     #[test]
     fn test_render_macros_in_child_templates_different_namespace() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("grandparent", "{% block hey %}hello{% endblock hey %}"),
             ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
             ("macros2", "{% macro hi()%}Hi{% endmacro hi %}"),
@@ -942,7 +942,7 @@ mod tests {
     #[test]
     fn test_render_macros_in_parent_template_with_inheritance() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
             ("grandparent", "{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}"),
             ("child", "{% extends \"grandparent\" %}{% import \"macros\" as macros %}{% block hey %}{{super()}}/{{macros::hello()}}{% endblock hey %}"),
@@ -958,7 +958,7 @@ mod tests {
         let mut context = Context::new();
         context.add("logged_in", &false);
         let mut tera = Tera::default();
-        tera.add_template("hello.html", "{% if not logged_in %}Login{% endif %}").unwrap();
+        tera.add_raw_template("hello.html", "{% if not logged_in %}Login{% endif %}").unwrap();
         let result = tera.render("hello.html", context);
 
         assert_eq!(result.unwrap(), "Login".to_string());
@@ -967,7 +967,7 @@ mod tests {
     #[test]
     fn test_render_not_condition_simple_value_does_not_exist() {
         let mut tera = Tera::default();
-        tera.add_template("hello.html", "{% if not logged_in %}Login{% endif %}").unwrap();
+        tera.add_raw_template("hello.html", "{% if not logged_in %}Login{% endif %}").unwrap();
         let result = tera.render("hello.html", Context::new());
 
         assert_eq!(result.unwrap(), "Login".to_string());
@@ -979,7 +979,7 @@ mod tests {
         context.add("logged_in", &false);
         context.add("active", &true);
         let mut tera = Tera::default();
-        tera.add_template("hello.html", "{% if not logged_in and active %}Login{% endif %}").unwrap();
+        tera.add_raw_template("hello.html", "{% if not logged_in and active %}Login{% endif %}").unwrap();
         let result = tera.render("hello.html", context);
 
         assert_eq!(result.unwrap(), "Login".to_string());
@@ -991,7 +991,7 @@ mod tests {
         context.add("number_users", &11);
         context.add("active", &true);
         let mut tera = Tera::default();
-        tera.add_template("hello.html", "{% if not active or number_users > 10 %}Login{% endif %}").unwrap();
+        tera.add_raw_template("hello.html", "{% if not active or number_users > 10 %}Login{% endif %}").unwrap();
         let result = tera.render("hello.html", context);
 
         assert_eq!(result.unwrap(), "Login".to_string());
@@ -1000,7 +1000,7 @@ mod tests {
     #[test]
     fn test_error_location_basic() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("tpl", "{{ 1 + true }}"),
         ]).unwrap();
 
@@ -1015,7 +1015,7 @@ mod tests {
     #[test]
     fn test_error_location_inside_macro() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
             ("tpl", "{% import \"macros\" as macros %}{{ macro::hello() }}"),
         ]).unwrap();
@@ -1031,7 +1031,7 @@ mod tests {
     #[test]
     fn test_error_location_base_template() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("parent", "Hello {{ greeting + 1}} {% block bob %}{% endblock bob %}"),
             ("child", "{% extends \"parent\" %}{% block bob %}Hey{% endblock bob %}"),
         ]).unwrap();
@@ -1047,7 +1047,7 @@ mod tests {
     #[test]
     fn test_error_location_in_parent_block() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("parent", "Hello {{ greeting }} {% block bob %}{{ 1 + true }}{% endblock bob %}"),
             ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}"),
         ]).unwrap();
@@ -1063,7 +1063,7 @@ mod tests {
     #[test]
     fn test_error_location_in_parent_in_macro() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
             ("parent", "{% import \"macros\" as macros %}{{ macro::hello() }}{% block bob %}{% endblock bob %}"),
             ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}"),

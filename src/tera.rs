@@ -236,7 +236,7 @@ impl Tera {
         where T: Serialize
     {
         let mut tera = Tera::default();
-        tera.add_template("one_off", input)?;
+        tera.add_raw_template("one_off", input)?;
         if autoescape {
             tera.autoescape_on(vec!["one_off"]);
         }
@@ -262,7 +262,8 @@ impl Tera {
     /// ```rust,ignore
     /// tera.add_template("new.html", "Blabla");
     /// ```
-    pub fn add_template(&mut self, name: &str, content: &str) -> Result<()> {
+    #[doc(hidden)]
+    pub fn add_raw_template(&mut self, name: &str, content: &str) -> Result<()> {
         let tpl = Template::new(name, content)
             .chain_err(|| format!("Failed to parse '{}'", name))?;
         self.templates.insert(name.to_string(),tpl);
@@ -276,12 +277,13 @@ impl Tera {
     /// template without the parent one.
     ///
     /// ```rust,ignore
-    /// tera.add_templates(vec![
+    /// tera.add_raw_templates(vec![
     ///     ("new.html", "blabla"),
     ///     ("new2.html", "hello"),
     /// ]);
     /// ```
-    pub fn add_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()>  {
+    #[doc(hidden)]
+    pub fn add_raw_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()>  {
         for (name, content) in templates {
             let tpl = Template::new(name, content)
                 .chain_err(|| format!("Failed to parse '{}'", name))?;
@@ -439,7 +441,7 @@ mod tests {
     #[test]
     fn test_get_inheritance_chain() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("a", "{% extends \"b\" %}"),
             ("b", "{% extends \"c\" %}"),
             ("c", "{% extends \"d\" %}"),
@@ -471,7 +473,7 @@ mod tests {
     fn test_missing_parent_template() {
         let mut tera = Tera::default();
         assert_eq!(
-            tera.add_template("a", "{% extends \"b\" %}").unwrap_err().description(),
+            tera.add_raw_template("a", "{% extends \"b\" %}").unwrap_err().description(),
             "Template \'a\' is inheriting from \'b\', which doesn\'t exist or isn\'t loaded."
         );
     }
@@ -479,7 +481,7 @@ mod tests {
     #[test]
     fn test_circular_extends() {
         let mut tera = Tera::default();
-        let err = tera.add_templates(vec![
+        let err = tera.add_raw_templates(vec![
             ("a", "{% extends \"b\" %}"),
             ("b", "{% extends \"a\" %}"),
         ]).unwrap_err();
@@ -490,7 +492,7 @@ mod tests {
     #[test]
     fn test_get_parent_blocks_definition() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("grandparent", "{% block hey %}hello{% endblock hey %} {% block ending %}sincerely{% endblock ending %}"),
             ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }}{% endblock hey %}"),
             ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
@@ -505,7 +507,7 @@ mod tests {
     #[test]
     fn test_get_parent_blocks_definition_nested_block() {
         let mut tera = Tera::default();
-        tera.add_templates(vec![
+        tera.add_raw_templates(vec![
             ("grandparent", "{% block hey %}hello{% endblock hey %}"),
             ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}"),
             ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),

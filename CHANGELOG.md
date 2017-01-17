@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.0 (unreleased)
+
+### Breaking changes
+
+- `Tera::add_template` -> `Tera::add_raw_template`
+- `Tera::add_templates` -> `Tera::add_raw_templates`
+
+### Others
+
+- Performance improvement thanks to @clarcharr
+- Better error message for `value_render`. Thanks to @SilverWingedSeraph for the report
+- Hide `add_raw_template` and `add_raw_templates` from docs, they were meant for internal use
+
 ## 0.6.2 (2017-01-08)
 
 - Performance improvements thanks to @wdv4758h

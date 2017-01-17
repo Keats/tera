@@ -18,9 +18,9 @@ fn assert_template_ok(path: &str, others: Vec<&str>) {
         let base = p.to_string();
         let split = base.split('/').collect::<Vec<&str>>();
         let name = split.last().unwrap();
-        tera.add_template(name, &read_file(&base)).unwrap();
+        tera.add_raw_template(name, &read_file(&base)).unwrap();
     }
-    tera.add_template("tpl.html", &read_file(path)).unwrap();
+    tera.add_raw_template("tpl.html", &read_file(path)).unwrap();
     let expected = read_file(&path.replace("templates", "expected"));
 
     let mut context = Context::new();
@@ -118,7 +118,7 @@ fn test_ok_include_template() {
 fn test_ok_value_render() {
     let path = "tests/templates/value_render.html";
     let mut tera = Tera::default();
-    tera.add_template("tpl", &read_file(path)).unwrap();
+    tera.add_raw_template("tpl", &read_file(path)).unwrap();
     let expected = read_file(&path.replace("templates", "expected"));
     let rendered = tera.value_render("tpl", &Product::new()).unwrap();
     if rendered != expected {
