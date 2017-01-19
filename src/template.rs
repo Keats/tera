@@ -1,4 +1,4 @@
-use std::collections::{HashMap, LinkedList};
+use std::collections::{HashMap, VecDeque};
 
 use parser::{parse, Node};
 use errors::{Result};
@@ -41,7 +41,7 @@ impl Template {
         let mut blocks = HashMap::new();
         // We find all those blocks at first so we don't need to do it for each render
         // Recursive because we can have blocks inside blocks
-        fn find_blocks(ast: LinkedList<Node>, blocks: &mut HashMap<String, Node>) -> Result<()> {
+        fn find_blocks(ast: VecDeque<Node>, blocks: &mut HashMap<String, Node>) -> Result<()> {
             for node in ast {
                 match node {
                     block @ Node::Block { .. } => {

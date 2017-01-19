@@ -1,4 +1,4 @@
-use std::collections::{HashMap, LinkedList};
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 
 use pest::prelude::*;
@@ -47,7 +47,7 @@ impl fmt::Display for Operator {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Node {
-    List(LinkedList<Node>),
+    List(VecDeque<Node>),
 
     Text(String),
     Int(i64),
@@ -58,7 +58,7 @@ pub enum Node {
     Logic {lhs: Box<Node>, rhs: Box<Node>, operator: Operator},
     Not(Box<Node>),
 
-    If {condition_nodes: LinkedList<Node>, else_node: Option<Box<Node>>},
+    If {condition_nodes: VecDeque<Node>, else_node: Option<Box<Node>>},
     // represents if/elif. condition (Bool, Math, Logic, Test), body (a List)
     Conditional {condition: Box<Node>, body: Box<Node>},
 
@@ -67,7 +67,7 @@ pub enum Node {
     Super,
 
     // params is the list of the params names
-    Macro {name: String, params: LinkedList<String>, body: Box<Node>},
+    Macro {name: String, params: VecDeque<String>, body: Box<Node>},
     // import looks like `{% import "macros.html" as macros %}`
     // tpl_name refers to "macros.html" and name to macros in that example
     ImportMacro {tpl_name: String, name: String},
@@ -76,11 +76,11 @@ pub enum Node {
     MacroCall {namespace: String, name: String, params: HashMap<String, Node>},
 
     // params are expressions
-    Test {expression: Box<Node>, name: String, params: LinkedList<Node>},
+    Test {expression: Box<Node>, name: String, params: VecDeque<Node>},
 
     // params are expressions
     Filter {name: String, params: HashMap<String, Node>},
-    Identifier {name: String, filters: Option<LinkedList<Node>>},
+    Identifier {name: String, filters: Option<VecDeque<Node>>},
 
     Raw(String),
     Extends(String),
@@ -89,7 +89,7 @@ pub enum Node {
 }
 
 impl Node {
-    pub fn get_children(&self) -> LinkedList<Node> {
+    pub fn get_children(&self) -> VecDeque<Node> {
         match *self {
             Node::List(ref l) => l.clone(),
             Node::If {ref condition_nodes, ..} => condition_nodes.clone(),
@@ -270,14 +270,14 @@ impl_rdp! {
             }
         }
 
-        _template(&self) -> Result<LinkedList<Node>> {
+        _template(&self) -> Result<VecDeque<Node>> {
             (_: extends_tag, &name: string, tail: _template()) => {
                 let mut tail2 = tail?;
                 tail2.push_front(Node::Extends(name.replace("\"", "").to_string()));
                 Ok(tail2)
             },
             (_: extends_tag, &name: string) => {
-                let mut body = LinkedList::new();
+                let mut body = VecDeque::new();
                 body.push_front(Node::Extends(name.replace("\"", "").to_string()));
                 Ok(body)
             },
@@ -305,7 +305,7 @@ impl_rdp! {
                 };
                 Ok(tail2)
             },
-            () => Ok(LinkedList::new())
+            () => Ok(VecDeque::new())
         }
 
         // Option since we don't want comments in the AST
@@ -371,7 +371,7 @@ impl_rdp! {
             },
             // only if
             (_: if_tag, cond: _condition(), body: _template(), _: endif_tag) => {
-                let mut condition_nodes = LinkedList::new();
+                let mut condition_nodes = VecDeque::new();
                 condition_nodes.push_front(Node::Conditional {
                     condition: Box::new(cond?),
                     body: Box::new(Node::List(body?)),
@@ -384,7 +384,7 @@ impl_rdp! {
             },
             // if/elifs/else
             (_: if_tag, cond: _condition(), body: _template(), elifs: _elifs(), _: else_tag, else_body: _template(), _: endif_tag) => {
-                let mut condition_nodes = LinkedList::new();
+                let mut condition_nodes = VecDeque::new();
                 condition_nodes.push_front(Node::Conditional {
                     condition: Box::new(cond?),
                     body: Box::new(Node::List(body?)),
@@ -401,7 +401,7 @@ impl_rdp! {
             },
             // if/elifs
             (_: if_tag, cond: _condition(), body: _template(), elifs: _elifs(), _: endif_tag) => {
-                let mut condition_nodes = LinkedList::new();
+                let mut condition_nodes = VecDeque::new();
                 condition_nodes.push_front(Node::Conditional {
                     condition: Box::new(cond?),
                     body: Box::new(Node::List(body?)),
@@ -418,7 +418,7 @@ impl_rdp! {
             },
             // if/else
             (_: if_tag, cond: _condition(), body: _template(), _: else_tag, else_body: _template(), _: endif_tag) => {
-                let mut condition_nodes = LinkedList::new();
+                let mut condition_nodes = VecDeque::new();
                 condition_nodes.push_front(Node::Conditional {
                     condition: Box::new(cond?),
                     body: Box::new(Node::List(body?)),
@@ -453,13 +453,13 @@ impl_rdp! {
             }
         }
 
-        _elifs(&self) -> Result<LinkedList<Node>> {
+        _elifs(&self) -> Result<VecDeque<Node>> {
             (_: elif_block, node: _if(), tail: _elifs()) => {
                 let mut tail2 = tail?;
                 tail2.push_front(node?);
                 Ok(tail2)
             },
-            () => Ok(LinkedList::new())
+            () => Ok(VecDeque::new())
         }
 
         _if(&self) -> Result<Node> {
@@ -505,7 +505,7 @@ impl_rdp! {
             },
         }
 
-        _filters(&self) -> Result<LinkedList<Node>> {
+        _filters(&self) -> Result<VecDeque<Node>> {
             (_: filters, filter: _fn(), tail: _filters()) => {
                 let mut tail2 = tail?;
                 tail2.push_front(filter?);
@@ -516,10 +516,10 @@ impl_rdp! {
                 tail2.push_front(filter?);
                 Ok(tail2)
             },
-            () => Ok(LinkedList::new())
+            () => Ok(VecDeque::new())
         }
 
-        _macro_def_params(&self) -> LinkedList<String> {
+        _macro_def_params(&self) -> VecDeque<String> {
             // first arg of many
             (_: macro_params, _: macro_param, &name: simple_ident, mut tail: _macro_def_params()) => {
                 tail.push_front(name.to_string());
@@ -531,10 +531,10 @@ impl_rdp! {
                 tail
             },
             // Base case
-            () => LinkedList::new()
+            () => VecDeque::new()
         }
 
-        _test_fn_params(&self) -> (Result<LinkedList<Node>>) {
+        _test_fn_params(&self) -> (Result<VecDeque<Node>>) {
             // first arg of many
             (_: test_fn_params, _: test_fn_param, value: _expression(), tail: _test_fn_params()) => {
                 let mut tail = tail?;
@@ -548,10 +548,10 @@ impl_rdp! {
                 Ok(tail)
             },
             // Base case.
-            () => Ok(LinkedList::new())
+            () => Ok(VecDeque::new())
         }
 
-        _test(&self) -> Result<(String, LinkedList<Node>)> {
+        _test(&self) -> Result<(String, VecDeque<Node>)> {
             (_: test_fn, &name: simple_ident, params: _test_fn_params()) => {
                 Ok((name.to_string(), params?))
             },
@@ -659,7 +659,7 @@ pub fn parse(input: &str) -> Result<Node> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{LinkedList, HashMap};
+    use std::collections::{VecDeque, HashMap};
 
     use pest::prelude::*;
 
@@ -944,7 +944,7 @@ mod tests {
     #[test]
     fn test_ast_basic() {
         let parsed_ast = parse(" Hello {{ count + 1 * 2.5 }} {{ true or false and 1 }}");
-        let mut ast = LinkedList::new();
+        let mut ast = VecDeque::new();
         ast.push_front(Node::VariableBlock(
             Box::new(Node::Logic {
                 lhs: Box::new(Node::Bool(true)),
@@ -977,8 +977,8 @@ mod tests {
     #[test]
     fn test_ast_block() {
         let parsed_ast = parse("{% block content %}Hello{% endblock content %}");
-        let mut ast = LinkedList::new();
-        let mut inner_content = LinkedList::new();
+        let mut ast = VecDeque::new();
+        let mut inner_content = VecDeque::new();
         inner_content.push_front(Node::Text("Hello".to_string()));
         ast.push_front(Node::Block {
             name: "content".to_string(),
@@ -991,8 +991,8 @@ mod tests {
     #[test]
     fn test_ast_for() {
         let parsed_ast = parse("{% for user in users %}{{user.email}}{% endfor %}");
-        let mut ast = LinkedList::new();
-        let mut inner_content = LinkedList::new();
+        let mut ast = VecDeque::new();
+        let mut inner_content = VecDeque::new();
         inner_content.push_front(Node::VariableBlock(
             Box::new(Node::Identifier {name: "user.email".to_string(), filters: None})
         ));
@@ -1008,7 +1008,7 @@ mod tests {
     #[test]
     fn test_ast_extends() {
         let parsed_ast = parse("{% extends \"base.html\" %}");
-        let mut ast = LinkedList::new();
+        let mut ast = VecDeque::new();
         ast.push_front(Node::Extends("base.html".to_string()));
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
@@ -1017,11 +1017,11 @@ mod tests {
     #[test]
     fn test_ast_if() {
         let parsed_ast = parse("{% if superadmin %}Hey{% endif %}");
-        let mut ast = LinkedList::new();
-        let mut body = LinkedList::new();
+        let mut ast = VecDeque::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Hey".to_string()));
 
-        let mut condition_nodes = LinkedList::new();
+        let mut condition_nodes = VecDeque::new();
         condition_nodes.push_front(Node::Conditional {
             condition: Box::new(Node::Identifier {name: "superadmin".to_string(), filters: None}),
             body: Box::new(Node::List(body.clone()))
@@ -1038,11 +1038,11 @@ mod tests {
     #[test]
     fn test_ast_if_with_test() {
         let parsed_ast = parse("{% if number is defined %}Hey{% endif %}");
-        let mut ast = LinkedList::new();
-        let mut body = LinkedList::new();
+        let mut ast = VecDeque::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Hey".to_string()));
 
-        let mut condition_nodes = LinkedList::new();
+        let mut condition_nodes = VecDeque::new();
         condition_nodes.push_front(Node::Conditional {
             condition: Box::new(
                 Node::Test {
@@ -1050,7 +1050,7 @@ mod tests {
                         name: "number".to_string(), filters: None,
                     }),
                     name: "defined".to_string(),
-                    params: LinkedList::new()
+                    params: VecDeque::new()
                 }
             ),
             body: Box::new(Node::List(body.clone()))
@@ -1067,14 +1067,14 @@ mod tests {
     #[test]
     fn test_ast_if_with_test_params() {
         let parsed_ast = parse(r#"{% if pi is equalto 3.13 %}Hey{% endif %}"#);
-        let mut ast = LinkedList::new();
-        let mut body = LinkedList::new();
+        let mut ast = VecDeque::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Hey".to_string()));
 
-        let mut params = LinkedList::new();
+        let mut params = VecDeque::new();
         params.push_front(Node::Float(3.13));
 
-        let mut condition_nodes = LinkedList::new();
+        let mut condition_nodes = VecDeque::new();
         condition_nodes.push_front(Node::Conditional {
             condition: Box::new(
                 Node::Test {
@@ -1100,17 +1100,17 @@ mod tests {
     fn test_ast_if_elif_with_test() {
         let parsed_ast = parse("{% if hi %}Hey{% elif admin is oneof(a, 2, true) %}Hey{% endif %}");
 
-        let mut ast = LinkedList::new();
-        let mut body = LinkedList::new();
+        let mut ast = VecDeque::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Hey".to_string()));
 
-        let mut condition_nodes = LinkedList::new();
+        let mut condition_nodes = VecDeque::new();
         condition_nodes.push_front(Node::Conditional {
             condition: Box::new(Node::Identifier {name: "hi".to_string(), filters: None}),
             body: Box::new(Node::List(body.clone()))
         });
 
-        let mut params = LinkedList::new();
+        let mut params = VecDeque::new();
         params.push_back(Node::Identifier { name: "a".to_string(), filters: None });
         params.push_back(Node::Int(2));
         params.push_back(Node::Bool(true));
@@ -1139,11 +1139,11 @@ mod tests {
     #[test]
     fn test_ast_if_else() {
         let parsed_ast = parse("{% if superadmin %}Hey{% else %}Hey{% endif %}");
-        let mut ast = LinkedList::new();
-        let mut body = LinkedList::new();
+        let mut ast = VecDeque::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Hey".to_string()));
 
-        let mut condition_nodes = LinkedList::new();
+        let mut condition_nodes = VecDeque::new();
         condition_nodes.push_front(Node::Conditional {
             condition: Box::new(Node::Identifier {name: "superadmin".to_string(), filters: None}),
             body: Box::new(Node::List(body.clone()))
@@ -1160,11 +1160,11 @@ mod tests {
     #[test]
     fn test_ast_if_elif() {
         let parsed_ast = parse("{% if superadmin %}Hey{% elif admin %}Hey{% endif %}");
-        let mut ast = LinkedList::new();
-        let mut body = LinkedList::new();
+        let mut ast = VecDeque::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Hey".to_string()));
 
-        let mut condition_nodes = LinkedList::new();
+        let mut condition_nodes = VecDeque::new();
         condition_nodes.push_front(Node::Conditional {
             condition: Box::new(Node::Identifier {name: "superadmin".to_string(), filters: None}),
             body: Box::new(Node::List(body.clone()))
@@ -1185,11 +1185,11 @@ mod tests {
     #[test]
     fn test_ast_if_elifs_else() {
         let parsed_ast = parse("{% if superadmin %}Hey{% elif admin %}Hey{% else %}Hey{% endif %}");
-        let mut ast = LinkedList::new();
-        let mut body = LinkedList::new();
+        let mut ast = VecDeque::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Hey".to_string()));
 
-        let mut condition_nodes = LinkedList::new();
+        let mut condition_nodes = VecDeque::new();
         condition_nodes.push_back(Node::Conditional {
             condition: Box::new(Node::Identifier {name: "admin".to_string(), filters: None}),
             body: Box::new(Node::List(body.clone()))
@@ -1210,11 +1210,11 @@ mod tests {
     #[test]
     fn test_ast_not_condition_and() {
         let parsed_ast = parse("{% if admin and not superadmin %}Admin{% endif %}");
-        let mut ast = LinkedList::new();
-        let mut body = LinkedList::new();
+        let mut ast = VecDeque::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Admin".to_string()));
 
-        let mut condition_nodes = LinkedList::new();
+        let mut condition_nodes = VecDeque::new();
         condition_nodes.push_back(Node::Conditional {
             condition: Box::new(Node::Logic {
                 lhs: Box::new(Node::Identifier {name: "admin".to_string(), filters: None}),
@@ -1235,11 +1235,11 @@ mod tests {
     #[test]
     fn test_ast_not_condition_or() {
         let parsed_ast = parse("{% if not active or number_users > 10 %}Login{% endif %}");
-        let mut ast = LinkedList::new();
-        let mut body = LinkedList::new();
+        let mut ast = VecDeque::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Login".to_string()));
 
-        let mut condition_nodes = LinkedList::new();
+        let mut condition_nodes = VecDeque::new();
         condition_nodes.push_back(Node::Conditional {
             condition: Box::new(Node::Logic {
                 lhs: Box::new(Node::Not(Box::new(Node::Identifier {name: "active".to_string(), filters: None}))),
@@ -1297,7 +1297,7 @@ mod tests {
     #[test]
     fn test_ast_raw() {
         let parsed_ast = parse("Hey {% raw %}Hey {{ name }}{% endraw %} Ho");
-        let mut ast = LinkedList::new();
+        let mut ast = VecDeque::new();
         // A bit ugly to have a separate node for the leading ws but oh well
         ast.push_front(Node::Text(" Ho".to_string()));
         ast.push_front(Node::Raw("Hey {{ name }}".to_string()));
@@ -1309,7 +1309,7 @@ mod tests {
     #[test]
     fn test_ast_filter() {
         let parsed_ast = parse("{{ greeting | i18n(lang=user.lang, units=user.units) | truncate(limit=50, cut_word=true) }}");
-        let mut filters = LinkedList::new();
+        let mut filters = VecDeque::new();
 
         let mut args_truncate = HashMap::new();
         args_truncate.insert("limit".to_string(), Node::Int(50));
@@ -1327,7 +1327,7 @@ mod tests {
             params: args_i18n,
         });
 
-        let mut ast = LinkedList::new();
+        let mut ast = VecDeque::new();
         ast.push_front(Node::VariableBlock(
             Box::new(Node::Identifier {
                 name: "greeting".to_string(),
@@ -1341,12 +1341,12 @@ mod tests {
     #[test]
     fn test_ast_macro_definition_no_arg() {
         let parsed_ast = parse("{% macro helloworld() %}Hello{% endmacro helloworld %}");
-        let params = LinkedList::new();
+        let params = VecDeque::new();
 
-        let mut body = LinkedList::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Hello".to_string()));
 
-        let mut ast = LinkedList::new();
+        let mut ast = VecDeque::new();
         ast.push_front(Node::Macro {
             name: "helloworld".to_string(),
             params: params,
@@ -1360,13 +1360,13 @@ mod tests {
     #[test]
     fn test_ast_macro_definition_one_arg() {
         let parsed_ast = parse("{% macro helloworld(greeting) %}Hello{% endmacro helloworld %}");
-        let mut params = LinkedList::new();
+        let mut params = VecDeque::new();
         params.push_front("greeting".to_string());
 
-        let mut body = LinkedList::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Hello".to_string()));
 
-        let mut ast = LinkedList::new();
+        let mut ast = VecDeque::new();
         ast.push_front(Node::Macro {
             name: "helloworld".to_string(),
             params: params,
@@ -1380,14 +1380,14 @@ mod tests {
     #[test]
     fn test_ast_macro_definition_multiple_args() {
         let parsed_ast = parse("{% macro helloworld(greeting, language) %}Hello{% endmacro helloworld %}");
-        let mut params = LinkedList::new();
+        let mut params = VecDeque::new();
         params.push_front("language".to_string());
         params.push_front("greeting".to_string());
 
-        let mut body = LinkedList::new();
+        let mut body = VecDeque::new();
         body.push_front(Node::Text("Hello".to_string()));
 
-        let mut ast = LinkedList::new();
+        let mut ast = VecDeque::new();
         ast.push_front(Node::Macro {
             name: "helloworld".to_string(),
             params: params,
@@ -1401,7 +1401,7 @@ mod tests {
     #[test]
     fn test_ast_macro_import() {
         let parsed_ast = parse("{% import \"macros.html\" as macros %}");
-        let mut ast = LinkedList::new();
+        let mut ast = VecDeque::new();
         ast.push_front(Node::ImportMacro {
             tpl_name: "macros.html".to_string(),
             name: "macros".to_string(),
@@ -1414,7 +1414,7 @@ mod tests {
     #[test]
     fn test_ast_macro_call_no_args() {
         let parsed_ast = parse("{{ macros::macro1() }}");
-        let mut ast = LinkedList::new();
+        let mut ast = VecDeque::new();
         let params = HashMap::new();
         ast.push_front(Node::MacroCall {
             namespace: "macros".to_string(),
@@ -1429,7 +1429,7 @@ mod tests {
     #[test]
     fn test_ast_macro_call_one_arg() {
         let parsed_ast = parse("{{ macros::macro1(foo=bar) }}");
-        let mut ast = LinkedList::new();
+        let mut ast = VecDeque::new();
         let mut params = HashMap::new();
         params.insert("foo".to_string(), Node::Identifier {name: "bar".to_string(), filters: None});
         ast.push_front(Node::MacroCall {
@@ -1445,7 +1445,7 @@ mod tests {
     #[test]
     fn test_ast_macro_call_multiple_args() {
         let parsed_ast = parse("{{ macros::macro1(foo=bar, hey=1+2) }}");
-        let mut ast = LinkedList::new();
+        let mut ast = VecDeque::new();
         let mut params = HashMap::new();
         params.insert("foo".to_string(), Node::Identifier {name: "bar".to_string(), filters: None});
         params.insert("hey".to_string(), Node::Math {
