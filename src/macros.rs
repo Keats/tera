@@ -15,7 +15,7 @@
 #[macro_export]
 macro_rules! try_get_value {
     ($filter_name:expr, $var_name:expr, $ty:ty, $val:expr) => {{
-        match ::serde_json::value::from_value::<$ty>($val.clone()) {
+        match $crate::from_value::<$ty>($val.clone()) {
             Ok(s) => s,
             Err(_) => {
                 if $var_name == "value" {
@@ -45,7 +45,7 @@ macro_rules! try_get_value {
 #[macro_export]
 macro_rules! compile_templates {
     ($glob:expr) => {{
-        match Tera::new($glob) {
+        match $crate::Tera::new($glob) {
             Ok(t) => t,
             Err(e) => {
                 println!("Parsing error(s): {}", e);
