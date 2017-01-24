@@ -8,8 +8,10 @@ use errors::{Result};
 /// Not mean to be used directly unless you want a one-off template rendering
 #[derive(Debug, Clone)]
 pub struct Template {
-    /// filename
+    /// name of the template, usually very close to the path
     pub name: String,
+    /// original path of the file
+    pub path: Option<String>,
     /// Parsed ast
     pub ast: Node,
     /// macros defined in that file
@@ -35,7 +37,7 @@ pub struct Template {
 
 impl Template {
     /// Parse the template string given
-    pub fn new(tpl_name: &str, input: &str) -> Result<Template> {
+    pub fn new(tpl_name: &str, tpl_path: Option<String>, input: &str) -> Result<Template> {
         let ast = parse(input)?;
 
         let mut blocks = HashMap::new();
@@ -101,6 +103,7 @@ impl Template {
 
         Ok(Template {
             name: tpl_name.to_string(),
+            path: tpl_path,
             ast: ast,
             parent: parent,
             blocks: blocks,
@@ -120,12 +123,12 @@ mod tests {
 
     #[test]
     fn test_can_parse_ok_template() {
-        Template::new("hello", "Hello {{ world }}.").unwrap();
+        Template::new("hello", None, "Hello {{ world }}.").unwrap();
     }
 
     #[test]
     fn test_can_find_parent_template() {
-        let tpl = Template::new("hello", "{% extends \"base.html\" %}").unwrap();
+        let tpl = Template::new("hello", None,"{% extends \"base.html\" %}").unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
     }
@@ -134,6 +137,7 @@ mod tests {
     fn test_can_find_blocks() {
         let tpl = Template::new(
             "hello",
+            None,
             "{% extends \"base.html\" %}{% block hey %}{% endblock hey %}"
         ).unwrap();
 
@@ -145,6 +149,7 @@ mod tests {
     fn test_can_find_nested_blocks() {
         let tpl = Template::new(
             "hello",
+            None,
             "{% extends \"base.html\" %}{% block hey %}{% block extrahey %}{% endblock extrahey %}{% endblock hey %}"
         ).unwrap();
 
@@ -155,13 +160,13 @@ mod tests {
 
     #[test]
     fn test_can_find_macros() {
-        let tpl = Template::new("hello", "{% macro hey() %}{% endmacro hey %}").unwrap();
+        let tpl = Template::new("hello", None, "{% macro hey() %}{% endmacro hey %}").unwrap();
         assert_eq!(tpl.macros.contains_key("hey"), true);
     }
 
     #[test]
     fn test_can_find_imported_macros() {
-        let tpl = Template::new("hello", "{% import \"macros.html\" as macros %}").unwrap();
+        let tpl = Template::new("hello", None, "{% import \"macros.html\" as macros %}").unwrap();
         assert_eq!(tpl.imported_macro_files, vec![("macros.html".to_string(), "macros".to_string())]);
     }
 }

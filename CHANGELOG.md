@@ -12,6 +12,8 @@
 - Performance improvement thanks to @clarcharr
 - Better error message for `value_render`. Thanks to @SilverWingedSeraph for the report
 - Hide `add_raw_template` and `add_raw_templates` from docs, they were meant for internal use
+- Exported macros now use the `$crate` variable, which means you don't need to import anything from Tera to have
+them working
 
 ## 0.6.2 (2017-01-08)
 
