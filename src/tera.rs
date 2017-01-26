@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::prelude::*;
 use std::fs::File;
 use std::fmt;
+use std::path::Path;
 
 use glob::glob;
 use serde::Serialize;
@@ -49,8 +50,14 @@ impl Tera {
             bail!("Tera expects a glob as input, no * were found in `{}`", dir);
         }
 
-        let mut templates = HashMap::new();
         let mut errors = String::new();
+
+        let mut tera = Tera {
+            templates: HashMap::new(),
+            filters: HashMap::new(),
+            testers: HashMap::new(),
+            autoescape_extensions: vec![".html", ".htm", ".xml"]
+        };
 
         // We are parsing all the templates on instantiation
         for entry in glob(dir).unwrap().filter_map(|e| e.ok()) {
@@ -64,37 +71,40 @@ impl Tera {
                     .replace("\\", "/") // change windows slash to forward slash
                     .replace(parent_dir, "");
 
-                // we know the file exists so unwrap all the things
-                let mut f = File::open(path).unwrap();
-                let mut input = String::new();
-                f.read_to_string(&mut input).unwrap();
-
-                match Template::new(&filepath, &input).chain_err(|| format!("Failed to parse '{}'", filepath)) {
-                    Ok(tpl) => { templates.insert(filepath.to_string(), tpl); },
-                    Err(e) => {
-                        errors += &format!("\n* {}", e);
-                        for e in e.iter().skip(1) {
-                            errors += &format!("\n-- {}", e);
-                        }
+                if let Err(e) = tera.add_file(Some(&filepath), path) {
+                    errors += &format!("\n* {}", e);
+                    for e in e.iter().skip(1) {
+                        errors += &format!("\n-- {}", e);
                     }
                 }
             }
         }
-        if errors != "" {
+        if !errors.is_empty() {
             bail!(errors);
         }
-
-        let mut tera = Tera {
-            templates: templates,
-            filters: HashMap::new(),
-            testers: HashMap::new(),
-            autoescape_extensions: vec![".html", ".htm", ".xml"]
-        };
 
         tera.build_inheritance_chains()?;
         tera.register_tera_filters();
         tera.register_tera_testers();
         Ok(tera)
+    }
+
+    // Add a template from a path: reads the file and parses it.
+    // This will return an error if the template is invalid and doesn't check the validity of
+    // inheritance chains.
+    fn add_file<P: AsRef<Path>>(&mut self, name: Option<&str>, path: P) -> Result<()> {
+        let path = path.as_ref();
+        let tpl_name = if let Some(n) = name { n } else { path.to_str().unwrap() };
+
+        let mut f = File::open(path).chain_err(|| format!("Couldn't open template '{:?}'", path))?;
+        let mut input = String::new();
+        f.read_to_string(&mut input).chain_err(|| format!("Failed to read template '{:?}'", path))?;
+
+        let tpl = Template::new(tpl_name, Some(path.to_str().unwrap().to_string()), &input)
+            .chain_err(|| format!("Failed to parse '{:?}'", path))?;
+
+        self.templates.insert(tpl_name.to_string(), tpl);
+        Ok(())
     }
 
     // We need to know the hierarchy of templates to be able to render multiple extends level
@@ -264,9 +274,9 @@ impl Tera {
     /// ```
     #[doc(hidden)]
     pub fn add_raw_template(&mut self, name: &str, content: &str) -> Result<()> {
-        let tpl = Template::new(name, content)
+        let tpl = Template::new(name, None, content)
             .chain_err(|| format!("Failed to parse '{}'", name))?;
-        self.templates.insert(name.to_string(),tpl);
+        self.templates.insert(name.to_string(), tpl);
         self.build_inheritance_chains()?;
         Ok(())
     }
@@ -285,7 +295,7 @@ impl Tera {
     #[doc(hidden)]
     pub fn add_raw_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()>  {
         for (name, content) in templates {
-            let tpl = Template::new(name, content)
+            let tpl = Template::new(name, None, content)
                 .chain_err(|| format!("Failed to parse '{}'", name))?;
             self.templates.insert(name.to_string(),tpl);
         }
@@ -293,6 +303,47 @@ impl Tera {
         Ok(())
     }
 
+
+    /// Add a single template from a path to the Tera instance. The default name for the template is
+    /// the path given, but this can be renamed with the `name` parameter
+    ///
+    /// This will error if the inheritance chain can't be built, such as adding a child
+    /// template without the parent one.
+    /// If you want to add several file, use [Tera::add_template_files](struct.Tera.html#method.add_template_files)
+    ///
+    /// ```rust,ignore
+    /// // Use path as name
+    /// tera.add_template_file(path, None);
+    /// // Rename
+    /// tera.add_template_file(path, Some("index");
+    /// ```
+    #[doc(hidden)]
+    pub fn add_template_file<P: AsRef<Path>>(&mut self, path: P, name: Option<&str>) -> Result<()> {
+        self.add_file(name, path)?;
+        self.build_inheritance_chains()?;
+        Ok(())
+    }
+
+    /// Add several templates from paths to the Tera instance. The default name for the template is
+    /// the path given, but this can be renamed with the second parameter of the tuple
+    ///
+    /// This will error if the inheritance chain can't be built, such as adding a child
+    /// template without the parent one.
+    ///
+    /// ```rust,ignore
+    /// tera.add_template_files(vec![
+    ///     (path1, None), // this template will have the value of path1 as name
+    ///     (path2, Some("hey")), // this template will have `hey` as name
+    /// ]);
+    /// ```
+    #[doc(hidden)]
+    pub fn add_template_files<P: AsRef<Path>>(&mut self, files: Vec<(P, Option<&str>)>) -> Result<()>  {
+        for (path, name) in files {
+            self.add_file(name, path)?;
+        }
+        self.build_inheritance_chains()?;
+        Ok(())
+    }
 
     #[doc(hidden)]
     #[inline]
