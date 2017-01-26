@@ -8,13 +8,14 @@ description = "Template engine based on Jinja2/Django templates"
 homepage = "https://github.com/Keats/tera"
 repository = "https://github.com/Keats/tera"
 keywords = ["template", "html", "django", "markup", "jinja2"]
+categories = ["template-engine"]
 
 [dependencies]
 glob = "0.2"
 serde = "0.8"
 serde_json = "0.8"
 pest = "0.4"
-error-chain = "0.7"
+error-chain = "0.8"
 # used in slugify filter
 slug = "0.1"
 # used in striptags filters
@@ -22,8 +23,8 @@ regex = "0.2"
 # used for static regex
 lazy_static = "0.2"
 # used in urlencode filter
-url = "1.2.0"
+url = "1"
 # used in filesizeformat filter
-humansize = "0.1.1"
+humansize = "1"
 # used in date format filter
 chrono = "0.2"
