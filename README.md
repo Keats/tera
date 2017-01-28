@@ -518,3 +518,11 @@ Escapes a string's HTML. Specifically, it makes these replacements:
 - ' (single quote) is converted to `&#x27;`
 - / is converted to `&#x27;`
 - `` ` `` is converted to `&#96;`
+
+
+## Accessing the AST
+Tera gives access to the AST of each template but the functions required is hidden
+from the docs at the current time.
+See `examples/ast.rs` for an example on how to get the AST for a given template.
+
+The AST is not considered public and breaking changes could happen in minor versions.

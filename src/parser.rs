@@ -6,20 +6,31 @@ use errors::Result;
 
 
 #[derive(Clone, Debug, PartialEq)]
+/// All operators can appear in Tera templates
 pub enum Operator {
+    /// +
     Add,
+    /// -
     Sub,
+    /// *
     Mul,
+    /// /
     Div,
-
+    /// >
     Gt,
+    /// >=
     Gte,
+    /// <
     Lt,
+    /// <=
     Lte,
+    /// ==
     Eq,
+    /// !=
     NotEq,
-
+    /// and
     And,
+    /// or
     Or,
 }
 
@@ -46,49 +57,138 @@ impl fmt::Display for Operator {
 
 
 #[derive(Clone, Debug, PartialEq)]
+/// All nodes in Tera AST
 pub enum Node {
+    /// Container node
     List(VecDeque<Node>),
-
+    /// Plain text
     Text(String),
+    /// Int
     Int(i64),
+    /// Float
     Float(f64),
+    /// true/false
     Bool(bool),
 
-    Math {lhs: Box<Node>, rhs: Box<Node>, operator: Operator},
-    Logic {lhs: Box<Node>, rhs: Box<Node>, operator: Operator},
+    /// A math operation
+    Math {
+        /// Left side of the operation
+        lhs: Box<Node>,
+        /// Right side of the operation
+        rhs: Box<Node>,
+        /// Operator used (+, -, *, /)
+        operator: Operator
+    },
+    /// A logic node (comparison etc)
+    Logic {
+        /// Left side of the operation
+        lhs: Box<Node>,
+        /// Right side of the operation
+        rhs: Box<Node>,
+        /// Operator used (>, <, >=, <=, ==, !=, and, or)
+        operator: Operator
+    },
+    /// Negated node
     Not(Box<Node>),
 
-    If {condition_nodes: VecDeque<Node>, else_node: Option<Box<Node>>},
-    // represents if/elif. condition (Bool, Math, Logic, Test), body (a List)
-    Conditional {condition: Box<Node>, body: Box<Node>},
+    /// Contains initial if block, all elif blocks and optional else block
+    /// The condition nodes are a list of `Conditional` node
+    If {
+        /// First item if the if, all the ones after are elif
+        condition_nodes: VecDeque<Node>,
+        /// Only there if the if has an else clause
+        else_node: Option<Box<Node>>
+    },
+    /// Represents if/elif
+    Conditional {
+        /// Can be many things, from a number to a `Logic` node
+        condition: Box<Node>,
+        /// The body of the condition, a `List` node
+        body: Box<Node>
+    },
 
-    For {variable: String, array: String, body: Box<Node>},
-    Block {name: String, body: Box<Node>},
+    /// A for loop `{% for i in arr %}{% endfor %}
+    For {
+        /// Name of the local variable in the loop
+        variable: String,
+        /// Name of the variable being iterated on
+        array: String,
+        /// Body of the forloop, a `List` node
+        body: Box<Node>
+    },
+    /// A `{% block hello %}...{% endblock hello %}` node
+    Block {
+        /// Name of the block
+        name: String,
+        /// Body of the block, a `List` node
+        body: Box<Node>
+    },
+    /// A call to `{{ super() }}` in a block
     Super,
 
-    // params is the list of the params names
-    Macro {name: String, params: VecDeque<String>, body: Box<Node>},
-    // import looks like `{% import "macros.html" as macros %}`
-    // tpl_name refers to "macros.html" and name to macros in that example
-    ImportMacro {tpl_name: String, name: String},
-    // Macros are called like `{{ my_macros::macro1(foo=1, bar=bar) }}`
-    // params are kwargs {name: expression}
-    MacroCall {namespace: String, name: String, params: HashMap<String, Node>},
+    /// A macro definition node
+    Macro {
+        /// Name of the macro
+        name: String,
+        /// Name of the macro parameters
+        params: VecDeque<String>,
+        /// Body of the macro, a `List` node
+        body: Box<Node>
+    },
+    /// An import macro node `{% import "macros.html" as macros %}`
+    ImportMacro {
+        /// The template name to import it from
+        tpl_name: String,
+        /// The name we give to that macro namespace
+        name: String
+    },
+    /// A macro call node `{{ my_macros::macro1(foo=1, bar=bar) }}`
+    MacroCall {
+        /// The macro namespace name
+        namespace: String,
+        /// The macro name
+        name: String,
+        /// The kwargs for that macro, the Node is an expression
+        params: HashMap<String, Node>
+    },
 
-    // params are expressions
-    Test {expression: Box<Node>, name: String, params: VecDeque<Node>},
+    /// A test node `if my_var is odd`
+    Test {
+        /// Which expression is evaluated
+        expression: Box<Node>,
+        /// Name of the test
+        name: String,
+        /// Any optional param given to the test
+        params: VecDeque<Node>
+    },
 
-    // params are expressions
-    Filter {name: String, params: HashMap<String, Node>},
-    Identifier {name: String, filters: Option<VecDeque<Node>>},
-
+    /// A filter node `| round(method="ceil")`
+    Filter {
+        /// Name of the filter
+        name: String,
+        /// kwargs for that filter, the Node is an expression
+        params: HashMap<String, Node>
+    },
+    /// A variable node
+    Identifier {
+        /// Name of the variable
+        name: String,
+        /// Optional list of `Filter` node
+        filters: Option<VecDeque<Node>>
+    },
+    /// The text between `{% raw %}` and `{% endraw %}`
     Raw(String),
+    /// The `{% extends "blabla.html" %}` node, contains the template name
     Extends(String),
+    /// A `{{ }}` node
     VariableBlock(Box<Node>),
+    /// The `{% include "blabla.html" %}` node, contains the template name
     Include(String),
 }
 
 impl Node {
+    /// Used on if and list nodes to get their children.
+    /// Will panic when used on any other node
     pub fn get_children(&self) -> VecDeque<Node> {
         match *self {
             Node::List(ref l) => l.clone(),
