@@ -11,9 +11,9 @@ use chrono::{NaiveDateTime, DateTime, FixedOffset};
 // Returns 0 if not an array or string.
 pub fn length(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     match value {
-        Value::Array(arr) => Ok(to_value(&arr.len())),
-        Value::String(s) => Ok(to_value(&s.chars().count())),
-        _ => Ok(to_value(&0)),
+        Value::Array(arr) => Ok(to_value(&arr.len()).unwrap()),
+        Value::String(s) => Ok(to_value(&s.chars().count()).unwrap()),
+        _ => Ok(to_value(0).unwrap()),
     }
 }
 
@@ -22,13 +22,13 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     match value {
         Value::Array(mut arr) => {
             arr.reverse();
-            Ok(to_value(&arr))
+            Ok(to_value(&arr)?)
         }
-        Value::String(s) => Ok(to_value(&String::from_iter(s.chars().rev()))),
+        Value::String(s) => Ok(to_value(&String::from_iter(s.chars().rev()))?),
         _ => {
             bail!(
-                "Filter `reverse` received an incorrect type for arg `value`: got `{:?}` but expected Array|String",
-                value
+                "Filter `reverse` received an incorrect type for arg `value`: got `{}` but expected Array|String",
+                value.to_string()
             );
         }
     }
@@ -45,8 +45,12 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 /// on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html)
 pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
     let dt = match value {
-        Value::I64(i) => NaiveDateTime::from_timestamp(i, 0),
-        Value::U64(u) => NaiveDateTime::from_timestamp(u as i64, 0),
+        Value::Number(n) => {
+            match n.as_i64() {
+                Some(i) => NaiveDateTime::from_timestamp(i, 0),
+                None => bail!("Filter `date` was invoked on a float: {:?}", n)
+            }
+        },
         Value::String(s) => {
             match s.parse::<DateTime<FixedOffset>>() {
                 Ok(val) => val.naive_local(),
@@ -66,7 +70,7 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
         None => "%Y-%m-%d".to_string(),
     };
 
-    Ok(to_value(&dt.format(&format).to_string()))
+    Ok(to_value(&dt.format(&format).to_string())?)
 }
 
 #[cfg(test)]
@@ -78,49 +82,49 @@ mod tests {
 
     #[test]
     fn test_length_vec() {
-        let result = length(to_value(&vec![1, 2, 3, 4]), HashMap::new());
+        let result = length(to_value(&vec![1, 2, 3, 4]).unwrap(), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&4));
+        assert_eq!(result.unwrap(), to_value(&4).unwrap());
     }
 
     #[test]
     fn test_length_str() {
-        let result = length(to_value(&"Hello World"), HashMap::new());
+        let result = length(to_value(&"Hello World").unwrap(), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&11));
+        assert_eq!(result.unwrap(), to_value(&11).unwrap());
     }
 
     #[test]
     fn test_length_str_nonascii() {
-        let result = length(to_value(&"日本語"), HashMap::new());
+        let result = length(to_value(&"日本語").unwrap(), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&3));
+        assert_eq!(result.unwrap(), to_value(&3).unwrap());
     }
 
     #[test]
     fn test_length_num() {
-        let result = length(to_value(&15), HashMap::new());
+        let result = length(to_value(&15).unwrap(), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&0));
+        assert_eq!(result.unwrap(), to_value(&0).unwrap());
     }
 
     #[test]
     fn test_reverse_vec() {
-        let result = reverse(to_value(&vec![1, 2, 3, 4]), HashMap::new());
+        let result = reverse(to_value(&vec![1, 2, 3, 4]).unwrap(), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&vec![4, 3, 2, 1]));
+        assert_eq!(result.unwrap(), to_value(&vec![4, 3, 2, 1]).unwrap());
     }
 
     #[test]
     fn test_reverse_str() {
-        let result = reverse(to_value(&"Hello World"), HashMap::new());
+        let result = reverse(to_value(&"Hello World").unwrap(), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&"dlroW olleH"));
+        assert_eq!(result.unwrap(), to_value(&"dlroW olleH").unwrap());
     }
 
     #[test]
     fn test_reverse_num() {
-        let result = reverse(to_value(&1.23), HashMap::new());
+        let result = reverse(to_value(&1.23).unwrap(), HashMap::new());
         assert!(result.is_err());
         assert_eq!(
             result.err().unwrap().description(),
@@ -131,26 +135,26 @@ mod tests {
     #[test]
     fn test_date_default() {
         let args = HashMap::new();
-        let result = date(to_value(1482720453), args);
+        let result = date(to_value(1482720453).unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("2016-12-26"));
+        assert_eq!(result.unwrap(), to_value("2016-12-26").unwrap());
     }
 
     #[test]
     fn test_date_custom_format() {
         let mut args = HashMap::new();
-        args.insert("format".to_string(), to_value("%Y-%m-%d %H:%M"));
-        let result = date(to_value(1482720453), args);
+        args.insert("format".to_string(), to_value("%Y-%m-%d %H:%M").unwrap());
+        let result = date(to_value(1482720453).unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("2016-12-26 02:47"));
+        assert_eq!(result.unwrap(), to_value("2016-12-26 02:47").unwrap());
     }
 
     #[test]
     fn test_date_rfc3339() {
         let args = HashMap::new();
         let dt: DateTime<Local> = Local::now();
-        let result = date(to_value(dt.to_rfc3339()), args);
+        let result = date(to_value(dt.to_rfc3339()).unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(dt.format("%Y-%m-%d").to_string()));
+        assert_eq!(result.unwrap(), to_value(dt.format("%Y-%m-%d").to_string()).unwrap());
     }
 }

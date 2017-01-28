@@ -6,6 +6,7 @@ use std::io::prelude::*;
 use std::fs::File;
 
 use self::tera::Template;
+use self::serde::ser::SerializeStruct;
 
 
 #[derive(Debug)]
@@ -28,15 +29,15 @@ impl Product {
 }
 // Impl Serialize by hand so tests pass on stable and beta
 impl serde::Serialize for Product {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: serde::Serializer
     {
-        let mut state = try!(serializer.serialize_struct("Product", 4));
-        try!(serializer.serialize_struct_elt(&mut state, "name", &self.name));
-        try!(serializer.serialize_struct_elt(&mut state, "manufacturer", &self.manufacturer));
-        try!(serializer.serialize_struct_elt(&mut state, "summary", &self.summary));
-        try!(serializer.serialize_struct_elt(&mut state, "price", &self.price));
-        serializer.serialize_struct_end(state)
+        let mut state = serializer.serialize_struct("Product", 4)?;
+        state.serialize_field("name", &self.name)?;
+        state.serialize_field("manufacturer", &self.manufacturer)?;
+        state.serialize_field("summary", &self.summary)?;
+        state.serialize_field("price", &self.price)?;
+        state.end()
     }
 }
 
@@ -58,13 +59,13 @@ impl Review {
 }
 // Impl Serialize by hand so tests pass on stable and beta
 impl serde::Serialize for Review {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: serde::Serializer
     {
-        let mut state = try!(serializer.serialize_struct("Review", 2));
-        try!(serializer.serialize_struct_elt(&mut state, "title", &self.title));
-        try!(serializer.serialize_struct_elt(&mut state, "paragraphs", &self.paragraphs));
-        serializer.serialize_struct_end(state)
+        let mut state = serializer.serialize_struct("Review", 2)?;
+        state.serialize_field("title", &self.title)?;
+        state.serialize_field("paragraphs", &self.paragraphs)?;
+        state.end()
     }
 }
 

@@ -1,7 +1,7 @@
 use std::collections::{VecDeque, HashMap};
 
 use serde_json::to_string_pretty;
-use serde_json::value::{Value, to_value};
+use serde_json::value::{Value, to_value, Number};
 
 use context::{ValueRender, ValueNumber, ValueTruthy, get_json_pointer};
 use template::Template;
@@ -104,7 +104,7 @@ impl<'a> Renderer<'a> {
         if key == MAGICAL_DUMP_VAR {
             return Ok(to_value(
                 to_string_pretty(context).expect("Couldn't serialize context for `__tera_context`")
-            ));
+            )?);
         }
 
         // small helper fn to reduce duplication code in the 3 spots in `lookup_variable` where we
@@ -126,7 +126,7 @@ impl<'a> Renderer<'a> {
             if key.starts_with(&for_loop.variable_name) {
                 let value = match for_loop.get() {
                     Some(f) => f,
-                    None => { return Ok(to_value(&"")); }
+                    None => { return Ok(to_value("").unwrap()); }
                 };
 
                 // might be a struct or some nested structure
@@ -138,10 +138,10 @@ impl<'a> Renderer<'a> {
                 }
             } else {
                 match key {
-                    "loop.index" => { return Ok(to_value(&(for_loop.current + 1))); },
-                    "loop.index0" => { return Ok(to_value(&for_loop.current)); },
-                    "loop.first" => { return Ok(to_value(&(for_loop.current == 0))); },
-                    "loop.last" => { return Ok(to_value(&(for_loop.current == for_loop.len() - 1))); },
+                    "loop.index" => { return Ok(to_value(&(for_loop.current + 1))?); },
+                    "loop.index0" => { return Ok(to_value(&for_loop.current)?); },
+                    "loop.first" => { return Ok(to_value(&(for_loop.current == 0))?); },
+                    "loop.last" => { return Ok(to_value(&(for_loop.current == for_loop.len() - 1))?); },
                     _ => ()
                 };
             }
@@ -183,7 +183,7 @@ impl<'a> Renderer<'a> {
                 // Escaping strings if wanted for that template
                 if name != MAGICAL_DUMP_VAR && self.should_escape && !is_safe {
                     if let Value::String(s) = value {
-                        value = to_value(escape_html(s.as_str()));
+                        value = to_value(escape_html(s.as_str()))?;
                     }
                 }
                 Ok(value)
@@ -235,13 +235,13 @@ impl<'a> Renderer<'a> {
             },
             m @ Math { .. } => {
                 let result = self.eval_math(&m)?;
-                Ok(Value::F64(result as f64))
+                Ok(Value::Number(Number::from_f64(result).unwrap()))
             },
             Int(val) => {
-                Ok(Value::I64(val as i64))
+                Ok(Value::Number(val.into()))
             },
             Float(val) => {
-                Ok(Value::F64(val as f64))
+                Ok(Value::Number(Number::from_f64(val).unwrap()))
             },
             Bool(b) => {
                 Ok(Value::Bool(b))
@@ -298,8 +298,8 @@ impl<'a> Renderer<'a> {
                                 return Ok(false);
                             }
 
-                            lhs_val = Value::F64(lhs_val.as_f64().unwrap());
-                            rhs_val = Value::F64(rhs_val.as_f64().unwrap());
+                            lhs_val = Value::Number(Number::from_f64(lhs_val.as_f64().unwrap()).unwrap());
+                            rhs_val = Value::Number(Number::from_f64(rhs_val.as_f64().unwrap()).unwrap());
                         }
 
                         let result = match operator {
@@ -448,7 +448,7 @@ impl<'a> Renderer<'a> {
 
                 // Push this context to our stack of macro context so the renderer can pick variables
                 // from it
-                self.macro_context.push(to_value(&context));
+                self.macro_context.push(to_value(&context)?);
 
                 // We render the macro body as a normal node
                 let mut output = String::new();

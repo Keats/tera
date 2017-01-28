@@ -21,21 +21,21 @@ lazy_static! {
 pub fn upper(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("upper", "value", String, value);
 
-    Ok(to_value(&s.to_uppercase()))
+    Ok(to_value(&s.to_uppercase()).unwrap())
 }
 
 /// Convert a value to lowercase.
 pub fn lower(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("lower", "value", String, value);
 
-    Ok(to_value(&s.to_lowercase()))
+    Ok(to_value(&s.to_lowercase()).unwrap())
 }
 
 /// Strip leading and trailing whitespace.
 pub fn trim(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("trim", "value", String, value);
 
-    Ok(to_value(&s.trim()))
+    Ok(to_value(&s.trim()).unwrap())
 }
 
 /// Truncates a string to the indicated length
@@ -48,18 +48,18 @@ pub fn truncate(value: Value, mut args: HashMap<String, Value>) -> Result<Value>
 
     // Nothing to truncate?
     if length > s.len() {
-        return Ok(to_value(&s));
+        return Ok(to_value(&s).unwrap());
     }
 
     let result = s[..s.char_indices().nth(length).unwrap().0].to_string() + "…";
-    Ok(to_value(&result))
+    Ok(to_value(&result).unwrap())
 }
 
 /// Gets the number of words in a string.
 pub fn wordcount(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("wordcount", "value", String, value);
 
-    Ok(to_value(&s.split_whitespace().count()))
+    Ok(to_value(&s.split_whitespace().count()).unwrap())
 }
 
 /// Replaces given `from` substring with `to` string.
@@ -76,7 +76,7 @@ pub fn replace(value: Value, mut args: HashMap<String, Value>) -> Result<Value> 
         None => bail!("Filter `replace` expected an arg called `to`")
     };
 
-    Ok(to_value(&s.replace(&from, &to)))
+    Ok(to_value(&s.replace(&from, &to)).unwrap())
 }
 
 /// First letter of the string is uppercase rest is lowercase
@@ -84,10 +84,10 @@ pub fn capitalize(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("capitalize", "value", String, value);
     let mut chars = s.chars();
     match chars.next() {
-        None => Ok(to_value("")),
+        None => Ok(to_value("").unwrap()),
         Some(f) => {
             let res = f.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase();
-            Ok(to_value(&res))
+            Ok(to_value(&res).unwrap())
         }
     }
 }
@@ -127,19 +127,24 @@ pub fn urlencode(value: Value, mut args: HashMap<String, Value>) -> Result<Value
     };
 
     let encoded = utf8_percent_encode(s.as_str(), UrlEncodeSet(safe)).collect::<String>();
-    Ok(to_value(&encoded))
+    Ok(to_value(&encoded).unwrap())
 }
 
 /// Escapes quote characters
 pub fn addslashes(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("addslashes", "value", String, value);
-    Ok(to_value(&s.replace("\\","\\\\").replace("\"", "\\\"").replace("\'", "\\\'")))
+    Ok(to_value(
+        &s
+            .replace("\\","\\\\")
+            .replace("\"", "\\\"")
+            .replace("\'", "\\\'")
+    ).unwrap())
 }
 
 /// Transform a string into a slug
 pub fn slugify(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("slugify", "value", String, value);
-    Ok(to_value(&slug::slugify(s)))
+    Ok(to_value(&slug::slugify(s)).unwrap())
 }
 
 /// Capitalizes each word in the string
@@ -152,21 +157,21 @@ pub fn title(value: Value, _: HashMap<String, Value>) -> Result<Value> {
             let rest = caps["rest"].to_lowercase();
             format!("{}{}", first, rest)
         })
-    ))
+    ).unwrap())
 
 }
 
 /// Removes html tags from string
 pub fn striptags(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("striptags", "value", String, value);
-    Ok(to_value(&STRIPTAGS_RE.replace_all(&s, "")))
+    Ok(to_value(&STRIPTAGS_RE.replace_all(&s, "")).unwrap())
 }
 
 /// Returns the given text with ampersands, quotes and angle brackets encoded
 /// for use in HTML.
 pub fn escape_html(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("escape_html", "value", String, value);
-    Ok(to_value(utils::escape_html(&s)))
+    Ok(to_value(utils::escape_html(&s)).unwrap())
 }
 
 
@@ -181,14 +186,14 @@ mod tests {
 
     #[test]
     fn test_upper() {
-        let result = upper(to_value("hello"), HashMap::new());
+        let result = upper(to_value("hello").unwrap(), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("HELLO"));
+        assert_eq!(result.unwrap(), to_value("HELLO").unwrap());
     }
 
     #[test]
     fn test_upper_error() {
-        let result = upper(to_value(&50), HashMap::new());
+        let result = upper(to_value(&50).unwrap(), HashMap::new());
         assert!(result.is_err());
         assert_eq!(
             result.err().unwrap().description(),
@@ -198,58 +203,58 @@ mod tests {
 
     #[test]
     fn test_trim() {
-        let result = trim(to_value("  hello  "), HashMap::new());
+        let result = trim(to_value("  hello  ").unwrap(), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("hello"));
+        assert_eq!(result.unwrap(), to_value("hello").unwrap());
     }
 
     #[test]
     fn test_truncate_smaller_than_length() {
         let mut args = HashMap::new();
-        args.insert("length".to_string(), to_value(&255));
-        let result = truncate(to_value("hello"), args);
+        args.insert("length".to_string(), to_value(&255).unwrap());
+        let result = truncate(to_value("hello").unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("hello"));
+        assert_eq!(result.unwrap(), to_value("hello").unwrap());
     }
 
     #[test]
     fn test_truncate_when_required() {
         let mut args = HashMap::new();
-        args.insert("length".to_string(), to_value(&2));
-        let result = truncate(to_value("日本語"), args);
+        args.insert("length".to_string(), to_value(&2).unwrap());
+        let result = truncate(to_value("日本語").unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("日本…"));
+        assert_eq!(result.unwrap(), to_value("日本…").unwrap());
     }
 
     #[test]
     fn test_lower() {
-        let result = lower(to_value("HELLO"), HashMap::new());
+        let result = lower(to_value("HELLO").unwrap(), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("hello"));
+        assert_eq!(result.unwrap(), to_value("hello").unwrap());
     }
 
     #[test]
     fn test_wordcount() {
-        let result = wordcount(to_value("Joel is a slug"), HashMap::new());
+        let result = wordcount(to_value("Joel is a slug").unwrap(), HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&4));
+        assert_eq!(result.unwrap(), to_value(&4).unwrap());
     }
 
     #[test]
     fn test_replace() {
         let mut args = HashMap::new();
-        args.insert("from".to_string(), to_value(&"Hello"));
-        args.insert("to".to_string(), to_value(&"Goodbye"));
-        let result = replace(to_value(&"Hello world!"), args);
+        args.insert("from".to_string(), to_value(&"Hello").unwrap());
+        args.insert("to".to_string(), to_value(&"Goodbye").unwrap());
+        let result = replace(to_value(&"Hello world!").unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("Goodbye world!"));
+        assert_eq!(result.unwrap(), to_value("Goodbye world!").unwrap());
     }
 
     #[test]
     fn test_replace_missing_arg() {
         let mut args = HashMap::new();
-        args.insert("from".to_string(), to_value(&"Hello"));
-        let result = replace(to_value(&"Hello world!"), args);
+        args.insert("from".to_string(), to_value(&"Hello").unwrap());
+        let result = replace(to_value(&"Hello world!").unwrap(), args);
         assert!(result.is_err());
         assert_eq!(
             result.err().unwrap().description(),
@@ -264,9 +269,9 @@ mod tests {
             ("capital ize", "Capital ize"),
         ];
         for (input, expected) in tests {
-            let result = capitalize(to_value(input), HashMap::new());
+            let result = capitalize(to_value(input).unwrap(), HashMap::new());
             assert!(result.is_ok());
-            assert_eq!(result.unwrap(), to_value(expected));
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
     }
 
@@ -280,9 +285,9 @@ mod tests {
             (r#"\ : backslashes too"#, r#"\\ : backslashes too"#)
         ];
         for (input, expected) in tests {
-            let result = addslashes(to_value(input), HashMap::new());
+            let result = addslashes(to_value(input).unwrap(), HashMap::new());
             assert!(result.is_ok());
-            assert_eq!(result.unwrap(), to_value(expected));
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
     }
 
@@ -295,10 +300,9 @@ mod tests {
             (r#"Hello 世界"#, r#"hello-shi-jie"#),
         ];
         for (input, expected) in tests {
-            let result = slugify(to_value(input), HashMap::new());
-            println!("{:?} - {:?}", input, result);
+            let result = slugify(to_value(input).unwrap(), HashMap::new());
             assert!(result.is_ok());
-            assert_eq!(result.unwrap(), to_value(expected));
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
     }
 
@@ -313,11 +317,11 @@ mod tests {
         for (input, safe, expected) in tests {
             let mut args = HashMap::new();
             if let Some(safe) = safe {
-                args.insert("safe".to_string(), to_value(&safe));
+                args.insert("safe".to_string(), to_value(&safe).unwrap());
             }
-            let result = urlencode(to_value(input), args);
+            let result = urlencode(to_value(input).unwrap(), args);
             assert!(result.is_ok());
-            assert_eq!(result.unwrap(), to_value(expected));
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
     }
 
@@ -341,9 +345,9 @@ mod tests {
             ("foo bar\t", "Foo Bar\t")
         ];
         for (input, expected) in tests {
-            let result = title(to_value(input), HashMap::new());
+            let result = title(to_value(input).unwrap(), HashMap::new());
             assert!(result.is_ok());
-            assert_eq!(result.unwrap(), to_value(expected));
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
     }
 
@@ -368,9 +372,9 @@ mod tests {
             (r#"<strong>foo</strong><a href="http://example.com">bar</a>"#, "foobar"),
         ];
         for (input, expected) in tests {
-            let result = striptags(to_value(input), HashMap::new());
+            let result = striptags(to_value(input).unwrap(), HashMap::new());
             assert!(result.is_ok());
-            assert_eq!(result.unwrap(), to_value(expected));
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
     }
 }

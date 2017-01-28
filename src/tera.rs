@@ -186,7 +186,7 @@ impl Tera {
     /// ```
     pub fn render(&self, template_name: &str, data: Context) -> Result<String> {
         let template = self.get_template(template_name)?;
-        let mut renderer = Renderer::new(template, self, data.as_json());
+        let mut renderer = Renderer::new(template, self, data.as_json()?);
 
         renderer.render()
     }
@@ -201,7 +201,7 @@ impl Tera {
     pub fn value_render<T>(&self, template_name: &str, data: &T) -> Result<String>
         where T: Serialize
     {
-        let value = to_value(data);
+        let value = to_value(data)?;
         if !value.is_object() {
             bail!(
                 "Failed to value_render '{}': context isn't a JSON object. \
@@ -228,7 +228,7 @@ impl Tera {
     /// Tera::one_off("{{ greeting }} world", context);
     /// ```
     pub fn one_off(input: &str, data: Context, autoescape: bool) -> Result<String> {
-        Tera::value_one_off(input, &data.as_json(), autoescape)
+        Tera::value_one_off(input, &data.as_json()?, autoescape)
     }
 
     /// Renders a one off template (for example a template coming from a user input) given
@@ -591,7 +591,7 @@ mod tests {
     #[test]
     fn test_value_one_off_template() {
         let mut context = JsonObject::new();
-        context.insert("greeting", JsonValue::String("Good morning".to_string()));
+        context.insert("greeting".to_string(), JsonValue::String("Good morning".to_string()));
         let result = Tera::value_one_off("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "Good morning world");
