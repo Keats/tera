@@ -5,6 +5,7 @@ extern crate serde;
 extern crate serde_json;
 
 use tera::{Tera, Template, Context, escape_html};
+use self::serde::ser::SerializeStruct;
 
 
 static VARIABLE_ONLY: &'static str = "{{product.name}}";
@@ -83,17 +84,17 @@ impl Product {
         }
     }
 }
-// Impl Serialize by hand so tests pass on stable and beta
+
 impl serde::Serialize for Product {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: serde::Serializer
     {
-        let mut state = try!(serializer.serialize_struct("Product", 4));
-        try!(serializer.serialize_struct_elt(&mut state, "name", &self.name));
-        try!(serializer.serialize_struct_elt(&mut state, "manufacturer", &self.manufacturer));
-        try!(serializer.serialize_struct_elt(&mut state, "summary", &self.summary));
-        try!(serializer.serialize_struct_elt(&mut state, "price", &self.price));
-        serializer.serialize_struct_end(state)
+        let mut state = serializer.serialize_struct("Product", 4)?;
+        state.serialize_field("name", &self.name)?;
+        state.serialize_field("manufacturer", &self.manufacturer)?;
+        state.serialize_field("summary", &self.summary)?;
+        state.serialize_field("price", &self.price)?;
+        state.end()
     }
 }
 

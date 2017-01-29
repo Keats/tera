@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use serde::ser::Serialize;
 use serde_json::value::{Value, to_value};
 
+use errors::{Result as TeraResult, ResultExt};
 
 /// The struct that holds the context of a template rendering.
 ///
@@ -29,12 +30,12 @@ impl Context {
     /// context.add("number_users", 42);
     /// ```
     pub fn add<T: Serialize>(&mut self, key: &str, val: &T) {
-        self.data.insert(key.to_owned(), to_value(val));
+        self.data.insert(key.to_owned(), to_value(val).unwrap());
     }
 
     #[doc(hidden)]
-    pub fn as_json(&self) -> Value {
-        to_value(&self.data)
+    pub fn as_json(&self) -> TeraResult<Value> {
+        to_value(&self.data).chain_err(|| "Failed to convert data to JSON")
     }
 }
 
@@ -54,9 +55,7 @@ impl ValueRender for Value {
     fn render(&self) -> String {
         match *self {
             Value::String(ref s) => s.clone(),
-            Value::I64(i) => i.to_string(),
-            Value::U64(i) => i.to_string(),
-            Value::F64(f) => f.to_string(),
+            Value::Number(ref i) => i.to_string(),
             Value::Bool(i) => i.to_string(),
             Value::Null => "".to_owned(),
             Value::Array(ref a) => {
@@ -83,9 +82,7 @@ pub trait ValueNumber {
 impl ValueNumber for Value {
     fn to_number(&self) -> Result<f64, ()> {
         match *self {
-            Value::I64(i) => Ok(i as f64),
-            Value::U64(i) => Ok(i as f64),
-            Value::F64(f) => Ok(f as f64),
+            Value::Number(ref i) => Ok(i.as_f64().unwrap()),
             _ => Err(())
         }
     }
@@ -99,9 +96,16 @@ pub trait ValueTruthy {
 impl ValueTruthy for Value {
     fn is_truthy(&self) -> bool {
         match *self {
-            Value::I64(i) => i != 0,
-            Value::U64(i) => i != 0,
-            Value::F64(i) => i != 0.0 || !i.is_nan(),
+            Value::Number(ref i) => {
+                if i.is_i64() {
+                    return i.as_i64().unwrap() != 0;
+                }
+                if i.is_u64() {
+                    return i.as_u64().unwrap() != 0;
+                }
+                let f = i.as_f64().unwrap();
+                f != 0.0 || !f.is_nan()
+            },
             Value::Bool(ref i) => *i,
             Value::Null => false,
             Value::String(ref i) => !i.is_empty(),

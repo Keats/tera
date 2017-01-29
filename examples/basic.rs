@@ -20,7 +20,7 @@ lazy_static! {
 
 pub fn do_nothing_filter(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("do_nothing_filter", "value", String, value);
-    Ok(to_value(&s))
+    Ok(to_value(&s).unwrap())
 }
 
 fn main() {

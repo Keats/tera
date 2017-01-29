@@ -66,7 +66,7 @@ pub fn number(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     value_defined("number", &value)?;
 
     match value {
-        Some(Value::I64(_)) | Some(Value::F64(_)) | Some(Value::U64(_)) => Ok(true),
+        Some(Value::Number(_)) => Ok(true),
         _ => Ok(false)
     }
 }
@@ -131,7 +131,7 @@ mod tests {
 
     #[test]
     fn test_too_many_args() {
-        assert!(defined(None, vec![to_value(1)]).is_err())
+        assert!(defined(None, vec![to_value(1).unwrap()]).is_err())
     }
 
     #[test]
@@ -151,7 +151,7 @@ mod tests {
 
         for (val, divisor, expected) in tests {
             assert_eq!(
-                divisible_by(Some(to_value(val)), vec![to_value(divisor)]).unwrap(),
+                divisible_by(Some(to_value(val).unwrap()), vec![to_value(divisor).unwrap()]).unwrap(),
                 expected
             );
         }
@@ -159,8 +159,8 @@ mod tests {
 
     #[test]
     fn test_iterable() {
-        assert_eq!(iterable(Some(to_value(vec!["1"])), vec![]).unwrap(), true);
-        assert_eq!(iterable(Some(to_value(1)), vec![]).unwrap(), false);
-        assert_eq!(iterable(Some(to_value("hello")), vec![]).unwrap(), false);
+        assert_eq!(iterable(Some(to_value(vec!["1"]).unwrap()), vec![]).unwrap(), true);
+        assert_eq!(iterable(Some(to_value(1).unwrap()), vec![]).unwrap(), false);
+        assert_eq!(iterable(Some(to_value("hello").unwrap()), vec![]).unwrap(), false);
     }
 }
