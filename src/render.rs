@@ -15,6 +15,20 @@ use utils::escape_html;
 
 static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
 
+// We only error on undefined variables in one case: when doing maths
+// The rest of the time, we want a default value, "" most of the time and [] for a loop
+// We pass this enum to the `lookup_variable` method so it knows what to do
+// when not finding a variable
+#[derive(PartialEq, Debug)]
+enum UndefinedBehaviour {
+    // bail
+    Error,
+    // [] (when looking up the variable that is iterated upon)
+    EmptyArray,
+    // ""
+    EmptyString,
+}
+
 // we need to have some data in the renderer for when we are in a ForLoop
 // For example, accessing the local variable would fail when
 // looking it up in the context
@@ -93,7 +107,7 @@ impl<'a> Renderer<'a> {
 
     // Lookup a variable name from the context and takes into
     // account for loops variables
-    fn lookup_variable(&self, key: &str) -> Result<Value> {
+    fn lookup_variable(&self, key: &str, undefined_behaviour: UndefinedBehaviour) -> Result<Value> {
         // Differentiate between macros and general context
         let context = match self.macro_context.last() {
             Some(c) => c,
@@ -110,16 +124,20 @@ impl<'a> Renderer<'a> {
         // small helper fn to reduce duplication code in the 3 spots in `lookup_variable` where we
         // need to actually do the variable lookup
         #[inline]
-        fn find_variable(context: &Value, key: &str, tpl_name: &str) -> Result<Value> {
+        fn find_variable(context: &Value, key: &str, tpl_name: &str, undefined_behaviour: UndefinedBehaviour) -> Result<Value> {
             match context.pointer(&get_json_pointer(key)) {
                 Some(v) => Ok(v.clone()),
-                None => bail!("Field `{}` not found in context while rendering '{}'", key, tpl_name)
+                None => match undefined_behaviour {
+                    UndefinedBehaviour::EmptyString => Ok(to_value("").unwrap()),
+                    UndefinedBehaviour::EmptyArray => Ok(to_value::<Vec<isize>>(vec![]).unwrap()),
+                    UndefinedBehaviour::Error => bail!("Field `{}` not found in context while rendering '{}'", key, tpl_name)
+                }
             }
         }
 
         // Look in the plain context if we aren't in a for loop
         if self.for_loops.is_empty() {
-            return find_variable(context, key, &self.template.name);
+            return find_variable(context, key, &self.template.name, undefined_behaviour);
         }
 
         for for_loop in self.for_loops.iter().rev() {
@@ -132,7 +150,7 @@ impl<'a> Renderer<'a> {
                 // might be a struct or some nested structure
                 if key.contains('.') {
                     let new_key = key.split_terminator('.').skip(1).collect::<Vec<&str>>().join(".");
-                    return find_variable(value, &new_key, &self.template.name);
+                    return find_variable(value, &new_key, &self.template.name, undefined_behaviour);
                 } else {
                     return Ok(value.clone());
                 }
@@ -148,16 +166,16 @@ impl<'a> Renderer<'a> {
         }
 
         // can get there when looking a variable in the global context while in a forloop
-        find_variable(context, key, &self.template.name)
+        find_variable(context, key, &self.template.name, undefined_behaviour)
     }
 
     // Gets an identifier and return its json value
     // If there is no filter, it's itself, otherwise call the filters in order
     // an return their result
-    fn eval_ident(&self, node: &Node) -> Result<Value> {
+    fn eval_ident(&self, node: &Node, undefined_behaviour: UndefinedBehaviour) -> Result<Value> {
         match *node {
             Identifier { ref name, ref filters } => {
-                let mut value = self.lookup_variable(name)?;
+                let mut value = self.lookup_variable(name, undefined_behaviour)?;
                 let mut is_safe = false;
 
                 if let Some(ref _filters) = *filters {
@@ -195,7 +213,7 @@ impl<'a> Renderer<'a> {
     fn eval_math(&self, node: &Node) -> Result<f64> {
         match *node {
             Identifier { ref name, .. } => {
-                self.eval_ident(node)?
+                self.eval_ident(node, UndefinedBehaviour::Error)?
                     .to_number()
                     .or_else(|_| Err(
                         format!(
@@ -227,7 +245,7 @@ impl<'a> Renderer<'a> {
     fn eval_expression(&self, node: Node) -> Result<Value> {
         match node {
             Identifier { .. } => {
-                Ok(self.eval_ident(&node)?)
+                Ok(self.eval_ident(&node, UndefinedBehaviour::EmptyString)?)
             },
             l @ Logic { .. } => {
                 let value = self.eval_condition(l)?;
@@ -256,7 +274,11 @@ impl<'a> Renderer<'a> {
     fn eval_condition(&self, node: Node) -> Result<bool> {
         match node {
             Identifier { .. } => {
-                Ok(self.eval_ident(&node).map(|v| v.is_truthy()).unwrap_or(false))
+                Ok(
+                    self.eval_ident(&node, UndefinedBehaviour::EmptyString)
+                        .map(|v| v.is_truthy())
+                        .unwrap_or(false)
+                )
             },
             Test { expression, name, params } => {
                 let tester = self.tera.get_tester(&name)?;
@@ -264,7 +286,13 @@ impl<'a> Renderer<'a> {
                 for param in params {
                     value_params.push(self.eval_expression(param)?);
                 }
-                tester(self.eval_expression(*expression).ok(), value_params)
+                // this is necessary for the `defined` and `undefined` test
+                // to still work, by forcing an error when we get just an identifier
+                let val = match *expression {
+                    Identifier { .. } => self.eval_ident(&expression, UndefinedBehaviour::Error),
+                    _ => self.eval_expression(*expression)
+                };
+                tester(val.ok(), value_params)
             },
             Logic { lhs, rhs, operator } => {
                 match operator {
@@ -325,7 +353,7 @@ impl<'a> Renderer<'a> {
     // their own nodes
     fn render_variable_block(&mut self, node: Node) -> Result<String>  {
         match node {
-            Identifier { .. } => Ok(self.eval_ident(&node)?.render()),
+            Identifier { .. } => Ok(self.eval_ident(&node, UndefinedBehaviour::EmptyString)?.render()),
             Math { .. } => Ok(self.eval_math(&node)?.to_string()),
             _ => unreachable!()
         }
@@ -363,14 +391,12 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_for(&mut self, variable_name: String, array_name: String, body: Box<Node>) -> Result<String> {
-        let list = self.lookup_variable(&array_name)?;
+        let list = self.lookup_variable(&array_name, UndefinedBehaviour::EmptyArray)?;
 
-        if !list.is_array() {
-            bail!("Tried to iterate on variable `{}`, but it isn't an array", array_name);
-        }
-
-        // Safe unwrap
-        let deserialized = list.as_array().unwrap();
+        let deserialized = match list.as_array() {
+            Some(a) => a,
+            None => bail!("Tried to iterate on variable `{}`, but it isn't an array", array_name)
+        };
         let length = deserialized.len();
         self.for_loops.push(ForLoop::new(variable_name, deserialized.clone()));
         let mut i = 0;
