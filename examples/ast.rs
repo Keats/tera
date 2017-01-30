@@ -11,12 +11,28 @@ lazy_static! {
     pub static ref TERA: Tera = compile_templates!("examples/templates/**/*");
 }
 
+// Very basic fn to find identifier names
+fn find_identifiers(node: ast::Node, names: &mut Vec<String>) {
+    match node {
+        ast::Node::Block {ref body, ..} => {
+          for n in body.get_children() {
+              find_identifiers(n, names);
+          }
+        },
+        ast::Node::VariableBlock(n) => match *n {
+            ast::Node::Identifier {ref name, ..} => names.push(name.clone()),
+            _ => ()
+        },
+        _ => ()
+    }
+}
 
 fn main() {
+    let mut var_names = vec![];
+
     for node in TERA.get_template("users/profile.html").unwrap().ast.get_children() {
-        match node {
-            ast::Node::Extends(ref name) => println!("Extending {}", name),
-            _ => println!("Another node")
-        }
+        find_identifiers(node, &mut var_names);
     }
+
+    println!("Variables used: {:?}", var_names);
 }
