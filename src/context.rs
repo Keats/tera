@@ -37,6 +37,22 @@ impl Context {
     pub fn as_json(&self) -> TeraResult<Value> {
         to_value(&self.data).chain_err(|| "Failed to convert data to JSON")
     }
+
+    /// Appends the data of the `source` parameter to `self` overwriting existing keys.
+    /// The source context will be dropped
+    ///
+    /// ```rust,ignore
+    /// let mut target = Context::new();
+    /// target.add("a", 1);
+    /// target.add("b", 2);
+    /// let mut source = Context::new();
+    /// source.add("b", 3);
+    /// source.add("d", 4);
+    /// target.extend(source);
+    /// ```
+    pub fn extend(&mut self, mut source: Context) {
+        self.data.append(&mut source.data);
+    }
 }
 
 impl Default for Context {
@@ -120,4 +136,18 @@ impl ValueTruthy for Value {
 #[inline]
 pub fn get_json_pointer(key: &str) -> String {
     ["/", &key.replace(".", "/")].join("")
+}
+
+#[test]
+fn test_extend() {
+    let mut target = Context::new();
+    target.add("a", &1);
+    target.add("b", &2);
+    let mut source = Context::new();
+    source.add("b", &3);
+    source.add("c", &4);
+    target.extend(source);
+    assert_eq!(*target.data.get("a").unwrap(), to_value(1).unwrap());
+    assert_eq!(*target.data.get("b").unwrap(), to_value(3).unwrap());
+    assert_eq!(*target.data.get("c").unwrap(), to_value(4).unwrap());
 }
