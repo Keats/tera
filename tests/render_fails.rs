@@ -21,24 +21,13 @@ fn render_tpl(tpl_name: &str) -> Result<String> {
 
 
 #[test]
-fn test_error_render_field_unknown() {
-    let result = render_tpl("field_unknown.html");
+fn test_error_render_field_unknown_math() {
+    let result = render_tpl("field_unknown_math.html");
 
     assert_eq!(result.is_err(), true);
     assert_eq!(
         result.unwrap_err().iter().nth(1).unwrap().description(),
-        "Field `hey` not found in context while rendering \'field_unknown.html\'"
-    );
-}
-
-#[test]
-fn test_error_render_field_unknown_in_forloop() {
-    let result = render_tpl("field_unknown_forloop.html");
-
-    assert_eq!(result.is_err(), true);
-    assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
-        "Field `random` not found in context while rendering \'field_unknown_forloop.html\'"
+        "Field `hey` not found in context while rendering \'field_unknown_math.html\'"
     );
 }
 

@@ -105,6 +105,11 @@ fn test_ok_variable_tests() {
 }
 
 #[test]
+fn test_ok_undefined_variables() {
+    assert_template_ok("tests/templates/undefined_variables.html", vec![]);
+}
+
+#[test]
 fn test_ok_indexing() {
     assert_template_ok("tests/templates/indexing.html", vec![]);
 }

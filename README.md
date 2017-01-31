@@ -135,7 +135,8 @@ You can access variables of the context by using the `{{ my_variable_name }}` co
 You can access attributes by using the dot (`.`) like `{{ product.name }}`.
 You can access specific members of an array or tuple by using the `.i` notation where `i` is a zero-based index.
 
-You can also do some maths: `{{ product.price + 10 }}`. If `product.price` is not a number type, the `render` method will return an error.
+You can also do some maths: `{{ product.price + 10 }}`. 
+If `product.price` is not a number type or is undefined, the `render` method will return an error.
 
 ### If
 Conditionals are fully supported and are identical to the ones in Python.
