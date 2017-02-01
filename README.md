@@ -83,7 +83,8 @@ context.add("vat_rate", &0.20);
 tera.render("products/product.html", context);
 ```
 Notice that the name of the template is based on the root of the template directory given to the Tera instance.
-`Context` takes any primitive value or a struct that implements the `Serialize` trait from `serde_json`. 
+`Context` takes any primitive value or a struct that implements the `Serialize` trait from `serde_json`. You can also merge 2 
+`Context` by using the `Context::extend` method.
 
 If the data you want to render implements the `Serialize` trait, you can bypass the context and render the value directly:
 
