@@ -517,6 +517,18 @@ impl<'a> Renderer<'a> {
             MacroCall {..} => self.render_macro(node),
             Text(s) => Ok(s),
             Raw(s) => Ok(s.trim().to_string()),
+            FilterSection {ref name, ref params, ref body} => {
+                let filter_fn = self.tera.get_filter(name)?;
+                let mut all_args = HashMap::new();
+                for (arg_name, exp) in params {
+                    all_args.insert(arg_name.to_string(), self.eval_expression(exp.clone())?);
+                }
+                let value = self.render_node(*body.clone());
+                match filter_fn(Value::String(value?), all_args)? {
+                    Value::String(s) => Ok(s),
+                    val => Ok(format!("{}", val))
+                }
+            },
             VariableBlock(exp) => self.render_variable_block(*exp),
             If {condition_nodes, else_node} => {
                 self.render_if(condition_nodes, else_node)
@@ -810,6 +822,17 @@ mod tests {
         context.add("greeting", &"hello");
         let result = render_template(
             "{{ greeting | upper }}",
+            context
+        );
+
+        assert_eq!(result.unwrap(), "HELLO".to_owned());
+    }
+
+    #[test]
+    fn test_render_filter_section() {
+        let context = Context::new();
+        let result = render_template(
+            "{% filter upper %}Hello{% endfilter %}",
             context
         );
 
