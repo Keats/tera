@@ -523,10 +523,10 @@ impl<'a> Renderer<'a> {
                 for (arg_name, exp) in params {
                     all_args.insert(arg_name.to_string(), self.eval_expression(exp.clone())?);
                 }
-                let value = self.render_node(*body.clone());
-                match filter_fn(Value::String(value?), all_args)? {
+                let value = self.render_node(*body.clone())?;
+                match filter_fn(Value::String(value), all_args)? {
                     Value::String(s) => Ok(s),
-                    val => Ok(format!("{}", val))
+                    val => Ok(val.render())
                 }
             },
             VariableBlock(exp) => self.render_variable_block(*exp),
