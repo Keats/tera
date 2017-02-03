@@ -523,6 +523,32 @@ Escapes a string's HTML. Specifically, it makes these replacements:
 - `` ` `` is converted to `&#96;`
 
 
+### Filter sections
+Whole sections can also be processed by filters if they are encapsulated in `{% filter name %}` and `{% endfilter %}`
+tags where `name` is the name of the filter.
+
+Example:
+```jinja2
+{% filter upper %}
+    Hello
+{% endfilter %}
+```
+
+This example transforms the text `Hello` in all upper-case (`HELLO`).
+
+Note that calling filters on an incorrect type like trying to capitalize an array will result in a error.
+
+If the return type of the filter is not a string it will be converted to a string using the JSON format.
+
+Filters are functions with the `fn(Value, HashMap<String, Value>) -> Result<Value>` type and custom ones can be added
+like so:
+
+```rust
+tera.register_filter("upper", string::upper);
+```
+Filter functions for regular filters can also be used for filter sections.
+
+
 ## Accessing the AST
 Tera gives access to the AST of each template but the functions required is hidden
 from the docs at the current time.

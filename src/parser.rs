@@ -167,7 +167,16 @@ pub enum Node {
         /// Name of the filter
         name: String,
         /// kwargs for that filter, the Node is an expression
-        params: HashMap<String, Node>
+        params: HashMap<String, Node>,
+    },
+    /// A filter section node `{{ filter name(param="value") }} content {{ endfilter }}`
+    FilterSection {
+        /// Name of the filter section
+        name: String,
+        /// kwargs for that filter section, the Node is an expression
+        params: HashMap<String, Node>,
+        /// body of the filter section
+        body: Box<Node>
     },
     /// A variable node
     Identifier {
@@ -308,11 +317,13 @@ impl_rdp! {
         else_tag         = !@{ tag_start ~ ["else"] ~ tag_end }
         for_tag          = !@{ tag_start ~ ["for"] ~ identifier ~ ["in"] ~ idents ~ tag_end }
         raw_tag          = !@{ tag_start ~ ["raw"] ~ tag_end }
+        filter_tag       = !@{ tag_start ~ ["filter"] ~ fn_call ~ tag_end }
         endraw_tag       = !@{ tag_start ~ ["endraw"] ~ tag_end }
         endblock_tag     = !@{ tag_start ~ ["endblock"] ~ identifier ~ tag_end }
         endmacro_tag     = !@{ tag_start ~ ["endmacro"] ~ identifier ~ tag_end }
         endif_tag        = !@{ tag_start ~ ["endif"] ~ tag_end }
         endfor_tag       = !@{ tag_start ~ ["endfor"] ~ tag_end }
+        endfilter_tag    = !@{ tag_start ~ ["endfilter"] ~ tag_end }
 
         elif_block = { elif_tag ~ content* }
         raw_text   = { (!endraw_tag ~ any )* }
@@ -326,6 +337,7 @@ impl_rdp! {
             if_tag ~ macro_content* ~ elif_block* ~ (else_tag ~ macro_content*)? ~ endif_tag |
             for_tag ~ macro_content* ~ endfor_tag |
             raw_tag ~ raw_text ~ endraw_tag |
+            filter_tag ~ macro_content* ~ endfilter_tag |
             text
         }
 
@@ -339,6 +351,7 @@ impl_rdp! {
             block_tag ~ block_content* ~ endblock_tag |
             if_tag ~ block_content* ~ elif_block* ~ (else_tag ~ block_content*)? ~ endif_tag |
             for_tag ~ block_content* ~ endfor_tag |
+            filter_tag ~ block_content* ~ endfilter_tag |
             raw_tag ~ raw_text ~ endraw_tag |
             text
         }
@@ -352,6 +365,7 @@ impl_rdp! {
             block_tag ~ block_content* ~ endblock_tag |
             if_tag ~ content* ~ elif_block* ~ (else_tag ~ content*)? ~ endif_tag |
             for_tag ~ content* ~ endfor_tag |
+            filter_tag ~ content* ~ endfilter_tag |
             raw_tag ~ raw_text ~ endraw_tag |
             text
         }
@@ -434,6 +448,20 @@ impl_rdp! {
             },
             (_: raw_tag, &body: raw_text, _: endraw_tag) => {
                 Ok(Some(Node::Raw(body.to_string())))
+            },
+            (_: filter_tag, _call: fn_call, &name: simple_ident, params: _fn_args(), body: _template()) => {
+                Ok(Some(Node::FilterSection{
+                    name: name.to_string(),
+                    params: params?,
+                    body: Box::new(Node::List(body?))
+                }))
+            },
+            (_: filter_tag, _call: fn_call, &name: simple_ident, body: _template()) => {
+                Ok(Some(Node::FilterSection{
+                    name: name.to_string(),
+                    params: HashMap::new(),
+                    body: Box::new(Node::List(body?))
+                }))
             },
             (_: block_tag, &name: identifier, body: _template(), _: endblock_tag, &end_name: identifier) => {
                 if name != end_name {
@@ -1402,6 +1430,39 @@ mod tests {
         ast.push_front(Node::Text(" Ho".to_string()));
         ast.push_front(Node::Raw("Hey {{ name }}".to_string()));
         ast.push_front(Node::Text("Hey ".to_string()));
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_filter_section() {
+        let parsed_ast = parse("{% filter test %}Content{% endfilter %}");
+        let mut body = VecDeque::new();
+        body.push_back(Node::Text("Content".to_string()));
+        let mut ast = VecDeque::new();
+        ast.push_front(Node::FilterSection{
+            name: "test".to_string(),
+            params: HashMap::new(),
+            body: Box::new(Node::List(body))
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_filter_section_with_params() {
+        let parsed_ast = parse("{% filter test(a=1, b=\"test\") %}Content{% endfilter %}");
+        let mut body = VecDeque::new();
+        body.push_back(Node::Text("Content".to_string()));
+        let mut params = HashMap::new();
+        params.insert("a".to_string(), Node::Int(1));
+        params.insert("b".to_string(), Node::Text("test".to_string()));
+        let mut ast = VecDeque::new();
+        ast.push_front(Node::FilterSection{
+            name: "test".to_string(),
+            params: params,
+            body: Box::new(Node::List(body))
+        });
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
     }

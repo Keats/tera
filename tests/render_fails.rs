@@ -54,6 +54,18 @@ fn test_error_render_non_math() {
 }
 
 #[test]
+fn test_error_render_filter_section_invalid() {
+    let result = render_tpl("filter_section_invalid.html");
+
+    assert_eq!(result.is_err(), true);
+    println!("{:?}", result);
+    assert_eq!(
+        result.unwrap_err().iter().nth(1).unwrap().description(),
+        "Filter `round` was called on an incorrect value: got `\"\\nhello\\n\"` but expected a f64"
+    );
+}
+
+#[test]
 fn test_error_render_iterate_non_array() {
     let result = render_tpl("iterate_on_non_array.html");
 
