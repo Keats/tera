@@ -1,5 +1,8 @@
+#[macro_use]
+extern crate serde_derive;
 extern crate tera;
 extern crate glob;
+
 
 use std::io::prelude::*;
 use std::fs::File;

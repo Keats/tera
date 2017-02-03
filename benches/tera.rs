@@ -3,9 +3,10 @@ extern crate test;
 extern crate tera;
 extern crate serde;
 extern crate serde_json;
+#[macro_use]
+extern crate serde_derive;
 
 use tera::{Tera, Template, Context, escape_html};
-use self::serde::ser::SerializeStruct;
 
 
 static VARIABLE_ONLY: &'static str = "{{product.name}}";
@@ -67,7 +68,7 @@ static USE_MACRO_TEMPLATE: &'static str = r#"
 "#;
 
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct Product {
     name: String,
     manufacturer: String,
@@ -82,19 +83,6 @@ impl Product {
             summary: "A phone".to_owned(),
             price: 100
         }
-    }
-}
-
-impl serde::Serialize for Product {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: serde::Serializer
-    {
-        let mut state = serializer.serialize_struct("Product", 4)?;
-        state.serialize_field("name", &self.name)?;
-        state.serialize_field("manufacturer", &self.manufacturer)?;
-        state.serialize_field("summary", &self.summary)?;
-        state.serialize_field("price", &self.price)?;
-        state.end()
     }
 }
 

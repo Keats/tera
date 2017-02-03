@@ -28,3 +28,6 @@ url = "1"
 humansize = "1"
 # used in date format filter
 chrono = "0.2"
+
+[dev-dependencies]
+serde_derive = "0.9"

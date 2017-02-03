@@ -6,10 +6,9 @@ use std::io::prelude::*;
 use std::fs::File;
 
 use self::tera::Template;
-use self::serde::ser::SerializeStruct;
 
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Product {
     name: String,
     manufacturer: String,
@@ -27,21 +26,8 @@ impl Product {
         }
     }
 }
-// Impl Serialize by hand so tests pass on stable and beta
-impl serde::Serialize for Product {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: serde::Serializer
-    {
-        let mut state = serializer.serialize_struct("Product", 4)?;
-        state.serialize_field("name", &self.name)?;
-        state.serialize_field("manufacturer", &self.manufacturer)?;
-        state.serialize_field("summary", &self.summary)?;
-        state.serialize_field("price", &self.price)?;
-        state.end()
-    }
-}
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Review {
     title: String,
     paragraphs: Vec<String>
@@ -55,17 +41,6 @@ impl Review {
                 "A".to_owned(), "B".to_owned(), "C".to_owned()
             ]
         }
-    }
-}
-// Impl Serialize by hand so tests pass on stable and beta
-impl serde::Serialize for Review {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: serde::Serializer
-    {
-        let mut state = serializer.serialize_struct("Review", 2)?;
-        state.serialize_field("title", &self.title)?;
-        state.serialize_field("paragraphs", &self.paragraphs)?;
-        state.end()
     }
 }
 

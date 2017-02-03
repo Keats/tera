@@ -1,4 +1,6 @@
 extern crate tera;
+#[macro_use]
+extern crate serde_derive;
 
 use tera::{Tera, Context, Result};
 

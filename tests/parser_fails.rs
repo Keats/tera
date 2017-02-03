@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate serde_derive;
+
 mod common;
 
 use common::load_template;
