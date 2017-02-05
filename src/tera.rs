@@ -68,8 +68,8 @@ impl Tera {
                 // to Tera so users don't have to prefix everytime
                 let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
                 let filepath = path.to_string_lossy()
-                    .replace("\\", "/") // change windows slash to forward slash
-                    .replace(parent_dir, "");
+                    .replace(parent_dir, "")
+                    .replace("\\", "/"); // change windows slash to forward slash
 
                 if let Err(e) = tera.add_file(Some(&filepath), path) {
                     errors += &format!("\n* {}", e);
