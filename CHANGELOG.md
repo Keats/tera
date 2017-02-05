@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1 (2017-02-05)
+
+- Support filter sections
+- Fix path prefix trimming on Windows
+
 ## 0.7.0 (2017-02-01)
 
 ### Breaking changes
