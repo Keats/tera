@@ -31,9 +31,9 @@ fn main() {
     context.add("bio", &"<script>alert('pwnd');</script>");
 
     // A one off template
-    Tera::one_off("hello", Context::new(), true).unwrap();
+    Tera::one_off("hello", &Context::new(), true).unwrap();
 
-    match TEMPLATES.render("users/profile.html", context) {
+    match TEMPLATES.render("users/profile.html", &context) {
         Ok(s) => println!("{:?}", s),
         Err(e) => {
             println!("Error: {}", e);

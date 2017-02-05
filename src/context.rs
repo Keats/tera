@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
 use serde_json::value::{Value, to_value};
+use serde::Serializer;
+use serde::ser::SerializeMap;
 
 use errors::{Result as TeraResult, ResultExt};
 
@@ -58,6 +60,17 @@ impl Context {
 impl Default for Context {
     fn default() -> Context {
         Context::new()
+    }
+}
+
+impl Serialize for Context {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut map = serializer.serialize_map(Some(self.data.len()))?;
+        for (k, v) in &self.data {
+            map.serialize_key(&k)?;
+            map.serialize_value(&v)?;
+        }
+        map.end()
     }
 }
 

@@ -38,7 +38,7 @@ fn assert_template_ok(path: &str, others: Vec<&str>) {
     let empty: Vec<Review> = Vec::new();
     context.add("empty", &empty);
 
-    let rendered = tera.render("tpl.html", context).unwrap();
+    let rendered = tera.render("tpl.html", &context).unwrap();
     if rendered != expected {
         println!("Template {:?} was rendered incorrectly", path);
         println!("Got: \n {:#?}", rendered);
@@ -118,12 +118,12 @@ fn test_ok_include_template() {
 }
 
 #[test]
-fn test_ok_value_render() {
+fn test_ok_render_struct_data() {
     let path = "tests/templates/value_render.html";
     let mut tera = Tera::default();
     tera.add_raw_template("tpl", &read_file(path)).unwrap();
     let expected = read_file(&path.replace("templates", "expected"));
-    let rendered = tera.value_render("tpl", &Product::new()).unwrap();
+    let rendered = tera.render("tpl", &Product::new()).unwrap();
     if rendered != expected {
         println!("Template {:?} was rendered incorrectly", path);
         println!("Got: \n {:#?}", rendered);

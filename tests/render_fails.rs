@@ -18,7 +18,7 @@ fn render_tpl(tpl_name: &str) -> Result<String> {
     context.add("show_more", &true);
     context.add("reviews", &vec![Review::new(), Review::new()]);
 
-    tera.render(tpl_name, context)
+    tera.render(tpl_name, &context)
 }
 
 
@@ -79,15 +79,15 @@ fn test_error_render_iterate_non_array() {
 }
 
 #[test]
-fn test_error_value_render_non_object() {
+fn test_error_render_serialize_non_object() {
     let tera = Tera::new("tests/render-failures/**/*").unwrap();
-    let result = tera.value_render("value_render_non_object.html", &[1,2,3]);
+    let result = tera.render("value_render_non_object.html", &[1,2,3]);
 
     assert_eq!(result.is_err(), true);
     assert_eq!(
         result.unwrap_err().iter().nth(0).unwrap().description(),
-        "Failed to value_render \'value_render_non_object.html\': context isn\'t a JSON object. \
-        The value passed needs to be a key-value object: struct, hashmap for example."
+        "Failed to render \'value_render_non_object.html\': context isn\'t a JSON object. \
+        The value passed needs to be a key-value object: context, struct, hashmap for example."
     );
 }
 

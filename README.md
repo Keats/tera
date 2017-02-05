@@ -80,7 +80,7 @@ let mut context = Context::new();
 context.add("product", &product);
 context.add("vat_rate", &0.20);
 
-tera.render("products/product.html", context);
+tera.render("products/product.html", &context);
 ```
 Notice that the name of the template is based on the root of the template directory given to the Tera instance.
 `Context` takes any primitive value or a struct that implements the `Serialize` trait from `serde_json`. You can also merge 2 
@@ -90,7 +90,7 @@ If the data you want to render implements the `Serialize` trait, you can bypass 
 
 ```rust
 // product here is a struct with a `name` field
-tera.value_render("products/product.html", &product);
+tera.render("products/product.html", &product);
 
 // in product.html
 {{ name }}
@@ -105,18 +105,11 @@ Want to render a single template? For example a user given one? Tera provides th
 // Should be true in 99% of the cases for HTML
 let context = Context::new()
 // add stuff to context
-let result = Tera::one_off(user_tpl, context, true);
+let result = Tera::one_off(user_tpl, &context, true);
+// Or use a struct
+let result = Tera::one_off(user_tpl, &user, true);
 ```
 
-If you want to render a single template using a context that is already serializable (for example a struct deriving `Serialize`),
-you can use the `Tera::value_one_off` method. 
-It needs to be something that will translate to a JSON object (ie a key value object): a struct or a hashmap for example.
-
-```rust
-// The last parameter is whether we want to autoescape the template or not.
-// Should be true in 99% of the cases for HTML
-let result = Tera::value_one_off(user_tpl, &user, true);
-```
 
 ### Autoescaping
 By default, autoescaping is turned on for files ending in `.html`, `.htm` and `.xml`.
