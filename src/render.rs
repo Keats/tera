@@ -327,6 +327,7 @@ impl<'a> Renderer<'a> {
         match node {
             Identifier { .. } => Ok(self.eval_ident(&node)?.render()),
             Math { .. } => Ok(self.eval_math(&node)?.to_string()),
+            Text(s) => Ok(s),
             _ => unreachable!()
         }
     }
