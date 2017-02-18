@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.2 (2017-02-18)
+
+- Update chrono version
+- Make variable block like `{{ "hey" }}` render correctly
+
 ## 0.7.1 (2017-02-05)
 
 - Support filter sections
