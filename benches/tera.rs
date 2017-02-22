@@ -109,7 +109,7 @@ fn bench_rendering_only_variable(b: &mut test::Bencher) {
     context.add("product", &Product::new());
     context.add("username", &"bob");
 
-    b.iter(|| tera.render("test.html", context.clone()));
+    b.iter(|| tera.render("test.html", &context));
 }
 
 #[bench]
@@ -120,7 +120,7 @@ fn bench_rendering_basic_template(b: &mut test::Bencher) {
     context.add("product", &Product::new());
     context.add("username", &"bob");
 
-    b.iter(|| tera.render("bench.html", context.clone()));
+    b.iter(|| tera.render("bench.html", &context));
 }
 
 #[bench]
@@ -133,7 +133,7 @@ fn bench_rendering_only_parent(b: &mut test::Bencher) {
     context.add("product", &Product::new());
     context.add("username", &"bob");
 
-    b.iter(|| tera.render("parent.html", context.clone()));
+    b.iter(|| tera.render("parent.html", &context));
 }
 
 #[bench]
@@ -146,7 +146,7 @@ fn bench_rendering_only_macro_call(b: &mut test::Bencher) {
     context.add("product", &Product::new());
     context.add("username", &"bob");
 
-    b.iter(|| tera.render("hey.html", context.clone()));
+    b.iter(|| tera.render("hey.html", &context));
 }
 
 #[bench]
@@ -160,7 +160,7 @@ fn bench_rendering_only_inheritance(b: &mut test::Bencher) {
     context.add("product", &Product::new());
     context.add("username", &"bob");
 
-    b.iter(|| tera.render("child.html", context.clone()));
+    b.iter(|| tera.render("child.html", &context));
 }
 
 #[bench]
@@ -175,7 +175,7 @@ fn bench_rendering_inheritance_and_macros(b: &mut test::Bencher) {
     context.add("product", &Product::new());
     context.add("username", &"bob");
 
-    b.iter(|| tera.render("child.html", context.clone()));
+    b.iter(|| tera.render("child.html", &context));
 }
 
 

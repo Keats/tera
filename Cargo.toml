@@ -15,7 +15,7 @@ glob = "0.2"
 serde = "0.9"
 serde_json = "0.9"
 pest = "0.4"
-error-chain = "0.8"
+error-chain = "0.9"
 # used in slugify filter
 slug = "0.1"
 # used in striptags filters
