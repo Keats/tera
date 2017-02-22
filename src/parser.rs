@@ -198,10 +198,10 @@ pub enum Node {
 impl Node {
     /// Used on if and list nodes to get their children.
     /// Will panic when used on any other node
-    pub fn get_children(&self) -> VecDeque<Node> {
+    pub fn get_children(&self) -> &VecDeque<Node> {
         match *self {
-            Node::List(ref l) => l.clone(),
-            Node::If {ref condition_nodes, ..} => condition_nodes.clone(),
+            Node::List(ref l) => l,
+            Node::If {ref condition_nodes, ..} => condition_nodes,
             _ => panic!("tried to get_children on a non-list/if node")
         }
     }

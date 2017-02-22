@@ -57,7 +57,7 @@ pub struct Renderer<'a> {
     tera: &'a Tera,
     for_loops: Vec<ForLoop>,
     // looks like Vec<filename: {macro_name: body node}>
-    macros: Vec<HashMap<String, HashMap<String, Node>>>,
+    macros: Vec<HashMap<String, &'a HashMap<String, Node>>>,
     // set when rendering macros, empty if not in a macro
     macro_context: Vec<Value>,
     // Keeps track of which namespace we're on in order to resolve the `self::` syntax
@@ -171,7 +171,7 @@ impl<'a> Renderer<'a> {
                                 let filter_fn = self.tera.get_filter(name)?;
                                 let mut all_args = HashMap::new();
                                 for (arg_name, exp) in params {
-                                    all_args.insert(arg_name.to_string(), self.eval_expression(exp.clone())?);
+                                    all_args.insert(arg_name.to_string(), self.eval_expression(exp)?);
                                 }
                                 value = filter_fn(value, all_args)?;
                             },
@@ -224,62 +224,62 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn eval_expression(&self, node: Node) -> Result<Value> {
+    fn eval_expression(&self, node: &Node) -> Result<Value> {
         match node {
-            Identifier { .. } => {
+            &Identifier { .. } => {
                 Ok(self.eval_ident(&node)?)
             },
-            l @ Logic { .. } => {
+            l @ &Logic { .. } => {
                 let value = self.eval_condition(l)?;
                 Ok(Value::Bool(value))
             },
-            m @ Math { .. } => {
-                let result = self.eval_math(&m)?;
+            m @ &Math { .. } => {
+                let result = self.eval_math(m)?;
                 Ok(Value::Number(Number::from_f64(result).unwrap()))
             },
-            Int(val) => {
+            &Int(val) => {
                 Ok(Value::Number(val.into()))
             },
-            Float(val) => {
+            &Float(val) => {
                 Ok(Value::Number(Number::from_f64(val).unwrap()))
             },
-            Bool(b) => {
+            &Bool(b) => {
                 Ok(Value::Bool(b))
             },
-            Text(t) => {
-                Ok(Value::String(t))
+            &Text(ref t) => {
+                Ok(Value::String(t.to_string()))
             },
             _ => unreachable!()
         }
     }
 
-    fn eval_condition(&self, node: Node) -> Result<bool> {
+    fn eval_condition(&self, node: &Node) -> Result<bool> {
         match node {
-            Identifier { .. } => {
+            &Identifier { .. } => {
                 Ok(self.eval_ident(&node).map(|v| v.is_truthy()).unwrap_or(false))
             },
-            Test { expression, name, params } => {
-                let tester = self.tera.get_tester(&name)?;
+            &Test { ref expression, ref name, ref params } => {
+                let tester = self.tera.get_tester(name)?;
                 let mut value_params = vec![];
                 for param in params {
                     value_params.push(self.eval_expression(param)?);
                 }
-                tester(self.eval_expression(*expression).ok(), value_params)
+                tester(self.eval_expression(expression).ok(), value_params)
             },
-            Logic { lhs, rhs, operator } => {
-                match operator {
+            &Logic { ref lhs, ref rhs, ref operator } => {
+                match *operator {
                     Operator::Or => {
-                        let result = self.eval_condition(*lhs)? || self.eval_condition(*rhs)?;
+                        let result = self.eval_condition(lhs)? || self.eval_condition(rhs)?;
                         Ok(result)
                     },
                     Operator::And => {
-                        let result = self.eval_condition(*lhs)? && self.eval_condition(*rhs)?;
+                        let result = self.eval_condition(lhs)? && self.eval_condition(rhs)?;
                         Ok(result)
                     },
                     Operator::Gt | Operator::Gte | Operator::Lt | Operator::Lte => {
-                        let l = self.eval_math(&lhs)?;
-                        let r = self.eval_math(&rhs)?;
-                        let result = match operator {
+                        let l = self.eval_math(lhs)?;
+                        let r = self.eval_math(rhs)?;
+                        let result = match *operator {
                             Operator::Gte => l >= r,
                             Operator::Gt => l > r,
                             Operator::Lte => l <= r,
@@ -289,8 +289,8 @@ impl<'a> Renderer<'a> {
                         Ok(result)
                     },
                     Operator::Eq | Operator::NotEq => {
-                        let mut lhs_val = self.eval_expression(*lhs)?;
-                        let mut rhs_val = self.eval_expression(*rhs)?;
+                        let mut lhs_val = self.eval_expression(&*lhs)?;
+                        let mut rhs_val = self.eval_expression(&*rhs)?;
 
                         // Monomorphize number vals.
                         if lhs_val.is_number() || rhs_val.is_number() {
@@ -302,7 +302,7 @@ impl<'a> Renderer<'a> {
                             rhs_val = Value::Number(Number::from_f64(rhs_val.as_f64().unwrap()).unwrap());
                         }
 
-                        let result = match operator {
+                        let result = match *operator {
                             Operator::Eq => lhs_val == rhs_val,
                             Operator::NotEq => lhs_val != rhs_val,
                             _ => unreachable!()
@@ -313,8 +313,8 @@ impl<'a> Renderer<'a> {
                     _ => unreachable!()
                 }
             }
-            Not(n) => {
-                Ok(self.eval_expression(*n).map(|v| !v.is_truthy()).unwrap_or(true))
+            &Not(ref n) => {
+                Ok(self.eval_expression(n).map(|v| !v.is_truthy()).unwrap_or(true))
             },
             _ => unreachable!()
         }
@@ -323,26 +323,26 @@ impl<'a> Renderer<'a> {
     // eval all the values in a {{ }} block
     // Macro calls and super are NOT variable blocks in the AST, they have
     // their own nodes
-    fn render_variable_block(&mut self, node: Node) -> Result<String>  {
+    fn render_variable_block(&mut self, node: &Node) -> Result<String>  {
         match node {
-            Identifier { .. } => Ok(self.eval_ident(&node)?.render()),
-            Math { .. } => Ok(self.eval_math(&node)?.to_string()),
-            Text(s) => Ok(s),
+            &Identifier { .. } => Ok(self.eval_ident(node)?.render()),
+            &Math { .. } => Ok(self.eval_math(node)?.to_string()),
+            &Text(ref s) => Ok(s.to_string()),
             _ => unreachable!()
         }
     }
 
     // evaluates conditions and render bodies accordingly
-    fn render_if(&mut self, condition_nodes: VecDeque<Node>, else_node: Option<Box<Node>>) -> Result<String> {
+    fn render_if(&mut self, condition_nodes: &VecDeque<Node>, else_node: &Option<Box<Node>>) -> Result<String> {
         let mut skip_else = false;
         let mut output = String::new();
         for node in condition_nodes {
             match node {
-                Conditional {condition, body } => {
-                    if self.eval_condition(*condition)? {
+                &Conditional {ref condition, ref body } => {
+                    if self.eval_condition(&**condition)? {
                         skip_else = true;
                         // Remove if/elif whitespace
-                        output.push_str(self.render_node(*body.clone())?.trim_left());
+                        output.push_str(self.render_node(&*body)?.trim_left());
                     }
                 },
                 _ => unreachable!()
@@ -354,17 +354,17 @@ impl<'a> Renderer<'a> {
             return Ok(output.trim_right().to_string());
         }
 
-        if let Some(e) = else_node {
+        if let Some(ref e) = *else_node {
             // Remove else whitespace
-            output.push_str(self.render_node(*e)?.trim_left());
+            output.push_str(self.render_node(&*e)?.trim_left());
         };
 
         // Remove endif whitespace
         Ok(output.trim_right().to_string())
     }
 
-    fn render_for(&mut self, variable_name: String, array_name: String, body: Box<Node>) -> Result<String> {
-        let list = self.lookup_variable(&array_name)?;
+    fn render_for(&mut self, variable_name: &str, array_name: &str, body: &Node) -> Result<String> {
+        let list = self.lookup_variable(array_name)?;
 
         if !list.is_array() {
             bail!("Tried to iterate on variable `{}`, but it isn't an array", array_name);
@@ -373,12 +373,12 @@ impl<'a> Renderer<'a> {
         // Safe unwrap
         let deserialized = list.as_array().unwrap();
         let length = deserialized.len();
-        self.for_loops.push(ForLoop::new(variable_name, deserialized.clone()));
+        self.for_loops.push(ForLoop::new(variable_name.to_string(), deserialized.clone()));
         let mut i = 0;
         let mut output = String::new();
         if length > 0 {
             loop {
-                output.push_str(self.render_node(*body.clone())?.trim_left());
+                output.push_str(self.render_node(&*body)?.trim_left());
                 // Safe unwrap
                 self.for_loops.last_mut().unwrap().increment();
                 if i == length - 1 {
@@ -398,8 +398,8 @@ impl<'a> Renderer<'a> {
         Ok(output.trim_right().to_string())
     }
 
-    fn render_macro(&mut self, call_node: Node) -> Result<String> {
-        if let MacroCall {namespace, name: macro_name, params: call_params} = call_node {
+    fn render_macro(&mut self, call_node: &Node) -> Result<String> {
+        if let &MacroCall {ref namespace, name: ref macro_name, params: ref call_params} = call_node {
             // We need to find the active namespace in Tera if `self` is used
             // Since each macro (other than the `self` ones) pushes its own namespace
             // to the stack when being rendered, we can just lookup the last namespace that was pushed
@@ -426,7 +426,7 @@ impl<'a> Renderer<'a> {
             let macro_definition = self.macros
                 .last()
                 .and_then(|m| m.get(&active_namespace))
-                .and_then(|m| m.get(&macro_name)
+                .and_then(|m| m.get(macro_name)
                 .cloned());
 
             if let Some(Macro {body, params, ..}) = macro_definition {
@@ -439,12 +439,12 @@ impl<'a> Renderer<'a> {
                 // We need to make a new context for the macro from the arguments given
                 // Return an error if we get some unknown params
                 let mut context = HashMap::new();
-                for (param_name, exp) in &call_params {
+                for (param_name, exp) in call_params {
                     if !params.contains(param_name) {
                         let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
                         bail!("Macro `{}` got `{:?}` for args but was expecting `{:?}` (order does not matter)", macro_name, params, params_seen);
                     }
-                    context.insert(param_name.to_string(), self.eval_expression(exp.clone())?);
+                    context.insert(param_name.to_string(), self.eval_expression(exp)?);
                 }
 
                 // Push this context to our stack of macro context so the renderer can pick variables
@@ -460,7 +460,7 @@ impl<'a> Renderer<'a> {
                 // If the current namespace wasn't `self`, we remove it since it's not needed anymore
                 // In the `self` case, we are still in the parent macro and its namespace is still
                 // needed so we keep it
-                if namespace == active_namespace {
+                if namespace == &active_namespace {
                     self.macro_namespaces.pop();
                 }
 
@@ -476,8 +476,8 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn import_macros(&mut self, tpl_name: String) -> Result<bool> {
-        let tpl = self.tera.get_template(&tpl_name)?;
+    fn import_macros(&mut self, tpl_name: &str) -> Result<bool> {
+        let tpl = self.tera.get_template(tpl_name)?;
         if tpl.imported_macro_files.is_empty() {
             return Ok(false);
         }
@@ -485,16 +485,16 @@ impl<'a> Renderer<'a> {
 
         for &(ref filename, ref namespace) in &tpl.imported_macro_files {
             let macro_tpl = self.tera.get_template(filename)?;
-            map.insert(namespace.to_string(), macro_tpl.macros.clone());
+            map.insert(namespace.to_string(), &macro_tpl.macros);
         }
         self.macros.push(map);
         Ok(true)
     }
 
-    pub fn render_node(&mut self, node: Node) -> Result<String> {
+    pub fn render_node(&mut self, node: &Node) -> Result<String> {
         match node {
-            Include(p) => {
-                let ast = self.tera.get_template(&p)?.ast.get_children();
+            &Include(ref p) => {
+                let ast = self.tera.get_template(p)?.ast.get_children();
                 let mut output = String::new();
                 for node in ast {
                     output.push_str(&self.render_node(node)?);
@@ -502,60 +502,60 @@ impl<'a> Renderer<'a> {
 
                 Ok(output.trim().to_string())
             },
-            ImportMacro {tpl_name, name} => {
-                let tpl = self.tera.get_template(&tpl_name)?;
+            &ImportMacro {ref tpl_name, ref name} => {
+                let tpl = self.tera.get_template(tpl_name)?;
                 let mut map = if self.macros.is_empty() {
                     HashMap::new()
                 } else {
                     self.macros.pop().unwrap()
                 };
-                map.insert(name.to_string(), tpl.macros.clone());
+                map.insert(name.to_string(), &tpl.macros);
                 self.macros.push(map);
                 // In theory, the render_node should return Result<Option<String>>
                 // but in practice there's no difference so keeping this hack
                 Ok("".to_string())
             },
-            MacroCall {..} => self.render_macro(node),
-            Text(s) => Ok(s),
-            Raw(s) => Ok(s.trim().to_string()),
-            FilterSection {ref name, ref params, ref body} => {
+            &MacroCall {..} => self.render_macro(&node),
+            &Text(ref s) => Ok(s.to_string()),
+            &Raw(ref s) => Ok(s.trim().to_string()),
+            &FilterSection {ref name, ref params, ref body} => {
                 let filter_fn = self.tera.get_filter(name)?;
                 let mut all_args = HashMap::new();
                 for (arg_name, exp) in params {
-                    all_args.insert(arg_name.to_string(), self.eval_expression(exp.clone())?);
+                    all_args.insert(arg_name.to_string(), self.eval_expression(exp)?);
                 }
-                let value = self.render_node(*body.clone())?;
+                let value = self.render_node(body)?;
                 match filter_fn(Value::String(value), all_args)? {
                     Value::String(s) => Ok(s),
                     val => Ok(val.render())
                 }
             },
-            VariableBlock(exp) => self.render_variable_block(*exp),
-            If {condition_nodes, else_node} => {
+            &VariableBlock(ref exp) => self.render_variable_block(&**exp),
+            &If {ref condition_nodes, ref else_node} => {
                 self.render_if(condition_nodes, else_node)
             },
-            List(body) => {
+            &List(ref body) => {
                 let mut output = String::new();
                 for n in body {
                     output.push_str(&self.render_node(n)?);
                 }
                 Ok(output)
             },
-            For {variable, array, body} => {
+            &For {ref variable, ref array, ref body} => {
                 self.render_for(variable, array, body)
             },
-            Block {name, body} => {
+            &Block {ref name, ref body} => {
                 // We pick the first block, ie the one in the template we are rendering
                 // We will go up in "level" if we encounter a super()
-                match self.template.blocks_definitions.get(&name) {
+                match self.template.blocks_definitions.get(name) {
                     Some(b) => {
                         // the indexing here is safe since we are rendering a block, we know we have
                         // at least 1
                         match &b[0] {
                             &(ref tpl_name, Block { ref body, ..}) => {
-                                self.blocks.push((name, 0));
-                                let has_macro = self.import_macros(tpl_name.clone())?;
-                                let res = self.render_node(*body.clone());
+                                self.blocks.push((name.clone(), 0));
+                                let has_macro = self.import_macros(tpl_name)?;
+                                let res = self.render_node(body);
                                 if has_macro {
                                     self.macros.pop();
                                 }
@@ -565,11 +565,11 @@ impl<'a> Renderer<'a> {
                         }
                     },
                     None => {
-                        self.render_node(*body)
+                        self.render_node(&*body)
                     }
                 }
             },
-            Super => {
+            &Super => {
                 if let Some((name, level)) = self.blocks.pop() {
                     let new_level = level + 1;
 
@@ -578,8 +578,8 @@ impl<'a> Renderer<'a> {
                             match &b[new_level] {
                                 &(ref tpl_name, Block { ref body, .. }) => {
                                     self.blocks.push((name, new_level));
-                                    let has_macro = self.import_macros(tpl_name.clone())?;
-                                    let res = self.render_node(*body.clone());
+                                    let has_macro = self.import_macros(tpl_name)?;
+                                    let res = self.render_node(body);
                                     if has_macro {
                                         self.macros.pop();
                                     }
@@ -601,7 +601,7 @@ impl<'a> Renderer<'a> {
                     unreachable!("Super called outside of a block or in base template")
                 }
             },
-            Extends(_) | Macro {..} => Ok("".to_string()),
+            &Extends(_) | &Macro {..} => Ok("".to_string()),
             x => unreachable!("render_node -> unexpected node: {:?}", x)
         }
     }
