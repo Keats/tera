@@ -15,22 +15,51 @@ use utils::escape_html;
 
 static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
 
+#[derive(PartialEq, Debug)]
+enum ForLoopKind {
+    List,
+    KeyValue,
+}
+
 // we need to have some data in the renderer for when we are in a ForLoop
 // For example, accessing the local variable would fail when
 // looking it up in the context
 #[derive(Debug)]
 struct ForLoop {
-    variable_name: String,
+    key_name: Option<String>,
+    value_name: String,
     current: usize,
-    values: Vec<Value>
+    values: Vec<(Option<String>, Value)>,
+    kind: ForLoopKind,
 }
 
 impl ForLoop {
-    pub fn new(local: String, values: Vec<Value>) -> ForLoop {
+    pub fn new_list(value_name: &str, values: Value) -> ForLoop {
+        let mut for_values = vec![];
+        for val in values.as_array().unwrap() {
+            for_values.push((None, val.clone()));
+        }
         ForLoop {
-            variable_name: local,
+            key_name: None,
+            value_name: value_name.to_string(),
             current: 0,
-            values: values
+            values: for_values,
+            kind: ForLoopKind::List,
+        }
+    }
+
+    pub fn new_key_value(key_name: String, value_name: &str, values: Value) -> ForLoop {
+        let mut for_values = vec![];
+        for (key, val) in values.as_object().unwrap() {
+            for_values.push((Some(key.clone()), val.clone()));
+        }
+
+        ForLoop {
+            key_name: Some(key_name),
+            value_name: value_name.to_string(),
+            current: 0,
+            values: for_values,
+            kind: ForLoopKind::KeyValue,
         }
     }
 
@@ -40,8 +69,37 @@ impl ForLoop {
     }
 
     #[inline]
-    pub fn get(&self) -> Option<&Value> {
-        self.values.get(self.current)
+    pub fn get_val(&self) -> Option<&Value> {
+        if let Some(v) = self.values.get(self.current) {
+            return Some(&v.1);
+        }
+        None
+    }
+
+    #[inline]
+    pub fn get_key(&self) -> String {
+        // theorically unsafe but it's only called on key/val for loops
+        if let Some(v) = self.values.get(self.current) {
+            if let Some(ref k) = v.0 {
+                return k.clone();
+            }
+        }
+
+        unreachable!();
+    }
+
+    /// checks whether the key string given is the variable used as key for
+    /// the current forloop
+    pub fn is_key(&self, name: &str) -> bool {
+        if self.kind == ForLoopKind::List {
+            return false;
+        }
+
+        if let Some(ref key_name) = self.key_name {
+            return key_name == name;
+        }
+
+        false
     }
 
     #[inline]
@@ -123,8 +181,8 @@ impl<'a> Renderer<'a> {
         }
 
         for for_loop in self.for_loops.iter().rev() {
-            if key.starts_with(&for_loop.variable_name) {
-                let value = match for_loop.get() {
+            if key.starts_with(&for_loop.value_name) {
+                let value = match for_loop.get_val() {
                     Some(f) => f,
                     None => { return Ok(to_value("").unwrap()); }
                 };
@@ -143,7 +201,13 @@ impl<'a> Renderer<'a> {
                     "loop.index0" => { return Ok(to_value(&for_loop.current)?); },
                     "loop.first" => { return Ok(to_value(&(for_loop.current == 0))?); },
                     "loop.last" => { return Ok(to_value(&(for_loop.current == for_loop.len() - 1))?); },
-                    _ => ()
+                    _ => {
+                        if for_loop.is_key(key) {
+                            return Ok(to_value(&for_loop.get_key())?);
+                        } else {
+                            ()
+                        }
+                    }
                 };
             }
         }
@@ -364,17 +428,21 @@ impl<'a> Renderer<'a> {
         Ok(output.trim_right().to_string())
     }
 
-    fn render_for(&mut self, variable_name: &str, array_name: &str, body: &Node) -> Result<String> {
-        let list = self.lookup_variable(array_name)?;
+    fn render_for(&mut self, key_name: &Option<String>, value_name: &str, array_name: &str, body: &Node) -> Result<String> {
+        let container = self.lookup_variable(array_name)?;
 
-        if !list.is_array() {
+        if key_name.is_some() && !container.is_object() {
+            bail!("Tried to iterate using key value on variable `{}`, but it isn't an object/map", array_name);
+        } else if key_name.is_none() && !container.is_array() {
             bail!("Tried to iterate on variable `{}`, but it isn't an array", array_name);
         }
-
-        // Safe unwrap
-        let deserialized = list.as_array().unwrap();
-        let length = deserialized.len();
-        self.for_loops.push(ForLoop::new(variable_name.to_string(), deserialized.clone()));
+        let for_loop = if container.is_array() {
+            ForLoop::new_list(value_name, container)
+        } else {
+            ForLoop::new_key_value(key_name.clone().expect("Failed to key name in loop"), value_name, container)
+        };
+        let length = for_loop.len();
+        self.for_loops.push(for_loop);
         let mut i = 0;
         let mut output = String::new();
         if length > 0 {
@@ -542,8 +610,8 @@ impl<'a> Renderer<'a> {
                 }
                 Ok(output)
             },
-            &For {ref variable, ref array, ref body} => {
-                self.render_for(variable, array, body)
+            &For {ref key, ref value, ref array, ref body} => {
+                self.render_for(key, value, array, body)
             },
             &Block {ref name, ref body} => {
                 // We pick the first block, ie the one in the template we are rendering
@@ -660,6 +728,7 @@ impl<'a> Renderer<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
     use context::Context;
     use errors::Result;
     use tera::Tera;
@@ -782,6 +851,18 @@ mod tests {
         assert_eq!(result.unwrap(), "123".to_owned());
     }
 
+
+    #[test]
+    fn test_render_key_value_for() {
+        let mut context = Context::new();
+        let mut map = BTreeMap::new();
+        map.insert("name", "bob");
+        map.insert("age", "18");
+        context.add("data", &map);
+        let result = render_template("{% for key, val in data %}{{key}}:{{val}} {% endfor %}", context);
+
+        assert_eq!(result.unwrap(), "age:18 name:bob".to_owned());
+    }
     #[test]
     fn test_render_loop_variables() {
         let mut context = Context::new();

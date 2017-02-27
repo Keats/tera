@@ -6,6 +6,7 @@ extern crate glob;
 
 use std::io::prelude::*;
 use std::fs::File;
+use std::collections::BTreeMap;
 
 use tera::{Tera, Context};
 
@@ -33,6 +34,10 @@ fn assert_template_ok(path: &str, others: Vec<&str>) {
     context.add("number_reviews", &2);
     context.add("show_more", &true);
     context.add("reviews", &vec![Review::new(), Review::new()]);
+    let mut map = BTreeMap::new();
+    map.insert("bob", "comment 1");
+    map.insert("jane", "comment 2");
+    context.add("comments", &map);
     context.add("a_tuple", &(1, 2, 3));
     context.add("an_array_of_tuple", &vec![(1, 2, 3), (1, 2, 3)]);
     let empty: Vec<Review> = Vec::new();

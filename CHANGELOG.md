@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.0 (Unreleased)
+
+### Breaking changes
+- Remove `value_render` and `value_one_off`, you can now use `render` and `one_off`
+for both values and context
+
+### Others
+- Speed improvements (~20-30% faster)
+- Better error message on variable lookup failure in loops
+- Can now iterate on maps/struct using the `{% for key, val in my_object %}` construct
+
+
 ## 0.7.2 (2017-02-18)
 
 - Update chrono version
