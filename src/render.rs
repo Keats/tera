@@ -132,7 +132,8 @@ impl<'a> Renderer<'a> {
                 // might be a struct or some nested structure
                 if key.contains('.') {
                     let new_key = key.split_terminator('.').skip(1).collect::<Vec<&str>>().join(".");
-                    return find_variable(value, &new_key, &self.template.name);
+                    return find_variable(value, &new_key, &self.template.name)
+                        .chain_err(|| format!("Variable lookup failed in forloop for `{}`", key));
                 } else {
                     return Ok(value.clone());
                 }

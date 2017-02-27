@@ -38,8 +38,13 @@ fn test_error_render_field_unknown_in_forloop() {
     let result = render_tpl("field_unknown_forloop.html");
 
     assert_eq!(result.is_err(), true);
+    let err = result.unwrap_err();
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        err.iter().nth(1).unwrap().description(),
+        "Variable lookup failed in forloop for `r.random`"
+    );
+    assert_eq!(
+        err.iter().nth(2).unwrap().description(),
         "Field `random` not found in context while rendering \'field_unknown_forloop.html\'"
     );
 }
