@@ -462,7 +462,7 @@ If the array is empty, returns empty string.
 #### join
 Joins an array with a string.
 
-Example: `{{ value|join:" // " }}`
+Example: `{{ value| join(sep=" // ") }}`
 
 If value is the array `['a', 'b', 'c']`, the output will be the string "a // b // c".
 
