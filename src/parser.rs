@@ -235,8 +235,10 @@ impl_rdp! {
         int   = @{ ["-"]? ~ (["0"] | ['1'..'9'] ~ ['0'..'9']*) }
         float = @{
             ["-"]? ~
-                ["0"] ~ ["."] ~ ['0'..'9']+ |
-                ['1'..'9'] ~ ['0'..'9']* ~ ["."] ~ ['0'..'9']+
+                (
+                    ["0"] ~ ["."] ~ ['0'..'9']+ |
+                    ['1'..'9'] ~ ['0'..'9']* ~ ["."] ~ ['0'..'9']+
+                )
         }
         // matches anything between 2 double quotes
         string  = @{ ["\""] ~ (!(["\""]) ~ any )* ~ ["\""]}
@@ -815,9 +817,12 @@ mod tests {
 
     #[test]
     fn test_float() {
-        let mut parser = Rdp::new(StringInput::new("123.5"));
-        assert!(parser.float());
-        assert!(parser.end());
+        let inputs = vec!["123.5", "123.5", "0.1", "-1.1"];
+        for i in inputs {
+            let mut parser = Rdp::new(StringInput::new(i));
+            assert!(parser.float());
+            assert!(parser.end());
+        }
     }
 
     #[test]
