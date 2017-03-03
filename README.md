@@ -172,6 +172,15 @@ A few special variables are available inside for loops:
 
 Every `for` statement has to end with an `endfor` tag.
 
+You can also loop on maps and struct using the following syntax:
+```jinja
+{% for key, value in products %}
+  {{loop.index}}. {{product.name}}
+{% endfor %}
+```
+`key` and `value` can be named however you want, they just need to be separated with a comma.
+
+
 ### Raw
 Tera will consider all text inside the `raw` block as a string and won't try to
 render what's inside. Useful if you have text that contains Tera delimiters.
