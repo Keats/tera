@@ -12,16 +12,17 @@ lazy_static! {
 }
 
 // Very basic fn to find identifier names
-fn find_identifiers(node: ast::Node, names: &mut Vec<String>) {
-    match node {
+fn find_identifiers(node: &ast::Node, names: &mut Vec<String>) {
+    match *node {
         ast::Node::Block {ref body, ..} => {
           for n in body.get_children() {
               find_identifiers(n, names);
           }
         },
-        ast::Node::VariableBlock(n) => match *n {
-            ast::Node::Identifier {ref name, ..} => names.push(name.clone()),
-            _ => ()
+        ast::Node::VariableBlock(ref n) => {
+            if let ast::Node::Identifier {ref name, ..} = **n {
+                names.push(name.clone())
+            }
         },
         _ => ()
     }

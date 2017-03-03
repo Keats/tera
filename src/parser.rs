@@ -109,8 +109,10 @@ pub enum Node {
 
     /// A for loop `{% for i in arr %}{% endfor %}
     For {
-        /// Name of the local variable in the loop
-        variable: String,
+        /// Name of the key in the loop (only when iterating on map-like objects)
+        key: Option<String>,
+        /// Name of the local variable for the value in the loop
+        value: String,
         /// Name of the variable being iterated on
         array: String,
         /// Body of the forloop, a `List` node
@@ -198,10 +200,10 @@ pub enum Node {
 impl Node {
     /// Used on if and list nodes to get their children.
     /// Will panic when used on any other node
-    pub fn get_children(&self) -> VecDeque<Node> {
+    pub fn get_children(&self) -> &VecDeque<Node> {
         match *self {
-            Node::List(ref l) => l.clone(),
-            Node::If {ref condition_nodes, ..} => condition_nodes.clone(),
+            Node::List(ref l) => l,
+            Node::If {ref condition_nodes, ..} => condition_nodes,
             _ => panic!("tried to get_children on a non-list/if node")
         }
     }
@@ -315,7 +317,7 @@ impl_rdp! {
         if_tag           = !@{ tag_start ~ ["if"] ~ logic_expression ~ test? ~ tag_end }
         elif_tag         = !@{ tag_start ~ ["elif"] ~ logic_expression ~ test? ~ tag_end }
         else_tag         = !@{ tag_start ~ ["else"] ~ tag_end }
-        for_tag          = !@{ tag_start ~ ["for"] ~ identifier ~ ["in"] ~ idents ~ tag_end }
+        for_tag          = !@{ tag_start ~ ["for"] ~ ((identifier ~ [","] ~ identifier) | identifier) ~ ["in"] ~ idents ~ tag_end }
         raw_tag          = !@{ tag_start ~ ["raw"] ~ tag_end }
         filter_tag       = !@{ tag_start ~ ["filter"] ~ fn_call ~ tag_end }
         endraw_tag       = !@{ tag_start ~ ["endraw"] ~ tag_end }
@@ -490,9 +492,20 @@ impl_rdp! {
                     body: Box::new(Node::List(body?))
                 }))
             },
-            (_: for_tag, &variable: identifier, &array: identifier, body: _template(), _: endfor_tag) => {
+            // Key value forloop
+            (_: for_tag, &key: identifier, &value: identifier, &array: identifier, body: _template(), _: endfor_tag) => {
                 Ok(Some(Node::For {
-                    variable: variable.to_string(),
+                    key: Some(key.to_string()),
+                    value: value.to_string(),
+                    array: array.to_string(),
+                    body: Box::new(Node::List(body?))
+                }))
+            },
+            // Array forloop
+            (_: for_tag, &value: identifier, &array: identifier, body: _template(), _: endfor_tag) => {
+                Ok(Some(Node::For {
+                    key: None,
+                    value: value.to_string(),
                     array: array.to_string(),
                     body: Box::new(Node::List(body?))
                 }))
@@ -1125,7 +1138,26 @@ mod tests {
             Box::new(Node::Identifier {name: "user.email".to_string(), filters: None})
         ));
         ast.push_front(Node::For {
-            variable: "user".to_string(),
+            key: None,
+            value: "user".to_string(),
+            array: "users".to_string(),
+            body: Box::new(Node::List(inner_content))
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_for_key_value() {
+        let parsed_ast = parse("{% for id, user in users %}{{id}}{% endfor %}");
+        let mut ast = VecDeque::new();
+        let mut inner_content = VecDeque::new();
+        inner_content.push_front(Node::VariableBlock(
+            Box::new(Node::Identifier {name: "id".to_string(), filters: None})
+        ));
+        ast.push_front(Node::For {
+            key: Some("id".to_string()),
+            value: "user".to_string(),
             array: "users".to_string(),
             body: Box::new(Node::List(inner_content))
         });

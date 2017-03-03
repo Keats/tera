@@ -10,7 +10,6 @@ use serde_json::value::to_value;
 
 use template::Template;
 use filters::{FilterFn, string, array, common, number};
-use context::Context;
 use errors::{Result, ResultExt};
 use render::Renderer;
 use testers::{self, TesterFn};
@@ -176,36 +175,28 @@ impl Tera {
         Ok(())
     }
 
-    /// Renders a Tera template given a `Context` object.
+    /// Renders a Tera template given an object that implements `Serialize`.
     ///
     /// To render a template with an empty context, simply pass a new `Context` object
     ///
-    /// ```rust,ignore
-    /// // Rendering a template with an empty content
-    /// tera.render("hello.html", Context::new());
-    /// ```
-    pub fn render(&self, template_name: &str, data: Context) -> Result<String> {
-        let template = self.get_template(template_name)?;
-        let mut renderer = Renderer::new(template, self, data.as_json()?);
-
-        renderer.render()
-    }
-
-    /// Renders a Tera template given a `Serializeable` object.
-    ///
-    /// If `data` is not an object, an error will be returned.
+    /// If `data` is serializing to an object, an error will be returned.
     ///
     /// ```rust,ignore
-    /// tera.render("hello.html", &user);
+    /// // Rendering a template with a normal context
+    /// let mut context = Context::new();
+    /// context.add("age", 18);
+    /// tera.render("hello.html", &context);
+    /// // Rendering a template with a struct that impl `Serialize`
+    /// tera.render("hello.html", &product);
+    /// // Rendering a template with an empty context
+    /// tera.render("hello.html", &Context::new());
     /// ```
-    pub fn value_render<T>(&self, template_name: &str, data: &T) -> Result<String>
-        where T: Serialize
-    {
+    pub fn render<T: Serialize>(&self, template_name: &str, data: &T) -> Result<String> {
         let value = to_value(data)?;
         if !value.is_object() {
             bail!(
-                "Failed to value_render '{}': context isn't a JSON object. \
-                The value passed needs to be a key-value object: struct, hashmap for example.",
+                "Failed to render '{}': context isn't a JSON object. \
+                The value passed needs to be a key-value object: context, struct, hashmap for example.",
                 template_name
             );
         }
@@ -215,7 +206,8 @@ impl Tera {
         renderer.render()
     }
 
-    /// Renders a one off template (for example a template coming from a user input)
+    /// Renders a one off template (for example a template coming from a user input) given a `Context`
+    /// or an object that implements `Serialize`.
     ///
     /// This creates a separate instance of Tera with no possibilities of adding custom filters
     /// or testers, parses the template and render it immediately.
@@ -225,33 +217,18 @@ impl Tera {
     /// ```rust,ignore
     /// let mut context = Context::new();
     /// context.add("greeting", &"hello");
-    /// Tera::one_off("{{ greeting }} world", context);
+    /// Tera::one_off("{{ greeting }} world", &context);
+    /// // Or with a struct that impl Serialize
+    /// Tera::one_off("{{ greeting }} world", &user);
     /// ```
-    pub fn one_off(input: &str, data: Context, autoescape: bool) -> Result<String> {
-        Tera::value_one_off(input, &data.as_json()?, autoescape)
-    }
-
-    /// Renders a one off template (for example a template coming from a user input) given
-    /// a `Serializeable` object.
-    ///
-    /// This creates a separate instance of Tera with no possibilities of adding custom filters
-    /// or testers, parses the template and render it immediately.
-    /// Any errors will mention the `one_off` template: this is the name given to the template by
-    /// Tera
-    ///
-    /// ```rust,ignore
-    /// Tera::value_one_off("{{ greeting }} world", &user);
-    /// ```
-    pub fn value_one_off<T>(input: &str, data: &T, autoescape: bool) -> Result<String>
-        where T: Serialize
-    {
+    pub fn one_off<T: Serialize>(input: &str, data: &T, autoescape: bool) -> Result<String> {
         let mut tera = Tera::default();
         tera.add_raw_template("one_off", input)?;
         if autoescape {
             tera.autoescape_on(vec!["one_off"]);
         }
 
-        tera.value_render("one_off", data)
+        tera.render("one_off", data)
     }
 
     #[doc(hidden)]
@@ -574,7 +551,7 @@ mod tests {
     fn test_can_autoescape_one_off_template() {
         let mut context = Context::new();
         context.add("greeting", &"<p>");
-        let result = Tera::one_off("{{ greeting }} world", context, true).unwrap();
+        let result = Tera::one_off("{{ greeting }} world",& context, true).unwrap();
 
         assert_eq!(result, "&lt;p&gt; world");
     }
@@ -583,7 +560,7 @@ mod tests {
     fn test_can_disable_autoescape_one_off_template() {
         let mut context = Context::new();
         context.add("greeting", &"<p>");
-        let result = Tera::one_off("{{ greeting }} world", context, false).unwrap();
+        let result = Tera::one_off("{{ greeting }} world", &context, false).unwrap();
 
         assert_eq!(result, "<p> world");
     }
@@ -592,7 +569,7 @@ mod tests {
     fn test_value_one_off_template() {
         let mut context = JsonObject::new();
         context.insert("greeting".to_string(), JsonValue::String("Good morning".to_string()));
-        let result = Tera::value_one_off("{{ greeting }} world", &context, true).unwrap();
+        let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "Good morning world");
     }

@@ -43,14 +43,14 @@ impl Template {
         let mut blocks = HashMap::new();
         // We find all those blocks at first so we don't need to do it for each render
         // Recursive because we can have blocks inside blocks
-        fn find_blocks(ast: VecDeque<Node>, blocks: &mut HashMap<String, Node>) -> Result<()> {
+        fn find_blocks(ast: &VecDeque<Node>, blocks: &mut HashMap<String, Node>) -> Result<()> {
             for node in ast {
                 match node {
-                    block @ Node::Block { .. } => {
+                    block @ &Node::Block { .. } => {
                         let string;
                         let children;
 
-                        if let Node::Block { ref name, ref body } = block {
+                        if let &Node::Block { ref name, ref body } = block {
                             if blocks.contains_key(name) {
                                 bail!("Block `{}` is duplicated", name);
                             }
@@ -60,7 +60,8 @@ impl Template {
                             unreachable!();
                         };
 
-                        blocks.insert(string, block);
+                        // TODO: can we remove that clone?
+                        blocks.insert(string, block.clone());
                         find_blocks(children, blocks)?;
                     },
                     _ => continue,
@@ -77,13 +78,13 @@ impl Template {
         let mut parent = None;
         for node in ast.get_children() {
             match node {
-                Node::Extends(ref name) => {
+                &Node::Extends(ref name) => {
                     parent = Some(name.to_string());
                 },
-                mnode @ Node::Macro { .. } => {
+                macro_node @ &Node::Macro { .. } => {
                     let string;
 
-                    if let Node::Macro { ref name, .. } = mnode {
+                    if let &Node::Macro { ref name, .. } = macro_node {
                         string = name.to_string();
                         if macros.contains_key(name) {
                             bail!("Macro `{}` is duplicated", name);
@@ -92,9 +93,10 @@ impl Template {
                         unreachable!();
                     }
 
-                    macros.insert(string, mnode);
+                    // TODO: can we remove that clone?
+                    macros.insert(string, macro_node.clone());
                 },
-                Node::ImportMacro { tpl_name, name } => {
+                &Node::ImportMacro { ref tpl_name, ref name } => {
                     imported_macro_files.push((tpl_name.to_string(), name.to_string()));
                 }
                 _ => continue,
