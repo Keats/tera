@@ -923,6 +923,13 @@ mod tests {
     }
 
     #[test]
+    fn test_render_string_in_variable_braces() {
+        let context = Context::new();
+        let result = render_template(r#"{{ "{{ hey }}" }}"#, context);
+        assert_eq!(result.unwrap(), "{{ hey }}".to_owned());
+    }
+
+    #[test]
     fn test_render_index_array() {
         let mut context = Context::new();
         context.add("my_arr", &vec![1, 2, 3]);
