@@ -414,15 +414,13 @@ impl<'a> Renderer<'a> {
             }
         }
 
-        if skip_else {
+        if !skip_else {
             // Remove endif whitespace
-            return Ok(output.trim_right().to_string());
+            if let Some(ref e) = *else_node {
+                // Remove else whitespace
+                output.push_str(self.render_node(&*e)?.trim_left());
+            }
         }
-
-        if let Some(ref e) = *else_node {
-            // Remove else whitespace
-            output.push_str(self.render_node(&*e)?.trim_left());
-        };
 
         // Remove endif whitespace
         Ok(output.trim_right().to_string())
