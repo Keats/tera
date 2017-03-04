@@ -451,7 +451,7 @@ impl_rdp! {
                 Ok(Some(Node::VariableBlock(Box::new(exp?))))
             },
             (_: raw_tag, &body: raw_text, _: endraw_tag) => {
-                Ok(Some(Node::Raw(body.to_string())))
+                Ok(Some(Node::Raw(body.trim().to_string())))
             },
             (_: filter_tag, _call: fn_call, &name: simple_ident, params: _fn_args(), body: _template()) => {
                 Ok(Some(Node::FilterSection{

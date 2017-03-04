@@ -586,7 +586,7 @@ impl<'a> Renderer<'a> {
             },
             &MacroCall {..} => self.render_macro(&node),
             &Text(ref s) => Ok(s.to_string()),
-            &Raw(ref s) => Ok(s.trim().to_string()),
+            &Raw(ref s) => Ok(s.to_string()),
             &FilterSection {ref name, ref params, ref body} => {
                 let filter_fn = self.tera.get_filter(name)?;
                 let mut all_args = HashMap::new();
