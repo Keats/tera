@@ -441,29 +441,17 @@ impl<'a> Renderer<'a> {
         } else {
             ForLoop::new_key_value(key_name.clone().expect("Failed to key name in loop"), value_name, container)
         };
+
         let length = for_loop.len();
         self.for_loops.push(for_loop);
-        let mut i = 0;
         let mut output = String::new();
-        if length > 0 {
-            loop {
-                output.push_str(self.render_node(&*body)?.trim_left());
-                // Safe unwrap
-                self.for_loops.last_mut().unwrap().increment();
-                if i == length - 1 {
-                    // Don't forget to pop the for_loop is we are done
-                    // otherwise it would just replay the last loop
-                    // see https://github.com/Keats/tera/issues/51
-                    self.for_loops.pop();
-                    break;
-                }
-                i += 1;
-            }
-            output = output.trim_right().to_string();
-        } else {
-            self.for_loops.pop();
+        for _ in 0..length {
+            output.push_str(self.render_node(&*body)?.trim_left());
+            // Safe unwrap
+            self.for_loops.last_mut().unwrap().increment();
         }
 
+        self.for_loops.pop();
         Ok(output.trim_right().to_string())
     }
 
