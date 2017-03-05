@@ -1,5 +1,6 @@
 use std::collections::{VecDeque, HashMap};
 
+use serde_json::map::Map;
 use serde_json::to_string_pretty;
 use serde_json::value::{Value, to_value, Number};
 
@@ -495,10 +496,9 @@ impl<'a> Renderer<'a> {
             let macro_definition = self.macros
                 .last()
                 .and_then(|m| m.get(&active_namespace))
-                .and_then(|m| m.get(macro_name)
-                .cloned());
+                .and_then(|m| m.get(macro_name));
 
-            if let Some(Macro {body, params, ..}) = macro_definition {
+            if let Some(&Macro { ref body, ref params, ..}) = macro_definition {
                 // fail fast if the number of args don't match
                 if params.len() != call_params.len() {
                     let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
@@ -507,7 +507,7 @@ impl<'a> Renderer<'a> {
 
                 // We need to make a new context for the macro from the arguments given
                 // Return an error if we get some unknown params
-                let mut context = HashMap::new();
+                let mut context = Map::new();
                 for (param_name, exp) in call_params {
                     if !params.contains(param_name) {
                         let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
@@ -518,7 +518,7 @@ impl<'a> Renderer<'a> {
 
                 // Push this context to our stack of macro context so the renderer can pick variables
                 // from it
-                self.macro_context.push(to_value(&context)?);
+                self.macro_context.push(context.into());
 
                 // We render the macro body as a normal node
                 let mut output = String::new();
