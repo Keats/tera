@@ -294,12 +294,12 @@ impl<'a> Renderer<'a> {
             &Identifier { .. } => {
                 Ok(self.eval_ident(&node)?)
             },
-            l @ &Logic { .. } => {
-                let value = self.eval_condition(l)?;
+            &Logic { .. } => {
+                let value = self.eval_condition(node)?;
                 Ok(Value::Bool(value))
             },
-            m @ &Math { .. } => {
-                let result = self.eval_math(m)?;
+            &Math { .. } => {
+                let result = self.eval_math(node)?;
                 Ok(Value::Number(Number::from_f64(result).unwrap()))
             },
             &Int(val) => {
@@ -354,8 +354,8 @@ impl<'a> Renderer<'a> {
                         Ok(result)
                     },
                     Operator::Eq | Operator::NotEq => {
-                        let mut lhs_val = self.eval_expression(&*lhs)?;
-                        let mut rhs_val = self.eval_expression(&*rhs)?;
+                        let mut lhs_val = self.eval_expression(lhs)?;
+                        let mut rhs_val = self.eval_expression(rhs)?;
 
                         // Monomorphize number vals.
                         if lhs_val.is_number() || rhs_val.is_number() {
@@ -404,10 +404,10 @@ impl<'a> Renderer<'a> {
         for node in condition_nodes {
             match node {
                 &Conditional {ref condition, ref body } => {
-                    if self.eval_condition(&**condition)? {
+                    if self.eval_condition(&condition)? {
                         skip_else = true;
                         // Remove if/elif whitespace
-                        output.push_str(self.render_node(&*body)?.trim_left());
+                        output.push_str(self.render_node(body)?.trim_left());
                     }
                 },
                 _ => unreachable!()
@@ -418,7 +418,7 @@ impl<'a> Renderer<'a> {
             // Remove endif whitespace
             if let Some(ref e) = *else_node {
                 // Remove else whitespace
-                output.push_str(self.render_node(&*e)?.trim_left());
+                output.push_str(self.render_node(e)?.trim_left());
             }
         }
 
@@ -444,7 +444,7 @@ impl<'a> Renderer<'a> {
         self.for_loops.push(for_loop);
         let mut output = String::new();
         for _ in 0..length {
-            output.push_str(self.render_node(&*body)?.trim_left());
+            output.push_str(self.render_node(body)?.trim_left());
             // Safe unwrap
             self.for_loops.last_mut().unwrap().increment();
         }
@@ -585,7 +585,7 @@ impl<'a> Renderer<'a> {
                     val => Ok(val.render())
                 }
             },
-            &VariableBlock(ref exp) => self.render_variable_block(&**exp),
+            &VariableBlock(ref exp) => self.render_variable_block(&exp),
             &If {ref condition_nodes, ref else_node} => {
                 self.render_if(condition_nodes, else_node)
             },
@@ -620,7 +620,7 @@ impl<'a> Renderer<'a> {
                         }
                     },
                     None => {
-                        self.render_node(&*body)
+                        self.render_node(body)
                     }
                 }
             },
