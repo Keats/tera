@@ -258,6 +258,39 @@ impl<'a> Renderer<'a> {
         }
     }
 
+    fn eval_expression_with_filter(&self, node: &Node) -> Result<Value> {
+        match *node {
+            Expression { ref expr, ref filters } => {
+                let mut value = self.eval_expression(expr)?;
+
+                if let Some(ref _filters) = *filters {
+                    for filter in _filters {
+                        match *filter {
+                            Filter { ref name, ref params } => {
+                                let filter_fn = self.tera.get_filter(name)?;
+                                let mut all_args = HashMap::new();
+                                for (arg_name, exp) in params {
+                                    all_args.insert(arg_name.to_string(), self.eval_expression(exp)?);
+                                }
+                                value = filter_fn(value, all_args)?;
+                            },
+                            _ => unreachable!(),
+                        };
+                    }
+                }
+
+                // Escaping strings if wanted for that template
+                if self.should_escape {
+                    if let Value::String(s) = value {
+                        value = to_value(escape_html(s.as_str()))?;
+                    }
+                }
+                Ok(value)
+            },
+            _ => unreachable!()
+        }
+    }
+
     fn eval_math(&self, node: &Node) -> Result<f64> {
         match *node {
             Identifier { ref name, .. } => {
@@ -292,6 +325,9 @@ impl<'a> Renderer<'a> {
 
     fn eval_expression(&self, node: &Node) -> Result<Value> {
         match node {
+            &Expression { .. } => {
+                Ok(self.eval_expression_with_filter(&node)?)
+            },
             &Identifier { .. } => {
                 Ok(self.eval_ident(&node)?)
             },
@@ -392,6 +428,7 @@ impl<'a> Renderer<'a> {
     fn render_variable_block(&mut self, node: &Node) -> Result<String>  {
         match node {
             &Identifier { .. } => Ok(self.eval_ident(node)?.render()),
+            &Expression { .. } => Ok(self.eval_expression_with_filter(node)?.render()),
             &Math { .. } => Ok(self.eval_math(node)?.to_string()),
             &Text(ref s) => Ok(s.to_string()),
             _ => unreachable!()
@@ -920,6 +957,18 @@ mod tests {
         );
 
         assert_eq!(result.unwrap(), "HELLO".to_owned());
+    }
+
+    #[test]
+    fn test_render_expression_with_filter() {
+        let mut context = Context::new();
+        context.add("myvar", &240);
+        let result = render_template(
+            "{{ myvar / 3 | round }}",
+            context
+        );
+
+        assert_eq!(result.unwrap(), "80".to_owned());
     }
 
     #[test]

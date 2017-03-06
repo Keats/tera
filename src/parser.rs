@@ -91,6 +91,14 @@ pub enum Node {
     /// Negated node
     Not(Box<Node>),
 
+    /// Expression node
+    Expression {
+        /// Expression
+        expr: Box<Node>,
+        /// Optional list of `Filter` node
+        filters: Option<VecDeque<Node>>
+    },
+
     /// Contains initial if block, all elif blocks and optional else block
     /// The condition nodes are a list of `Conditional` node
     If {
@@ -290,6 +298,8 @@ impl_rdp! {
             mul_div     = { op_times | op_slash }
         }
 
+        expression_with_filter = { expression ~ filters }
+
         logic_expression = _{
             { op_not? ~ expression }
             or          = { op_or }
@@ -311,7 +321,7 @@ impl_rdp! {
         include_tag      = !@{ tag_start ~ ["include"] ~ string ~ tag_end }
         import_macro_tag = !@{ tag_start ~ ["import"] ~ string ~ ["as"] ~ simple_ident ~ tag_end}
         extends_tag      = !@{ tag_start ~ ["extends"] ~ string ~ tag_end }
-        variable_tag     = !@{ variable_start ~ (macro_call | logic_expression) ~ variable_end }
+        variable_tag     = !@{ variable_start ~ (macro_call | expression_with_filter | logic_expression) ~ variable_end }
         super_tag        = !@{ variable_start ~ ["super()"] ~ variable_end }
         comment_tag      = !@{ comment_start ~ (!comment_end ~ any )* ~ comment_end }
         block_tag        = !@{ tag_start ~ ["block"] ~ identifier ~ tag_end }
@@ -758,6 +768,12 @@ impl_rdp! {
                     filters: Some(tail?),
                 })
             },
+            (_: expression_with_filter, exp: _expression(), tail: _filters()) => {
+                Ok(Node::Expression {
+                    expr: Box::new(exp?),
+                    filters: Some(tail?),
+                })
+            },
             // single not used {% if not admin %} => equivalent to {% if admin == false %}
             (_: op_not, exp: _expression()) => {
                 Ok(Node::Not(Box::new(exp?)))
@@ -838,6 +854,13 @@ mod tests {
             StringInput::new("phone_number | phone(format=user.country) | truncate(limit=50)")
         );
         assert!(parser.identifier_with_filter());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_expression_with_filter() {
+        let mut parser = Rdp::new(StringInput::new("myvar / 3 | round"));
+        assert!(parser.expression_with_filter());
         assert!(parser.end());
     }
 
