@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1 (unreleased)
+
+- Macro rendering perf improved and general code cleanup thanks to @Peternator7
+- Fix bug in parser with floats
+- Make `date` filter work with string input in `YYYY-MM-DD` format
+
 ## 0.8.0 (2017-03-03)
 
 ### Breaking changes

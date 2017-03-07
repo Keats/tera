@@ -5,7 +5,7 @@ use std::iter::FromIterator;
 use serde_json::value::{Value, to_value};
 use errors::Result;
 
-use chrono::{NaiveDateTime, DateTime, FixedOffset};
+use chrono::{NaiveDateTime, NaiveDate, DateTime, FixedOffset, UTC};
 
 // Returns the number of items in an array or the number of characters in a string.
 // Returns 0 if not an array or string.
@@ -52,9 +52,16 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
             }
         },
         Value::String(s) => {
-            match s.parse::<DateTime<FixedOffset>>() {
-                Ok(val) => val.naive_local(),
-                Err(_) => bail!("Error parsing `{:?}` as rfc3339 date", s)
+            if s.contains("T") {
+                match s.parse::<DateTime<FixedOffset>>() {
+                    Ok(val) => val.naive_local(),
+                    Err(_) => bail!("Error parsing `{:?}` as rfc3339 date", s)
+                }
+            } else {
+                match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
+                    Ok(val) => val.and_hms(0, 0, 0),
+                    Err(_) => bail!("Error parsing `{:?}` as YYYY-MM-DD date", s)
+                }
             }
         },
         _ => {
@@ -70,7 +77,7 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
         None => "%Y-%m-%d".to_string(),
     };
 
-    Ok(to_value(&dt.format(&format).to_string())?)
+    Ok(to_value(&DateTime::<UTC>::from_utc(dt, UTC).format(&format).to_string())?)
 }
 
 #[cfg(test)]
@@ -156,5 +163,14 @@ mod tests {
         let result = date(to_value(dt.to_rfc3339()).unwrap(), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(dt.format("%Y-%m-%d").to_string()).unwrap());
+    }
+
+    #[test]
+    fn test_date_yyyy_mm_dd() {
+        let mut args = HashMap::new();
+        args.insert("format".to_string(), to_value("%a, %d %b %Y %H:%M:%S %z").unwrap());
+        let result = date(to_value("2017-03-05").unwrap(), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00 +0000").unwrap());
     }
 }
