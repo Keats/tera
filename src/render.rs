@@ -221,41 +221,42 @@ impl<'a> Renderer<'a> {
     // If there is no filter, it's itself, otherwise call the filters in order
     // an return their result
     fn eval_ident(&self, node: &Node) -> Result<Value> {
-        match *node {
-            Identifier { ref name, ref filters } => {
-                let mut value = self.lookup_variable(name)?;
-                let mut is_safe = false;
+        let (name, filters) = match *node {
+            Identifier { ref name, ref filters } => (name, filters),
+            _ => unreachable!(),
+        };
 
-                if let Some(ref _filters) = *filters {
-                    for filter in _filters {
-                        match *filter {
-                            Filter { ref name, ref params } => {
-                                if name == "safe" {
-                                    is_safe = true;
-                                    continue;
-                                }
-                                let filter_fn = self.tera.get_filter(name)?;
-                                let mut all_args = HashMap::new();
-                                for (arg_name, exp) in params {
-                                    all_args.insert(arg_name.to_string(), self.eval_expression(exp)?);
-                                }
-                                value = filter_fn(value, all_args)?;
-                            },
-                            _ => unreachable!(),
-                        };
-                    }
+        let mut value = self.lookup_variable(name)?;
+        let mut is_safe = false;
+        if let Some(ref _filters) = *filters {
+            for filter in _filters {
+                let (name, params) = match *filter {
+                    Filter { ref name, ref params } => (name, params),
+                    _ => unreachable!(),
+                };
+
+                if name == "safe" {
+                    is_safe = true;
+                    continue;
                 }
 
-                // Escaping strings if wanted for that template
-                if name != MAGICAL_DUMP_VAR && self.should_escape && !is_safe {
-                    if let Value::String(s) = value {
-                        value = to_value(escape_html(s.as_str()))?;
-                    }
+                let filter_fn = self.tera.get_filter(name)?;
+                let mut all_args = HashMap::new();
+                for (arg_name, exp) in params {
+                    all_args.insert(arg_name.to_string(), self.eval_expression(exp)?);
                 }
-                Ok(value)
-            },
-            _ => unreachable!()
+
+                value = filter_fn(value, all_args)?;
+            }
         }
+
+        // Escaping strings if wanted for that template
+        if name != MAGICAL_DUMP_VAR && self.should_escape && !is_safe {
+            if let Value::String(s) = value {
+                value = to_value(escape_html(s.as_str()))?;
+            }
+        }
+        Ok(value)
     }
 
     fn eval_math(&self, node: &Node) -> Result<f64> {
@@ -332,8 +333,8 @@ impl<'a> Renderer<'a> {
                 }
                 tester(self.eval_expression(expression).ok(), value_params)
             },
-            &Logic { ref lhs, ref rhs, ref operator } => {
-                match *operator {
+            &Logic { ref lhs, ref rhs, operator } => {
+                match operator {
                     Operator::Or => {
                         let result = self.eval_condition(lhs)? || self.eval_condition(rhs)?;
                         Ok(result)
@@ -345,7 +346,7 @@ impl<'a> Renderer<'a> {
                     Operator::Gt | Operator::Gte | Operator::Lt | Operator::Lte => {
                         let l = self.eval_math(lhs)?;
                         let r = self.eval_math(rhs)?;
-                        let result = match *operator {
+                        let result = match operator {
                             Operator::Gte => l >= r,
                             Operator::Gt => l > r,
                             Operator::Lte => l <= r,
@@ -368,7 +369,7 @@ impl<'a> Renderer<'a> {
                             rhs_val = Value::Number(Number::from_f64(rhs_val.as_f64().unwrap()).unwrap());
                         }
 
-                        let result = match *operator {
+                        let result = match operator {
                             Operator::Eq => lhs_val == rhs_val,
                             Operator::NotEq => lhs_val != rhs_val,
                             _ => unreachable!()
@@ -455,79 +456,72 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_macro(&mut self, call_node: &Node) -> Result<String> {
-        if let &MacroCall {ref namespace, name: ref macro_name, params: ref call_params} = call_node {
-            // We need to find the active namespace in Tera if `self` is used
-            // Since each macro (other than the `self` ones) pushes its own namespace
-            // to the stack when being rendered, we can just lookup the last namespace that was pushed
-            // to find out the active one
-            let active_namespace = match namespace.as_ref() {
-                "self" => {
-                    // TODO: handle error if we don't have a namespace
-                    // This can (maybe) happen when calling {{ self:: }} outside of a macro
-                    // This happens when calling a macro defined in the file itself without imports
-                    // that means macros need to be put in another file to work, which seems ok
-                    self.macro_namespaces
-                        .last()
-                        .expect("Open an issue with a template sample please (mention `self namespace macro`)!")
-                        .to_string()
-                },
-                _ => {
-                    // TODO: String doesn't have Copy trait, can we avoid double cloning?
-                    self.macro_namespaces.push(namespace.clone());
-                    namespace.clone()
-                }
-            };
-
-            // We get our macro definition using the namespace name we just got
-            let macro_definition = self.macros
-                .last()
-                .and_then(|m| m.get(&active_namespace))
-                .and_then(|m| m.get(macro_name));
-
-            if let Some(&Macro { ref body, ref params, ..}) = macro_definition {
-                // fail fast if the number of args don't match
-                if params.len() != call_params.len() {
+        let (namespace, macro_name, call_params) = match call_node {
+            &MacroCall { ref namespace, ref name, ref params } => (namespace, name, params),
+            _ => unreachable!("Got a node other than a MacroCall when rendering a macro"),
+        };
+        
+        // We need to find the active namespace in Tera if `self` is used
+        // Since each macro (other than the `self` ones) pushes its own namespace
+        // to the stack when being rendered, we can just lookup the last namespace that was pushed
+        // to find out the active one
+        let active_namespace = match namespace.as_ref() {
+            "self" => {
+                // TODO: handle error if we don't have a namespace
+                // This can (maybe) happen when calling {{ self:: }} outside of a macro
+                // This happens when calling a macro defined in the file itself without imports
+                // that means macros need to be put in another file to work, which seems ok
+                self.macro_namespaces
+                    .last()
+                    .expect("Open an issue with a template sample please (mention `self namespace macro`)!")
+                    .to_string()
+            },
+            _ => {
+                // TODO: String doesn't have Copy trait, can we avoid double cloning?
+                self.macro_namespaces.push(namespace.clone());
+                namespace.clone()
+            }
+        };
+        // We get our macro definition using the namespace name we just got
+        let macro_definition = self.macros
+            .last()
+            .and_then(|m| m.get(&active_namespace))
+            .and_then(|m| m.get(macro_name));
+        if let Some(&Macro { ref body, ref params, ..}) = macro_definition {
+            // fail fast if the number of args don't match
+            if params.len() != call_params.len() {
+                let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
+                bail!("Macro `{}` got `{:?}` for args but was expecting `{:?}` (order does not matter)", macro_name, params, params_seen);
+            }
+            // We need to make a new context for the macro from the arguments given
+            // Return an error if we get some unknown params
+            let mut context = Map::new();
+            for (param_name, exp) in call_params {
+                if !params.contains(param_name) {
                     let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
                     bail!("Macro `{}` got `{:?}` for args but was expecting `{:?}` (order does not matter)", macro_name, params, params_seen);
                 }
-
-                // We need to make a new context for the macro from the arguments given
-                // Return an error if we get some unknown params
-                let mut context = Map::new();
-                for (param_name, exp) in call_params {
-                    if !params.contains(param_name) {
-                        let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
-                        bail!("Macro `{}` got `{:?}` for args but was expecting `{:?}` (order does not matter)", macro_name, params, params_seen);
-                    }
-                    context.insert(param_name.to_string(), self.eval_expression(exp)?);
-                }
-
-                // Push this context to our stack of macro context so the renderer can pick variables
-                // from it
-                self.macro_context.push(context.into());
-
-                // We render the macro body as a normal node
-                let mut output = String::new();
-                for node in body.get_children() {
-                    output.push_str(&self.render_node(node)?);
-                }
-
-                // If the current namespace wasn't `self`, we remove it since it's not needed anymore
-                // In the `self` case, we are still in the parent macro and its namespace is still
-                // needed so we keep it
-                if namespace == &active_namespace {
-                    self.macro_namespaces.pop();
-                }
-
-                // We remove the macro context we just rendered from our stack of contexts
-                self.macro_context.pop();
-
-                return Ok(output.trim().to_string());
-            } else {
-                bail!("Macro `{}` was not found in the namespace `{}`", macro_name, active_namespace);
+                context.insert(param_name.to_string(), self.eval_expression(exp)?);
             }
+            // Push this context to our stack of macro context so the renderer can pick variables
+            // from it
+            self.macro_context.push(context.into());
+            // We render the macro body as a normal node
+            let mut output = String::new();
+            for node in body.get_children() {
+                output.push_str(&self.render_node(node)?);
+            }
+            // If the current namespace wasn't `self`, we remove it since it's not needed anymore
+            // In the `self` case, we are still in the parent macro and its namespace is still
+            // needed so we keep it
+            if namespace == &active_namespace {
+                self.macro_namespaces.pop();
+            }
+            // We remove the macro context we just rendered from our stack of contexts
+            self.macro_context.pop();
+            Ok(output.trim().to_string())
         } else {
-            unreachable!("Got a node other than a MacroCall when rendering a macro")
+            bail!("Macro `{}` was not found in the namespace `{}`", macro_name, active_namespace);
         }
     }
 
@@ -536,8 +530,8 @@ impl<'a> Renderer<'a> {
         if tpl.imported_macro_files.is_empty() {
             return Ok(false);
         }
+        
         let mut map = HashMap::new();
-
         for &(ref filename, ref namespace) in &tpl.imported_macro_files {
             let macro_tpl = self.tera.get_template(filename)?;
             map.insert(namespace.to_string(), &macro_tpl.macros);

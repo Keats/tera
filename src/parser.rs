@@ -5,7 +5,7 @@ use pest::prelude::*;
 use errors::Result;
 
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 /// All operators can appear in Tera templates
 pub enum Operator {
     /// +
