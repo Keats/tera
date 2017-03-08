@@ -17,6 +17,9 @@ use testers::{self, TesterFn};
 
 /// The main point of interaction in this library.
 pub struct Tera {
+    // The glob used in `Tera::new`, None if Tera was instantiated differently
+    #[doc(hidden)]
+    glob: Option<String>,
     #[doc(hidden)]
     pub templates: HashMap<String, Template>,
     #[doc(hidden)]
@@ -48,18 +51,30 @@ impl Tera {
         if dir.find('*').is_none() {
             bail!("Tera expects a glob as input, no * were found in `{}`", dir);
         }
-
-        let mut errors = String::new();
-
         let mut tera = Tera {
+            glob: Some(dir.to_string()),
             templates: HashMap::new(),
             filters: HashMap::new(),
             testers: HashMap::new(),
             autoescape_extensions: vec![".html", ".htm", ".xml"]
         };
 
+        tera.load_from_glob()?;
+        tera.build_inheritance_chains()?;
+        tera.register_tera_filters();
+        tera.register_tera_testers();
+        Ok(tera)
+    }
+
+
+    /// Loads all the templates found in the glob that was given to Tera::new
+    fn load_from_glob(&mut self) -> Result<()> {
+        self.templates.clear();
+        let mut errors = String::new();
+
+        let dir = self.glob.clone().unwrap();
         // We are parsing all the templates on instantiation
-        for entry in glob(dir).unwrap().filter_map(|e| e.ok()) {
+        for entry in glob(&dir).unwrap().filter_map(|e| e.ok()) {
             let path = entry.as_path();
             // We only care about actual files
             if path.is_file() {
@@ -70,7 +85,7 @@ impl Tera {
                     .replace(parent_dir, "")
                     .replace("\\", "/"); // change windows slash to forward slash
 
-                if let Err(e) = tera.add_file(Some(&filepath), path) {
+                if let Err(e) = self.add_file(Some(&filepath), path) {
                     errors += &format!("\n* {}", e);
                     for e in e.iter().skip(1) {
                         errors += &format!("\n-- {}", e);
@@ -78,14 +93,12 @@ impl Tera {
                 }
             }
         }
+
         if !errors.is_empty() {
             bail!(errors);
         }
 
-        tera.build_inheritance_chains()?;
-        tera.register_tera_filters();
-        tera.register_tera_testers();
-        Ok(tera)
+        Ok(())
     }
 
     // Add a template from a path: reads the file and parses it.
@@ -432,11 +445,20 @@ impl Tera {
     pub fn autoescape_on(&mut self, extensions: Vec<&'static str>) {
         self.autoescape_extensions = extensions;
     }
+
+
+    /// Re-parse all templates found in the glob given to Tera
+    /// Use this when you are watching a directory and want to reload everything,
+    /// for example when a file is added
+    pub fn full_reload(&mut self) -> Result<()> {
+        self.load_from_glob()
+    }
 }
 
 impl Default for Tera {
     fn default() -> Tera {
         let mut tera = Tera {
+            glob: None,
             templates: HashMap::new(),
             filters: HashMap::new(),
             testers: HashMap::new(),

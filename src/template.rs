@@ -22,7 +22,6 @@ pub struct Template {
     pub parent: Option<String>,
     /// only used during initial parsing. Rendering will use `self.blocks_definitions`
     pub blocks: HashMap<String, Node>,
-
     /// Filled when all templates have been parsed: contains the full list of parent templates
     /// as opposed to Tera::Template which only contains the optional parent
     pub parents: Vec<String>,
