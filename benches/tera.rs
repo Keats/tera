@@ -178,6 +178,17 @@ fn bench_rendering_inheritance_and_macros(b: &mut test::Bencher) {
     b.iter(|| tera.render("child.html", &context));
 }
 
+#[bench]
+fn bench_build_inheritance_chains(b: &mut test::Bencher) {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("parent.html", PARENT_TEMPLATE),
+        ("child.html", CHILD_TEMPLATE_WITH_MACRO),
+        ("macros.html", MACRO_TEMPLATE),
+    ]).unwrap();
+    b.iter(|| tera.build_inheritance_chains());
+}
+
 
 #[bench]
 fn bench_escape_html(b: &mut test::Bencher) {

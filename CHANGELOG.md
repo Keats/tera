@@ -5,6 +5,7 @@
 - Macro rendering perf improved and general code cleanup thanks to @Peternator7
 - Fix bug in parser with floats
 - Make `date` filter work with string input in `YYYY-MM-DD` format
+- Big parsing improvement (~20-40%) for projects with macros and inheritance
 
 ## 0.8.0 (2017-03-03)
 

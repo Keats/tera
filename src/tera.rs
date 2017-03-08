@@ -106,28 +106,31 @@ impl Tera {
         Ok(())
     }
 
-    // We need to know the hierarchy of templates to be able to render multiple extends level
-    // This happens at compile to avoid checking it every time we want to render a template
-    // This also checks for soundness issues in the inheritance chains, such as missing template or
-    // circular extends.
-    // It also builds the block inheritance chain and detects when super() is called in a place
-    // where it can't possibly work
-    fn build_inheritance_chains(&mut self) -> Result<()> {
+    /// We need to know the hierarchy of templates to be able to render multiple extends level
+    /// This happens at compile-time to avoid checking it every time we want to render a template
+    /// This also checks for soundness issues in the inheritance chains, such as missing template or
+    /// circular extends.
+    /// It also builds the block inheritance chain and detects when super() is called in a place
+    /// where it can't possibly work
+    ///
+    /// Only public for benchmark reasons, do not use
+    #[doc(hidden)]
+    pub fn build_inheritance_chains(&mut self) -> Result<()> {
         // Recursive fn that finds all the parents and put them in an ordered Vec from closest to first parent
         // parent template
-        fn build_chain(tera: &Tera, start: &Template, template: &Template, mut parents: Vec<String>) -> Result<Vec<String>> {
+        fn build_chain(templates: &HashMap<String, Template>, start: &Template, template: &Template, mut parents: Vec<String>) -> Result<Vec<String>> {
             if !parents.is_empty() && start.name == template.name {
                 bail!("Circular extend detected for template '{}'. Inheritance chain: `{:?}`", start.name, parents);
             }
 
             match template.parent {
                 Some(ref p) => {
-                    match tera.get_template(p) {
-                        Ok(parent) => {
+                    match templates.get(p) {
+                        Some(parent) => {
                             parents.push(parent.name.clone());
-                            build_chain(tera, start, parent, parents)
+                            build_chain(templates, start, parent, parents)
                         },
-                        Err(_) => {
+                        None => {
                             bail!(
                                 "Template '{}' is inheriting from '{}', which doesn't exist or isn't loaded.",
                                 template.name, p
@@ -139,39 +142,52 @@ impl Tera {
             }
         }
 
-        let mut templates = self.templates.clone();
-        for template in self.templates.values() {
-            // Simple template: no inheritance or blocks -> nothing to do
+        // TODO: if we can rewrite the 2 loops below to be only one loop, that'd be great
+        let mut tpl_parents = HashMap::new();
+        let mut tpl_block_definitions = HashMap::new();
+        for (name, template) in &self.templates {
             if template.parent.is_none() && template.blocks.is_empty() {
                 continue;
             }
 
-            let mut tpl = template.clone();
-            if tpl.parent.is_some() {
-                tpl.parents = build_chain(self, template, template, vec![])?;
-            }
+            let parents = build_chain(&self.templates, template, template, vec![])?;
 
-            // Iterate over both blocks and templates and try to find the parents blocks
-            // insert that into the tpl object once done so it's available directly in the template
-            // without having to fetch all the parents to build it at runtime
-            for (block_name, def) in &tpl.blocks {
+            let mut blocks_definitions = HashMap::new();
+            for (block_name, def) in &template.blocks {
                 // push our own block first
-                let mut definitions = vec![(tpl.name.clone(), def.clone())];
+                let mut definitions = vec![(template.name.clone(), def.clone())];
 
                 // and then see if our parents have it
-                for parent in &tpl.parents {
-                    let t = self.get_template(parent)
+                for parent in &parents {
+                    let t = self.get_template(&parent)
                         .chain_err(|| format!("Couldn't find template {} while building inheritance chains", parent))?;
 
                     if let Some(b) = t.blocks.get(block_name) {
                         definitions.push((t.name.clone(), b.clone()));
                     }
                 }
-                tpl.blocks_definitions.insert(block_name.clone(), definitions);
+                blocks_definitions.insert(block_name.clone(), definitions);
             }
-            templates.insert(template.name.clone(), tpl);
+            tpl_parents.insert(name.clone(), parents);
+            tpl_block_definitions.insert(name.clone(), blocks_definitions);
         }
-        self.templates = templates;
+
+        for template in self.templates.values_mut() {
+            // Simple template: no inheritance or blocks -> nothing to do
+            if template.parent.is_none() && template.blocks.is_empty() {
+                continue;
+            }
+
+            template.parents = match tpl_parents.remove(&template.name) {
+                Some(parents) => parents,
+                None => vec![],
+            };
+            template.blocks_definitions = match tpl_block_definitions.remove(&template.name) {
+                Some(blocks) => blocks,
+                None => HashMap::new(),
+            };
+        }
+
         Ok(())
     }
 
