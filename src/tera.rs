@@ -453,6 +453,25 @@ impl Tera {
     pub fn full_reload(&mut self) -> Result<()> {
         self.load_from_glob()
     }
+
+    /// Use that method when you want to add a given Tera instance templates
+    /// to your own. If a template with the same name already exists in your instance,
+    /// it will not be overwritten.
+    ///
+    /// ```rust,ignore
+    /// // add all the templates from FRAMEWORK_TERA
+    /// // except the ones that have an identical name to the ones in `my_tera`
+    /// my_tera.extend(&FRAMEWORK_TERA);
+    /// ```
+    pub fn extend(&mut self, other: &Tera) -> Result<()> {
+        for (name, template) in &other.templates {
+            if !self.templates.contains_key(name) {
+                self.templates.insert(name.to_string(), template.clone());
+            }
+        }
+
+        self.build_inheritance_chains()
+    }
 }
 
 impl Default for Tera {
@@ -610,5 +629,46 @@ mod tests {
         let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "Good morning world");
+    }
+
+    #[test]
+    fn test_extend_no_overlap() {
+        let mut my_tera = Tera::default();
+        my_tera.add_raw_templates(vec![
+            ("one", "{% block hey %}1{% endblock hey %}"),
+            ("two", "{% block hey %}2{% endblock hey %}"),
+            ("three", "{% block hey %}3{% endblock hey %}"),
+        ]).unwrap();
+
+        let mut framework_tera = Tera::default();
+        framework_tera.add_raw_templates(vec![
+            ("four", "Framework X"),
+        ]).unwrap();
+
+        my_tera.extend(&framework_tera).unwrap();
+        assert_eq!(my_tera.templates.len(), 4);
+        let result = my_tera.render("four", &Context::default()).unwrap();
+        assert_eq!(result, "Framework X");
+    }
+
+    #[test]
+    fn test_extend_with_overlap() {
+        let mut my_tera = Tera::default();
+        my_tera.add_raw_templates(vec![
+            ("one", "MINE"),
+            ("two", "{% block hey %}2{% endblock hey %}"),
+            ("three", "{% block hey %}3{% endblock hey %}"),
+        ]).unwrap();
+
+        let mut framework_tera = Tera::default();
+        framework_tera.add_raw_templates(vec![
+            ("one", "FRAMEWORK"),
+            ("four", "Framework X"),
+        ]).unwrap();
+
+        my_tera.extend(&framework_tera).unwrap();
+        assert_eq!(my_tera.templates.len(), 4);
+        let result = my_tera.render("one", &Context::default()).unwrap();
+        assert_eq!(result, "MINE");
     }
 }
