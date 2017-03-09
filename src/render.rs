@@ -323,7 +323,7 @@ impl<'a> Renderer<'a> {
     fn eval_condition(&self, node: &Node) -> Result<bool> {
         match node {
             &Identifier { .. } => {
-                Ok(self.eval_ident(&node).map(|v| v.is_truthy()).unwrap_or(false))
+                Ok(self.eval_ident(node).map(|v| v.is_truthy()).unwrap_or(false))
             },
             &Test { ref expression, ref name, ref params } => {
                 let tester = self.tera.get_tester(name)?;
@@ -406,7 +406,7 @@ impl<'a> Renderer<'a> {
         for node in condition_nodes {
             match node {
                 &Conditional {ref condition, ref body } => {
-                    if self.eval_condition(&condition)? {
+                    if self.eval_condition(condition)? {
                         skip_else = true;
                         // Remove if/elif whitespace
                         output.push_str(self.render_node(body)?.trim_left());
@@ -456,11 +456,11 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_macro(&mut self, call_node: &Node) -> Result<String> {
-        let (namespace, macro_name, call_params) = match call_node {
-            &MacroCall { ref namespace, ref name, ref params } => (namespace, name, params),
+        let (namespace, macro_name, call_params) = match *call_node {
+            MacroCall { ref namespace, ref name, ref params } => (namespace, name, params),
             _ => unreachable!("Got a node other than a MacroCall when rendering a macro"),
         };
-        
+
         // We need to find the active namespace in Tera if `self` is used
         // Since each macro (other than the `self` ones) pushes its own namespace
         // to the stack when being rendered, we can just lookup the last namespace that was pushed
@@ -530,7 +530,7 @@ impl<'a> Renderer<'a> {
         if tpl.imported_macro_files.is_empty() {
             return Ok(false);
         }
-        
+
         let mut map = HashMap::new();
         for &(ref filename, ref namespace) in &tpl.imported_macro_files {
             let macro_tpl = self.tera.get_template(filename)?;
@@ -564,7 +564,7 @@ impl<'a> Renderer<'a> {
                 // but in practice there's no difference so keeping this hack
                 Ok("".to_string())
             },
-            &MacroCall {..} => self.render_macro(&node),
+            &MacroCall {..} => self.render_macro(node),
             &Text(ref s) => Ok(s.to_string()),
             &Raw(ref s) => Ok(s.trim().to_string()),
             &FilterSection {ref name, ref params, ref body} => {
@@ -579,7 +579,7 @@ impl<'a> Renderer<'a> {
                     val => Ok(val.render())
                 }
             },
-            &VariableBlock(ref exp) => self.render_variable_block(&exp),
+            &VariableBlock(ref exp) => self.render_variable_block(exp),
             &If {ref condition_nodes, ref else_node} => {
                 self.render_if(condition_nodes, else_node)
             },
