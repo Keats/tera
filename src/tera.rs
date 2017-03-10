@@ -464,18 +464,21 @@ impl Tera {
     /// that have a filepath associated
     pub fn full_reload(&mut self) -> Result<()> {
         if self.glob.is_some() {
-            return self.load_from_glob();
+            self.load_from_glob()?;
+        } else {
+            // We don't have a glob, try to reload as much as possible
+            // from the templates themselves if they have a path associated
+            let templates: Vec<(String, String)> = self.templates
+                .iter()
+                .filter(|&(_, t)| t.path.is_some())
+                .map(|(n, t)| (n.clone(), t.path.clone().unwrap()))
+                .collect();
+            for (name, path) in templates {
+                self.add_file(Some(&name), path)?;
+            }
         }
 
-        let templates: Vec<(String, String)> = self.templates
-            .iter()
-            .filter(|&(_, t)| t.path.is_some())
-            .map(|(n, t)| (n.clone(), t.path.clone().unwrap()))
-            .collect();
-        for (name, path) in templates {
-            self.add_file(Some(&name), path)?;
-        }
-        Ok(())
+        self.build_inheritance_chains()
     }
 
     /// Use that method when you want to add a given Tera instance templates
