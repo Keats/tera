@@ -69,7 +69,17 @@ impl Tera {
 
     /// Loads all the templates found in the glob that was given to Tera::new
     fn load_from_glob(&mut self) -> Result<()> {
-        self.templates.clear();
+        if self.glob.is_none() {
+            bail!("Tera can only load from glob if a glob is provided");
+        }
+        // We want to preserve templates that have been added through
+        // Tera::extend so we only keep those
+        self.templates = self.templates
+            .iter()
+            .filter(|&(_, ref t)| t.from_extend)
+            .map(|(n, t)| (n.clone(), t.clone())) // TODO: avoid that clone
+            .collect();
+
         let mut errors = String::new();
 
         let dir = self.glob.clone().unwrap();
@@ -449,9 +459,23 @@ impl Tera {
 
     /// Re-parse all templates found in the glob given to Tera
     /// Use this when you are watching a directory and want to reload everything,
-    /// for example when a file is added
+    /// for example when a file is added.
+    /// If the Tera instance was created without using a glob, it will only reload the templates
+    /// that have a filepath associated
     pub fn full_reload(&mut self) -> Result<()> {
-        self.load_from_glob()
+        if self.glob.is_some() {
+            return self.load_from_glob();
+        }
+
+        let templates: Vec<(String, String)> = self.templates
+            .iter()
+            .filter(|&(_, t)| t.path.is_some())
+            .map(|(n, t)| (n.clone(), t.path.clone().unwrap()))
+            .collect();
+        for (name, path) in templates {
+            self.add_file(Some(&name), path)?;
+        }
+        Ok(())
     }
 
     /// Use that method when you want to add a given Tera instance templates
@@ -466,7 +490,9 @@ impl Tera {
     pub fn extend(&mut self, other: &Tera) -> Result<()> {
         for (name, template) in &other.templates {
             if !self.templates.contains_key(name) {
-                self.templates.insert(name.to_string(), template.clone());
+                let mut tpl = template.clone();
+                tpl.from_extend = true;
+                self.templates.insert(name.to_string(), tpl);
             }
         }
 
@@ -667,6 +693,29 @@ mod tests {
         ]).unwrap();
 
         my_tera.extend(&framework_tera).unwrap();
+        assert_eq!(my_tera.templates.len(), 4);
+        let result = my_tera.render("one", &Context::default()).unwrap();
+        assert_eq!(result, "MINE");
+    }
+
+    #[test]
+    fn test_full_reload_doesnt_delete_extend_templates_without_glob() {
+        let mut my_tera = Tera::default();
+        my_tera.add_raw_templates(vec![
+            ("one", "MINE"),
+            ("two", "{% block hey %}2{% endblock hey %}"),
+            ("three", "{% block hey %}3{% endblock hey %}"),
+        ]).unwrap();
+
+        let mut framework_tera = Tera::default();
+        framework_tera.add_raw_templates(vec![
+            ("one", "FRAMEWORK"),
+            ("four", "Framework X"),
+        ]).unwrap();
+
+        my_tera.extend(&framework_tera).unwrap();
+        println!("{:?}", my_tera.full_reload());
+        my_tera.full_reload().unwrap();
         assert_eq!(my_tera.templates.len(), 4);
         let result = my_tera.render("one", &Context::default()).unwrap();
         assert_eq!(result, "MINE");

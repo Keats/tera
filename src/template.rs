@@ -32,6 +32,9 @@ pub struct Template {
     /// Order is from highest in hierarchy to current template
     /// The tpl name is needed in order to load its macros
     pub blocks_definitions: HashMap<String, Vec<(String, Node)>>,
+    /// Whether this template came from a call to `Tera::extend`.
+    /// This allows us to not remove it from we are doing a reload
+    pub from_extend: bool,
 }
 
 impl Template {
@@ -94,9 +97,9 @@ impl Template {
             blocks: blocks,
             macros: macros,
             imported_macro_files: imported_macro_files,
-
             parents: vec![],
             blocks_definitions: HashMap::new(),
+            from_extend: false,
         })
     }
 }
