@@ -110,6 +110,25 @@ let result = Tera::one_off(user_tpl, &context, true);
 let result = Tera::one_off(user_tpl, &user, true);
 ```
 
+### Extending another instance of Tera
+Quite often, you will want to extend some third party templates - think Django admin for example.
+Tera allows you to do that quite easily:
+
+```rust
+// I get my templates first
+let mut tera = compile_templates!("templates/**/*");
+// And then I extend my instance with the templates from the framework
+tera.extend(&SOME_FRAMEWORK_TEMPLATES)?;
+```
+Note that if a template with the same name exists in `SOME_FRAMEWORK_TEMPLATES` and your `Tera` instance,
+it will keep your template.
+
+### Reloading
+If you are working with templates, getting instant feedback is important and you probably don't want to wait
+ages to fix a typo. Tera comes with `Tera::full_reload` that can be used in conjunction of watching file changes.
+
+`Tera::full_reload` is only available if you are using a glob to load templates and will keep the templates that were extended
+around, unless you overwrite them.
 
 ### Autoescaping
 By default, autoescaping is turned on for files ending in `.html`, `.htm` and `.xml`.

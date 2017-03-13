@@ -288,7 +288,6 @@ impl Tera {
     /// ```rust,ignore
     /// tera.add_template("new.html", "Blabla");
     /// ```
-    #[doc(hidden)]
     pub fn add_raw_template(&mut self, name: &str, content: &str) -> Result<()> {
         let tpl = Template::new(name, None, content)
             .chain_err(|| format!("Failed to parse '{}'", name))?;
@@ -308,7 +307,6 @@ impl Tera {
     ///     ("new2.html", "hello"),
     /// ]);
     /// ```
-    #[doc(hidden)]
     pub fn add_raw_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()>  {
         for (name, content) in templates {
             let tpl = Template::new(name, None, content)
@@ -333,7 +331,6 @@ impl Tera {
     /// // Rename
     /// tera.add_template_file(path, Some("index");
     /// ```
-    #[doc(hidden)]
     pub fn add_template_file<P: AsRef<Path>>(&mut self, path: P, name: Option<&str>) -> Result<()> {
         self.add_file(name, path)?;
         self.build_inheritance_chains()?;
@@ -352,7 +349,6 @@ impl Tera {
     ///     (path2, Some("hey")), // this template will have `hey` as name
     /// ]);
     /// ```
-    #[doc(hidden)]
     pub fn add_template_files<P: AsRef<Path>>(&mut self, files: Vec<(P, Option<&str>)>) -> Result<()>  {
         for (path, name) in files {
             self.add_file(name, path)?;
@@ -460,22 +456,14 @@ impl Tera {
     /// Re-parse all templates found in the glob given to Tera
     /// Use this when you are watching a directory and want to reload everything,
     /// for example when a file is added.
-    /// If the Tera instance was created without using a glob, it will only reload the templates
-    /// that have a filepath associated
+    ///
+    /// If you are adding templates without using a glob, we can't know when a template
+    /// is deleted, which would result in an error if we are trying to reload that file
     pub fn full_reload(&mut self) -> Result<()> {
         if self.glob.is_some() {
             self.load_from_glob()?;
         } else {
-            // We don't have a glob, try to reload as much as possible
-            // from the templates themselves if they have a path associated
-            let templates: Vec<(String, String)> = self.templates
-                .iter()
-                .filter(|&(_, t)| t.path.is_some())
-                .map(|(n, t)| (n.clone(), t.path.clone().unwrap()))
-                .collect();
-            for (name, path) in templates {
-                self.add_file(Some(&name), path)?;
-            }
+            bail!("Reloading is only available if you are using a glob");
         }
 
         self.build_inheritance_chains()
@@ -696,29 +684,6 @@ mod tests {
         ]).unwrap();
 
         my_tera.extend(&framework_tera).unwrap();
-        assert_eq!(my_tera.templates.len(), 4);
-        let result = my_tera.render("one", &Context::default()).unwrap();
-        assert_eq!(result, "MINE");
-    }
-
-    #[test]
-    fn test_full_reload_doesnt_delete_extend_templates_without_glob() {
-        let mut my_tera = Tera::default();
-        my_tera.add_raw_templates(vec![
-            ("one", "MINE"),
-            ("two", "{% block hey %}2{% endblock hey %}"),
-            ("three", "{% block hey %}3{% endblock hey %}"),
-        ]).unwrap();
-
-        let mut framework_tera = Tera::default();
-        framework_tera.add_raw_templates(vec![
-            ("one", "FRAMEWORK"),
-            ("four", "Framework X"),
-        ]).unwrap();
-
-        my_tera.extend(&framework_tera).unwrap();
-        println!("{:?}", my_tera.full_reload());
-        my_tera.full_reload().unwrap();
         assert_eq!(my_tera.templates.len(), 4);
         let result = my_tera.render("one", &Context::default()).unwrap();
         assert_eq!(result, "MINE");
