@@ -17,6 +17,9 @@ use testers::{self, TesterFn};
 
 /// The main point of interaction in this library.
 pub struct Tera {
+    // The glob used in `Tera::new`, None if Tera was instantiated differently
+    #[doc(hidden)]
+    glob: Option<String>,
     #[doc(hidden)]
     pub templates: HashMap<String, Template>,
     #[doc(hidden)]
@@ -48,18 +51,40 @@ impl Tera {
         if dir.find('*').is_none() {
             bail!("Tera expects a glob as input, no * were found in `{}`", dir);
         }
-
-        let mut errors = String::new();
-
         let mut tera = Tera {
+            glob: Some(dir.to_string()),
             templates: HashMap::new(),
             filters: HashMap::new(),
             testers: HashMap::new(),
             autoescape_extensions: vec![".html", ".htm", ".xml"]
         };
 
+        tera.load_from_glob()?;
+        tera.build_inheritance_chains()?;
+        tera.register_tera_filters();
+        tera.register_tera_testers();
+        Ok(tera)
+    }
+
+
+    /// Loads all the templates found in the glob that was given to Tera::new
+    fn load_from_glob(&mut self) -> Result<()> {
+        if self.glob.is_none() {
+            bail!("Tera can only load from glob if a glob is provided");
+        }
+        // We want to preserve templates that have been added through
+        // Tera::extend so we only keep those
+        self.templates = self.templates
+            .iter()
+            .filter(|&(_, ref t)| t.from_extend)
+            .map(|(n, t)| (n.clone(), t.clone())) // TODO: avoid that clone
+            .collect();
+
+        let mut errors = String::new();
+
+        let dir = self.glob.clone().unwrap();
         // We are parsing all the templates on instantiation
-        for entry in glob(dir).unwrap().filter_map(|e| e.ok()) {
+        for entry in glob(&dir).unwrap().filter_map(|e| e.ok()) {
             let path = entry.as_path();
             // We only care about actual files
             if path.is_file() {
@@ -70,7 +95,7 @@ impl Tera {
                     .replace(parent_dir, "")
                     .replace("\\", "/"); // change windows slash to forward slash
 
-                if let Err(e) = tera.add_file(Some(&filepath), path) {
+                if let Err(e) = self.add_file(Some(&filepath), path) {
                     errors += &format!("\n* {}", e);
                     for e in e.iter().skip(1) {
                         errors += &format!("\n-- {}", e);
@@ -78,14 +103,12 @@ impl Tera {
                 }
             }
         }
+
         if !errors.is_empty() {
             bail!(errors);
         }
 
-        tera.build_inheritance_chains()?;
-        tera.register_tera_filters();
-        tera.register_tera_testers();
-        Ok(tera)
+        Ok(())
     }
 
     // Add a template from a path: reads the file and parses it.
@@ -265,7 +288,6 @@ impl Tera {
     /// ```rust,ignore
     /// tera.add_template("new.html", "Blabla");
     /// ```
-    #[doc(hidden)]
     pub fn add_raw_template(&mut self, name: &str, content: &str) -> Result<()> {
         let tpl = Template::new(name, None, content)
             .chain_err(|| format!("Failed to parse '{}'", name))?;
@@ -285,7 +307,6 @@ impl Tera {
     ///     ("new2.html", "hello"),
     /// ]);
     /// ```
-    #[doc(hidden)]
     pub fn add_raw_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()>  {
         for (name, content) in templates {
             let tpl = Template::new(name, None, content)
@@ -310,7 +331,6 @@ impl Tera {
     /// // Rename
     /// tera.add_template_file(path, Some("index");
     /// ```
-    #[doc(hidden)]
     pub fn add_template_file<P: AsRef<Path>>(&mut self, path: P, name: Option<&str>) -> Result<()> {
         self.add_file(name, path)?;
         self.build_inheritance_chains()?;
@@ -329,7 +349,6 @@ impl Tera {
     ///     (path2, Some("hey")), // this template will have `hey` as name
     /// ]);
     /// ```
-    #[doc(hidden)]
     pub fn add_template_files<P: AsRef<Path>>(&mut self, files: Vec<(P, Option<&str>)>) -> Result<()>  {
         for (path, name) in files {
             self.add_file(name, path)?;
@@ -432,11 +451,50 @@ impl Tera {
     pub fn autoescape_on(&mut self, extensions: Vec<&'static str>) {
         self.autoescape_extensions = extensions;
     }
+
+
+    /// Re-parse all templates found in the glob given to Tera
+    /// Use this when you are watching a directory and want to reload everything,
+    /// for example when a file is added.
+    ///
+    /// If you are adding templates without using a glob, we can't know when a template
+    /// is deleted, which would result in an error if we are trying to reload that file
+    pub fn full_reload(&mut self) -> Result<()> {
+        if self.glob.is_some() {
+            self.load_from_glob()?;
+        } else {
+            bail!("Reloading is only available if you are using a glob");
+        }
+
+        self.build_inheritance_chains()
+    }
+
+    /// Use that method when you want to add a given Tera instance templates
+    /// to your own. If a template with the same name already exists in your instance,
+    /// it will not be overwritten.
+    ///
+    /// ```rust,ignore
+    /// // add all the templates from FRAMEWORK_TERA
+    /// // except the ones that have an identical name to the ones in `my_tera`
+    /// my_tera.extend(&FRAMEWORK_TERA);
+    /// ```
+    pub fn extend(&mut self, other: &Tera) -> Result<()> {
+        for (name, template) in &other.templates {
+            if !self.templates.contains_key(name) {
+                let mut tpl = template.clone();
+                tpl.from_extend = true;
+                self.templates.insert(name.to_string(), tpl);
+            }
+        }
+
+        self.build_inheritance_chains()
+    }
 }
 
 impl Default for Tera {
     fn default() -> Tera {
         let mut tera = Tera {
+            glob: None,
             templates: HashMap::new(),
             filters: HashMap::new(),
             testers: HashMap::new(),
@@ -588,5 +646,46 @@ mod tests {
         let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "Good morning world");
+    }
+
+    #[test]
+    fn test_extend_no_overlap() {
+        let mut my_tera = Tera::default();
+        my_tera.add_raw_templates(vec![
+            ("one", "{% block hey %}1{% endblock hey %}"),
+            ("two", "{% block hey %}2{% endblock hey %}"),
+            ("three", "{% block hey %}3{% endblock hey %}"),
+        ]).unwrap();
+
+        let mut framework_tera = Tera::default();
+        framework_tera.add_raw_templates(vec![
+            ("four", "Framework X"),
+        ]).unwrap();
+
+        my_tera.extend(&framework_tera).unwrap();
+        assert_eq!(my_tera.templates.len(), 4);
+        let result = my_tera.render("four", &Context::default()).unwrap();
+        assert_eq!(result, "Framework X");
+    }
+
+    #[test]
+    fn test_extend_with_overlap() {
+        let mut my_tera = Tera::default();
+        my_tera.add_raw_templates(vec![
+            ("one", "MINE"),
+            ("two", "{% block hey %}2{% endblock hey %}"),
+            ("three", "{% block hey %}3{% endblock hey %}"),
+        ]).unwrap();
+
+        let mut framework_tera = Tera::default();
+        framework_tera.add_raw_templates(vec![
+            ("one", "FRAMEWORK"),
+            ("four", "Framework X"),
+        ]).unwrap();
+
+        my_tera.extend(&framework_tera).unwrap();
+        assert_eq!(my_tera.templates.len(), 4);
+        let result = my_tera.render("one", &Context::default()).unwrap();
+        assert_eq!(result, "MINE");
     }
 }
