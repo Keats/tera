@@ -9,6 +9,7 @@
 - Add `Tera::extend` to extend another instance of Tera
 - Add `Tera::full_reload` that will re-run the glob and parse all templates found.
 - Make `Tera::add_raw_template{s}` and `Tera::add_template_file{s}` part of the public API
+- Fix location in error message when erroring in a child template
 
 
 ## 0.8.0 (2017-03-03)
