@@ -657,7 +657,6 @@ impl<'a> Renderer<'a> {
 
     // Helper fn that tries to find the current context: are we in a macro? in a parent template?
     // in order to give the best possible error when getting an error when rendering a tpl
-    // TODO: find a way to write tests for that
     fn get_error_location(&self) -> String {
         let mut error_location = format!("Failed to render '{}'", self.template.name);
 
@@ -670,7 +669,7 @@ impl<'a> Renderer<'a> {
         if let Some(&(ref name, ref level)) = self.blocks.last() {
             let block_def = self.template.blocks_definitions
                 .get(name)
-                .and_then(|b| b.get(level + 1));
+                .and_then(|b| b.get(*level));
 
             if let Some(&(ref tpl_name, _)) = block_def {
                 if tpl_name != &self.template.name {
@@ -678,6 +677,7 @@ impl<'a> Renderer<'a> {
                 }
             }
         } else if let Some(parent) = self.template.parents.last() {
+            println!("There?");
             // Error happened in the base template, outside of blocks
             error_location += &format!(" (error happened in '{}').", parent);
         }

@@ -118,3 +118,55 @@ fn test_error_macros_self_inexisting() {
         "Macro `inexisting` was not found in the namespace `macros`"
     );
 }
+
+
+#[test]
+fn test_error_in_child_template_location() {
+    let result = render_tpl("error-location/error_in_child.html");
+
+    assert_eq!(result.is_err(), true);
+    let errs = result.unwrap_err();
+    assert_eq!(
+        errs.iter().nth(0).unwrap().description(),
+        "Failed to render 'error-location/error_in_child.html'"
+    );
+}
+
+
+#[test]
+fn test_error_in_grandchild_template_location() {
+    let result = render_tpl("error-location/error_in_grand_child.html");
+
+    assert_eq!(result.is_err(), true);
+    let errs = result.unwrap_err();
+    assert_eq!(
+        errs.iter().nth(0).unwrap().description(),
+        "Failed to render 'error-location/error_in_grand_child.html'"
+    );
+}
+
+
+#[test]
+fn test_error_in_parent_template_location() {
+    let result = render_tpl("error-location/error_in_parent.html");
+
+    assert_eq!(result.is_err(), true);
+    let errs = result.unwrap_err();
+    assert_eq!(
+        errs.iter().nth(0).unwrap().description(),
+        "Failed to render 'error-location/error_in_parent.html' (error happened in 'error-location/base_error.html')."
+    );
+}
+
+
+#[test]
+fn test_error_in_macro_location() {
+    let result = render_tpl("error-location/error_in_macro.html");
+
+    assert_eq!(result.is_err(), true);
+    let errs = result.unwrap_err();
+    assert_eq!(
+        errs.iter().nth(0).unwrap().description(),
+        "Failed to render 'error-location/error_in_macro.html': error while rendering a macro from the `macros` namespace"
+    );
+}
