@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.1 (unreleased)
+## 0.8.1 (2017-03-15)
 
 - Macro rendering perf improved and general code cleanup thanks to @Peternator7
 - Fix bug in parser with floats
