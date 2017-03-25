@@ -294,7 +294,7 @@ impl<'a> Renderer<'a> {
     fn eval_expression(&self, node: &Node) -> Result<Value> {
         match node {
             &Identifier { .. } => {
-                Ok(self.eval_ident(&node)?)
+                Ok(self.eval_ident(node)?)
             },
             &Logic { .. } => {
                 let value = self.eval_condition(node)?;

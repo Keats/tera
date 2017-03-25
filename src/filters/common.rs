@@ -52,7 +52,7 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
             }
         },
         Value::String(s) => {
-            if s.contains("T") {
+            if s.contains('T') {
                 match s.parse::<DateTime<FixedOffset>>() {
                     Ok(val) => val.naive_local(),
                     Err(_) => bail!("Error parsing `{:?}` as rfc3339 date", s)

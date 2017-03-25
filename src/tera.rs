@@ -76,7 +76,7 @@ impl Tera {
         // Tera::extend so we only keep those
         self.templates = self.templates
             .iter()
-            .filter(|&(_, ref t)| t.from_extend)
+            .filter(|&(_, t)| t.from_extend)
             .map(|(n, t)| (n.clone(), t.clone())) // TODO: avoid that clone
             .collect();
 
@@ -182,7 +182,7 @@ impl Tera {
 
                 // and then see if our parents have it
                 for parent in &parents {
-                    let t = self.get_template(&parent)
+                    let t = self.get_template(parent)
                         .chain_err(|| format!("Couldn't find template {} while building inheritance chains", parent))?;
 
                     if let Some(b) = t.blocks.get(block_name) {
