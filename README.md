@@ -543,6 +543,10 @@ Escapes a string's HTML. Specifically, it makes these replacements:
 - / is converted to `&#x27;`
 - `` ` `` is converted to `&#96;`
 
+#### safe
+Mark a variable as safe: HTML will not be escaped anymore.
+Currently the position of the safe filter does not matter, e.g.
+`{{ content | safe | replace(from="Robert", to="Bob") }}` and `{{ content | replace(from="Robert", to="Bob") | safe }}` will output the same thing.
 
 ### Filter sections
 Whole sections can also be processed by filters if they are encapsulated in `{% filter name %}` and `{% endfilter %}`
