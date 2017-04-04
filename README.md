@@ -118,10 +118,12 @@ Tera allows you to do that quite easily:
 // I get my templates first
 let mut tera = compile_templates!("templates/**/*");
 // And then I extend my instance with the templates from the framework
-tera.extend(&SOME_FRAMEWORK_TEMPLATES)?;
+tera.extend(&SOME_FRAMEWORK_TERA)?;
 ```
-Note that if a template with the same name exists in `SOME_FRAMEWORK_TEMPLATES` and your `Tera` instance,
+Note that if a template with the same name exists in `SOME_FRAMEWORK_TERA` and your `Tera` instance,
 it will keep your template.
+
+Filters and testers will also automatically be copied over using the same logic.
 
 ### Reloading
 If you are working with templates, getting instant feedback is important and you probably don't want to wait
@@ -149,6 +151,8 @@ You can access attributes by using the dot (`.`) like `{{ product.name }}`.
 You can access specific members of an array or tuple by using the `.i` notation where `i` is a zero-based index.
 
 You can also do some maths: `{{ product.price + 10 }}`. If `product.price` is not a number type, the `render` method will return an error.
+
+A magical variable exists if you want to print the current context: `__tera_context`.
 
 ### If
 Conditionals are fully supported and are identical to the ones in Python.

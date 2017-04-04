@@ -469,8 +469,8 @@ impl Tera {
         self.build_inheritance_chains()
     }
 
-    /// Use that method when you want to add a given Tera instance templates
-    /// to your own. If a template with the same name already exists in your instance,
+    /// Use that method when you want to add a given Tera instance templates/filters/testers
+    /// to your own. If a template/filter/tester with the same name already exists in your instance,
     /// it will not be overwritten.
     ///
     /// ```rust,ignore
@@ -484,6 +484,18 @@ impl Tera {
                 let mut tpl = template.clone();
                 tpl.from_extend = true;
                 self.templates.insert(name.to_string(), tpl);
+            }
+        }
+
+        for (name, filter) in &other.filters {
+            if !self.filters.contains_key(name) {
+                self.filters.insert(name.to_string(), *filter);
+            }
+        }
+
+        for (name, tester) in &other.testers {
+            if !self.testers.contains_key(name) {
+                self.testers.insert(name.to_string(), *tester);
             }
         }
 
@@ -687,5 +699,24 @@ mod tests {
         assert_eq!(my_tera.templates.len(), 4);
         let result = my_tera.render("one", &Context::default()).unwrap();
         assert_eq!(result, "MINE");
+    }
+
+    #[test]
+    fn test_extend_new_filter() {
+        let mut my_tera = Tera::default();
+        let mut framework_tera = Tera::default();
+        framework_tera.register_filter("hello", my_tera.filters["first"]);
+        my_tera.extend(&framework_tera).unwrap();
+        assert!(my_tera.filters.contains_key("hello"));
+    }
+
+
+    #[test]
+    fn test_extend_new_tester() {
+        let mut my_tera = Tera::default();
+        let mut framework_tera = Tera::default();
+        framework_tera.register_tester("hello", my_tera.testers["divisibleby"]);
+        my_tera.extend(&framework_tera).unwrap();
+        assert!(my_tera.testers.contains_key("hello"));
     }
 }

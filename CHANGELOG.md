@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.8.2 (unreleased)
+- `Tera::extend` now also copy filters and testers
+
 ## 0.8.1 (2017-03-15)
 
 - Macro rendering perf improved and general code cleanup thanks to @Peternator7
