@@ -22,6 +22,7 @@ extern crate regex;
 extern crate url;
 extern crate humansize;
 extern crate chrono;
+extern crate rustc_serialize;
 
 mod errors;
 #[macro_use] mod macros;

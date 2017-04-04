@@ -28,6 +28,8 @@ url = "1"
 humansize = "1"
 # used in date format filter
 chrono = "0.3"
+# used in the base64 format filter
+rustc-serialize = "*"
 
 [dev-dependencies]
 serde_derive = "0.9"

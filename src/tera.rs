@@ -411,6 +411,8 @@ impl Tera {
         self.register_filter("escape", string::escape_html);
         self.register_filter("slugify", string::slugify);
         self.register_filter("addslashes", string::addslashes);
+        self.register_filter("base64encode", string::base64encode);
+        self.register_filter("base64decode", string::base64decode);
 
         self.register_filter("first", array::first);
         self.register_filter("last", array::last);

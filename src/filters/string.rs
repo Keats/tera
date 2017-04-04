@@ -3,6 +3,13 @@ use std::collections::HashMap;
 
 use serde_json::value::{Value, to_value};
 use slug;
+use rustc_serialize::base64::{
+    Config as Base64Config,
+    CharacterSet,
+    FromBase64,
+    Newline,
+    ToBase64
+};
 use url::percent_encoding::{utf8_percent_encode, EncodeSet};
 
 use errors::Result;
@@ -172,6 +179,30 @@ pub fn striptags(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 pub fn escape_html(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("escape_html", "value", String, value);
     Ok(to_value(utils::escape_html(&s)).unwrap())
+}
+
+
+/// Encode the given string as base64
+pub fn base64encode(value: Value, _: HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("base64encode", "value", String, value);
+    Ok(to_value(s.as_bytes().to_base64(Base64Config {
+        char_set: CharacterSet::UrlSafe,
+        newline: Newline::LF,
+        pad: true,
+        line_length: None
+    })).unwrap())
+}
+
+/// Encode the given string as base64
+pub fn base64decode(value: Value, _: HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("base64decode", "value", String, value);
+    Ok(
+        to_value(
+            String::from_utf8(
+                s.as_bytes().from_base64().unwrap()
+            ).unwrap()
+        ).unwrap()
+    )
 }
 
 
@@ -373,6 +404,45 @@ mod tests {
         ];
         for (input, expected) in tests {
             let result = striptags(to_value(input).unwrap(), HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_base64encode() {
+        // from https://tools.ietf.org/html/rfc4648#section-10
+        let tests = vec![
+            ("", ""),
+            ("f", "Zg=="),
+            ("fo", "Zm8="),
+            ("foo", "Zm9v"),
+            ("foob", "Zm9vYg=="),
+            ("fooba", "Zm9vYmE="),
+            ("foobar", "Zm9vYmFy")
+        ];
+        for (input, expected) in tests {
+            let args = HashMap::new();
+            let result = base64encode(to_value(input).unwrap(), args);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_base64decode() {
+        let tests = vec![
+            ("", ""),
+            ("Zg==", "f"),
+            ("Zm8=", "fo"),
+            ("Zm9v", "foo"),
+            ("Zm9vYg==", "foob"),
+            ("Zm9vYmE=", "fooba"),
+            ("Zm9vYmFy", "foobar")
+        ];
+        for (input, expected) in tests {
+            let args = HashMap::new();
+            let result = base64decode(to_value(input).unwrap(), args);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
