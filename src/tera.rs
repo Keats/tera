@@ -32,7 +32,6 @@ pub struct Tera {
     pub autoescape_extensions: Vec<&'static str>,
 }
 
-
 impl Tera {
     /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
     ///
@@ -91,13 +90,11 @@ impl Tera {
                 // We clean the filename by removing the dir given
                 // to Tera so users don't have to prefix everytime
                 let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
-                let filepath = path.to_string_lossy()
-                    // on unix we can just replace the parent dir directly
-                    .replace(parent_dir, "")
-                    // on windows, the separator are \ not / so we need to replace our
-                    // glob pattern adequately
-                    .replace(&parent_dir.replace("/", "\\"), "")
-                    // and finally in Tera we just use forward slashes
+                let filepath = path
+                    .strip_prefix(parent_dir)
+                    .unwrap()
+                    .to_string_lossy()
+                    // unify on forward slash
                     .replace("\\", "/");
 
                 if let Err(e) = self.add_file(Some(&filepath), path) {
