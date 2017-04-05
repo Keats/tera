@@ -1,7 +1,15 @@
 # Changelog
 
-## 0.8.2 (unreleased)
+## 0.9.0 (unreleased)
+
+### Breaking changes
+- Fix bug in Windows where the glob path was not removed correctly
+This is a breaking change as name used to render/inherit a template might change.
+
+### Others
 - `Tera::extend` now also copy filters and testers
+- Add CI for Windows to avoid Windows-specific bugs
+
 
 ## 0.8.1 (2017-03-15)
 

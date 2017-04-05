@@ -1,0 +1,24 @@
+environment:
+  global:
+    PROJECT_NAME: tera
+
+  matrix:
+      - TARGET: x86_64-pc-windows-msvc
+        CHANNEL: stable
+      - TARGET: x86_64-pc-windows-msvc
+        CHANNEL: beta
+      - TARGET: x86_64-pc-windows-msvc
+        CHANNEL: nightly
+
+install:
+  # Install Rust and Cargo
+  - curl -sSf -o rustup-init.exe https://win.rustup.rs
+  - rustup-init.exe --default-host %TARGET% --default-toolchain %CHANNEL% -y
+  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - rustc -Vv
+  - cargo -V
+
+build: false
+
+test_script:
+  - cargo test
