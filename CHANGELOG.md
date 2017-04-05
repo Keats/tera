@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.0 (unreleased)
+## 0.9.0 (2017-04-05)
 
 ### Breaking changes
 - Fix bug in Windows where the glob path was not removed correctly
