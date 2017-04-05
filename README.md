@@ -1,6 +1,7 @@
 # Tera
 
 [![Build Status](https://travis-ci.org/Keats/tera.svg)](https://travis-ci.org/Keats/tera)
+[![Build status](https://ci.appveyor.com/api/projects/status/omd2auu2e9qc8ukd?svg=true)](https://ci.appveyor.com/project/Keats/tera)
 
 Current release API docs are available on [docs.rs](https://docs.rs/tera).
 This project follows semver only for the public API, public API here meaning functions appearing in the docs.

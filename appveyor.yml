@@ -18,6 +18,10 @@ install:
   - rustc -Vv
   - cargo -V
 
+cache:
+  - C:\Users\appveyor\.cargo\registry
+  - target
+
 build: false
 
 test_script:
