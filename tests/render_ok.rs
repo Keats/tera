@@ -44,7 +44,8 @@ fn assert_template_ok(path: &str, others: Vec<&str>) {
     context.add("empty", &empty);
 
     let rendered = tera.render("tpl.html", &context).unwrap();
-    if rendered != expected {
+    // replace to make tests pass in windows
+    if rendered.replace("\r\n", "\n") != expected.replace("\r\n", "\n") {
         println!("Template {:?} was rendered incorrectly", path);
         println!("Got: \n {:#?}", rendered);
         println!("Expected: \n {:#?}", expected);

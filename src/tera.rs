@@ -92,8 +92,13 @@ impl Tera {
                 // to Tera so users don't have to prefix everytime
                 let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
                 let filepath = path.to_string_lossy()
+                    // on unix we can just replace the parent dir directly
                     .replace(parent_dir, "")
-                    .replace("\\", "/"); // change windows slash to forward slash
+                    // on windows, the separator are \ not / so we need to replace our
+                    // glob pattern adequately
+                    .replace(&parent_dir.replace("/", "\\"), "")
+                    // and finally in Tera we just use forward slashes
+                    .replace("\\", "/");
 
                 if let Err(e) = self.add_file(Some(&filepath), path) {
                     errors += &format!("\n* {}", e);
