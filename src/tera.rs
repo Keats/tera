@@ -258,9 +258,9 @@ impl Tera {
     /// ```rust,ignore
     /// let mut context = Context::new();
     /// context.add("greeting", &"hello");
-    /// Tera::one_off("{{ greeting }} world", &context);
+    /// Tera::one_off("{{ greeting }} world", &context, true);
     /// // Or with a struct that impl Serialize
-    /// Tera::one_off("{{ greeting }} world", &user);
+    /// Tera::one_off("{{ greeting }} world", &user, true);
     /// ```
     pub fn one_off<T: Serialize>(input: &str, data: &T, autoescape: bool) -> Result<String> {
         let mut tera = Tera::default();
