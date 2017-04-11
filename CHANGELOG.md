@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1 (unreleased)
+
+- Fix date filter converting everything to UTC
+
 ## 0.9.0 (2017-04-05)
 
 ### Breaking changes
