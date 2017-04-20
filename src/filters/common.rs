@@ -41,25 +41,32 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 /// Input can be an i64 timestamp (seconds since epoch) or an RFC3339 string
 /// (default serialization format for `chrono::DateTime`).
 ///
-/// Time formatting syntax is inspired from strftime and a full reference is available
+/// a full reference for the time formatting syntax is available
 /// on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html)
 pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
-    let dt = match value {
+    let format = match args.remove("format") {
+        Some(val) => try_get_value!("date", "format", String, val),
+        None => "%Y-%m-%d".to_string(),
+    };
+
+    match value {
         Value::Number(n) => {
             match n.as_i64() {
-                Some(i) => NaiveDateTime::from_timestamp(i, 0),
+                Some(i) => Ok(to_value(&NaiveDateTime::from_timestamp(i, 0).format(&format).to_string())?),
                 None => bail!("Filter `date` was invoked on a float: {:?}", n)
             }
         },
         Value::String(s) => {
             if s.contains('T') {
                 match s.parse::<DateTime<FixedOffset>>() {
-                    Ok(val) => val.naive_local(),
+                    Ok(val) => Ok(to_value(&val.format(&format).to_string())?),
                     Err(_) => bail!("Error parsing `{:?}` as rfc3339 date", s)
                 }
             } else {
                 match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
-                    Ok(val) => val.and_hms(0, 0, 0),
+                    Ok(val) => {
+                        Ok(to_value(&DateTime::<UTC>::from_utc(val.and_hms(0, 0, 0), UTC).format(&format).to_string())?)
+                    },
                     Err(_) => bail!("Error parsing `{:?}` as YYYY-MM-DD date", s)
                 }
             }
@@ -70,14 +77,7 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
                 value
             );
         }
-    };
-
-    let format = match args.remove("format") {
-        Some(val) => try_get_value!("date", "format", String, val),
-        None => "%Y-%m-%d".to_string(),
-    };
-
-    Ok(to_value(&DateTime::<UTC>::from_utc(dt, UTC).format(&format).to_string())?)
+    }
 }
 
 #[cfg(test)]
@@ -163,6 +163,15 @@ mod tests {
         let result = date(to_value(dt.to_rfc3339()).unwrap(), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(dt.format("%Y-%m-%d").to_string()).unwrap());
+    }
+
+    #[test]
+    fn test_date_rfc3339_preserves_timezone() {
+        let mut args = HashMap::new();
+        args.insert("format".to_string(), to_value("%Y-%m-%d %z").unwrap());
+        let result = date(to_value("1996-12-19T16:39:57-08:00").unwrap(), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("1996-12-19 -0800").unwrap());
     }
 
     #[test]
