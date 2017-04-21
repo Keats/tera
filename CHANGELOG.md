@@ -1,8 +1,13 @@
 # Changelog
 
-## 0.9.1 (unreleased)
+## 0.10.0 (unreleased)
 
+### Breaking changes
+- Update Serde to 1.0.0
+
+### Others
 - Fix date filter converting everything to UTC
+- Fix panic when using filters on forloop container
 
 ## 0.9.0 (2017-04-05)
 
