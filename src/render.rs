@@ -428,18 +428,22 @@ impl<'a> Renderer<'a> {
         Ok(output.trim_right().to_string())
     }
 
-    fn render_for(&mut self, key_name: &Option<String>, value_name: &str, array_name: &str, body: &Node) -> Result<String> {
-        let container = self.lookup_variable(array_name)?;
+    fn render_for(&mut self, key_name: &Option<String>, value_name: &str, container: &Node, body: &Node) -> Result<String> {
+        let container_name = match container {
+            &Node::Identifier {ref name, ..} => name,
+            _ => unreachable!()
+        };
+        let container_val = self.eval_ident(container)?;
 
-        if key_name.is_some() && !container.is_object() {
-            bail!("Tried to iterate using key value on variable `{}`, but it isn't an object/map", array_name);
-        } else if key_name.is_none() && !container.is_array() {
-            bail!("Tried to iterate on variable `{}`, but it isn't an array", array_name);
+        if key_name.is_some() && !container_val.is_object() {
+            bail!("Tried to iterate using key value on variable `{}`, but it isn't an object/map", container_name);
+        } else if key_name.is_none() && !container_val.is_array() {
+            bail!("Tried to iterate on variable `{}`, but it isn't an array", container_name);
         }
-        let for_loop = if container.is_array() {
-            ForLoop::new_list(value_name, container)
+        let for_loop = if container_val.is_array() {
+            ForLoop::new_list(value_name, container_val)
         } else {
-            ForLoop::new_key_value(key_name.clone().expect("Failed to key name in loop"), value_name, container)
+            ForLoop::new_key_value(key_name.clone().expect("Failed to key name in loop"), value_name, container_val)
         };
 
         let length = for_loop.len();
@@ -590,8 +594,8 @@ impl<'a> Renderer<'a> {
                 }
                 Ok(output)
             },
-            &For {ref key, ref value, ref array, ref body} => {
-                self.render_for(key, value, array, body)
+            &For {ref key, ref value, ref container, ref body} => {
+                self.render_for(key, value, container, body)
             },
             &Block {ref name, ref body} => {
                 // We pick the first block, ie the one in the template we are rendering

@@ -91,6 +91,11 @@ fn test_ok_empty_loop_template() {
 }
 
 #[test]
+fn test_ok_loop_with_filter_template() {
+    assert_template_ok("tests/templates/loop_with_filters.html", vec![]);
+}
+
+#[test]
 fn test_ok_basic_inheritance_template() {
     assert_template_ok(
         "tests/templates/basic_inheritance.html",

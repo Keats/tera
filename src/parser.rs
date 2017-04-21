@@ -114,7 +114,7 @@ pub enum Node {
         /// Name of the local variable for the value in the loop
         value: String,
         /// Name of the variable being iterated on
-        array: String,
+        container: Box<Node>,
         /// Body of the forloop, a `List` node
         body: Box<Node>
     },
@@ -306,6 +306,7 @@ impl_rdp! {
         comment_start  = _{ ["{#"] }
         comment_end    = _{ ["#}"] }
         block_start    = _{ variable_start | tag_start | comment_start }
+        for_call       = _{ (identifier ~ ["in"] ~ idents) | (identifier ~ [","] ~ identifier ~ ["in"] ~ identifier) }
 
         // Actual tags
         include_tag      = !@{ tag_start ~ ["include"] ~ string ~ tag_end }
@@ -319,7 +320,7 @@ impl_rdp! {
         if_tag           = !@{ tag_start ~ ["if"] ~ logic_expression ~ test? ~ tag_end }
         elif_tag         = !@{ tag_start ~ ["elif"] ~ logic_expression ~ test? ~ tag_end }
         else_tag         = !@{ tag_start ~ ["else"] ~ tag_end }
-        for_tag          = !@{ tag_start ~ ["for"] ~ ((identifier ~ [","] ~ identifier) | identifier) ~ ["in"] ~ idents ~ tag_end }
+        for_tag          = !@{ tag_start ~ ["for"] ~ for_call ~ tag_end }
         raw_tag          = !@{ tag_start ~ ["raw"] ~ tag_end }
         filter_tag       = !@{ tag_start ~ ["filter"] ~ fn_call ~ tag_end }
         endraw_tag       = !@{ tag_start ~ ["endraw"] ~ tag_end }
@@ -495,21 +496,30 @@ impl_rdp! {
                 }))
             },
             // Key value forloop
-            (_: for_tag, &key: identifier, &value: identifier, &array: identifier, body: _template(), _: endfor_tag) => {
+            (_: for_tag, &key: identifier, &value: identifier, &container: identifier, body: _template(), _: endfor_tag) => {
                 Ok(Some(Node::For {
                     key: Some(key.to_string()),
                     value: value.to_string(),
-                    array: array.to_string(),
-                    body: Box::new(Node::List(body?))
+                    container: Box::new(Node::Identifier {name: container.to_string(), filters: None}),
+                    body: Box::new(Node::List(body?)),
                 }))
             },
             // Array forloop
-            (_: for_tag, &value: identifier, &array: identifier, body: _template(), _: endfor_tag) => {
+            (_: for_tag, &value: identifier, &container: identifier, body: _template(), _: endfor_tag) => {
                 Ok(Some(Node::For {
                     key: None,
                     value: value.to_string(),
-                    array: array.to_string(),
-                    body: Box::new(Node::List(body?))
+                    container: Box::new(Node::Identifier {name: container.to_string(), filters: None}),
+                    body: Box::new(Node::List(body?)),
+                }))
+            },
+            // Array forloop with filter(s) on container
+            (_: for_tag, &value: identifier, container: _expression(), body: _template(), _: endfor_tag) => {
+                Ok(Some(Node::For {
+                    key: None,
+                    value: value.to_string(),
+                    container: Box::new(container?),
+                    body: Box::new(Node::List(body?)),
                 }))
             },
             // only if
@@ -796,6 +806,7 @@ pub fn parse(input: &str) -> Result<Node> {
         let (line_no, col_no) = parser.input().line_col(pos);
         bail!("Invalid Tera syntax at line {}, column {}", line_no, col_no);
     }
+    // println!("{:#?}", parser.queue_with_captures());
 
     parser.main()
 }
@@ -1145,7 +1156,7 @@ mod tests {
         ast.push_front(Node::For {
             key: None,
             value: "user".to_string(),
-            array: "users".to_string(),
+            container: Box::new(Node::Identifier {name: "users".to_string(), filters: None}),
             body: Box::new(Node::List(inner_content))
         });
         let root = Node::List(ast);
@@ -1163,7 +1174,7 @@ mod tests {
         ast.push_front(Node::For {
             key: Some("id".to_string()),
             value: "user".to_string(),
-            array: "users".to_string(),
+            container: Box::new(Node::Identifier {name: "users".to_string(), filters: None}),
             body: Box::new(Node::List(inner_content))
         });
         let root = Node::List(ast);
@@ -1657,6 +1668,25 @@ mod tests {
             params: params
         });
 
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_macro_filter_in_for() {
+        let parsed_ast = parse("{% for v in arr | reverse %}{% endfor %}");
+        let mut ast = VecDeque::new();
+        let mut filters = VecDeque::new();
+        filters.push_front(Node::Filter {name: "reverse".to_string(), params: HashMap::new()});
+        ast.push_front(Node::For {
+            key: None,
+            value: "v".to_string(),
+            container: Box::new(Node::Identifier {
+                name: "arr".to_string(),
+                filters: Some(filters),
+            }),
+            body: Box::new(Node::List(VecDeque::new()))
+        });
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
     }

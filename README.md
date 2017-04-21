@@ -158,7 +158,7 @@ A magical variable exists if you want to print the current context: `__tera_cont
 ### If
 Conditionals are fully supported and are identical to the ones in Python.
 
-```jinja
+```jinja2
 {% if price < 10 or always_show %}
    Price is {{ price }}.
 {% elif price > 1000 and not rich %}
@@ -171,7 +171,7 @@ Conditionals are fully supported and are identical to the ones in Python.
 Undefined variables are considered falsy. This means that you can test for the
 presence of a variable in the current context by writing:
 
-```jinja
+```jinja2
 {% if my_var %}
     {{ my_var }}
 {% else %}
@@ -182,7 +182,7 @@ Every `if` statement has to end with an `endif` tag.
 
 ### For
 Loop over items in a array:
-```jinja
+```jinja2
 {% for product in products %}
   {{loop.index}}. {{product.name}}
 {% endfor %}
@@ -196,25 +196,32 @@ A few special variables are available inside for loops:
 
 Every `for` statement has to end with an `endfor` tag.
 
-You can also loop on maps and struct using the following syntax:
-```jinja
+You can also loop on maps and structs using the following syntax:
+```jinja2
 {% for key, value in products %}
   {{loop.index}}. {{product.name}}
 {% endfor %}
 ```
 `key` and `value` can be named however you want, they just need to be separated with a comma.
 
+If you are iterating on an array, you can also apply filters to the container:
+
+```jinja2
+{% for product in products | reverse %}
+  {{loop.index}}. {{product.name}}
+{% endfor %}
+```
 
 ### Raw
 Tera will consider all text inside the `raw` block as a string and won't try to
 render what's inside. Useful if you have text that contains Tera delimiters.
-```jinja
+```jinja2
 {% raw %}
   Hello {{ name }}
 {% endraw %}
 ```
 would be rendered:
-```jinja
+```jinja2
 Hello {{ name }}
 ```
 
@@ -229,7 +236,7 @@ several `blocks` that can have content.
 
 For example, here's a `base.html` almost copied from the jinja documentation:
 
-```jinja
+```jinja2
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -255,7 +262,7 @@ The `head` and `footer` block have some content already which will be rendered i
 #### Child template
 Again, straight from Jinja2 docs:
 
-```jinja
+```jinja2
 {% extends "base.html" %}
 {% block title %}Index{% endblock title %}
 {% block head %}
@@ -358,7 +365,7 @@ defined before its use to prevent run-time errors. Tests are made against
 variables in `if` blocks using the `is` keyword. For example, to test if `user`
 is defined, you would write:
 
-```
+```jinja2
 {% if user is defined %}
 ... do something with user ...
 {% else %}
@@ -367,7 +374,7 @@ is defined, you would write:
 ```
 Note that testers allow expressions, so the following is a valid test as well:
 
-```
+```jinja2
 {% if my_number + 1 is odd %}
  blabla
 {% endif %}
