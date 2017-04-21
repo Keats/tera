@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.10.0 (unreleased)
+## 0.10.0 (2017-04-21)
 
 ### Breaking changes
 - Update Serde to 1.0.0
