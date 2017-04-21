@@ -12,8 +12,8 @@ categories = ["template-engine"]
 
 [dependencies]
 glob = "0.2"
-serde = "0.9"
-serde_json = "0.9"
+serde = "1.0"
+serde_json = "1.0"
 pest = "0.4"
 error-chain = "0.10"
 # used in slugify filter
@@ -30,4 +30,4 @@ humansize = "1"
 chrono = "0.3"
 
 [dev-dependencies]
-serde_derive = "0.9"
+serde_derive = "1.0"
