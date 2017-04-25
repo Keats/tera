@@ -22,8 +22,8 @@
     {% else %}
       <p>None of your friend reviewed this product</p>
     {% endif %}
-    {% for username, comment in comments %}
-        {{ username }}: {{ comment }}
+    {% for comment_username, comment in comments %}
+        {{ comment_username }}: {{ comment }}
     {% endfor %}
     <button>Buy!</button>
   </body>

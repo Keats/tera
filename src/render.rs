@@ -182,34 +182,34 @@ impl<'a> Renderer<'a> {
         }
 
         for for_loop in self.for_loops.iter().rev() {
-            if key.starts_with(&for_loop.value_name) {
+            let (real_key, tail) = if let Some(tail_pos) = key.find('.') {
+                (&key[..tail_pos], &key[tail_pos+1..])
+            } else {
+                (key, "")
+            };
+            if real_key == for_loop.value_name {
                 let value = match for_loop.get_val() {
                     Some(f) => f,
                     None => { return Ok(to_value("").unwrap()); }
                 };
 
                 // might be a struct or some nested structure
-                if key.contains('.') {
-                    let new_key = key.split_terminator('.').skip(1).collect::<Vec<&str>>().join(".");
-                    return find_variable(value, &new_key, &self.template.name)
+                if tail.len() > 0 {
+                    return find_variable(value, tail, &self.template.name)
                         .chain_err(|| format!("Variable lookup failed in forloop for `{}`", key));
                 } else {
                     return Ok(value.clone());
                 }
-            } else {
-                match key {
-                    "loop.index" => { return Ok(to_value(&(for_loop.current + 1))?); },
-                    "loop.index0" => { return Ok(to_value(&for_loop.current)?); },
-                    "loop.first" => { return Ok(to_value(&(for_loop.current == 0))?); },
-                    "loop.last" => { return Ok(to_value(&(for_loop.current == for_loop.len() - 1))?); },
-                    _ => {
-                        if for_loop.is_key(key) {
-                            return Ok(to_value(&for_loop.get_key())?);
-                        } else {
-                            ()
-                        }
-                    }
-                };
+            } else if real_key == "loop" {
+                match tail {
+                    "index" => { return Ok(to_value(&(for_loop.current + 1))?); },
+                    "index0" => { return Ok(to_value(&for_loop.current)?); },
+                    "first" => { return Ok(to_value(&(for_loop.current == 0))?); },
+                    "last" => { return Ok(to_value(&(for_loop.current == for_loop.len() - 1))?); },
+                    _ => { bail!("Unknown loop subscript: {:?}", key); }
+                }
+            } else if for_loop.is_key(key) {
+                return Ok(to_value(&for_loop.get_key())?);
             }
         }
 
