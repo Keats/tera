@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.1 (2017-04-25)
+
+- Fix bug with variable in loop using starting with the container name (#165)
+
+
 ## 0.10.0 (2017-04-21)
 
 ### Breaking changes
