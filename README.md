@@ -319,6 +319,7 @@ Tera doesn't offer passing a custom context to the `include` tag. If you want to
 
 ### Macros
 Macros are a simple way to reuse template bits. Think of them as functions that you can call and return some text.
+Macros need to be defined in a separate file and imported to be useable.
 
 They are defined as follows:
 
@@ -345,6 +346,7 @@ A macro is called like this:
 ```
 Do note that macros, like filters, require keyword arguments.
 If you are trying to call a macro defined in the same file or itself, you will need to use the `self` namespace.
+The `self` namespace can only be used in macros.
 Macros can be called recursively but there is no limit to recursion so make sure you macro ends.
 
 Here's an example of a recursive macro:

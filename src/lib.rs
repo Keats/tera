@@ -33,6 +33,7 @@ mod tera;
 mod filters;
 mod testers;
 mod utils;
+mod global_functions;
 
 
 // Library exports.

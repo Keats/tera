@@ -828,7 +828,7 @@ pub fn parse(input: &str) -> Result<Node> {
         let (line_no, col_no) = parser.input().line_col(pos);
         bail!("Invalid Tera syntax at line {}, column {}", line_no, col_no);
     }
-    println!("{:#?}", parser.queue_with_captures());
+    // println!("{:#?}", parser.queue_with_captures());
 
     parser.main()
 }

@@ -13,6 +13,7 @@ use filters::{FilterFn, string, array, common, number};
 use errors::{Result, ResultExt};
 use render::Renderer;
 use testers::{self, TesterFn};
+use global_functions::{self, GlobalFn};
 
 
 /// The main point of interaction in this library.
@@ -26,6 +27,8 @@ pub struct Tera {
     pub filters: HashMap<String, FilterFn>,
     #[doc(hidden)]
     pub testers: HashMap<String, TesterFn>,
+    #[doc(hidden)]
+    pub global_functions: HashMap<String, GlobalFn>,
     // Which extensions does Tera automatically autoescape on.
     // Defaults to [".html", ".htm", ".xml"]
     #[doc(hidden)]
@@ -54,6 +57,7 @@ impl Tera {
             glob: Some(dir.to_string()),
             templates: HashMap::new(),
             filters: HashMap::new(),
+            global_functions: HashMap::new(),
             testers: HashMap::new(),
             autoescape_extensions: vec![".html", ".htm", ".xml"]
         };
@@ -62,6 +66,7 @@ impl Tera {
         tera.build_inheritance_chains()?;
         tera.register_tera_filters();
         tera.register_tera_testers();
+        tera.register_tera_global_functions();
         Ok(tera)
     }
 
@@ -399,6 +404,26 @@ impl Tera {
         self.testers.insert(name.to_string(), tester);
     }
 
+    #[doc(hidden)]
+    #[inline]
+    pub fn get_global_function(&self, fn_name: &str) -> Result<&GlobalFn> {
+        match self.global_functions.get(fn_name) {
+            Some(t) => Ok(t),
+            None => bail!("Global function '{}' not found", fn_name),
+        }
+    }
+
+    /// Register a global function with Tera.
+    ///
+    /// If a global function with that name already exists, it will be overwritten
+    ///
+    /// ```rust,ignore
+    /// tera.register_global_function("range", range);
+    /// ```
+    pub fn register_global_function(&mut self, name: &str, function: GlobalFn) {
+        self.global_functions.insert(name.to_string(), function);
+    }
+
     fn register_tera_filters(&mut self) {
         self.register_filter("upper", string::upper);
         self.register_filter("lower", string::lower);
@@ -436,6 +461,10 @@ impl Tera {
         self.register_tester("number", testers::number);
         self.register_tester("divisibleby", testers::divisible_by);
         self.register_tester("iterable", testers::iterable);
+    }
+
+    fn register_tera_global_functions(&mut self) {
+        self.register_global_function("range", global_functions::range_fn);
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on,
@@ -512,11 +541,13 @@ impl Default for Tera {
             templates: HashMap::new(),
             filters: HashMap::new(),
             testers: HashMap::new(),
+            global_functions: HashMap::new(),
             autoescape_extensions: vec![".html", ".htm", ".xml"]
         };
 
         tera.register_tera_filters();
         tera.register_tera_testers();
+        tera.register_tera_global_functions();
         tera
     }
 }
