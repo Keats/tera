@@ -8,15 +8,30 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::collections::BTreeMap;
 
-use tera::{Tera, Context};
+use tera::{Tera, Result, Context, GlobalFn, Value, to_value, from_value};
 
 mod common;
 use common::{Product, Review, read_file};
 
 
+fn make_url_for(urls: BTreeMap<String, String>) -> GlobalFn {
+    Box::new(move |args| -> Result<Value> {
+        match args.get("name") {
+            Some(val) => match from_value::<String>(val.clone()) {
+                Ok(v) =>  Ok(to_value(urls.get(&v).unwrap()).unwrap()),
+                Err(_) => Err("oops".into()),
+            },
+            None => Err("oops".into()),
+        }
+    })
+}
+
 fn assert_template_ok(path: &str, others: Vec<&str>) {
     let mut tera = Tera::default();
     tera.autoescape_on(vec!["html"]);
+    let mut urls = BTreeMap::new();
+    urls.insert("home".to_string(), "vincent.is".to_string());
+    tera.register_global_function("url_for", make_url_for(urls));
 
     for p in others {
         let base = p.to_string();
@@ -153,11 +168,15 @@ fn test_ok_macros() {
     );
 }
 
-
 #[test]
 fn test_magical_variable_dumps_context() {
     assert_template_ok(
         "tests/templates/magical_variable.html",
         vec!["tests/templates/macros.html"]
     );
+}
+
+#[test]
+fn test_ok_closure_global_fn() {
+    assert_template_ok("tests/templates/global_fn.html", vec![]);
 }
