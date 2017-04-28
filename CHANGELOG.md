@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.3 (unreleased)
+
+- Add global functions, see README
+
 ## 0.10.2 (2017-05-03)
 
 - Fix bug with section filter swallowing all content after the end tag
