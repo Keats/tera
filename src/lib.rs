@@ -54,8 +54,9 @@ pub use testers::TesterFn;
 // Re-export Value so apps/tools can encode data in Tera types
 // for now it's serde_json
 pub use serde_json::value::{Value, from_value, to_value};
-// parser exposes the AST if one needs it but changing the AST is not considered
-// a breaking change so not exposing it publicly
+
+// Exposes the AST if one needs it but changing the AST is not considered
+// a breaking change so it isn't public
 #[doc(hidden)]
 pub mod ast {
     pub use parser::Operator;
