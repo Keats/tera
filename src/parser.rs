@@ -454,14 +454,14 @@ impl_rdp! {
             (_: raw_tag, &body: raw_text, _: endraw_tag) => {
                 Ok(Some(Node::Raw(body.to_string())))
             },
-            (_: filter_tag, _call: fn_call, &name: simple_ident, params: _fn_args(), body: _template()) => {
+            (_: filter_tag, _call: fn_call, &name: simple_ident, params: _fn_args(), body: _template(), _: endfilter_tag) => {
                 Ok(Some(Node::FilterSection{
                     name: name.to_string(),
                     params: params?,
                     body: Box::new(Node::List(body?))
                 }))
             },
-            (_: filter_tag, _call: fn_call, &name: simple_ident, body: _template()) => {
+            (_: filter_tag, _call: fn_call, &name: simple_ident, body: _template(), _: endfilter_tag) => {
                 Ok(Some(Node::FilterSection{
                     name: name.to_string(),
                     params: HashMap::new(),
@@ -963,7 +963,6 @@ mod tests {
     fn test_logic_expression_not_simple() {
         let mut parser = Rdp::new(StringInput::new("not admin"));
         assert!(parser.logic_expression());
-        println!("{:?}", parser.queue_with_captures());
         assert!(parser.end());
     }
 
@@ -1484,7 +1483,7 @@ mod tests {
 
     #[test]
     fn test_ast_filter_section() {
-        let parsed_ast = parse("{% filter test %}Content{% endfilter %}");
+        let parsed_ast = parse("{% filter test %}Content{% endfilter %}Hey");
         let mut body = VecDeque::new();
         body.push_back(Node::Text("Content".to_string()));
         let mut ast = VecDeque::new();
@@ -1493,6 +1492,7 @@ mod tests {
             params: HashMap::new(),
             body: Box::new(Node::List(body))
         });
+        ast.push_back(Node::Text("Hey".to_string()));
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
     }
