@@ -1011,6 +1011,21 @@ mod tests {
     }
 
     #[test]
+    fn test_render_macros_expression_arg() {
+        let mut context = Context::new();
+        context.add("pages", &vec![1,2,3,4,5]);
+        let mut tera = Tera::default();
+        tera.add_raw_templates(vec![
+            ("macros", "{% macro hello(val)%}{{val}}{% endmacro hello %}"),
+            ("tpl", "{% import \"macros\" as macros %}{{macros::hello(val=pages|last)}}"),
+        ]).unwrap();
+
+        let result = tera.render("tpl", &context);
+
+        assert_eq!(result.unwrap(), "5".to_string());
+    }
+
+    #[test]
     fn test_render_macros_in_child_templates_same_namespace() {
         let mut tera = Tera::default();
         tera.add_raw_templates(vec![

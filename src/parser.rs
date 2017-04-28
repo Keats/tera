@@ -252,7 +252,7 @@ impl_rdp! {
         }
 
         // named args
-        fn_arg  = @{ simple_ident ~ ["="] ~ expression}
+        fn_arg  = { simple_ident ~ ["="] ~ expression}
         fn_args = !@{ fn_arg ~ ([","] ~ fn_arg )* }
         fn_call = { simple_ident ~ ["("] ~ fn_args ~ [")"] | simple_ident }
 
@@ -1637,10 +1637,17 @@ mod tests {
 
     #[test]
     fn test_ast_macro_call_one_arg() {
-        let parsed_ast = parse("{{ macros::macro1(foo=bar) }}");
+        let parsed_ast = parse("{{ macros::macro1(foo=bar | last) }}");
         let mut ast = VecDeque::new();
         let mut params = HashMap::new();
-        params.insert("foo".to_string(), Node::Identifier {name: "bar".to_string(), filters: None});
+
+        let mut filters = VecDeque::new();
+        filters.push_front(Node::Filter {name: "last".to_string(), params: HashMap::new()});
+
+        params.insert("foo".to_string(), Node::Identifier {
+            name: "bar".to_string(),
+            filters: Some(filters)
+        });
         ast.push_front(Node::MacroCall {
             namespace: "macros".to_string(),
             name: "macro1".to_string(),
