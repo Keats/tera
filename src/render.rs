@@ -298,8 +298,6 @@ impl<'a> Renderer<'a> {
                 for (arg_name, exp) in params {
                     all_args.insert(arg_name.to_string(), self.eval_expression(exp)?);
                 }
-                println!("{:?}", params);
-                println!("{:?}", all_args);
 
                 global_fn(all_args)
             },
