@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.2 (2017-05-03)
+
+- Fix bug with section filter swallowing all content after the end tag
+- Allow whitespace in function args
+
 ## 0.10.1 (2017-04-25)
 
 - Fix bug with variable in loop using starting with the container name (#165)
