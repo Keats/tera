@@ -151,7 +151,15 @@ pub enum Node {
         /// The macro name
         name: String,
         /// The kwargs for that macro, the Node is an expression
-        params: HashMap<String, Node>
+        params: HashMap<String, Node>,
+    },
+
+    /// A global function call node `{{ range(end=10) }}`
+    GlobalFunctionCall {
+        /// The global function name
+        name: String,
+        /// The kwargs for that function, the Node is an expression
+        params: HashMap<String, Node>,
     },
 
     /// A test node `if my_var is odd`
@@ -252,11 +260,11 @@ impl_rdp! {
         }
 
         // named args
-        fn_arg  = { simple_ident ~ ["="] ~ expression}
-        fn_args = !@{ fn_arg ~ ([","] ~ fn_arg )* }
-        fn_call = { simple_ident ~ ["("] ~ fn_args ~ [")"] | simple_ident }
-
-        filters = { (op_filter ~ fn_call)+ }
+        fn_arg         = { simple_ident ~ ["="] ~ expression}
+        fn_args        = !@{ fn_arg ~ ([","] ~ fn_arg )* }
+        fn_call        = { simple_ident ~ ["("] ~ fn_args ~ [")"] | simple_ident }
+        global_fn_call = { simple_ident ~ ["("] ~ fn_args ~ [")"] }
+        filters        = { (op_filter ~ fn_call)+ }
 
         identifier = @{
             (['a'..'z'] | ['A'..'Z'] | ["_"]) ~
@@ -306,13 +314,17 @@ impl_rdp! {
         comment_start  = _{ ["{#"] }
         comment_end    = _{ ["#}"] }
         block_start    = _{ variable_start | tag_start | comment_start }
-        for_call       = _{ (identifier ~ ["in"] ~ idents) | (identifier ~ [","] ~ identifier ~ ["in"] ~ identifier) }
+        // For now only allow global fn in non key-value for loop
+        for_call       = _{
+            (identifier ~ ["in"] ~ (global_fn_call | idents))
+            | (identifier ~ [","] ~ identifier ~ ["in"] ~ identifier)
+        }
 
         // Actual tags
         include_tag      = !@{ tag_start ~ ["include"] ~ string ~ tag_end }
         import_macro_tag = !@{ tag_start ~ ["import"] ~ string ~ ["as"] ~ simple_ident ~ tag_end}
         extends_tag      = !@{ tag_start ~ ["extends"] ~ string ~ tag_end }
-        variable_tag     = !@{ variable_start ~ (macro_call | logic_expression) ~ variable_end }
+        variable_tag     = !@{ variable_start ~ (macro_call | global_fn_call | logic_expression) ~ variable_end }
         super_tag        = !@{ variable_start ~ ["super()"] ~ variable_end }
         comment_tag      = !@{ comment_start ~ (!comment_end ~ any )* ~ comment_end }
         block_tag        = !@{ tag_start ~ ["block"] ~ identifier ~ tag_end }
@@ -448,6 +460,12 @@ impl_rdp! {
                     params: params?
                 }))
             },
+            (_: variable_tag, _: global_fn_call, &name: simple_ident, params: _fn_args()) => {
+                Ok(Some(Node::GlobalFunctionCall {
+                    name: name.to_string(),
+                    params: params?
+                }))
+            },
             (_: variable_tag, exp: _expression()) => {
                 Ok(Some(Node::VariableBlock(Box::new(exp?))))
             },
@@ -513,7 +531,7 @@ impl_rdp! {
                     body: Box::new(Node::List(body?)),
                 }))
             },
-            // Array forloop with filter(s) on container
+            // Array forloop with filter(s) on container or global fn
             (_: for_tag, &value: identifier, container: _expression(), body: _template(), _: endfor_tag) => {
                 Ok(Some(Node::For {
                     key: None,
@@ -711,6 +729,10 @@ impl_rdp! {
         }
 
         _expression(&self) -> Result<Node> {
+            // Hack to make global fn work on loop container
+            (_: global_fn_call, &name: simple_ident, args: _fn_args()) => {
+                Ok(Node::GlobalFunctionCall {name: name.to_string(), params: args?})
+            },
             (_: add_sub, left: _expression(), sign, right: _expression()) => {
                 Ok(Node::Math {
                     lhs: Box::new(left?),
@@ -932,6 +954,14 @@ mod tests {
     }
 
     #[test]
+    fn test_for_tag_with_global_function() {
+        let mut parser = Rdp::new(StringInput::new("{% for client in range(start=1, end=9) %}"));
+        assert!(parser.for_tag());
+        assert!(parser.end());
+    }
+
+
+    #[test]
     fn test_endfor_tag() {
         let mut parser = Rdp::new(StringInput::new("{% endfor %}"));
         assert!(parser.endfor_tag());
@@ -1025,6 +1055,13 @@ mod tests {
     #[test]
     fn test_variable_tag_macro_call() {
         let mut parser = Rdp::new(StringInput::new("{{ my_macros::macro1(hello=\"world\", foo=bar, hey=1+2) }}"));
+        assert!(parser.variable_tag());
+        assert!(parser.end());
+    }
+
+    #[test]
+    fn test_variable_tag_function_call() {
+        let mut parser = Rdp::new(StringInput::new("{{ range(end=10) }}"));
         assert!(parser.variable_tag());
         assert!(parser.end());
     }
@@ -1131,6 +1168,20 @@ mod tests {
     }
 
     #[test]
+    fn test_ast_variable_global_fn() {
+        let parsed_ast = parse("{{ url_for(name=\"home\") }}");
+        let mut ast = VecDeque::new();
+        let mut params = HashMap::new();
+        params.insert("name".to_string(), Node::Text("home".to_string()));
+        ast.push_front(Node::GlobalFunctionCall {
+            name: "url_for".to_string(),
+            params: params,
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
     fn test_ast_block() {
         let parsed_ast = parse("{% block content %}Hello{% endblock content %}");
         let mut ast = VecDeque::new();
@@ -1175,6 +1226,25 @@ mod tests {
             value: "user".to_string(),
             container: Box::new(Node::Identifier {name: "users".to_string(), filters: None}),
             body: Box::new(Node::List(inner_content))
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_for_global_function() {
+        let parsed_ast = parse("{% for i in range(end=10) %}{% endfor %}");
+        let mut ast = VecDeque::new();
+        let mut params = HashMap::new();
+        params.insert("end".to_string(), Node::Int(10));
+        ast.push_front(Node::For {
+            key: None,
+            value: "i".to_string(),
+            container: Box::new(Node::GlobalFunctionCall {
+                name: "range".to_string(),
+                params: params,
+            }),
+            body: Box::new(Node::List(VecDeque::new()))
         });
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
@@ -1461,7 +1531,6 @@ mod tests {
         assert!(parser.end());
     }
 
-    // TODO: remove that syntax
     #[test]
     fn test_n_ary_test_requires_parens() {
         let mut parser = Rdp::new(StringInput::new("is oneof a, b, c"));

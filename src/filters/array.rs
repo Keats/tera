@@ -28,9 +28,9 @@ pub fn last(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 /// Joins all values in the array by the `sep` argument given
 /// If no separator is given, it will use `""` (empty string) as separator
 /// If the array is empty, returns empty string
-pub fn join(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
+pub fn join(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("join", "value", Vec<Value>, value);
-    let sep = match args.remove("sep") {
+    let sep = match args.get("sep") {
         Some(val) => try_get_value!("truncate", "sep", String, val),
         None => "".to_string(),
     };

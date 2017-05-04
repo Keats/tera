@@ -13,7 +13,6 @@ use tera::Tera;
 use utils::escape_html;
 
 
-
 static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
 
 #[derive(PartialEq, Debug)]
@@ -291,6 +290,21 @@ impl<'a> Renderer<'a> {
         }
     }
 
+    fn eval_global_fn(&self, node: &Node) -> Result<Value> {
+        match node {
+            &GlobalFunctionCall { ref name, ref params } => {
+                let global_fn = self.tera.get_global_function(name)?;
+                let mut all_args = HashMap::new();
+                for (arg_name, exp) in params {
+                    all_args.insert(arg_name.to_string(), self.eval_expression(exp)?);
+                }
+
+                global_fn(all_args)
+            },
+            _ => unreachable!()
+        }
+    }
+
     fn eval_expression(&self, node: &Node) -> Result<Value> {
         match node {
             &Identifier { .. } => {
@@ -316,6 +330,7 @@ impl<'a> Renderer<'a> {
             &Text(ref t) => {
                 Ok(Value::String(t.to_string()))
             },
+            &GlobalFunctionCall { .. } => self.eval_global_fn(node),
             _ => unreachable!()
         }
     }
@@ -431,9 +446,10 @@ impl<'a> Renderer<'a> {
     fn render_for(&mut self, key_name: &Option<String>, value_name: &str, container: &Node, body: &Node) -> Result<String> {
         let container_name = match container {
             &Node::Identifier {ref name, ..} => name,
+            &Node::GlobalFunctionCall {ref name, ..} => name,
             _ => unreachable!()
         };
-        let container_val = self.eval_ident(container)?;
+        let container_val = self.eval_expression(container)?;
 
         if key_name.is_some() && !container_val.is_object() {
             bail!("Tried to iterate using key value on variable `{}`, but it isn't an object/map", container_name);
@@ -654,6 +670,7 @@ impl<'a> Renderer<'a> {
                     unreachable!("Super called outside of a block or in base template")
                 }
             },
+            &GlobalFunctionCall { .. } => Ok(self.eval_global_fn(node)?.render()),
             &Extends(_) | &Macro {..} => Ok("".to_string()),
             x => unreachable!("render_node -> unexpected node: {:?}", x)
         }
@@ -1113,6 +1130,25 @@ mod tests {
         let result = tera.render("hello.html", &context);
 
         assert_eq!(result.unwrap(), "Login".to_string());
+    }
+
+    #[test]
+    fn test_render_global_fn_in_variable_block() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("hello.html", "{{ range(end=5) }}").unwrap();
+        let result = tera.render("hello.html", &Context::new());
+
+        assert_eq!(result.unwrap(), "[0, 1, 2, 3, 4, ]".to_string());
+    }
+
+    #[test]
+    fn test_render_global_fn_for_container() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("hello.html", "{% for i in range(end=5) %}{{i}}{% endfor %}").unwrap();
+        let result = tera.render("hello.html", &Context::new());
+
+        assert_eq!(result.unwrap(), "01234".to_string());
+
     }
 
     #[test]

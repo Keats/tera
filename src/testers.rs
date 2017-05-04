@@ -3,7 +3,7 @@ use serde_json::value::{Value};
 use context::ValueNumber;
 
 
-
+/// The tester function type definition
 pub type TesterFn = fn(Option<Value>, Vec<Value>) -> Result<bool>;
 
 

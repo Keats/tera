@@ -319,6 +319,7 @@ Tera doesn't offer passing a custom context to the `include` tag. If you want to
 
 ### Macros
 Macros are a simple way to reuse template bits. Think of them as functions that you can call and return some text.
+Macros need to be defined in a separate file and imported to be useable.
 
 They are defined as follows:
 
@@ -345,6 +346,7 @@ A macro is called like this:
 ```
 Do note that macros, like filters, require keyword arguments.
 If you are trying to call a macro defined in the same file or itself, you will need to use the `self` namespace.
+The `self` namespace can only be used in macros.
 Macros can be called recursively but there is no limit to recursion so make sure you macro ends.
 
 Here's an example of a recursive macro:
@@ -585,6 +587,55 @@ tera.register_filter("upper", string::upper);
 ```
 Filter functions for regular filters can also be used for filter sections.
 
+### Global functions
+You can also pass global functions to the Tera instance. 
+Global functions are Rust code that return a `Result<Value>` from the given params.
+
+Quite often, global functions will need to capture some external variables, such as a `url_for` global function needing
+the list of URLs present for example. Therefore, the type of `GlobalFn` is a boxed closure: `Box<Fn(HashMap<String, Value>) -> Result<Value> + Sync>`.
+
+Here's an example on how to implement a very basic global function:
+
+```rust
+fn make_url_for(urls: BTreeMap<String, String>) -> GlobalFn {
+    // args is a HashMap<String, Value>
+    Box::new(move |args| -> Result<Value> {
+        match args.get("name") {
+            Some(val) => match from_value::<String>(val.clone()) {
+                Ok(v) =>  Ok(to_value(urls.get(&v).unwrap()).unwrap()),
+                Err(_) => Err("oops".into()),
+            },
+            None => Err("oops".into()),
+        }
+    })
+}
+```
+You then need to add it to Tera:
+
+```rust
+tera.register_global_function("url_for", make_url_for(urls));
+```
+
+And you can now call it from a template:
+
+```jinja2
+{{ url_for(name="home") }}
+```
+
+Currently global functions can be called in two places in templates:
+
+- variable block: `{{ url_for(name="home") }}`
+- for loop container: `{% for i in range(end=5) %}`
+
+Tera comes with some built-in global functions.
+
+#### range
+Returns an array of integers created using the arguments given. 
+There are 3 arguments, all integers:
+
+- `end`: where to stop, mandatory
+- `start`: where to start from, defaults to `0`
+- `step_by`: with what number do we increment, defaults to `1`
 
 ## Accessing the AST
 Tera gives access to the AST of each template but the functions required is hidden

@@ -14,17 +14,21 @@
 extern crate serde;
 extern crate serde_json;
 extern crate glob;
-#[macro_use] extern crate pest;
-#[macro_use] extern crate error_chain;
+#[macro_use]
+extern crate pest;
+#[macro_use]
+extern crate error_chain;
 extern crate slug;
 extern crate regex;
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 extern crate url;
 extern crate humansize;
 extern crate chrono;
 
 mod errors;
-#[macro_use] mod macros;
+#[macro_use]
+mod macros;
 mod parser;
 mod context;
 mod render;
@@ -33,6 +37,7 @@ mod tera;
 mod filters;
 mod testers;
 mod utils;
+mod global_functions;
 
 
 // Library exports.
@@ -43,11 +48,15 @@ pub use context::Context;
 pub use tera::Tera;
 pub use errors::{Result, Error, ErrorKind};
 pub use utils::{escape_html};
+pub use global_functions::GlobalFn;
+pub use filters::FilterFn;
+pub use testers::TesterFn;
 // Re-export Value so apps/tools can encode data in Tera types
 // for now it's serde_json
 pub use serde_json::value::{Value, from_value, to_value};
-// parser exposes the AST if one needs it but changing the AST is not considered
-// a breaking change so not exposing it publicly
+
+// Exposes the AST if one needs it but changing the AST is not considered
+// a breaking change so it isn't public
 #[doc(hidden)]
 pub mod ast {
     pub use parser::Operator;
