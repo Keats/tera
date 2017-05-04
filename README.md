@@ -643,3 +643,15 @@ from the docs at the current time.
 See `examples/ast.rs` for an example on how to get the AST for a given template.
 
 The AST is not considered public and breaking changes could happen in minor versions.
+
+### Assignments
+You can assign values to variables. Assignments in for loops and macros are scoped to their context but
+assignments outside of those will be set in the global context.
+
+```jinja2
+{% set my_var = "hello" %}
+{% set my_var = 1 + 4 %}
+{% set my_var = some_var %}
+{% set my_var = macros::some_macro() %}
+{% set my_var = global_fn() %}
+```

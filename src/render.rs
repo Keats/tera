@@ -31,6 +31,8 @@ struct ForLoop {
     current: usize,
     values: Vec<(Option<String>, Value)>,
     kind: ForLoopKind,
+    /// can be set using the {% set %} tag
+    pub extra_values: Map<String, Value>,
 }
 
 impl ForLoop {
@@ -45,6 +47,7 @@ impl ForLoop {
             current: 0,
             values: for_values,
             kind: ForLoopKind::List,
+            extra_values: Map::new(),
         }
     }
 
@@ -60,6 +63,7 @@ impl ForLoop {
             current: 0,
             values: for_values,
             kind: ForLoopKind::KeyValue,
+            extra_values: Map::new(),
         }
     }
 
@@ -209,6 +213,12 @@ impl<'a> Renderer<'a> {
                 }
             } else if for_loop.is_key(key) {
                 return Ok(to_value(&for_loop.get_key())?);
+            } else {
+                // Last case: the value could have been set inside a forloop with the {% set %}
+                match for_loop.extra_values.get(real_key) {
+                    Some(s) => { return Ok(s.clone()); },
+                    None => (),
+                };
             }
         }
 
@@ -399,6 +409,29 @@ impl<'a> Renderer<'a> {
                 Ok(self.eval_expression(n).map(|v| !v.is_truthy()).unwrap_or(true))
             },
             _ => unreachable!()
+        }
+    }
+
+    fn eval_set(&mut self, node: &Node) -> Result<()> {
+        match node {
+            &Set { ref name, ref value } => {
+                let val = match **value {
+                    MacroCall {..} => to_value(self.render_macro(value)?).unwrap(),
+                    GlobalFunctionCall { .. } => self.eval_global_fn(value)?,
+                    _ => self.eval_expression(value)?,
+                };
+
+                let context = match self.macro_context.last_mut() {
+                    Some(c) => c.as_object_mut().unwrap(),
+                    None => match self.for_loops.last_mut() {
+                        Some(f) => &mut f.extra_values,
+                        None => self.context.as_object_mut().unwrap()
+                    },
+                };
+                context.insert(name.clone(), val);
+                Ok(())
+            },
+            _ => unreachable!(),
         }
     }
 
@@ -670,6 +703,7 @@ impl<'a> Renderer<'a> {
                     unreachable!("Super called outside of a block or in base template")
                 }
             },
+            &Set { .. } => self.eval_set(node).and(Ok("".to_string())),
             &GlobalFunctionCall { .. } => Ok(self.eval_global_fn(node)?.render()),
             &Extends(_) | &Macro {..} => Ok("".to_string()),
             x => unreachable!("render_node -> unexpected node: {:?}", x)
@@ -1148,7 +1182,68 @@ mod tests {
         let result = tera.render("hello.html", &Context::new());
 
         assert_eq!(result.unwrap(), "01234".to_string());
+    }
 
+    #[test]
+    fn test_render_set_tag_literal() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("hello.html", "{% set my_var = \"hello\" %}{{my_var}}").unwrap();
+        let result = tera.render("hello.html", &Context::new());
+
+        assert_eq!(result.unwrap(), "hello".to_string());
+    }
+
+    #[test]
+    fn test_render_set_tag_expression() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("hello.html", "{% set my_var = 1 + 5 %}{{my_var}}").unwrap();
+        let result = tera.render("hello.html", &Context::new());
+
+        assert_eq!(result.unwrap(), "6".to_string());
+    }
+
+    #[test]
+    fn test_render_set_tag_forloop_scope() {
+        let mut tera = Tera::default();
+        tera.add_raw_template(
+            "hello.html",
+            "{% set looped = 0 %}{% for i in range(end=5) %}{% set looped = i %}{{looped}}{% endfor%}{{looped}}"
+        ).unwrap();
+        let result = tera.render("hello.html", &Context::new());
+
+        assert_eq!(result.unwrap(), "012340".to_string());
+    }
+
+    #[test]
+    fn test_render_set_tag_variable() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("hello.html", "{% set my_var = hello %}{{my_var}}").unwrap();
+        let mut context = Context::new();
+        context.add("hello", &5);
+        let result = tera.render("hello.html", &context);
+
+        assert_eq!(result.unwrap(), "5".to_string());
+    }
+
+    #[test]
+    fn test_render_set_tag_global_fn() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("hello.html", "{% set my_var = range(end=5) %}{{my_var}}").unwrap();
+        let result = tera.render("hello.html", &Context::new());
+
+        assert_eq!(result.unwrap(), "[0, 1, 2, 3, 4, ]".to_string());
+    }
+
+    #[test]
+    fn test_render_set_tag_macro() {
+        let mut tera = Tera::default();
+        tera.add_raw_templates(vec![
+            ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
+            ("hello.html", "{% import \"macros\" as macros %}{% set my_var = macros::hello() %}{{my_var}}"),
+        ]).unwrap();
+        let result = tera.render("hello.html", &Context::new());
+
+        assert_eq!(result.unwrap(), "Hello".to_string());
     }
 
     #[test]

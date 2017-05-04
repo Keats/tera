@@ -3,6 +3,7 @@
 ## 0.10.3 (unreleased)
 
 - Add global functions, see README
+- Add set tag, see README
 
 ## 0.10.2 (2017-05-03)
 
