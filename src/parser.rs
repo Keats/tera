@@ -195,6 +195,13 @@ pub enum Node {
         /// Optional list of `Filter` node
         filters: Option<VecDeque<Node>>
     },
+    /// Set a variable in the context
+    Set {
+        /// The name it will be set on
+        name: String,
+        /// The value to set it to
+        value: Box<Node>,
+    },
     /// The text between `{% raw %}` and `{% endraw %}`
     Raw(String),
     /// The `{% extends "blabla.html" %}` node, contains the template name
@@ -335,6 +342,7 @@ impl_rdp! {
         for_tag          = !@{ tag_start ~ ["for"] ~ for_call ~ tag_end }
         raw_tag          = !@{ tag_start ~ ["raw"] ~ tag_end }
         filter_tag       = !@{ tag_start ~ ["filter"] ~ fn_call ~ tag_end }
+        set_tag          = !@{ tag_start ~ ["set"] ~ simple_ident ~ ["="] ~ (macro_call | global_fn_call | logic_expression) ~ tag_end }
         endraw_tag       = !@{ tag_start ~ ["endraw"] ~ tag_end }
         endblock_tag     = !@{ tag_start ~ ["endblock"] ~ identifier ~ tag_end }
         endmacro_tag     = !@{ tag_start ~ ["endmacro"] ~ identifier ~ tag_end }
@@ -351,6 +359,7 @@ impl_rdp! {
             include_tag |
             variable_tag |
             comment_tag |
+            set_tag |
             if_tag ~ macro_content* ~ elif_block* ~ (else_tag ~ macro_content*)? ~ endif_tag |
             for_tag ~ macro_content* ~ endfor_tag |
             raw_tag ~ raw_text ~ endraw_tag |
@@ -365,6 +374,7 @@ impl_rdp! {
             super_tag |
             variable_tag |
             comment_tag |
+            set_tag |
             block_tag ~ block_content* ~ endblock_tag |
             if_tag ~ block_content* ~ elif_block* ~ (else_tag ~ block_content*)? ~ endif_tag |
             for_tag ~ block_content* ~ endfor_tag |
@@ -378,6 +388,7 @@ impl_rdp! {
             import_macro_tag |
             variable_tag |
             comment_tag |
+            set_tag |
             macro_tag ~ macro_content* ~ endmacro_tag |
             block_tag ~ block_content* ~ endblock_tag |
             if_tag ~ content* ~ elif_block* ~ (else_tag ~ content*)? ~ endif_tag |
@@ -468,6 +479,19 @@ impl_rdp! {
             },
             (_: variable_tag, exp: _expression()) => {
                 Ok(Some(Node::VariableBlock(Box::new(exp?))))
+            },
+            (_: set_tag, &set_name: simple_ident, _: macro_call, &namespace: simple_ident, &name: simple_ident, params: _fn_args()) => {
+                Ok(Some(Node::Set {
+                    name: set_name.to_string(),
+                    value: Box::new(Node::MacroCall {
+                        namespace: namespace.to_string(),
+                        name: name.to_string(),
+                        params: params?,
+                    })
+                }))
+            },
+            (_: set_tag, &name: simple_ident, exp: _expression()) => {
+                Ok(Some(Node::Set {name: name.to_string(), value: Box::new(exp?)}))
             },
             (_: raw_tag, &body: raw_text, _: endraw_tag) => {
                 Ok(Some(Node::Raw(body.to_string())))
@@ -916,6 +940,23 @@ mod tests {
         let mut parser = Rdp::new(StringInput::new("{% include \"component.html\" %}"));
         assert!(parser.include_tag());
         assert!(parser.end());
+    }
+
+    #[test]
+    fn test_set_tag() {
+        let inputs = vec![
+            "{% set my_var = hello %}",
+            "{% set my_var = hello | first %}",
+            "{% set my_var = get_page(path=\"content.md\") %}",
+            "{% set my_var = \"hey\" %}",
+            "{% set my_var = true %}",
+        ];
+        for input in inputs {
+            println!("{:?}", input);
+            let mut parser = Rdp::new(StringInput::new(input));
+            assert!(parser.set_tag());
+            assert!(parser.end());
+        }
     }
 
     #[test]
@@ -1501,6 +1542,65 @@ mod tests {
         ast.push_front(Node::If {
             condition_nodes: condition_nodes,
             else_node: None,
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_set_variable() {
+        let parsed_ast = parse("{% set my_var = hey %}");
+        let mut ast = VecDeque::new();
+        ast.push_front(Node::Set {
+            name: "my_var".to_string(),
+            value: Box::new(Node::Identifier {name: "hey".to_string(), filters: None}),
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_set_literal() {
+        let parsed_ast = parse("{% set my_var = \"hey\" %}");
+        let mut ast = VecDeque::new();
+        ast.push_front(Node::Set {
+            name: "my_var".to_string(),
+            value: Box::new(Node::Text("hey".to_string())),
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_set_global_fn() {
+        let parsed_ast = parse("{% set my_var = get_page(path=\"hey.md\") %}");
+        let mut ast = VecDeque::new();
+        let mut params = HashMap::new();
+        params.insert("path".to_string(), Node::Text("hey.md".to_string()));
+        ast.push_front(Node::Set {
+            name: "my_var".to_string(),
+            value: Box::new(Node::GlobalFunctionCall {
+                name: "get_page".to_string(),
+                params: params,
+            }),
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_set_macro_call() {
+        let parsed_ast = parse("{% set my_var = macros::hey(path=\"hey.md\") %}");
+        let mut ast = VecDeque::new();
+        let mut params = HashMap::new();
+        params.insert("path".to_string(), Node::Text("hey.md".to_string()));
+        ast.push_front(Node::Set {
+            name: "my_var".to_string(),
+            value: Box::new(Node::MacroCall {
+                namespace: "macros".to_string(),
+                name: "hey".to_string(),
+                params: params,
+            }),
         });
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
