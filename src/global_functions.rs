@@ -6,7 +6,7 @@ use errors::Result;
 
 
 /// The global function type definition
-pub type GlobalFn = Box<Fn(HashMap<String, Value>) -> Result<Value> + Sync>;
+pub type GlobalFn = Box<Fn(HashMap<String, Value>) -> Result<Value> + Sync + Send>;
 
 
 pub fn make_range_fn() -> GlobalFn {

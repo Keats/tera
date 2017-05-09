@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.4 (2017-05-09)
+
+- Add `Send` to `GlobalFn` return type
+
 ## 0.10.3 (2017-05-09)
 
 - Add global functions, see README
