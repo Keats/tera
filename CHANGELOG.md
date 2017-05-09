@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.10.3 (unreleased)
+## 0.10.3 (2017-05-09)
 
 - Add global functions, see README
 - Add set tag, see README
