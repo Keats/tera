@@ -39,9 +39,9 @@ pub fn trim(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 }
 
 /// Truncates a string to the indicated length
-pub fn truncate(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
+pub fn truncate(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("truncate", "value", String, value);
-    let length = match args.remove("length") {
+    let length = match args.get("length") {
         Some(l) => try_get_value!("truncate", "length", usize, l),
         None => 255
     };
@@ -63,15 +63,15 @@ pub fn wordcount(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 }
 
 /// Replaces given `from` substring with `to` string.
-pub fn replace(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
+pub fn replace(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("replace", "value", String, value);
 
-    let from = match args.remove("from") {
+    let from = match args.get("from") {
         Some(val) => try_get_value!("replace", "from", String, val),
         None => bail!("Filter `replace` expected an arg called `from`")
     };
 
-    let to = match args.remove("to") {
+    let to = match args.get("to") {
         Some(val) => try_get_value!("replace", "to", String, val),
         None => bail!("Filter `replace` expected an arg called `to`")
     };
@@ -119,9 +119,9 @@ impl EncodeSet for UrlEncodeSet {
 }
 
 /// Percent-encodes reserved URI characters
-pub fn urlencode(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
+pub fn urlencode(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("urlencode", "value", String, value);
-    let safe = match args.remove("safe") {
+    let safe = match args.get("safe") {
         Some(l) => try_get_value!("urlencode", "safe", String, l),
         None => "/".to_string(),
     };

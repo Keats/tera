@@ -562,6 +562,11 @@ Mark a variable as safe: HTML will not be escaped anymore.
 Currently the position of the safe filter does not matter, e.g.
 `{{ content | safe | replace(from="Robert", to="Bob") }}` and `{{ content | replace(from="Robert", to="Bob") | safe }}` will output the same thing.
 
+#### get
+Access a value from an object when the key is not a Tera identifier.
+Example: `{{ sections | get(key="posts/content") }}`
+
+
 ### Filter sections
 Whole sections can also be processed by filters if they are encapsulated in `{% filter name %}` and `{% endfilter %}`
 tags where `name` is the name of the filter.

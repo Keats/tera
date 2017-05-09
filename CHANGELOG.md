@@ -4,6 +4,7 @@
 
 - Add global functions, see README
 - Add set tag, see README
+- Add get filter
 
 ## 0.10.2 (2017-05-03)
 
