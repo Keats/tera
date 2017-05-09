@@ -8,9 +8,9 @@ use errors::Result;
 
 
 /// Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
-pub fn pluralize(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
+pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("pluralize", "value", f64, value);
-    let suffix = match args.remove("suffix") {
+    let suffix = match args.get("suffix") {
         Some(val) => try_get_value!("pluralize", "suffix", String, val),
         None => "s".to_string(),
     };
@@ -26,13 +26,13 @@ pub fn pluralize(value: Value, mut args: HashMap<String, Value>) -> Result<Value
 /// `method` defaults to `common` which will round to the nearest number.
 /// `ceil` and `floor` are also available as method.
 /// `precision` defaults to `0`, meaning it will round to an integer
-pub fn round(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
+pub fn round(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("round", "value", f64, value);
-    let method = match args.remove("method") {
+    let method = match args.get("method") {
         Some(val) => try_get_value!("round", "method", String, val),
         None => "common".to_string(),
     };
-    let precision = match args.remove("precision") {
+    let precision = match args.get("precision") {
         Some(val) => try_get_value!("round", "precision", i32, val),
         None => 0,
     };

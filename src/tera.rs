@@ -9,7 +9,7 @@ use serde::Serialize;
 use serde_json::value::to_value;
 
 use template::Template;
-use filters::{FilterFn, string, array, common, number};
+use filters::{FilterFn, string, array, common, number, object};
 use errors::{Result, ResultExt};
 use render::Renderer;
 use testers::{self, TesterFn};
@@ -450,6 +450,8 @@ impl Tera {
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
         self.register_filter("date", common::date);
+
+        self.register_filter("get", object::get);
     }
 
     fn register_tera_testers(&mut self) {
