@@ -1,0 +1,33 @@
+
+.index-container {
+  clear: both;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.hero {
+  padding: 50px;
+
+  &__content {
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+
+    h1 {
+      font-size: 4rem;
+    }
+  }
+}
+
+
+.pitch {
+  padding-bottom: 50px;
+
+  &__content {
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 1.25rem;
+  }
+}

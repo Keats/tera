@@ -139,7 +139,7 @@ pub struct Renderer<'a> {
 
 impl<'a> Renderer<'a> {
     pub fn new(tpl: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
-        let should_escape = tera.autoescape_extensions.iter().any(|ext| {
+        let should_escape = tera.autoescape_suffixes.iter().any(|ext| {
             // We prefer a `path` if set, otherwise use the `name`
             if let Some(ref p) = tpl.path {
                 return p.ends_with(ext);

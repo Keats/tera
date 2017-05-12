@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en-gb">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="{% block description %}{{ config.description }}{% endblock description %}">
+        <meta name="author" content="{{ config.extra.author }}">
+        <title>{% block title %}{{ config.title }}{% endblock title %}</title>
+        <link rel="stylesheet" href="{{ config.base_url }}app.css"/>
+    </head>
+    <body>
+        <header>
+            <a href="/" id="logo">Tera</a>
+            <ul id="nav">
+                <li>
+                    <a href="{{ get_url(link="./docs/_index.md") }}" class="nav-link">Documentation</a>
+                </li>
+                <li>
+                    <a href="https://docs.rs/tera" class="nav-link">API Docs</a>
+                </li>
+                <li>
+                    <a href="https://github.com/Keats/tera" class="nav-link">View on Github</a>
+                </li>
+            </ul>
+        </header>
+        {% block content %}
+            <div class="index-container">
+                <div class="hero">
+                    <div class="hero__content">
+                        <h1>Tera</h1>
+                    </div>
+                </div>
+                {{ section.content | safe }}
+                <div class="pitch">
+                    <div class="pitch__content">
+                        <p>Tera is an open-source template engine written in Rust.</p>
+                        <p>
+                            It is based on Jinja2 and Django templates and will be familiar if you have
+                            used Twig or Liquid.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {% endblock content %}
+    </body>
+</html>

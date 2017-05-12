@@ -32,7 +32,7 @@ pub struct Tera {
     // Which extensions does Tera automatically autoescape on.
     // Defaults to [".html", ".htm", ".xml"]
     #[doc(hidden)]
-    pub autoescape_extensions: Vec<&'static str>,
+    pub autoescape_suffixes: Vec<&'static str>,
 }
 
 impl Tera {
@@ -59,7 +59,7 @@ impl Tera {
             filters: HashMap::new(),
             global_functions: HashMap::new(),
             testers: HashMap::new(),
-            autoescape_extensions: vec![".html", ".htm", ".xml"]
+            autoescape_suffixes: vec![".html", ".htm", ".xml"]
         };
 
         tera.load_from_glob()?;
@@ -481,8 +481,8 @@ impl Tera {
     /// // disable autoescaping completely
     /// tera.autoescape_on(vec![]);
     /// ```
-    pub fn autoescape_on(&mut self, extensions: Vec<&'static str>) {
-        self.autoescape_extensions = extensions;
+    pub fn autoescape_on(&mut self, suffixes: Vec<&'static str>) {
+        self.autoescape_suffixes = suffixes;
     }
 
 
@@ -544,7 +544,7 @@ impl Default for Tera {
             filters: HashMap::new(),
             testers: HashMap::new(),
             global_functions: HashMap::new(),
-            autoescape_extensions: vec![".html", ".htm", ".xml"]
+            autoescape_suffixes: vec![".html", ".htm", ".xml"]
         };
 
         tera.register_tera_filters();
