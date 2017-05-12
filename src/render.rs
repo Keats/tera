@@ -17,7 +17,7 @@ static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
 
 #[derive(PartialEq, Debug)]
 enum ForLoopKind {
-    List,
+    Value,
     KeyValue,
 }
 
@@ -26,17 +26,22 @@ enum ForLoopKind {
 // looking it up in the context
 #[derive(Debug)]
 struct ForLoop {
+    /// The key name when iterate as a Key-Value, ie in `{% for i, person in people %}` it would be `i`
     key_name: Option<String>,
+    /// The value name, ie in `{% for person in people %}` it would be `person`
     value_name: String,
+    /// What's the current loop index (0-indexed)
     current: usize,
+    /// A list of (key, value) for the forloop. The key is `None` for `ForLoopKind::Value`
     values: Vec<(Option<String>, Value)>,
+    /// Is i
     kind: ForLoopKind,
-    /// can be set using the {% set %} tag
+    /// Values set using the {% set %} tag in forloops
     pub extra_values: Map<String, Value>,
 }
 
 impl ForLoop {
-    pub fn new_list(value_name: &str, values: Value) -> ForLoop {
+    pub fn new(value_name: &str, values: Value) -> ForLoop {
         let mut for_values = vec![];
         for val in values.as_array().unwrap() {
             for_values.push((None, val.clone()));
@@ -46,7 +51,7 @@ impl ForLoop {
             value_name: value_name.to_string(),
             current: 0,
             values: for_values,
-            kind: ForLoopKind::List,
+            kind: ForLoopKind::Value,
             extra_values: Map::new(),
         }
     }
@@ -73,16 +78,16 @@ impl ForLoop {
     }
 
     #[inline]
-    pub fn get_val(&self) -> Option<&Value> {
+    pub fn get_current_value(&self) -> Option<&Value> {
         if let Some(v) = self.values.get(self.current) {
             return Some(&v.1);
         }
         None
     }
 
+    /// Only called in `ForLoopKind::KeyValue`
     #[inline]
-    pub fn get_key(&self) -> String {
-        // theorically unsafe but it's only called on key/val for loops
+    pub fn get_current_key(&self) -> String {
         if let Some(v) = self.values.get(self.current) {
             if let Some(ref k) = v.0 {
                 return k.clone();
@@ -92,10 +97,10 @@ impl ForLoop {
         unreachable!();
     }
 
-    /// checks whether the key string given is the variable used as key for
+    /// Checks whether the key string given is the variable used as key for
     /// the current forloop
     pub fn is_key(&self, name: &str) -> bool {
-        if self.kind == ForLoopKind::List {
+        if self.kind == ForLoopKind::Value {
             return false;
         }
 
@@ -117,16 +122,18 @@ pub struct Renderer<'a> {
     template: &'a Template,
     context: Value,
     tera: &'a Tera,
+    /// All current for loops
     for_loops: Vec<ForLoop>,
-    // looks like Vec<filename: {macro_name: body node}>
+    /// Looks like Vec<filename: {macro_name: body node}>
     macros: Vec<HashMap<String, &'a HashMap<String, Node>>>,
-    // set when rendering macros, empty if not in a macro
+    /// Set when rendering macros, empty if not in a macro
     macro_context: Vec<Value>,
-    // Keeps track of which namespace we're on in order to resolve the `self::` syntax
+    /// Keeps track of which namespace we're on in order to resolve the `self::` syntax
     macro_namespaces: Vec<String>,
+    /// Whether this template should be escaped or not
     should_escape: bool,
-    // Used when super() is used in a block, to know where we are in our stack of
-    // definitions and for which block (block name, hierarchy level)
+    /// Used when super() is used in a block, to know where we are in our stack of
+    /// definitions and for which block (block name, hierarchy level)
     blocks: Vec<(String, usize)>,
 }
 
@@ -153,8 +160,7 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    // Lookup a variable name from the context and takes into
-    // account for loops variables
+    /// Lookup a variable name from the context, taking into account macros and loops
     fn lookup_variable(&self, key: &str) -> Result<Value> {
         // Differentiate between macros and general context
         let context = match self.macro_context.last() {
@@ -184,53 +190,51 @@ impl<'a> Renderer<'a> {
             return find_variable(context, key, &self.template.name);
         }
 
+        // Separates the initial key (anything before a dot) from everything after
         let (real_key, tail) = if let Some(tail_pos) = key.find('.') {
             (&key[..tail_pos], &key[tail_pos+1..])
         } else {
             (key, "")
         };
-        for for_loop in self.for_loops.iter().rev() {
-            if real_key == for_loop.value_name {
-                let value = match for_loop.get_val() {
-                    Some(f) => f,
-                    None => { return Ok(to_value("").unwrap()); }
-                };
 
-                // might be a struct or some nested structure
-                if tail.len() > 0 {
-                    return find_variable(value, tail, &self.template.name)
-                        .chain_err(|| format!("Variable lookup failed in forloop for `{}`", key));
-                } else {
-                    return Ok(value.clone());
-                }
-            } else if real_key == "loop" {
+        // The variable might be from a for loop so we start from the most inner one
+        for for_loop in self.for_loops.iter().rev() {
+            // 1st case: one of Tera loop built-in variable
+            if real_key == "loop" {
                 match tail {
                     "index" => { return Ok(to_value(&(for_loop.current + 1))?); },
                     "index0" => { return Ok(to_value(&for_loop.current)?); },
                     "first" => { return Ok(to_value(&(for_loop.current == 0))?); },
                     "last" => { return Ok(to_value(&(for_loop.current == for_loop.len() - 1))?); },
-                    _ => { bail!("Unknown loop subscript: {:?}", key); }
+                    _ => { bail!("Unknown loop built-in variable: {:?}", key); }
                 }
-            } else if for_loop.is_key(key) {
-                return Ok(to_value(&for_loop.get_key())?);
-            } else {
-                // Last case: the value could have been set inside a forloop with the {% set %}
-                match for_loop.extra_values.get(real_key) {
-                    Some(s) => {
-                        // might be a struct or some nested structure
-                        if tail.len() > 0 {
-                            return find_variable(s, tail, &self.template.name)
-                                .chain_err(|| format!("Variable lookup failed in forloop for `{}`", key));
-                        } else {
-                            return Ok(s.clone());
-                        }
-                    },
-                    None => (),
-                };
             }
+
+            // 2rd case: the variable is the key of a KeyValue for loop
+            if for_loop.is_key(key) {
+                return Ok(to_value(&for_loop.get_current_key())?);
+            }
+
+            // Last case: the variable starts with the value name of the for loop or has been {% set %}
+            let value = if real_key == for_loop.value_name {
+                for_loop.get_current_value()
+            } else {
+                for_loop.extra_values.get(real_key)
+            };
+            match value {
+                Some(v) => {
+                    if tail.is_empty() {
+                        return Ok(v.clone());
+                    }
+                    // A struct or some nested structure
+                    return find_variable(v, tail, &self.template.name)
+                        .chain_err(|| format!("Variable lookup failed in forloop for `{}`", key));
+                },
+                None => ()
+            };
         }
 
-        // can get there when looking a variable in the global context while in a forloop
+        // Gets there when looking a variable in the global context while in a forloop
         find_variable(context, key, &self.template.name)
     }
 
@@ -498,7 +502,7 @@ impl<'a> Renderer<'a> {
             bail!("Tried to iterate on variable `{}`, but it isn't an array", container_name);
         }
         let for_loop = if container_val.is_array() {
-            ForLoop::new_list(value_name, container_val)
+            ForLoop::new(value_name, container_val)
         } else {
             ForLoop::new_key_value(key_name.clone().expect("Failed to key name in loop"), value_name, container_val)
         };
