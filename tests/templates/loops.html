@@ -11,8 +11,8 @@
       {% if number_reviews > 10 or show_more %}
         <p>All reviews</p>
         {% for review in reviews %}
-          <h3>{{review.title}}</h3>
-          {% for paragraph in review.paragraphs %}
+          <h3>{{review.title}}</h3>{% set rev = review %}
+          {% for paragraph in rev.paragraphs %}
             <p>{{ paragraph }}</p>
           {% endfor %}
         {% endfor %}

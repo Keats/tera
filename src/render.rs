@@ -184,12 +184,12 @@ impl<'a> Renderer<'a> {
             return find_variable(context, key, &self.template.name);
         }
 
+        let (real_key, tail) = if let Some(tail_pos) = key.find('.') {
+            (&key[..tail_pos], &key[tail_pos+1..])
+        } else {
+            (key, "")
+        };
         for for_loop in self.for_loops.iter().rev() {
-            let (real_key, tail) = if let Some(tail_pos) = key.find('.') {
-                (&key[..tail_pos], &key[tail_pos+1..])
-            } else {
-                (key, "")
-            };
             if real_key == for_loop.value_name {
                 let value = match for_loop.get_val() {
                     Some(f) => f,
@@ -216,7 +216,15 @@ impl<'a> Renderer<'a> {
             } else {
                 // Last case: the value could have been set inside a forloop with the {% set %}
                 match for_loop.extra_values.get(real_key) {
-                    Some(s) => { return Ok(s.clone()); },
+                    Some(s) => {
+                        // might be a struct or some nested structure
+                        if tail.len() > 0 {
+                            return find_variable(s, tail, &self.template.name)
+                                .chain_err(|| format!("Variable lookup failed in forloop for `{}`", key));
+                        } else {
+                            return Ok(s.clone());
+                        }
+                    },
                     None => (),
                 };
             }
