@@ -1,9 +1,8 @@
 # Changelog
 
-## 0.10.5 (unreleased)
+## 0.10.5 (2017-05-13)
 
 - Fix bug with `{% set %}` in forloops
-
 
 ## 0.10.4 (2017-05-09)
 
