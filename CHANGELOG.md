@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.5 (unreleased)
+
+- Fix bug with `{% set %}` in forloops
+
+
 ## 0.10.4 (2017-05-09)
 
 - Add `Send` to `GlobalFn` return type

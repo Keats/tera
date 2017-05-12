@@ -1,0 +1,7 @@
+{% for review in reviews %}
+  <h3>{{review.title}}</h3>
+  {% set rev = review %}
+  {% for paragraph in rev.paragraphs %}
+    <p>{{ paragraph }}</p>
+  {% endfor %}
+{% endfor %}

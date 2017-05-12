@@ -101,6 +101,11 @@ fn test_ok_loops_template() {
 }
 
 #[test]
+fn test_ok_set_in_loops_dot_access_template() {
+    assert_template_ok("tests/templates/loops_set_dot_access.html", vec![]);
+}
+
+#[test]
 fn test_ok_empty_loop_template() {
     assert_template_ok("tests/templates/empty_loop.html", vec![]);
 }
