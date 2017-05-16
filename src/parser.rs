@@ -270,7 +270,7 @@ impl_rdp! {
         fn_arg         = { simple_ident ~ ["="] ~ expression}
         fn_args        = !@{ fn_arg ~ ([","] ~ fn_arg )* }
         fn_call        = { simple_ident ~ ["("] ~ fn_args ~ [")"] | simple_ident }
-        global_fn_call = { simple_ident ~ ["("] ~ fn_args ~ [")"] }
+        global_fn_call = { simple_ident ~ ["("] ~ fn_args* ~ [")"] }
         filters        = { (op_filter ~ fn_call)+ }
 
         identifier = @{
@@ -1286,6 +1286,18 @@ mod tests {
                 params: params,
             }),
             body: Box::new(Node::List(VecDeque::new()))
+        });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn test_ast_for_global_function_no_args() {
+        let parsed_ast = parse("{{ now() }}");
+        let mut ast = VecDeque::new();
+        ast.push_front(Node::GlobalFunctionCall {
+            name: "now".to_string(),
+            params: HashMap::new(),
         });
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
