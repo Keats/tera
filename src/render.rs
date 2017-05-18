@@ -590,6 +590,51 @@ impl<'a> Renderer<'a> {
         }
     }
 
+    /// Renders a given block by going through all the parents
+    /// `level` representing how deep we go: 0 is the current template being rendered
+    /// and 1 would be its direct parent and so on
+    /// If we can't find any other block definitions, the top parent block will be rendered
+    fn render_block(&mut self, name: &str, body: &Node, level: usize) -> Result<String> {
+        // either we are at the current template or there are no parents left
+        let blocks_definitions = if level == 0 || level + 1 > self.template.parents.len() {
+            &self.template.blocks_definitions
+        } else {
+            // there's at least one more parent before the top one
+            // level - 1 as 0 is the current template and doesn't count
+            &self.tera.get_template(
+                &self.template.parents[level - 1]
+            ).unwrap().blocks_definitions
+        };
+
+        // We pick the first block, ie the one in the template we are rendering
+        // We will go up in "level" if we encounter a super()
+        match blocks_definitions.get(name) {
+            Some(b) => {
+                // the indexing here is safe since we are rendering a block, we know we have
+                // at least 1
+                match &b[0] {
+                    &(ref tpl_name, Block { ref body, ..}) => {
+                        self.blocks.push((name.to_string(), 0));
+                        let has_macro = self.import_macros(tpl_name)?;
+                        let res = self.render_node(body);
+                        if has_macro {
+                            self.macros.pop();
+                        }
+                        res
+                    },
+                    x => unreachable!("render_node Block {:?}", x)
+                }
+            },
+            None => {
+                if self.template.parents.len() >= level + 1 {
+                    self.render_block(name, body, level + 1)
+                } else {
+                    self.render_node(body)
+                }
+            }
+        }
+    }
+
     fn import_macros(&mut self, tpl_name: &str) -> Result<bool> {
         let tpl = self.tera.get_template(tpl_name)?;
         if tpl.imported_macro_files.is_empty() {
@@ -658,31 +703,7 @@ impl<'a> Renderer<'a> {
             &For {ref key, ref value, ref container, ref body} => {
                 self.render_for(key, value, container, body)
             },
-            &Block {ref name, ref body} => {
-                // We pick the first block, ie the one in the template we are rendering
-                // We will go up in "level" if we encounter a super()
-                match self.template.blocks_definitions.get(name) {
-                    Some(b) => {
-                        // the indexing here is safe since we are rendering a block, we know we have
-                        // at least 1
-                        match &b[0] {
-                            &(ref tpl_name, Block { ref body, ..}) => {
-                                self.blocks.push((name.clone(), 0));
-                                let has_macro = self.import_macros(tpl_name)?;
-                                let res = self.render_node(body);
-                                if has_macro {
-                                    self.macros.pop();
-                                }
-                                res
-                            },
-                            x => unreachable!("render_node Block {:?}", x)
-                        }
-                    },
-                    None => {
-                        self.render_node(body)
-                    }
-                }
-            },
+            &Block {ref name, ref body} => self.render_block(name, body, 0),
             &Super => {
                 if let Some((name, level)) = self.blocks.pop() {
                     let new_level = level + 1;
@@ -1058,6 +1079,20 @@ mod tests {
         let result = tera.render("child", &Context::new());
 
         assert_eq!(result.unwrap(), "dad says hi and grandma says hello sincerely with love".to_string());
+    }
+
+    #[test]
+    fn test_render_nested_block_multiple_inheritance_no_super() {
+        let mut tera = Tera::default();
+        tera.add_raw_templates(vec![
+            ("index", "{% block content%}INDEX{% endblock content %}"),
+            ("docs", "{% extends \"index\" %}{% block content%}DOCS{% block more %}MORE{% endblock more %}{% endblock content %}"),
+            ("page", "{% extends \"docs\" %}{% block more %}PAGE{% endblock more %}"),
+        ]).unwrap();
+
+        let result = tera.render("page", &Context::new());
+
+        assert_eq!(result.unwrap(), "DOCSPAGE".to_string());
     }
 
     #[test]
