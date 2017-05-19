@@ -1096,6 +1096,21 @@ mod tests {
     }
 
     #[test]
+    fn test_render_multiple_inheritance_no_super() {
+        let mut tera = Tera::default();
+        tera.add_raw_templates(vec![
+            ("top", "{% block pre %}{% endblock pre %}{% block main %}{% endblock main %}"),
+            ("mid", "{% extends \"top\" %}{% block pre %}PRE{% endblock pre %}"),
+            ("bottom", "{% extends \"mid\" %}{% block main %}MAIN{% endblock main %}"),
+        ]).unwrap();
+
+        let result = tera.render("bottom", &Context::new());
+
+        assert_eq!(result.unwrap(), "PREMAIN".to_string());
+    }
+
+
+    #[test]
     fn test_render_macros() {
         let mut tera = Tera::default();
         tera.add_raw_templates(vec![
