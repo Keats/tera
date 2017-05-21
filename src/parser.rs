@@ -324,7 +324,7 @@ impl_rdp! {
         // For now only allow global fn in non key-value for loop
         for_call       = _{
             (identifier ~ ["in"] ~ (global_fn_call | idents))
-            | (identifier ~ [","] ~ identifier ~ ["in"] ~ identifier)
+            | (identifier ~ [","] ~ identifier ~ ["in"] ~ idents)
         }
 
         // Actual tags
@@ -537,6 +537,15 @@ impl_rdp! {
                     body: Box::new(Node::List(body?))
                 }))
             },
+            // Array forloop
+            (_: for_tag, &value: identifier, &container: identifier, body: _template(), _: endfor_tag) => {
+                Ok(Some(Node::For {
+                    key: None,
+                    value: value.to_string(),
+                    container: Box::new(Node::Identifier {name: container.to_string(), filters: None}),
+                    body: Box::new(Node::List(body?)),
+                }))
+            },
             // Key value forloop
             (_: for_tag, &key: identifier, &value: identifier, &container: identifier, body: _template(), _: endfor_tag) => {
                 Ok(Some(Node::For {
@@ -546,12 +555,12 @@ impl_rdp! {
                     body: Box::new(Node::List(body?)),
                 }))
             },
-            // Array forloop
-            (_: for_tag, &value: identifier, &container: identifier, body: _template(), _: endfor_tag) => {
+            // Key value forloop with filter
+            (_: for_tag, &key: identifier, &value: identifier, container: _expression(), body: _template(), _: endfor_tag) => {
                 Ok(Some(Node::For {
-                    key: None,
+                    key: Some(key.to_string()),
                     value: value.to_string(),
-                    container: Box::new(Node::Identifier {name: container.to_string(), filters: None}),
+                    container: Box::new(container?),
                     body: Box::new(Node::List(body?)),
                 }))
             },
@@ -1292,7 +1301,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ast_for_global_function_no_args() {
+    fn test_ast_global_function_no_args() {
         let parsed_ast = parse("{{ now() }}");
         let mut ast = VecDeque::new();
         ast.push_front(Node::GlobalFunctionCall {
