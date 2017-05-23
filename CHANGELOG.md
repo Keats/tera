@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.10.6 (unreleased)
+## 0.10.6 (2017-05-23)
 
 - Fix not being able to call global functions without arguments
 - Fix multiple inheritance not rendering blocks as expected for nested blocks
