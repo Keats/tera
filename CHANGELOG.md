@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.7 (unreleased)
+
+- Fix not being able to use variables starting with `or`, `and` and `not`
+
 ## 0.10.6 (2017-05-23)
 
 - Fix not being able to call global functions without arguments

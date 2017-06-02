@@ -229,9 +229,9 @@ impl_rdp! {
         whitespace = _{ ([" "] | ["\t"] | ["\r"] | ["\n"])+ }
 
         // basic blocks of the language
-        op_or        = { ["or"] }
-        op_and       = { ["and"] }
-        op_not       = { ["not"] }
+        op_or        = @{ ["or"] ~ whitespace }
+        op_and       = @{ ["and"] ~ whitespace }
+        op_not       = @{ ["not"] ~ whitespace }
         op_lte       = { ["<="] }
         op_gte       = { [">="] }
         op_lt        = { ["<"] }
@@ -861,7 +861,7 @@ pub fn parse(input: &str) -> Result<Node> {
         let (line_no, col_no) = parser.input().line_col(pos);
         bail!("Invalid Tera syntax at line {}, column {}", line_no, col_no);
     }
-    // println!("{:#?}", parser.queue_with_captures());
+    println!("{:#?}", parser.queue_with_captures());
 
     parser.main()
 }
@@ -1564,6 +1564,33 @@ mod tests {
             condition_nodes: condition_nodes,
             else_node: None,
         });
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn ast_variable_starting_with_not() {
+        let parsed_ast = parse("{{ note }}");
+        let mut ast = VecDeque::new();
+        ast.push_front(Node::VariableBlock(Box::new(Node::Identifier {name: "note".to_string(), filters: None})));
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn ast_variable_starting_with_or() {
+        let parsed_ast = parse("{{ oregano }}");
+        let mut ast = VecDeque::new();
+        ast.push_front(Node::VariableBlock(Box::new(Node::Identifier {name: "oregano".to_string(), filters: None})));
+        let root = Node::List(ast);
+        assert_eq!(parsed_ast.unwrap(), root);
+    }
+
+    #[test]
+    fn ast_variable_starting_with_and() {
+        let parsed_ast = parse("{{ andy }}");
+        let mut ast = VecDeque::new();
+        ast.push_front(Node::VariableBlock(Box::new(Node::Identifier {name: "andy".to_string(), filters: None})));
         let root = Node::List(ast);
         assert_eq!(parsed_ast.unwrap(), root);
     }

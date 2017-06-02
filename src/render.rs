@@ -455,7 +455,7 @@ impl<'a> Renderer<'a> {
             &Identifier { .. } => Ok(self.eval_ident(node)?.render()),
             &Math { .. } => Ok(self.eval_math(node)?.to_string()),
             &Text(ref s) => Ok(s.to_string()),
-            _ => unreachable!()
+            _ => unreachable!("found node {:?}", node)
         }
     }
 
@@ -1386,5 +1386,17 @@ mod tests {
             result.unwrap_err().iter().nth(0).unwrap().description(),
             "Failed to render \'child\': error while rendering a macro from the `macro` namespace (error happened in \'parent\')."
         );
+    }
+
+    // https://github.com/Keats/tera/issues/184
+    #[test]
+    fn can_use_note_as_for_variable() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("hello.html", "{% for note in notes %}{{ note }}{% endfor %}").unwrap();
+        let mut context = Context::new();
+        context.add("notes", &vec![1,2,4]);
+        let result = tera.render("hello.html", &context);
+
+        assert_eq!(result.unwrap(), "124".to_string());
     }
 }
