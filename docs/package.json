@@ -1,0 +1,20 @@
+{
+  "name": "Tera-docs",
+  "version": "1.0.0",
+  "description": "Tera documentation",
+  "main": "index.js",
+  "scripts": {
+    "watch": "gulp watch",
+    "sass": "gulp sass",
+    "dist": "rm -rf public && gulp sass && gutenberg build"
+  },
+  "author": "",
+  "license": "",
+  "devDependencies": {
+    "autoprefixer": "^6.3.6",
+    "gulp": "gulpjs/gulp#4.0",
+    "gulp-postcss": "^6.1.0",
+    "gulp-sass": "^2.2.0",
+    "lost": "^8.0.0"
+  }
+}
