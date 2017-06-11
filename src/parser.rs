@@ -300,7 +300,7 @@ impl_rdp! {
         expression = _{
             // boolean first so they are not caught as identifiers
             { boolean | string | idents | float | int }
-            comparison  = { op_gt | op_lt | op_eq | op_ineq | op_lte | op_gte }
+            comparison  = { op_lte | op_gte | op_gt | op_lt | op_eq | op_ineq }
             add_sub     = { op_plus | op_minus }
             mul_div     = { op_times | op_slash }
         }
@@ -861,7 +861,7 @@ pub fn parse(input: &str) -> Result<Node> {
         let (line_no, col_no) = parser.input().line_col(pos);
         bail!("Invalid Tera syntax at line {}, column {}", line_no, col_no);
     }
-    println!("{:#?}", parser.queue_with_captures());
+    // println!("{:#?}", parser.queue_with_captures());
 
     parser.main()
 }
@@ -961,7 +961,6 @@ mod tests {
             "{% set my_var = true %}",
         ];
         for input in inputs {
-            println!("{:?}", input);
             let mut parser = Rdp::new(StringInput::new(input));
             assert!(parser.set_tag());
             assert!(parser.end());

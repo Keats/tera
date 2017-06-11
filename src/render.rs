@@ -1399,4 +1399,24 @@ mod tests {
 
         assert_eq!(result.unwrap(), "124".to_string());
     }
+
+    // https://github.com/Keats/tera/issues/187
+    #[test]
+    fn can_use_operators_in_if_condition() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("lte", "{% if 1 <= 2 %}a{% endif %}").unwrap();
+        tera.add_raw_template("lt", "{% if 1 < 2 %}a{% endif %}").unwrap();
+        tera.add_raw_template("gte", "{% if 2 >= 1 %}a{% endif %}").unwrap();
+        tera.add_raw_template("gt", "{% if 2 > 1 %}a{% endif %}").unwrap();
+        tera.add_raw_template("eq", "{% if 1 == 1 %}a{% endif %}").unwrap();
+        tera.add_raw_template("neq", "{% if 2 != 1 %}a{% endif %}").unwrap();
+
+        assert_eq!(tera.render("lte", &Context::new()).unwrap(), "a".to_string());
+        assert_eq!(tera.render("lt", &Context::new()).unwrap(), "a".to_string());
+        assert_eq!(tera.render("gte", &Context::new()).unwrap(), "a".to_string());
+        assert_eq!(tera.render("gt", &Context::new()).unwrap(), "a".to_string());
+        assert_eq!(tera.render("eq", &Context::new()).unwrap(), "a".to_string());
+        assert_eq!(tera.render("neq", &Context::new()).unwrap(), "a".to_string());
+
+    }
 }
