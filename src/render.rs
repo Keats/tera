@@ -470,6 +470,7 @@ impl<'a> Renderer<'a> {
                         skip_else = true;
                         // Remove if/elif whitespace
                         output.push_str(self.render_node(body)?.trim_left());
+                        break;
                     }
                 },
                 _ => unreachable!()
@@ -1417,6 +1418,14 @@ mod tests {
         assert_eq!(tera.render("gt", &Context::new()).unwrap(), "a".to_string());
         assert_eq!(tera.render("eq", &Context::new()).unwrap(), "a".to_string());
         assert_eq!(tera.render("neq", &Context::new()).unwrap(), "a".to_string());
+    }
+
+    // https://github.com/Keats/tera/issues/188
+    #[test]
+    fn doesnt_fallthrough_elif() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("ifs", "{% if 1 < 4 %}a{% elif 2 < 4 %}b{% elif 3 < 4 %}c{% else %}d{% endif %}").unwrap();
+        assert_eq!(tera.render("ifs", &Context::new()).unwrap(), "a".to_string());
 
     }
 }
