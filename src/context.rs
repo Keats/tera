@@ -133,7 +133,7 @@ impl ValueTruthy for Value {
                     return i.as_u64().unwrap() != 0;
                 }
                 let f = i.as_f64().unwrap();
-                f != 0.0 || !f.is_nan()
+                f != 0.0 && !f.is_nan()
             },
             Value::Bool(ref i) => *i,
             Value::Null => false,

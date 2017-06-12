@@ -5,6 +5,8 @@
 - Fix not being able to use variables starting with `or`, `and` and `not`
 - Fix `<=` and `>=` not being recognised properly
 - Fix if/elif conditions falling through: only the first valid one will be rendered
+- Handle NaN results in `{% set %}` instead of panicking
+- Allow math node on if/elif conditions & fix f64 truthiness
 
 ## 0.10.6 (2017-05-23)
 

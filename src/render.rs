@@ -338,7 +338,10 @@ impl<'a> Renderer<'a> {
             },
             &Math { .. } => {
                 let result = self.eval_math(node)?;
-                Ok(Value::Number(Number::from_f64(result).unwrap()))
+                match Number::from_f64(result) {
+                    Some(x) => Ok(Value::Number(x)),
+                    None => Ok(Value::String("NaN".to_string()))
+                }
             },
             &Int(val) => {
                 Ok(Value::Number(val.into()))
@@ -369,6 +372,9 @@ impl<'a> Renderer<'a> {
                     value_params.push(self.eval_expression(param)?);
                 }
                 tester(self.eval_expression(expression).ok(), value_params)
+            },
+            &Math { .. } => {
+                self.eval_math(node).map(|v| v != 0.0 && !v.is_nan())
             },
             &Logic { ref lhs, ref rhs, operator } => {
                 match operator {
@@ -420,7 +426,7 @@ impl<'a> Renderer<'a> {
             &Not(ref n) => {
                 Ok(self.eval_expression(n).map(|v| !v.is_truthy()).unwrap_or(true))
             },
-            _ => unreachable!()
+            _ => unreachable!("Reached node {:?} in `eval_condition`", node)
         }
     }
 
@@ -1426,6 +1432,18 @@ mod tests {
         let mut tera = Tera::default();
         tera.add_raw_template("ifs", "{% if 1 < 4 %}a{% elif 2 < 4 %}b{% elif 3 < 4 %}c{% else %}d{% endif %}").unwrap();
         assert_eq!(tera.render("ifs", &Context::new()).unwrap(), "a".to_string());
+    }
 
+    // https://github.com/Keats/tera/issues/189
+    #[test]
+    fn doesnt_panic_with_nan_results() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("render", "{{ 0 / 0 }}").unwrap();
+        tera.add_raw_template("set", "{% set x = 0 / 0 %}{{ x }}").unwrap();
+        tera.add_raw_template("condition", "{% if 0 / 0 %}a{% endif %}").unwrap();
+
+        assert_eq!(tera.render("render", &Context::new()).unwrap(), "NaN".to_string());
+        assert_eq!(tera.render("set", &Context::new()).unwrap(), "NaN".to_string());
+        assert_eq!(tera.render("condition", &Context::new()).unwrap(), "".to_string());
     }
 }
