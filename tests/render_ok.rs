@@ -185,3 +185,9 @@ fn test_magical_variable_dumps_context() {
 fn test_ok_closure_global_fn() {
     assert_template_ok("tests/templates/global_fn.html", vec![]);
 }
+
+// https://github.com/Keats/tera/issues/185
+#[test]
+fn test_ok_many_variable_blocks() {
+    assert_template_ok("tests/templates/many_variable_blocks.html", vec![]);
+}
