@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.10.7 (unreleased)
+## 0.10.7 (2017-06-16)
 
 - Fix not being able to use variables starting with `or`, `and` and `not`
 - Fix `<=` and `>=` not being recognised properly
