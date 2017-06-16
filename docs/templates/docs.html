@@ -4,109 +4,22 @@
     <div class="docs-container">
         <aside class="docs__sidebar">
             <ul>
-                <li><a href="{{ get_url(link="./docs/_index.md") }}">Introduction</a></li>
-                <li><a href="{{ get_url(link="./docs/installation.md") }}">Installation</a></li>
-                <li>
-                    <a href="{{ get_url(link="./docs/usage.md") }}">Usage</a>
-                    <ul>
+                {% for page in section.pages %}
+                    {% for h1 in page.toc %}
                         <li>
-                            <a href="{{ get_url(link="./docs/usage.md#auto-escaping") }}">
-                                Auto-escaping
-                            </a>
+                            <a href="{{ h1.permalink }}">{{ h1.title }}</a>
+                            {% if h1.children %}
+                                <ul>
+                                    {% for h2 in h1.children %}
+                                        <li><a href="{{ h2.permalink }}">{{ h2.title }}</a></li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
                         </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/usage.md#advanced-usage") }}">
-                                Advanced usage
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <li>
-                    <a href="{{ get_url(link="./docs/templates.md") }}">Templates</a>
-                    <ul>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#variables") }}">
-                                Variables
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#expressions") }}">
-                                Expressions
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#filters") }}">
-                                Filters
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#tests") }}">
-                                Tests
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#global-functions") }}">
-                                Global functions
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#assignments") }}">
-                                Assignments
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#comments") }}">
-                                Comments
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#if") }}">
-                                If
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#for") }}">
-                                For
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#include") }}">
-                                Include
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#inheritance") }}">
-                                Inheritance
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#macros") }}">
-                                Macros
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#raw") }}">
-                                Raw
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#built-in-filters") }}">
-                                Built-in filters
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#built-in-tests") }}">
-                                Built-in tests
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ get_url(link="./docs/templates.md#built-in-global-functions") }}">
-                                Built-in global functions
-                            </a>
-                        </li>
-                    </ul>
-                </li>
+                    {% endfor %}
+                {% endfor %}
             </ul>
+
         </aside>
         <div class="docs__content">
             {% block doc_content %}

@@ -1,6 +1,6 @@
 # Tera documentation
 
-Uses Gutenberg
+Uses the latest version of Gutenberg
 
 ## Setup
 ```bash
