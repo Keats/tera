@@ -5,7 +5,7 @@ use std::iter::FromIterator;
 use serde_json::value::{Value, to_value};
 use errors::Result;
 
-use chrono::{NaiveDateTime, NaiveDate, DateTime, FixedOffset, UTC};
+use chrono::{NaiveDateTime, NaiveDate, DateTime, FixedOffset, Utc};
 
 // Returns the number of items in an array or the number of characters in a string.
 // Returns 0 if not an array or string.
@@ -65,7 +65,7 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
             } else {
                 match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
                     Ok(val) => {
-                        Ok(to_value(&DateTime::<UTC>::from_utc(val.and_hms(0, 0, 0), UTC).format(&format).to_string())?)
+                        Ok(to_value(&DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format).to_string())?)
                     },
                     Err(_) => bail!("Error parsing `{:?}` as YYYY-MM-DD date", s)
                 }
