@@ -27,7 +27,7 @@ url = "1"
 # used in filesizeformat filter
 humansize = "1"
 # used in date format filter
-chrono = "0.3"
+chrono = "0.4"
 
 [dev-dependencies]
 serde_derive = "1.0"
