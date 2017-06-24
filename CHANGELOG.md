@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.8 (2017-06-24)
+
+- Update chrono
+
 ## 0.10.7 (2017-06-16)
 
 - Fix not being able to use variables starting with `or`, `and` and `not`
