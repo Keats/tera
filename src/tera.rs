@@ -94,7 +94,11 @@ impl Tera {
             if path.is_file() {
                 // We clean the filename by removing the dir given
                 // to Tera so users don't have to prefix everytime
-                let parent_dir = dir.split_at(dir.find('*').unwrap()).0.replace("./", "");
+                let mut parent_dir = dir.split_at(dir.find('*').unwrap()).0;
+                // Remove `./` from the glob if used as it would cause an error in strip_prefix
+                if parent_dir.starts_with("./") {
+                    parent_dir = &parent_dir[2..];
+                }
                 let filepath = path
                     .strip_prefix(&parent_dir)
                     .unwrap()
