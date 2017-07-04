@@ -94,9 +94,9 @@ impl Tera {
             if path.is_file() {
                 // We clean the filename by removing the dir given
                 // to Tera so users don't have to prefix everytime
-                let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
+                let parent_dir = dir.split_at(dir.find('*').unwrap()).0.replace("./", "");
                 let filepath = path
-                    .strip_prefix(parent_dir)
+                    .strip_prefix(&parent_dir)
                     .unwrap()
                     .to_string_lossy()
                     // unify on forward slash
