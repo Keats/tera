@@ -3,6 +3,7 @@ description = "Tera - A template engine for Rust inspired by Jinja2 and Django t
 base_url = "https://example.com/"
 highlight_code = true
 highlight_theme = "monokai"
+compile_sass = true
 
 [extra]
 author = "Vincent Prouillet"
