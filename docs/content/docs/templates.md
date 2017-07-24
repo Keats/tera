@@ -2,7 +2,7 @@
 order = 10
 +++
 
-# Template Writer Documentation
+# Templates
 
 A Tera template is just a text file where variables and expressions get replaced with values
 when it is rendered. The syntax is based on Jinja2 and Django templates.
@@ -163,6 +163,10 @@ assignments outside of those will be set in the global context.
 ## Comments
 To comment out part of the template, wrap it in `{# #}`. Anything in between those tags
 will not be rendered.
+
+```jinja2
+{# A comment #}
+```
 
 ## If
 Conditionals are fully supported and are identical to the ones in Python.
@@ -446,7 +450,7 @@ Percent-encodes a string.
 
 Example: `{{ value | urlencode }}`
 
-If value is "/foo?a=b&c=d", the output will be "/foo%3Fa%3Db%26c%3Dd".
+If value is `/foo?a=b&c=d`, the output will be `/foo%3Fa%3Db%26c%3Dd`.
 
 Takes an optional argument of characters that shouldn't be percent-encoded (`/` by default). 
 So, to encode slashes as well, you can do `{{ value | urlencode(safe="") }}`. 

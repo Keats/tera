@@ -1,8 +1,17 @@
+html, body {
+  height: 100%;
+}
+
 /* System Fonts as used by GitHub */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   color: $text-colour;
   line-height: 1.6;
+
+  // for sticky footer
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 pre {
@@ -10,49 +19,50 @@ pre {
   overflow: auto;
 }
 
-header {
-  width: 100%;
-  background-color: white;
-  padding: 10px 60px;
-  box-shadow: 0 4px 2px -2px rgba(20, 45, 60, 0.25);
-  height: 60px;
-  z-index: 999;
+.container {
+  max-width: 1170px;
+  margin: 0 auto;
+  padding-right: 15px;
+  padding-left: 15px;
+}
 
-  #logo {
-    lost-column: 4/12;
-    display: inline-block;
-    line-height: $header-height;
-    cursor: pointer;
+a {
+  text-decoration: none;
+  cursor: pointer;
+  padding-bottom: 2px;
+  border-bottom: 2px solid rgba(222, 98, 98, 0.3);
+  color: $text-colour;
+
+  &:visited {
+    color: inherit;
   }
 
-  #nav {
-    lost-column: 8/12;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    text-align: right;
-    line-height: $header-height;
-  }
-
-  li {
-    display: inline-block;
-    margin: 0 1rem;
-  }
-
-  .nav-link {
-    color: $text-colour;
-    text-decoration: none;
-    cursor: pointer;
-    padding-bottom: 3px;
-    border-bottom: 3px solid transparent;
-
-    &:hover {
-      border-color: $main-colour;
-    }
-
-    &:visited {
-      color: inherit;
-    }
+  &:hover {
+    border-bottom-color: $main-colour;
   }
 }
 
+.github-corner:hover .octo-arm {
+  animation: octocat-wave 560ms ease-in-out;
+}
+
+@keyframes octocat-wave {
+  0%, 100% {
+    transform: rotate(0);
+  }
+  20%, 60% {
+    transform: rotate(-25deg);
+  }
+  40%, 80% {
+    transform: rotate(10deg);
+  }
+}
+
+@media (max-width: 500px) {
+  .github-corner:hover .octo-arm {
+    animation: none;
+  }
+  .github-corner .octo-arm {
+    animation: octocat-wave 560ms ease-in-out;
+  }
+}
