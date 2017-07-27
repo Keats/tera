@@ -6,12 +6,14 @@
 /// significant in XML (&, <, >, ", '), the forward slash is included as it helps
 /// to end an HTML entity.
 ///
+/// ```text
 /// & --> &amp;
 /// < --> &lt;
 /// > --> &gt;
 /// " --> &quot;
 /// ' --> &#x27;     &apos; is not recommended
 /// / --> &#x2F;     forward slash is included as it helps end an HTML entity
+/// ```
 #[inline]
 pub fn escape_html(input: &str) -> String {
     let mut output = String::with_capacity(input.len() * 2);
