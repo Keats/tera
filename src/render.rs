@@ -436,6 +436,12 @@ impl<'a> Renderer<'a> {
                 let val = match **value {
                     MacroCall {..} => to_value(self.render_macro(value)?).unwrap(),
                     GlobalFunctionCall { .. } => self.eval_global_fn(value)?,
+                    Identifier { ref name, ref filters } => {
+                        let mut filters: VecDeque<Node> = VecDeque::new();
+                        filters.push_front(Filter { name: "safe".to_owned(), params: HashMap::new() });
+                        self.eval_expression(&Identifier { name: name.to_owned(), filters: Some(filters) })?
+                    },
+
                     _ => self.eval_expression(value)?,
                 };
 
