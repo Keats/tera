@@ -436,9 +436,11 @@ impl<'a> Renderer<'a> {
                 let val = match **value {
                     MacroCall {..} => to_value(self.render_macro(value)?).unwrap(),
                     GlobalFunctionCall { .. } => self.eval_global_fn(value)?,
-                    Identifier { ref name, ref filters } => {
-                        let mut filters: VecDeque<Node> = VecDeque::new();
-                        filters.push_front(Filter { name: "safe".to_owned(), params: HashMap::new() });
+                    Identifier { ref name, .. } => {
+                        // if we're assigning a variable to another variable,
+                        // don't assign the escaped value to it; assign its
+                        // actual value instead
+                        let filters: VecDeque<Node> = vec![Filter { name: "safe".to_string(), params: HashMap::new() }].into_iter().collect();
                         self.eval_expression(&Identifier { name: name.to_owned(), filters: Some(filters) })?
                     },
 
@@ -1294,10 +1296,10 @@ mod tests {
         let mut tera = Tera::default();
         tera.add_raw_template("hello.html", "{% set my_var = hello %}{{my_var}}").unwrap();
         let mut context = Context::new();
-        context.add("hello", &5);
+        context.add("hello", &"<!doctype html>");
         let result = tera.render("hello.html", &context);
 
-        assert_eq!(result.unwrap(), "5".to_string());
+        assert_eq!(result.unwrap(), "&lt;!doctype html&gt;".to_string());
     }
 
     #[test]
