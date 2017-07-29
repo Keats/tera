@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use tera::{Tera, Result, Context, GlobalFn, Value, to_value, from_value};
 
 mod common;
-use common::{Product, Review, read_file};
+use common::{Product, Review, NestedObject, read_file};
 
 
 fn make_url_for(urls: BTreeMap<String, String>) -> GlobalFn {
@@ -190,4 +190,31 @@ fn test_ok_closure_global_fn() {
 #[test]
 fn test_ok_many_variable_blocks() {
     assert_template_ok("tests/templates/many_variable_blocks.html", vec![]);
+}
+
+// https://github.com/Keats/tera/issues/202
+#[test]
+fn test_recursive_macro_with_loops() {
+    let parent = NestedObject { label: "Parent".to_string(), parent: None, numbers: vec![1,2,3]};
+    let child = NestedObject { label: "Child".to_string(), parent: Some(Box::new(parent)), numbers: vec![1,2,3] };
+    let mut context = Context::new();
+    context.add("objects", &vec![child]);
+
+    let mut tera = Tera::default();
+
+    tera.add_template_files(vec![
+        ("tests/templates/macros.html", Some("macros.html")),
+        ("tests/templates/recursive_macro_in_forloop.html", Some("tpl")),
+    ]).unwrap();
+    let expected = read_file("tests/expected/recursive_macro_in_forloop.html");
+    let rendered = tera.render("tpl", &context).unwrap();
+
+    if rendered != expected {
+        println!("Template recursive_macro_in_forloop was rendered incorrectly");
+        println!("Got: \n {:#?}", rendered);
+        println!("Expected: \n {:#?}", expected);
+        let mut file = File::create("out.html").unwrap();
+        file.write_all(rendered.as_bytes()).unwrap();
+        assert!(false);
+    }
 }

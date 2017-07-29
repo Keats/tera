@@ -26,5 +26,5 @@
     {{ self::label_for(obj=obj.parent, sep=sep) }}
     {{sep}}
   {% endif %}
-  {{obj.label}}
+  {{obj.label}}{% for i in obj.numbers %}{{ i }}{% endfor %}
 {% endmacro label_for %}

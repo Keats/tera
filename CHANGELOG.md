@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.9 (unreleased)
+
+- Fix loop and macro context overlaps
+
+
 ## 0.10.8 (2017-06-24)
 
 - Update chrono
