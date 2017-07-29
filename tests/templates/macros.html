@@ -20,3 +20,11 @@
 {% macro dump(name) %}
     {{ __tera_context }}
 {% endmacro dump %}
+
+{% macro label_for(obj, sep) %}
+  {% if obj.parent %}
+    {{ self::label_for(obj=obj.parent, sep=sep) }}
+    {{sep}}
+  {% endif %}
+  {{obj.label}}
+{% endmacro label_for %}
