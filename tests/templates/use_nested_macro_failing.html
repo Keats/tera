@@ -1,0 +1,6 @@
+{% import "macros.html" as macros %}
+
+{% for obj in objects %}
+  {% set formatted_label = macros::label_for(obj=obj, sep="|") %}
+  {{ formatted_label }}
+{% endfor %}
