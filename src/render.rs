@@ -126,8 +126,9 @@ pub struct Renderer<'a> {
     for_loops: Vec<ForLoop>,
     /// Looks like Vec<filename: {macro_name: body node}>
     macros: Vec<HashMap<String, &'a HashMap<String, Node>>>,
-    /// Set when rendering macros, empty if not in a macro
-    macro_context: Vec<Value>,
+    /// Set when rendering macros, empty if not in a macro. Loops in macros are set
+    /// as part of the macro_context and not for_loops
+    macro_context: Vec<(Value, Vec<ForLoop>)>,
     /// Keeps track of which namespace we're on in order to resolve the `self::` syntax
     macro_namespaces: Vec<String>,
     /// Whether this template should be escaped or not
@@ -163,9 +164,9 @@ impl<'a> Renderer<'a> {
     /// Lookup a variable name from the context, taking into account macros and loops
     fn lookup_variable(&self, key: &str) -> Result<Value> {
         // Differentiate between macros and general context
-        let context = match self.macro_context.last() {
-            Some(c) => c,
-            None => &self.context
+        let (context, for_loops) = match self.macro_context.last() {
+            Some(c) => (&c.0, &c.1),
+            None => (&self.context, &self.for_loops)
         };
 
         // Magical variable that just dumps the context
@@ -186,7 +187,7 @@ impl<'a> Renderer<'a> {
         }
 
         // Look in the plain context if we aren't in a for loop
-        if self.for_loops.is_empty() {
+        if for_loops.is_empty() {
             return find_variable(context, key, &self.template.name);
         }
 
@@ -198,7 +199,7 @@ impl<'a> Renderer<'a> {
         };
 
         // The variable might be from a for loop so we start from the most inner one
-        for for_loop in self.for_loops.iter().rev() {
+        for for_loop in for_loops.iter().rev() {
             // 1st case: one of Tera loop built-in variable
             if real_key == "loop" {
                 match tail {
@@ -221,6 +222,7 @@ impl<'a> Renderer<'a> {
             } else {
                 for_loop.extra_values.get(real_key)
             };
+
             match value {
                 Some(v) => {
                     if tail.is_empty() {
@@ -440,7 +442,7 @@ impl<'a> Renderer<'a> {
                 };
 
                 let context = match self.macro_context.last_mut() {
-                    Some(c) => c.as_object_mut().unwrap(),
+                    Some(c) => c.0.as_object_mut().unwrap(),
                     None => match self.for_loops.last_mut() {
                         Some(f) => &mut f.extra_values,
                         None => self.context.as_object_mut().unwrap()
@@ -515,15 +517,24 @@ impl<'a> Renderer<'a> {
         };
 
         let length = for_loop.len();
-        self.for_loops.push(for_loop);
+        match self.macro_context.last_mut() {
+            Some(m) => m.1.push(for_loop),
+            None => self.for_loops.push(for_loop)
+        };
         let mut output = String::new();
         for _ in 0..length {
             output.push_str(self.render_node(body)?.trim_left());
             // Safe unwrap
-            self.for_loops.last_mut().unwrap().increment();
+            match self.macro_context.last_mut() {
+                Some(m) => m.1.last_mut().unwrap().increment(),
+                None => self.for_loops.last_mut().unwrap().increment()
+            };
         }
+        match self.macro_context.last_mut() {
+            Some(m) => m.1.pop(),
+            None => self.for_loops.pop()
+        };
 
-        self.for_loops.pop();
         Ok(output.trim_right().to_string())
     }
 
@@ -554,11 +565,13 @@ impl<'a> Renderer<'a> {
                 namespace.clone()
             }
         };
+
         // We get our macro definition using the namespace name we just got
         let macro_definition = self.macros
             .last()
             .and_then(|m| m.get(&active_namespace))
             .and_then(|m| m.get(macro_name));
+
         if let Some(&Macro { ref body, ref params, ..}) = macro_definition {
             // fail fast if the number of args don't match
             if params.len() != call_params.len() {
@@ -577,7 +590,7 @@ impl<'a> Renderer<'a> {
             }
             // Push this context to our stack of macro context so the renderer can pick variables
             // from it
-            self.macro_context.push(context.into());
+            self.macro_context.push((context.into(), vec![]));
             // We render the macro body as a normal node
             let mut output = String::new();
             for node in body.get_children() {
