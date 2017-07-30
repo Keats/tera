@@ -2,6 +2,7 @@
 
 ## 0.10.9 (unreleased)
 
+- Handle path to templates starting with "./"
 - Fix loop and macro context overlaps
 
 
