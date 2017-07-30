@@ -26,6 +26,12 @@ pre {
   padding-left: 15px;
 }
 
+@media only screen and (max-width: 700px)  {
+  .container {
+    max-width: 100%;
+  }
+}
+
 a {
   text-decoration: none;
   cursor: pointer;

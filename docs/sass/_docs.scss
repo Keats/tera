@@ -1,7 +1,6 @@
 
 .docs__sidebar {
   width: 280px;
-  min-width: 280px;
   padding: 40px;
   display: inline-block;
   vertical-align: top;
@@ -77,5 +76,17 @@
   a {
     color: $main-colour;
     padding-bottom: 2px;
+  }
+}
+
+@media only screen and (max-width: 700px)  {
+  .docs__sidebar {
+    width: 200px;
+    padding: 10px;
+  }
+
+  .docs__content {
+    width: calc(100% - 200px - 20px);
+    padding: 10px;
   }
 }
