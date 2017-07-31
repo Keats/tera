@@ -243,7 +243,7 @@ impl<'a> Renderer<'a> {
     // Gets an identifier and return its json value
     // If there is no filter, it's itself, otherwise call the filters in order
     // an return their result
-    fn eval_ident(&self, node: &Node) -> Result<Value> {
+    fn eval_ident(&mut self, node: &Node) -> Result<Value> {
         let (name, filters) = match *node {
             Identifier { ref name, ref filters } => (name, filters),
             _ => unreachable!(),
@@ -265,9 +265,13 @@ impl<'a> Renderer<'a> {
 
                 let filter_fn = self.tera.get_filter(name)?;
                 let mut all_args = HashMap::new();
+                // We don't want to escape variables used as params
+                let should_escape = self.should_escape;
+                self.should_escape = false;
                 for (arg_name, exp) in params {
                     all_args.insert(arg_name.to_string(), self.eval_expression(exp)?);
                 }
+                self.should_escape = should_escape;
 
                 value = filter_fn(value, all_args)?;
             }
@@ -282,7 +286,7 @@ impl<'a> Renderer<'a> {
         Ok(value)
     }
 
-    fn eval_math(&self, node: &Node) -> Result<f64> {
+    fn eval_math(&mut self, node: &Node) -> Result<f64> {
         match *node {
             Identifier { ref name, .. } => {
                 self.eval_ident(node)?
@@ -314,14 +318,18 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn eval_global_fn(&self, node: &Node) -> Result<Value> {
+    fn eval_global_fn(&mut self, node: &Node) -> Result<Value> {
         match node {
             &GlobalFunctionCall { ref name, ref params } => {
                 let global_fn = self.tera.get_global_function(name)?;
                 let mut all_args = HashMap::new();
+                // We don't want to escape variables used as params
+                let should_escape = self.should_escape;
+                self.should_escape = false;
                 for (arg_name, exp) in params {
                     all_args.insert(arg_name.to_string(), self.eval_expression(exp)?);
                 }
+                self.should_escape = should_escape;
 
                 global_fn(all_args)
             },
@@ -329,7 +337,7 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn eval_expression(&self, node: &Node) -> Result<Value> {
+    fn eval_expression(&mut self, node: &Node) -> Result<Value> {
         match node {
             &Identifier { .. } => {
                 Ok(self.eval_ident(node)?)
@@ -362,7 +370,7 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn eval_condition(&self, node: &Node) -> Result<bool> {
+    fn eval_condition(&mut self, node: &Node) -> Result<bool> {
         match node {
             &Identifier { .. } => {
                 Ok(self.eval_ident(node).map(|v| v.is_truthy()).unwrap_or(false))
@@ -435,11 +443,14 @@ impl<'a> Renderer<'a> {
     fn eval_set(&mut self, node: &Node) -> Result<()> {
         match node {
             &Set { ref name, ref value } => {
+                let should_escape = self.should_escape;
+                self.should_escape = false;
                 let val = match **value {
                     MacroCall {..} => to_value(self.render_macro(value)?).unwrap(),
                     GlobalFunctionCall { .. } => self.eval_global_fn(value)?,
                     _ => self.eval_expression(value)?,
                 };
+                self.should_escape = should_escape;
 
                 let context = match self.macro_context.last_mut() {
                     Some(c) => c.0.as_object_mut().unwrap(),
@@ -581,6 +592,10 @@ impl<'a> Renderer<'a> {
             // We need to make a new context for the macro from the arguments given
             // Return an error if we get some unknown params
             let mut context = Map::new();
+
+            // We don't want to escape variables used as params
+            let should_escape = self.should_escape;
+            self.should_escape = false;
             for (param_name, exp) in call_params {
                 if !params.contains(param_name) {
                     let params_seen = call_params.keys().cloned().collect::<Vec<String>>();
@@ -588,6 +603,8 @@ impl<'a> Renderer<'a> {
                 }
                 context.insert(param_name.to_string(), self.eval_expression(exp)?);
             }
+            self.should_escape = should_escape;
+
             // Push this context to our stack of macro context so the renderer can pick variables
             // from it
             self.macro_context.push((context.into(), vec![]));
