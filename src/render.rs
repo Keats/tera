@@ -1459,4 +1459,41 @@ mod tests {
         assert_eq!(tera.render("set", &Context::new()).unwrap(), "NaN".to_string());
         assert_eq!(tera.render("condition", &Context::new()).unwrap(), "".to_string());
     }
+
+    #[test]
+    fn test_set_tag_variable_doesnt_escape_it() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("hello.html", "{% set my_var = hello %}{{my_var | safe}}").unwrap();
+        let mut context = Context::new();
+        context.add("hello", &"&");
+        let result = tera.render("hello.html", &context);
+
+        assert_eq!(result.unwrap(), "&".to_string());
+    }
+
+    #[test]
+    fn test_filter_param_doesnt_escape_it() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("hello.html", r#"{{ my_var | replace(from="h", to=to) | safe}}"#).unwrap();
+        let mut context = Context::new();
+        context.add("my_var", &"hey");
+        context.add("to", &"&");
+        let result = tera.render("hello.html", &context);
+
+        assert_eq!(result.unwrap(), "&ey".to_string());
+    }
+
+    #[test]
+    fn test_macro_param_doesnt_escape_it() {
+        let mut tera = Tera::default();
+        tera.add_raw_templates(vec![
+            ("macros.html", r#"{% macro print(val) %}{{val|safe}}{% endmacro print %}"#),
+            ("hello.html", r#"{% import "macros.html" as macros %}{{ macros::print(val=my_var)}}"#),
+        ]).unwrap();
+        let mut context = Context::new();
+        context.add("my_var", &"&");
+        let result = tera.render("hello.html", &context);
+
+        assert_eq!(result.unwrap(), "&".to_string());
+    }
 }
