@@ -4,7 +4,7 @@
 
 - Handle path to templates starting with "./"
 - Fix loop and macro context overlaps
-
+- Fix variables being escaped when given to `set` or as arguments to filters/macros/global fns
 
 ## 0.10.8 (2017-06-24)
 
