@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.10.9 (unreleased)
+## 0.10.9 (2017-08-02)
 
 - Handle path to templates starting with "./"
 - Fix loop and macro context overlaps
