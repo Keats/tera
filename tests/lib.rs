@@ -31,3 +31,19 @@ fn test_can_load_template_files() {
     assert!(tera.get_template("tests/templates/basic.html").is_ok());
     assert!(tera.get_template("basic.html").is_ok());
 }
+
+
+#[should_panic]
+#[test]
+fn test_can_only_parse_templates() {
+    let mut tera = Tera::parse("examples/templates/**/*").unwrap();
+    for tpl in tera.templates.values_mut() {
+        tpl.name = format!("a-theme/templates/{}", tpl.name);
+        if let Some(ref parent) = tpl.parent.clone() {
+            tpl.parent = Some(format!("a-theme/templates/{}", parent));
+        }
+    }
+    // Will panic here as we changed the parent and it won't be able
+    // to build the inheritance chain in this case
+    tera.build_inheritance_chains().unwrap();
+}

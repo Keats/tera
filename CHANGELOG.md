@@ -1,5 +1,10 @@
 # Changelog
 
+
+## 0.10.10 (2017-08-24)
+
+- Add `Tera::parse` for some niche use-cases
+
 ## 0.10.9 (2017-08-02)
 
 - Handle path to templates starting with "./"
