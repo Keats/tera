@@ -36,6 +36,30 @@ pub struct Tera {
 }
 
 impl Tera {
+    fn create(dir: &str, parse_only: bool) -> Result<Tera> {
+        if dir.find('*').is_none() {
+            bail!("Tera expects a glob as input, no * were found in `{}`", dir);
+        }
+
+        let mut tera = Tera {
+            glob: Some(dir.to_string()),
+            templates: HashMap::new(),
+            filters: HashMap::new(),
+            global_functions: HashMap::new(),
+            testers: HashMap::new(),
+            autoescape_suffixes: vec![".html", ".htm", ".xml"]
+        };
+
+        tera.load_from_glob()?;
+        if !parse_only {
+            tera.build_inheritance_chains()?;
+        }
+        tera.register_tera_filters();
+        tera.register_tera_testers();
+        tera.register_tera_global_functions();
+        Ok(tera)
+    }
+
     /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
     ///
     /// The example below is what the [compile_templates](macro.compile_templates.html) macros expands to.
@@ -50,26 +74,28 @@ impl Tera {
     ///}
     /// ```
     pub fn new(dir: &str) -> Result<Tera> {
-        if dir.find('*').is_none() {
-            bail!("Tera expects a glob as input, no * were found in `{}`", dir);
-        }
-        let mut tera = Tera {
-            glob: Some(dir.to_string()),
-            templates: HashMap::new(),
-            filters: HashMap::new(),
-            global_functions: HashMap::new(),
-            testers: HashMap::new(),
-            autoescape_suffixes: vec![".html", ".htm", ".xml"]
-        };
-
-        tera.load_from_glob()?;
-        tera.build_inheritance_chains()?;
-        tera.register_tera_filters();
-        tera.register_tera_testers();
-        tera.register_tera_global_functions();
-        Ok(tera)
+        Self::create(dir, false)
     }
 
+    /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
+    /// The difference with `Tera::new` is that it won't build the inheritance chains automatically
+    /// so you are free to modify the templates if you need to.
+    /// You will NOT get a working Tera instance using `Tera::parse`, you will need to call
+    /// `tera.build_inheritance_chains()` to make it usable
+    ///
+    /// ```rust,ignore
+    ///let mut tera = match Tera::parse("templates/**/*") {
+    ///    Ok(t) => t,
+    ///    Err(e) => {
+    ///        println!("Parsing error(s): {}", e);
+    ///        ::std::process::exit(1);
+    ///    }
+    ///};
+    ///tera.build_inheritance_chains()?;
+    ///```
+    pub fn parse(dir: &str) -> Result<Tera> {
+        Self::create(dir, true)
+    }
 
     /// Loads all the templates found in the glob that was given to Tera::new
     fn load_from_glob(&mut self) -> Result<()> {
@@ -147,8 +173,7 @@ impl Tera {
     /// It also builds the block inheritance chain and detects when super() is called in a place
     /// where it can't possibly work
     ///
-    /// Only public for benchmark reasons, do not use
-    #[doc(hidden)]
+    /// You generally don't need to call that yourself, unless you used `Tera::parse`
     pub fn build_inheritance_chains(&mut self) -> Result<()> {
         // Recursive fn that finds all the parents and put them in an ordered Vec from closest to first parent
         // parent template
