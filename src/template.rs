@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
-use parser::{parse, Node};
+use parser_old::{parse, Node};
 use errors::{Result};
 
 

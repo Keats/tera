@@ -14,8 +14,9 @@
 extern crate serde;
 extern crate serde_json;
 extern crate glob;
-#[macro_use]
 extern crate pest;
+#[macro_use]
+extern crate pest_derive;
 #[macro_use]
 extern crate error_chain;
 extern crate slug;
@@ -29,36 +30,39 @@ extern crate chrono;
 mod errors;
 #[macro_use]
 mod macros;
+// TODO: remove me
+#[allow(dead_code)]
 mod parser;
-mod context;
-mod render;
-mod template;
-mod tera;
-mod filters;
-mod testers;
-mod utils;
-mod global_functions;
+//mod parser_old;
+//mod context;
+//mod render;
+//mod template;
+//mod tera;
+//mod filters;
+//mod testers;
+//mod utils;
+//mod global_functions;
 
 
 // Library exports.
 
 // Template is meant to be used internally only but is exported for test/bench.
-#[doc(hidden)] pub use template::Template;
-pub use context::Context;
-pub use tera::Tera;
-pub use errors::{Result, Error, ErrorKind};
-pub use utils::{escape_html};
-pub use global_functions::GlobalFn;
-pub use filters::FilterFn;
-pub use testers::TesterFn;
-// Re-export Value so apps/tools can encode data in Tera types
-// for now it's serde_json
-pub use serde_json::value::{Value, from_value, to_value};
+//#[doc(hidden)] pub use template::Template;
+//pub use context::Context;
+//pub use tera::Tera;
+//pub use errors::{Result, Error, ErrorKind};
+//pub use utils::{escape_html};
+//pub use global_functions::GlobalFn;
+//pub use filters::FilterFn;
+//pub use testers::TesterFn;
+//// Re-export Value so apps/tools can encode data in Tera types
+//// for now it's serde_json
+//pub use serde_json::value::{Value, from_value, to_value};
 
 // Exposes the AST if one needs it but changing the AST is not considered
 // a breaking change so it isn't public
-#[doc(hidden)]
-pub mod ast {
-    pub use parser::Operator;
-    pub use parser::Node;
-}
+//#[doc(hidden)]
+//pub mod ast {
+//    pub use parser_old::Operator;
+//    pub use parser_old::Node;
+//}

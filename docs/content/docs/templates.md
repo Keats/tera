@@ -530,7 +530,7 @@ Returns true if the given expression is divisible by the arg given.
 
 Example:
 ```jinja2
-{% if rating is divisibleby 2 %}
+{% if rating is divisibleby(2) %}
     Divisible
 {% endif %}
 ```
