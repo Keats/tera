@@ -1,6 +1,6 @@
 [package]
 name = "tera"
-version = "0.10.10"
+version = "0.11.0"
 authors = ["Vincent Prouillet <vincent@wearewizards.io>"]
 license = "MIT"
 readme = "README.md"
@@ -14,7 +14,8 @@ categories = ["template-engine"]
 glob = "0.2"
 serde = "1.0"
 serde_json = "1.0"
-pest = "0.4"
+pest = "^1.0.0-beta"
+pest_derive = "^1.0.0-beta"
 error-chain = "0.10"
 # used in slugify filter
 slug = "0.1"

@@ -7,8 +7,8 @@ use serde_json::value::{Value, to_value, Number};
 use context::{ValueRender, ValueNumber, ValueTruthy, get_json_pointer};
 use template::Template;
 use errors::{Result, ResultExt};
-use parser::{Node, Operator};
-use parser::Node::*;
+use parser_old::{Node, Operator};
+use parser_old::Node::*;
 use tera::Tera;
 use utils::escape_html;
 
