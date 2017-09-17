@@ -487,8 +487,7 @@ impl<'a> Renderer<'a> {
                 &Conditional {ref condition, ref body } => {
                     if self.eval_condition(condition)? {
                         skip_else = true;
-                        // Remove if/elif whitespace
-                        output.push_str(self.render_node(body)?.trim_left());
+                        output.push_str(&self.render_node(body)?);
                         break;
                     }
                 },
@@ -499,13 +498,11 @@ impl<'a> Renderer<'a> {
         if !skip_else {
             // Remove endif whitespace
             if let Some(ref e) = *else_node {
-                // Remove else whitespace
-                output.push_str(self.render_node(e)?.trim_left());
+                output.push_str(&self.render_node(e)?);
             }
         }
 
-        // Remove endif whitespace
-        Ok(output.trim_right().to_string())
+        Ok(output)
     }
 
     fn render_for(&mut self, key_name: &Option<String>, value_name: &str, container: &Node, body: &Node) -> Result<String> {
@@ -534,7 +531,7 @@ impl<'a> Renderer<'a> {
         };
         let mut output = String::new();
         for _ in 0..length {
-            output.push_str(self.render_node(body)?.trim_left());
+            output.push_str(&self.render_node(body)?);
             // Safe unwrap
             match self.macro_context.last_mut() {
                 Some(m) => m.1.last_mut().unwrap().increment(),
@@ -546,7 +543,7 @@ impl<'a> Renderer<'a> {
             None => self.for_loops.pop()
         };
 
-        Ok(output.trim_right().to_string())
+        Ok(output)
     }
 
     fn render_macro(&mut self, call_node: &Node) -> Result<String> {
@@ -621,7 +618,7 @@ impl<'a> Renderer<'a> {
             }
             // We remove the macro context we just rendered from our stack of contexts
             self.macro_context.pop();
-            Ok(output.trim().to_string())
+            Ok(output)
         } else {
             bail!("Macro `{}` was not found in the namespace `{}`", macro_name, active_namespace);
         }
@@ -713,7 +710,7 @@ impl<'a> Renderer<'a> {
             },
             &MacroCall {..} => self.render_macro(node),
             &Text(ref s) => Ok(s.to_string()),
-            &Raw(ref s) => Ok(s.trim().to_string()),
+            &Raw(ref s) => Ok(s.to_string()),
             &FilterSection {ref name, ref params, ref body} => {
                 let filter_fn = self.tera.get_filter(name)?;
                 let mut all_args = HashMap::new();
@@ -965,7 +962,7 @@ mod tests {
         context.add("data", &map);
         let result = render_template("{% for key, val in data %}{{key}}:{{val}} {% endfor %}", context);
 
-        assert_eq!(result.unwrap(), "age:18 name:bob".to_owned());
+        assert_eq!(result.unwrap(), "age:18 name:bob ".to_owned());
     }
     #[test]
     fn test_render_loop_variables() {
@@ -1053,10 +1050,10 @@ mod tests {
         context.add("sel", &2u32);
         context.add("seq", &vec![1,2,3]);
         let result = render_template(
-            "{% for val in seq %} {% if val == sel %} on {% else %} off {% endif %} {% endfor %}",
+            "{% for val in seq %}{% if val == sel %}on{% else %}off{% endif %} {% endfor %}",
             context
         );
-        assert_eq!(result.unwrap(), "off on off".to_string());
+        assert_eq!(result.unwrap(), "off on off ".to_string());
     }
 
     #[test]

@@ -40,7 +40,121 @@ pub struct Template {
 impl Template {
     /// Parse the template string given
     pub fn new(tpl_name: &str, tpl_path: Option<String>, input: &str) -> Result<Template> {
-        let ast = parse(input)?;
+        let mut ast = parse(input)?;
+
+        // Remove whitespaces from the beginning of a line to a tag and a
+        // trailing newline following a tag.
+        // In other words, if a line only contains a control tag, it will be
+        // deleted.
+        // We need two runs through the tree. One to strip the leading spaces
+        // and one to strip the trailing spaces.
+        fn strip_spaces_start(s: &mut String) {
+            // We remove a preceeding newline if there is one.
+            if s.starts_with('\n') {
+                s.remove(0);
+            } else if s.starts_with("\r\n") {
+                s.drain(..2);
+            }
+        }
+        fn strip_spaces_end(s: &mut String) {
+            // We remove trailing whitespace after the last newline (if no text
+            // follows).
+            if let Some(end) = s.rfind(|c| ![' ', '\t'].contains(&c)) {
+                if s.get(end..end + 1) == Some("\n") {
+                    // Also matches \r\n
+                    s.truncate(end + 1);
+                }
+            }
+        }
+
+        /// Strip whitespace around control nodes.
+        /// `was_control`: If the node before this node is a control node.
+        /// `reverse`: `false`: Strip spaces at the start (behind control nodes)
+        ///            `true`: Strip spaces at the end (before control nodes)
+        ///
+        /// Return: If the last node is a control node (depending on the direction)
+        fn strip_tree_spaces(node: &mut Node, was_control: bool, reverse: bool) -> bool {
+            match *node {
+                Node::List(ref mut nodes) => {
+                    let mut control = was_control;
+                    if reverse {
+                        for n in nodes.iter_mut().rev() {
+                            control = strip_tree_spaces(n, control, reverse);
+                        }
+                    } else {
+                        for n in nodes {
+                            control = strip_tree_spaces(n, control, reverse);
+                        }
+                    }
+                    control
+                }
+                Node::If { ref mut condition_nodes, ref mut else_node } => {
+                    for n in condition_nodes {
+                        strip_tree_spaces(n, true, reverse);
+                    }
+                    if let Some(n) = else_node.as_mut() {
+                        strip_tree_spaces(n, true, reverse);
+                    }
+                    // There is an endif in the end
+                    true
+                }
+                Node::Conditional { ref mut body, .. }
+                | Node::For { ref mut body, .. }
+                | Node::Block { ref mut body, .. }
+                | Node::Macro { ref mut body, .. }
+                | Node::FilterSection { ref mut body, .. }
+                => {
+                    strip_tree_spaces(body, true, reverse);
+                    // There is always an ending tag
+                    true
+                }
+                Node::Text(ref mut s) => {
+                    if was_control {
+                        if reverse {
+                            strip_spaces_end(s)
+                        } else {
+                            strip_spaces_start(s)
+                        }
+                    }
+                    false
+                }
+                Node::Raw(ref mut s) => {
+                    // Raw has tags at both sides
+                    if reverse {
+                        strip_spaces_end(s)
+                    } else {
+                        strip_spaces_start(s)
+                    }
+                    true
+                }
+                // Not a control tag
+                Node::Super
+                | Node::MacroCall { .. }
+                | Node::GlobalFunctionCall { .. }
+                | Node::Identifier { .. }
+                | Node::VariableBlock { .. }
+                | Node::Include { .. }
+                | Node::Int(_)
+                | Node::Float(_)
+                | Node::Bool(_)
+                => false,
+                // Control tag
+                Node::ImportMacro { .. }
+                | Node::Test { .. }
+                | Node::Filter { .. }
+                | Node::Set { .. }
+                | Node::Extends { .. }
+                | Node::Math { .. }
+                | Node::Logic { .. }
+                | Node::Not(_)
+                => true,
+            }
+        }
+
+        // First remove trailing spaces,
+        strip_tree_spaces(&mut ast, false, true);
+        // then a preceeding newline (the order matters!).
+        strip_tree_spaces(&mut ast, false, false);
 
         let mut blocks = HashMap::new();
         // We find all those blocks at first so we don't need to do it for each render
