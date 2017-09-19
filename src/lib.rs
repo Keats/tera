@@ -36,7 +36,7 @@ mod errors;
 #[macro_use]
 mod macros;
 mod parser;
-//mod template;
+mod template;
 
 //mod parser_old;
 //mod render;

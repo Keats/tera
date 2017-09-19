@@ -1,12 +1,13 @@
 use std::collections::{HashMap, VecDeque};
 
 use errors::Result;
-use parser::parse;
+use parser::{parse, remove_whitespace};
 use parser::ast::{Node, MacroDefinition, Block};
 
 
-/// This is the parsed equivalent of a template file
-/// Not mean to be used directly unless you want a one-off template rendering
+/// This is the parsed equivalent of a template file.
+/// It also does some pre-processing to ensure it does as less as possible at runtime
+/// Not mean to be used directly.
 #[derive(Debug, Clone)]
 pub struct Template {
     /// Name of the template, usually very similar to the path
@@ -14,110 +15,98 @@ pub struct Template {
     /// Original path of the file. A template doesn't necessarily have
     /// a file associated with it though so it's optional.
     pub path: Option<String>,
-    /// Parsed AST
+    /// Parsed AST, after whitespace removal
     pub ast: Vec<Node>,
-    /// Macros defined in that file
+    /// Whether this template came from a call to `Tera::extend`, so we do
+    /// not remove it when we are doing a template reload
+    pub from_extend: bool,
+
+    /// Macros defined in that file: name -> definition ast
     pub macros: HashMap<String, MacroDefinition>,
     /// (filename, namespace) for the macros imported in that file
     pub imported_macro_files: Vec<(String, String)>,
+
     /// Only used during initial parsing. Rendering will use `self.parents`
     pub parent: Option<String>,
     /// Only used during initial parsing. Rendering will use `self.blocks_definitions`
     pub blocks: HashMap<String, Block>,
-    /// Filled when all templates have been parsed: contains the full list of parent templates
-    /// as opposed to Tera::Template which only contains the optional parent
+
+    // Below are filled when all templates have been parsed so we know the full hierarchy of templates
+
+    /// The full list of parent templates
     pub parents: Vec<String>,
-    /// Filled when all templates have been parsed: contains the definition of all the blocks for
-    /// the current template and the definition of parent templates if there is.
+    /// The definition of all the blocks for the current template and the definition of those blocks
+    /// in parent templates if there are some.
     /// Needed for super() to work without having to find them each time.
-    /// The value is a Vec of all the definitions in order, with the tpl name from where it comes from
-    /// Order is from highest in hierarchy to current template
-    /// The tpl name is needed in order to load its macros
+    /// The type corresponds to the following block_name -> [(template name, definition)]
+    /// The order of the Vec is from the first in hierarchy to the current template and the template
+    /// name is needed in order to load its macros if necessary.
     pub blocks_definitions: HashMap<String, Vec<(String, Block)>>,
-    /// Whether this template came from a call to `Tera::extend`, so we do
-    /// not remove it when we are doing a template reload
-    pub from_extend: bool,
 }
-
-
 
 
 impl Template {
     /// Parse the template string given
     pub fn new(tpl_name: &str, tpl_path: Option<String>, input: &str) -> Result<Template> {
-        let ast = parse(input)?;
+        let ast = remove_whitespace(parse(input)?, None);
 
-        // First we want to handle the whitespace {%- and -%} and remove whitespace as asked
+        // First we want all the blocks used in that template
+        // This is recursive as we can have blocks inside blocks
+        let mut blocks = HashMap::new();
+        fn find_blocks(ast: &Vec<Node>, blocks: &mut HashMap<String, Block>) -> Result<()> {
+            for node in ast {
+                match *node {
+                    Node::Block(_, ref block, _) => {
+                        if blocks.contains_key(&block.name) {
+                            bail!("Block `{}` is duplicated", block.name);
+                        }
 
+                        blocks.insert(block.name.to_string(), block.clone());
+                        find_blocks(&block.body, blocks)?;
+                    },
+                    _ => continue,
+                };
+            }
 
-//        let mut blocks = HashMap::new();
-//        // We also find all macros defined/imported in the template file
-//        let mut macros = HashMap::new();
-//        let mut imported_macro_files = vec![];
-//        let mut parent = None;
+            Ok(())
+        }
+        find_blocks(&ast, &mut blocks)?;
 
-        panic!()
-        // TODO:
-        // - find extends
-        // - WS
-        // - find blocks
-        // - find macros and macro imported
+        // And now we find the potential parent and everything macro related (definition, import)
+        let mut macros = HashMap::new();
+        let mut imported_macro_files = vec![];
+        let mut parent = None;
 
-        // We find all those blocks at first so we don't need to do it for each render
-        // Recursive because we can have blocks inside blocks
-        //        fn find_blocks(ast: &VecDeque<Node>, blocks: &mut HashMap<String, Node>) -> Result<()> {
-        //            for node in ast {
-        //                match *node {
-        //                    Node::Block { ref name, ref body } => {
-        //                        if blocks.contains_key(name) {
-        //                            bail!("Block `{}` is duplicated", name);
-        //                        }
-        //
-        //                        // TODO: can we remove that clone?
-        //                        blocks.insert(name.to_string(), node.clone());
-        //                        find_blocks(body.get_children(), blocks)?;
-        //                    },
-        //                    _ => continue,
-        //                };
-        //            }
-        //
-        //            Ok(())
-        //        }
-        //        find_blocks(ast.get_children(), &mut blocks)?;
-        //
-        //        for node in ast.get_children() {
-        //            match *node {
-        //                Node::Extends(ref name) => {
-        //                    parent = Some(name.to_string());
-        //                },
-        //                Node::Macro { ref name, .. } => {
-        //                    if macros.contains_key(name) {
-        //                        bail!("Macro `{}` is duplicated", name);
-        //                    }
-        //
-        //                    // TODO: can we remove that clone?
-        //                    macros.insert(name.to_string(), node.clone());
-        //                },
-        //                Node::ImportMacro { ref tpl_name, ref name } => {
-        //                    imported_macro_files.push((tpl_name.to_string(), name.to_string()));
-        //                }
-        //                _ => continue,
-        //            };
-        //        }
-        //
-        //        Ok(Template {
-        //            name: tpl_name.to_string(),
-        //            path: tpl_path,
-        //            ast: ast,
-        //            parent: parent,
-        //            blocks: blocks,
-        //            macros: macros,
-        //            imported_macro_files: imported_macro_files,
-        //            parents: vec![],
-        //            blocks_definitions: HashMap::new(),
-        //            from_extend: false,
-        //        })
-        //    }
+        for node in &ast {
+            match *node {
+                Node::Extends(_, ref name) => parent = Some(name.to_string()),
+                Node::MacroDefinition(ref macro_def) => {
+                    if macros.contains_key(&macro_def.name) {
+                        bail!("Macro `{}` is duplicated", macro_def.name);
+                    }
+                    macros.insert(macro_def.name.clone(), macro_def.clone());
+                },
+                Node::ImportMacro(_, ref tpl_name, ref namespace) => {
+                    imported_macro_files.push((tpl_name.to_string(), namespace.to_string()));
+                },
+                _ => continue,
+            }
+        }
+
+        Ok(
+            Template {
+                name: tpl_name.to_string(),
+                path: tpl_path,
+                ast,
+                parent,
+                blocks,
+                macros,
+                imported_macro_files,
+                parents: vec![],
+                blocks_definitions: HashMap::new(),
+                from_extend: false,
+            }
+        )
     }
 }
 
