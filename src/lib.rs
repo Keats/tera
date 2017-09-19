@@ -8,6 +8,7 @@
 // Needed by pest
 #![recursion_limit = "300"]
 #![deny(missing_docs)]
+#![allow(unused)]
 
 #![cfg_attr(feature = "cargo-clippy", allow(block_in_if_condition_stmt, linkedlist, eq_op))]
 
@@ -26,17 +27,19 @@ extern crate lazy_static;
 extern crate url;
 extern crate humansize;
 extern crate chrono;
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
 
 mod errors;
+//mod context;
 #[macro_use]
 mod macros;
-// TODO: remove me
-#[allow(dead_code)]
 mod parser;
-//mod parser_old;
-//mod context;
-//mod render;
 //mod template;
+
+//mod parser_old;
+//mod render;
 //mod tera;
 //mod filters;
 //mod testers;

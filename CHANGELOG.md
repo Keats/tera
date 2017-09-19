@@ -12,8 +12,8 @@
 - Add default arguments for macro arguments
 - Add whitespace management similar to Liquid and Jinja2
 - Add parentheses to expressions to remove ambiguities
-- Block & macro end tag name are no longer mandatory and doesn't error on mismatched between
-the start and end tag
+- Block & macro end tag name are no longer mandatory and it doesn't error on mismatched names between
+the start and end tag anymore
 
 ## 0.10.10 (2017-08-24)
 

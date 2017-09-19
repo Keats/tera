@@ -200,28 +200,33 @@ pub struct If {
 pub enum Node {
     /// A call to `{{ super() }}` in a block
     Super,
+
     /// Some actual text
     Text(String),
-    /// The text between `{% raw %}` and `{% endraw %}`
-    Raw(WS, String, WS),
-    /// A filter section node `{{ filter name(param="value") }} content {{ endfilter }}`
-    FilterSection(WS, FilterSection, WS),
+    /// A `{{ }}` block
+    VariableBlock(Expr),
+    /// A `{% macro hello() %}...{% endmacro %}`
+    MacroDefinition(MacroDefinition),
+
     /// The `{% extends "blabla.html" %}` node, contains the template name
     Extends(WS, String),
     /// The `{% include "blabla.html" %}` node, contains the template name
     Include(WS, String),
+    /// The `{% import "macros.html" as macros %}`
+    ImportMacro(WS, String, String),
     /// The `{% set val = something %}` tag
     Set(WS, Set),
-    /// The {% import "macros.html" as macros %}
-    ImportMacro(WS, String, String),
-    /// A `{{ }}` block
-    VariableBlock(Expr),
+
+    /// The text between `{% raw %}` and `{% endraw %}`
+    Raw(WS, String, WS),
+
+    /// A filter section node `{{ filter name(param="value") }} content {{ endfilter }}`
+    FilterSection(WS, FilterSection, WS),
     /// A `{% block name %}...{% endblock %}`
     Block(WS, Block, WS),
-    /// A `{% macro hello() %}...{% endmacro %}`
-    MacroDefinition(MacroDefinition),
     /// A `{% for i in items %}...{% endfor %}`
     Forloop(WS, Forloop, WS),
+
     /// A if/elif/else block, WS for the if/elif/else is directly in the struct
     If(If, WS),
 }

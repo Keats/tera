@@ -17,9 +17,12 @@ use errors::{Result as TeraResult, ResultExt};
 pub struct TeraParser;
 
 pub mod ast;
+mod whitespace;
+
 #[cfg(test)]
 mod tests;
 
+pub use self::whitespace::remove_whitespace;
 use self::ast::*;
 
 lazy_static! {
