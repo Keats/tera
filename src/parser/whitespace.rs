@@ -2,20 +2,20 @@ use parser::ast::*;
 
 
 macro_rules! trim_right_previous {
-    ($cond: expr, $vec: expr) => {
-        if $cond {
-            match $vec.last_mut() {
-                Some(last) => {
-                    match last {
-                        &mut Node::Text(ref mut s) => *s = s.trim_right().to_string(),
-                        _ => (),
-                    };
-                },
-                None => (),
+    ($vec: expr) => {
+        if let Some(last) = $vec.last_mut() {
+            if let Node::Text(ref mut s) = *last {
+                *s = s.trim_right().to_string()
             }
         }
     };
+    ($cond: expr, $vec: expr) => {
+        if $cond {
+            trim_right_previous!($vec);
+        }
+    };
 }
+
 
 /// Removes whitespace from the AST nodes according to the `{%-` and `-%}` defined in the template.
 /// Empty string nodes will be discarded.
@@ -29,45 +29,39 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
 
     // Whether the node we just added to res is a Text node
     let mut previous_was_text = false;
-    // Whether the previous block ended wth `-%}` and we need to trim the next text node
-    let mut trim_left_next = if let Some(whitespace) = body_ws {
-        whitespace.left
-    } else {
-        false
-    };
+    // Whether the previous block ended wth `-%}` and we need to trim left the next text node
+    let mut trim_left_next = body_ws.map_or(false,|ws| ws.left);
 
     for n in nodes {
         match n {
             Node::Text(s) => {
                 previous_was_text = true;
-                if trim_left_next {
-                    trim_left_next = false;
-                    let new_val = s.trim_left();
-                    if new_val.is_empty() {
-                        continue;
-                    }
-                    res.push(Node::Text(new_val.to_string()));
-                } else {
+
+                if !trim_left_next {
                     res.push(Node::Text(s));
+                    continue;
                 }
+                trim_left_next = false;
+
+                let new_val = s.trim_left();
+                if !new_val.is_empty() {
+                    res.push(Node::Text(new_val.to_string()));
+                }
+                // empty text nodes will be skipped
                 continue;
-            }
+            },
             Node::ImportMacro(ws, _, _)
             | Node::Extends(ws, _)
             | Node::Include(ws, _)
             | Node::Set(ws, _) => {
                 trim_right_previous!(previous_was_text && ws.left, res);
                 previous_was_text = false;
-                if ws.right {
-                    trim_left_next = true;
-                }
-            }
+                trim_left_next = ws.right;
+            },
             Node::Raw(start_ws, ref s, end_ws) => {
                 trim_right_previous!(previous_was_text && start_ws.left, res);
                 previous_was_text = false;
-                if end_ws.right {
-                    trim_left_next = true;
-                }
+                trim_left_next = end_ws.right;
 
                 if start_ws.right || end_ws.left {
                     let val = if start_ws.right && end_ws.left {
@@ -78,21 +72,17 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                         s.trim_right()
                     };
 
-                    if !val.is_empty() {
-                        res.push(Node::Raw(start_ws, val.to_string(), end_ws));
-                    }
+                    res.push(Node::Raw(start_ws, val.to_string(), end_ws));
                     continue;
                 }
-            }
+            },
             // Those 3 nodes have a body surrounded by 2 tags
             Node::Forloop(start_ws, _, end_ws)
             | Node::FilterSection(start_ws, _, end_ws)
             | Node::Block(start_ws, _, end_ws) => {
                 trim_right_previous!(previous_was_text && start_ws.left, res);
                 previous_was_text = false;
-                if end_ws.right {
-                    trim_left_next = true;
-                }
+                trim_left_next = end_ws.right;
 
                 // let's remove ws from the bodies now and append the cleaned up node
                 let body_ws = WS { left: start_ws.right, right: end_ws.left };
@@ -115,9 +105,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
             },
             // The ugly one
             Node::If(If {conditions, otherwise}, end_ws) => {
-                if end_ws.right {
-                    trim_left_next = true;
-                }
+                trim_left_next = end_ws.right;
                 // Whether we are past the initial if
                 let mut if_done = false;
                 let mut new_conditions: Vec<(WS, Expr, Vec<Node>)> = Vec::with_capacity(conditions.len());
@@ -128,19 +116,15 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 for mut condition in conditions {
                     last_trim_right = condition.0.right;
 
-                    // Do we need to trim the previous body?
-                    if new_conditions.is_empty() {
-                        println!("Need to trim the main body!");
-                        // first if, we might have to trim the previous node of the res
-                        trim_right_previous!(previous_was_text && condition.0.left, res);
-                    } else {
-                        // elif nodes, we might have to trim the previous of the if/elifs!
-                        if condition.0.left {
-                            if let Some(&mut (_, _, ref mut body)) = new_conditions.last_mut() {
-                                trim_right_previous!(true, body);
-                            }
+                    if condition.0.left {
+                        // We need to trim the text node before the if tag
+                        if new_conditions.is_empty() && previous_was_text {
+                            trim_right_previous!(res);
+                        } else if let Some(&mut (_, _, ref mut body)) = new_conditions.last_mut() {
+                            trim_right_previous!(body);
                         }
                     }
+
                     // we can't peek at the next one to know whether we need to trim right since
                     // are consuming conditions. We'll find out at the next iteration.
                     condition.2 = remove_whitespace(condition.2, Some(WS { left: condition.0.right, right: false }));
@@ -149,22 +133,26 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
 
                 previous_was_text = false;
 
-                // We now need to look for the last potential `{%-` bit for if/elif:
-                // that can be a `{%- else` or `{%- endif`
+                // We now need to look for the last potential `{%-` bit for if/elif
+
+                // That can be a `{%- else`
                 if let Some((else_ws, body)) = otherwise {
                     if else_ws.left {
                         if let Some(&mut (_, _, ref mut body)) = new_conditions.last_mut() {
-                            trim_right_previous!(true, body);
+                            trim_right_previous!(body);
                         }
                     }
-                    let mut new_body = remove_whitespace(body, Some(WS { left: else_ws.right, right: false }));
+                    let mut else_body = remove_whitespace(body, Some(WS { left: else_ws.right, right: false }));
                     // if we have an `else`, the `endif` will affect the else node so we need to check
                     if end_ws.left {
-                        trim_right_previous!(true, new_body);
+                        trim_right_previous!(else_body);
                     }
-                    res.push(Node::If(If { conditions: new_conditions, otherwise: Some((else_ws, new_body)) }, end_ws));
+                    res.push(Node::If(If { conditions: new_conditions, otherwise: Some((else_ws, else_body)) }, end_ws));
                     continue;
-                } else if end_ws.left {
+                }
+
+                // Or `{%- endif`
+                if end_ws.left {
                     if let Some(&mut (_, _, ref mut body)) = new_conditions.last_mut() {
                         trim_right_previous!(true, body);
                     }

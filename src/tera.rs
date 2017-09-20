@@ -9,11 +9,11 @@ use serde::Serialize;
 use serde_json::value::to_value;
 
 use template::Template;
-use filters::{FilterFn, string, array, common, number, object};
+use builtins::filters::{FilterFn, string, array, common, number, object};
+use builtins::testers::{self, TesterFn};
+use builtins::global_functions::{self, GlobalFn};
 use errors::{Result, ResultExt};
-use render::Renderer;
-use testers::{self, TesterFn};
-use global_functions::{self, GlobalFn};
+use renderer::Renderer;
 
 
 /// The main point of interaction in this library.

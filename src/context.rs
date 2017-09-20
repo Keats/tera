@@ -40,8 +40,8 @@ impl Context {
         to_value(&self.data).chain_err(|| "Failed to convert data to JSON")
     }
 
-    /// Appends the data of the `source` parameter to `self` overwriting existing keys.
-    /// The source context will be dropped
+    /// Appends the data of the `source` parameter to `self`, overwriting existing keys.
+    /// The source context will be dropped.
     ///
     /// ```rust,ignore
     /// let mut target = Context::new();
@@ -78,8 +78,7 @@ pub trait ValueRender {
     fn render(&self) -> String;
 }
 
-// Needed to render variables
-// From handlebars-rust
+// Convert serde Value to String
 impl ValueRender for Value {
     fn render(&self) -> String {
         match *self {
@@ -91,8 +90,10 @@ impl ValueRender for Value {
                 let mut buf = String::new();
                 buf.push('[');
                 for i in a.iter() {
+                    if buf.len() > 1 {
+                        buf.push_str(", ");
+                    }
                     buf.push_str(i.render().as_ref());
-                    buf.push_str(", ");
                 }
                 buf.push(']');
                 buf
@@ -134,7 +135,7 @@ impl ValueTruthy for Value {
                 }
                 let f = i.as_f64().unwrap();
                 f != 0.0 && !f.is_nan()
-            },
+            }
             Value::Bool(ref i) => *i,
             Value::Null => false,
             Value::String(ref i) => !i.is_empty(),
@@ -151,16 +152,21 @@ pub fn get_json_pointer(key: &str) -> String {
     ["/", &key.replace(".", "/")].join("")
 }
 
-#[test]
-fn test_extend() {
-    let mut target = Context::new();
-    target.add("a", &1);
-    target.add("b", &2);
-    let mut source = Context::new();
-    source.add("b", &3);
-    source.add("c", &4);
-    target.extend(source);
-    assert_eq!(*target.data.get("a").unwrap(), to_value(1).unwrap());
-    assert_eq!(*target.data.get("b").unwrap(), to_value(3).unwrap());
-    assert_eq!(*target.data.get("c").unwrap(), to_value(4).unwrap());
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extend() {
+        let mut target = Context::new();
+        target.add("a", &1);
+        target.add("b", &2);
+        let mut source = Context::new();
+        source.add("b", &3);
+        source.add("c", &4);
+        target.extend(source);
+        assert_eq!(*target.data.get("a").unwrap(), to_value(1).unwrap());
+        assert_eq!(*target.data.get("b").unwrap(), to_value(3).unwrap());
+        assert_eq!(*target.data.get("c").unwrap(), to_value(4).unwrap());
+    }
 }

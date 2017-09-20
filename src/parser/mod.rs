@@ -9,7 +9,7 @@ use errors::{Result as TeraResult, ResultExt};
 
 // This include forces recompiling this source file if the grammar file changes.
 // Uncomment it when doing changes to the .pest file
-// const _GRAMMAR: &'static str = include_str!("tera.pest");
+const _GRAMMAR: &'static str = include_str!("tera.pest");
 
 
 #[derive(Parser)]
@@ -26,22 +26,25 @@ pub use self::whitespace::remove_whitespace;
 use self::ast::*;
 
 lazy_static! {
-    static ref EXPR_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
+    static ref BASIC_EXPR_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
+        // +, -
+        Operator::new(Rule::op_plus, Assoc::Left) | Operator::new(Rule::op_minus, Assoc::Left),
+        // *, /, %
+        Operator::new(Rule::op_times, Assoc::Left)
+        | Operator::new(Rule::op_slash, Assoc::Left)
+        | Operator::new(Rule::op_modulo, Assoc::Left),
+    ]);
+    static ref COMPARISON_EXPR_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
         // <, <=, >, >=, ==, !=
         Operator::new(Rule::op_lt, Assoc::Left) | Operator::new(Rule::op_lte, Assoc::Left)
         | Operator::new(Rule::op_gt, Assoc::Left) | Operator::new(Rule::op_gte, Assoc::Left)
         | Operator::new(Rule::op_eq, Assoc::Left) | Operator::new(Rule::op_ineq, Assoc::Left),
-        // +, -
-        Operator::new(Rule::op_plus, Assoc::Left) | Operator::new(Rule::op_minus, Assoc::Left),
-        // *, /
-        Operator::new(Rule::op_times, Assoc::Left) | Operator::new(Rule::op_slash, Assoc::Left),
     ]);
     static ref LOGIC_EXPR_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
         Operator::new(Rule::op_or, Assoc::Left),
         Operator::new(Rule::op_and, Assoc::Left),
     ]);
 }
-
 
 fn parse_kwarg<I: Input>(pair: Pair<Rule, I>) -> (String, Expr) {
     let mut name = None;
@@ -50,7 +53,7 @@ fn parse_kwarg<I: Input>(pair: Pair<Rule, I>) -> (String, Expr) {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::ident => name = Some(p.into_span().as_str().to_string()),
-            Rule::logic_expression => val = Some(parse_logic_expression(p)),
+            Rule::logic_expr => val = Some(parse_logic_expr(p)),
             _ => unreachable!("{:?} not supposed to get there (parse_kwarg)!", p.as_rule())
         };
     }
@@ -96,21 +99,6 @@ fn parse_filter<I: Input>(pair: Pair<Rule, I>) -> FunctionCall {
     FunctionCall { name: name.unwrap(), args }
 }
 
-fn parse_ident<I: Input>(pair: Pair<Rule, I>) -> Ident {
-    let mut name = None;
-    let mut filters = vec![];
-
-    for p in pair.into_inner() {
-        match p.as_rule() {
-            Rule::dotted_ident => name = Some(p.into_span().as_str().to_string()),
-            Rule::filter => filters.push(parse_filter(p)),
-            _ => unreachable!("{:?} not supposed to get there (parse_ident)!", p.as_rule())
-        };
-    }
-
-    Ident { name: name.unwrap(), filters }
-}
-
 fn parse_test_call<I: Input>(pair: Pair<Rule, I>) -> (String, Vec<Expr>) {
     let mut name = None;
     let mut args = vec![];
@@ -124,7 +112,7 @@ fn parse_test_call<I: Input>(pair: Pair<Rule, I>) -> (String, Vec<Expr>) {
                     // only expressions allowed in the grammar so we skip the
                     // matching
                     for p3 in p2.into_inner() {
-                        args.push(parse_expression(p3));
+                        args.push(parse_logic_expr(p3));
                     }
                 },
             _ => unreachable!("{:?} not supposed to get there (parse_test_call)!", p.as_rule())
@@ -141,7 +129,7 @@ fn parse_test<I: Input>(pair: Pair<Rule, I>) -> Test {
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::context_ident => ident = Some(parse_ident(p)),
+            Rule::dotted_ident => ident = Some(p.as_str().to_string()),
             Rule::test_call => {
                 let (_name, _args) = parse_test_call(p);
                 name = Some(_name);
@@ -155,64 +143,91 @@ fn parse_test<I: Input>(pair: Pair<Rule, I>) -> Test {
 
 }
 
-fn parse_expression<I: Input>(pair: Pair<Rule, I>) -> Expr {
+fn parse_basic_expression<I: Input>(pair: Pair<Rule, I>) -> ExprVal {
     let primary = |pair| {
-        parse_expression(pair)
+        parse_basic_expression(pair)
     };
 
-    let infix = |lhs: Expr, op: Pair<Rule, I>, rhs: Expr| {
-        match op.as_rule() {
-            Rule::op_plus | Rule::op_minus | Rule::op_times | Rule::op_slash => {
-                Expr::Math(
-                    MathExpr {
-                        lhs: Box::new(lhs),
-                        operator: match op.as_rule() {
-                            Rule::op_plus => MathOperator::Add,
-                            Rule::op_minus => MathOperator::Sub,
-                            Rule::op_times => MathOperator::Mul,
-                            Rule::op_slash => MathOperator::Div,
-                            _ => unreachable!()
-                        },
-                        rhs: Box::new(rhs),
-                    }
-                )
+    let infix = |lhs: ExprVal, op: Pair<Rule, I>, rhs: ExprVal| {
+        ExprVal::Math(
+            MathExpr {
+                lhs: Box::new(lhs),
+                operator: match op.as_rule() {
+                    Rule::op_plus => MathOperator::Add,
+                    Rule::op_minus => MathOperator::Sub,
+                    Rule::op_times => MathOperator::Mul,
+                    Rule::op_slash => MathOperator::Div,
+                    Rule::op_modulo => MathOperator::Modulo,
+                    _ => unreachable!()
+                },
+                rhs: Box::new(rhs),
             }
-            Rule::op_lt | Rule::op_lte | Rule::op_gt | Rule::op_gte | Rule::op_ineq | Rule::op_eq => {
-                Expr::Logic(
-                    LogicExpr {
-                        lhs: Box::new(lhs),
-                        operator: match op.as_rule() {
-                            Rule::op_lt => LogicOperator::Lt,
-                            Rule::op_lte => LogicOperator::Lte,
-                            Rule::op_gt => LogicOperator::Gt,
-                            Rule::op_gte => LogicOperator::Gte,
-                            Rule::op_ineq => LogicOperator::NotEq,
-                            Rule::op_eq => LogicOperator::Eq,
-                            _ => unreachable!()
-                        },
-                        rhs: Box::new(rhs),
-                    }
-                )
-            }
-            _ => unreachable!("{:?} not supposed to get there!", op.as_rule())
-        }
+        )
     };
 
     match pair.as_rule() {
-        Rule::int => Expr::Int(pair.into_span().as_str().parse().unwrap()),
-        Rule::float => Expr::Float(pair.into_span().as_str().parse().unwrap()),
-        Rule::boolean => {
-            match pair.into_span().as_str() {
-                "true" => Expr::Bool(true),
-                "false" => Expr::Bool(false),
-                _ => unreachable!(),
-            }
+        Rule::int => ExprVal::Int(pair.as_str().parse().unwrap()),
+        Rule::float => ExprVal::Float(pair.as_str().parse().unwrap()),
+        Rule::boolean => match pair.as_str() {
+            "true" => ExprVal::Bool(true),
+            "false" => ExprVal::Bool(false),
+            _ => unreachable!(),
         },
-        Rule::test => Expr::Test(parse_test(pair)),
-        Rule::string => Expr::String(pair.into_span().as_str().replace("\"", "").to_string()),
-        Rule::context_ident => Expr::Ident(parse_ident(pair)),
-        Rule::expression => EXPR_CLIMBER.climb(pair.into_inner(), primary, infix),
-        _ => unreachable!("Got {:?} in parse_expression", pair.as_rule())
+        Rule::test => ExprVal::Test(parse_test(pair)),
+        Rule::fn_call => ExprVal::FunctionCall(parse_fn_call(pair)),
+        Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)),
+        Rule::string => ExprVal::String(pair.as_str().replace("\"", "").to_string()),
+        Rule::dotted_ident => ExprVal::Ident(pair.as_str().to_string()),
+        Rule::basic_expr => BASIC_EXPR_CLIMBER.climb(pair.into_inner(), primary, infix),
+        _ => unreachable!("Got {:?} in parse_basic_expression", pair.as_rule())
+    }
+}
+
+/// A basic expression with optional filters
+fn parse_comparison_val<I: Input>(pair: Pair<Rule, I>) -> Expr {
+    let mut expr = None;
+    let mut filters = vec![];
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::basic_expr => expr = Some(parse_basic_expression(p)),
+            Rule::filter => filters.push(parse_filter(p)),
+            _ => unreachable!(),
+        };
+    }
+
+    Expr { val: expr.unwrap(), negated: false, filters }
+}
+
+fn parse_comparison_expression<I: Input>(pair: Pair<Rule, I>) -> Expr {
+    let primary = |pair| {
+        parse_comparison_expression(pair)
+    };
+
+    let infix = |lhs: Expr, op: Pair<Rule, I>, rhs: Expr| {
+        Expr::new(
+            ExprVal::Logic(
+                LogicExpr {
+                    lhs: Box::new(lhs),
+                    operator: match op.as_rule() {
+                        Rule::op_lt => LogicOperator::Lt,
+                        Rule::op_lte => LogicOperator::Lte,
+                        Rule::op_gt => LogicOperator::Gt,
+                        Rule::op_gte => LogicOperator::Gte,
+                        Rule::op_ineq => LogicOperator::NotEq,
+                        Rule::op_eq => LogicOperator::Eq,
+                        _ => unreachable!()
+                    },
+                    rhs: Box::new(rhs),
+                }
+            )
+        )
+    };
+
+    match pair.as_rule() {
+        Rule::comparison_val => parse_comparison_val(pair),
+        Rule::comparison_expr => COMPARISON_EXPR_CLIMBER.climb(pair.into_inner(), primary, infix),
+        _ => unreachable!("Got {:?} in parse_comparison_expression", pair.as_rule())
     }
 }
 
@@ -224,54 +239,49 @@ fn parse_logic_val<I: Input>(pair: Pair<Rule, I>) -> Expr {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::op_not => negated = true,
-            Rule::expression => expr = Some(parse_expression(p)),
+            Rule::comparison_expr => expr = Some(parse_comparison_expression(p)),
             _=> unreachable!(),
         };
     }
 
-    if negated {
-        Expr::Not(Box::new(expr.unwrap()))
-    } else {
-        expr.unwrap()
-    }
+    let mut e = expr.unwrap();
+    e.negated = negated;
+    e
 }
 
-fn parse_logic_expression<I: Input>(pair: Pair<Rule, I>) -> Expr {
+fn parse_logic_expr<I: Input>(pair: Pair<Rule, I>) -> Expr {
     let primary = |pair: Pair<Rule, I>| {
-        parse_logic_expression(pair)
+        parse_logic_expr(pair)
     };
 
     let infix = |lhs: Expr, op: Pair<Rule, I>, rhs: Expr| {
         match op.as_rule() {
             Rule::op_or => {
-                Expr::Logic(LogicExpr {
+                Expr::new(ExprVal::Logic(LogicExpr {
                     lhs: Box::new(lhs),
                     operator: LogicOperator::Or,
                     rhs: Box::new(rhs)
-                })
+                }))
             }
             Rule::op_and => {
-                Expr::Logic(LogicExpr {
+                Expr::new(ExprVal::Logic(LogicExpr {
                     lhs: Box::new(lhs),
                     operator: LogicOperator::And,
                     rhs: Box::new(rhs)
-                })
+                }))
             }
             _ => unreachable!("{:?} not supposed to get there (infix of logic_expression)!", op.as_rule())
         }
     };
 
-    // So this is a bit ugly but we want to get rid of the `op_not` rule when parsing
-    // expression as this cannot output an expr on its own
-    // TODO: redo that after thinking of a better way
     match pair.as_rule() {
         Rule::logic_val => parse_logic_val(pair),
-        Rule::logic_expression => LOGIC_EXPR_CLIMBER.climb(pair.into_inner(), primary, infix),
-        _ => unreachable!("Got {:?} in parse_logic_expression", pair.as_rule())
+        Rule::logic_expr => LOGIC_EXPR_CLIMBER.climb(pair.into_inner(), primary, infix),
+        _ => unreachable!("Got {:?} in parse_logic_expr", pair.as_rule())
     }
 }
 
-fn parse_macro_call<I: Input>(pair: Pair<Rule, I>) -> Expr {
+fn parse_macro_call<I: Input>(pair: Pair<Rule, I>) -> MacroCall {
     let mut namespace = None;
     let mut name = None;
     let mut args = HashMap::new();
@@ -295,17 +305,12 @@ fn parse_macro_call<I: Input>(pair: Pair<Rule, I>) -> Expr {
         }
     }
 
-    Expr::MacroCall(MacroCall { namespace: namespace.unwrap(), name: name.unwrap(), args})
+    MacroCall { namespace: namespace.unwrap(), name: name.unwrap(), args }
 }
 
 fn parse_variable_tag<I: Input>(pair: Pair<Rule, I>) -> Node {
     let p = pair.into_inner().nth(0).unwrap();
-    match p.as_rule() {
-        Rule::macro_call => Node::VariableBlock(parse_macro_call(p)),
-        Rule::fn_call => Node::VariableBlock(Expr::FunctionCall(parse_fn_call(p))),
-        Rule::logic_expression => Node::VariableBlock(parse_logic_expression(p)),
-        _ => unreachable!()
-    }
+    Node::VariableBlock(parse_logic_expr(p))
 }
 
 fn parse_import_macro<I: Input>(pair: Pair<Rule, I>) -> Node {
@@ -365,9 +370,7 @@ fn parse_set_tag<I: Input>(pair: Pair<Rule, I>) -> Node {
                 ws.right = p.into_span().as_str() == "-%}";
             },
             Rule::ident => key = Some(p.as_str().to_string()),
-            Rule::macro_call => panic!(),
-            Rule::fn_call => panic!(),
-            Rule::logic_expression => expr = Some(parse_logic_expression(p)),
+            Rule::logic_expr=> expr = Some(parse_logic_expr(p)),
             _ => unreachable!("unexpected {:?} rule in parse_set_tag", p.as_rule()),
         }
     }
@@ -422,7 +425,8 @@ fn parse_filter_section<I: Input>(pair: Pair<Rule, I>) -> Node {
                         Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
                         Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
                         Rule::fn_call => filter = Some(parse_fn_call(p2)),
-                        _ => unreachable!(),
+                        Rule::ident => filter = Some(FunctionCall { name: p2.as_str().to_string(), args: HashMap::new() }),
+                        _ => unreachable!("Got {:?} while parsing filter_tag", p2),
                     }
                 }
             },
@@ -496,7 +500,8 @@ fn parse_macro_definition<I: Input>(pair: Pair<Rule, I>) -> Node {
                             for p3 in p2.into_inner() {
                                 match p3.as_rule() {
                                     Rule::ident => arg_name = Some(p3.as_str().to_string()),
-                                    _ => default_val = Some(parse_expression(p3)),
+                                    // no filters allowed on macro definition
+                                    _ => default_val = Some(Expr::new(parse_basic_expression(p3))),
                                 };
                             }
                             args.insert(arg_name.unwrap(), default_val);
@@ -532,8 +537,7 @@ fn parse_forloop<I: Input>(pair: Pair<Rule, I>) -> Node {
                         Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
                         Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
                         Rule::ident => idents.push(p2.as_str().to_string()),
-                        Rule::fn_call => container = Some(Expr::FunctionCall(parse_fn_call(p2))),
-                        Rule::context_ident => container = Some(Expr::Ident(parse_ident(p2))),
+                        Rule::logic_expr => container = Some(parse_logic_expr(p2)),
                         _ => unreachable!(),
                     };
                 }
@@ -599,7 +603,7 @@ fn parse_if<I: Input>(pair: Pair<Rule, I>) -> Node {
                     match p2.as_rule() {
                         Rule::tag_start => current_ws.left = p2.into_span().as_str() == "{%-",
                         Rule::tag_end => current_ws.right = p2.into_span().as_str() == "-%}",
-                        Rule::logic_expression => expr = Some(parse_logic_expression(p2)),
+                        Rule::logic_expr => expr = Some(parse_logic_expr(p2)),
                         _ => unreachable!(),
                     };
                 }

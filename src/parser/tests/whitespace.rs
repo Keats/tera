@@ -69,7 +69,7 @@ fn handle_ws_both_sides_for_forloop_tag_and_remove_empty_node() {
         Node::Forloop(start_ws, Forloop {
             key: None,
             value: "item".to_string(),
-            container: Expr::Int(1),
+            container: Expr::new(ExprVal::Int(1)),
             // not valid but we don't care about it here
             body: vec![
                 Node::Text("   ".to_string()),
@@ -85,7 +85,7 @@ fn handle_ws_both_sides_for_forloop_tag_and_remove_empty_node() {
             Node::Forloop(start_ws, Forloop {
                 key: None,
                 value: "item".to_string(),
-                container: Expr::Int(1),
+                container: Expr::new(ExprVal::Int(1)),
                 // not valid but we don't care about it here
                 body: vec![
                     Node::Text("hey".to_string()),
@@ -104,9 +104,9 @@ fn handle_ws_for_if_nodes() {
         Node::Text("C ".to_string()),
         Node::If(If {
             conditions: vec![
-                (WS { left: true, right: true }, Expr::Int(1), vec![Node::Text(" a ".to_string())]),
-                (WS { left: true, right: false }, Expr::Int(1), vec![Node::Text(" a ".to_string())]),
-                (WS { left: true, right: true }, Expr::Int(1), vec![Node::Text(" a ".to_string())]),
+                (WS { left: true, right: true }, Expr::new(ExprVal::Int(1)), vec![Node::Text(" a ".to_string())]),
+                (WS { left: true, right: false }, Expr::new(ExprVal::Int(1)), vec![Node::Text(" a ".to_string())]),
+                (WS { left: true, right: true }, Expr::new(ExprVal::Int(1)), vec![Node::Text(" a ".to_string())]),
             ],
             otherwise: None,
         }, end_ws),
@@ -119,9 +119,9 @@ fn handle_ws_for_if_nodes() {
             Node::Text("C".to_string()),
             Node::If(If {
                 conditions: vec![
-                    (WS { left: true, right: true }, Expr::Int(1), vec![Node::Text("a".to_string())]),
-                    (WS { left: true, right: false }, Expr::Int(1), vec![Node::Text(" a".to_string())]),
-                    (WS { left: true, right: true }, Expr::Int(1), vec![Node::Text("a ".to_string())]),
+                    (WS { left: true, right: true }, Expr::new(ExprVal::Int(1)), vec![Node::Text("a".to_string())]),
+                    (WS { left: true, right: false }, Expr::new(ExprVal::Int(1)), vec![Node::Text(" a".to_string())]),
+                    (WS { left: true, right: true }, Expr::new(ExprVal::Int(1)), vec![Node::Text("a ".to_string())]),
                 ],
                 otherwise: None,
             }, end_ws),
@@ -138,9 +138,9 @@ fn handle_ws_for_if_nodes_with_else() {
         Node::Text("C ".to_string()),
         Node::If(If {
             conditions: vec![
-                (WS { left: true, right: true }, Expr::Int(1), vec![Node::Text(" a ".to_string())]),
-                (WS { left: true, right: false }, Expr::Int(1), vec![Node::Text(" a ".to_string())]),
-                (WS { left: true, right: true }, Expr::Int(1), vec![Node::Text(" a ".to_string())]),
+                (WS { left: true, right: true }, Expr::new(ExprVal::Int(1)), vec![Node::Text(" a ".to_string())]),
+                (WS { left: true, right: false }, Expr::new(ExprVal::Int(1)), vec![Node::Text(" a ".to_string())]),
+                (WS { left: true, right: true }, Expr::new(ExprVal::Int(1)), vec![Node::Text(" a ".to_string())]),
             ],
             otherwise: Some((WS { left: true, right: true }, vec![Node::Text(" a ".to_string())])),
         }, end_ws),
@@ -153,9 +153,9 @@ fn handle_ws_for_if_nodes_with_else() {
             Node::Text("C".to_string()),
             Node::If(If {
                 conditions: vec![
-                    (WS { left: true, right: true }, Expr::Int(1), vec![Node::Text("a".to_string())]),
-                    (WS { left: true, right: false }, Expr::Int(1), vec![Node::Text(" a".to_string())]),
-                    (WS { left: true, right: true }, Expr::Int(1), vec![Node::Text("a".to_string())]),
+                    (WS { left: true, right: true }, Expr::new(ExprVal::Int(1)), vec![Node::Text("a".to_string())]),
+                    (WS { left: true, right: false }, Expr::new(ExprVal::Int(1)), vec![Node::Text(" a".to_string())]),
+                    (WS { left: true, right: true }, Expr::new(ExprVal::Int(1)), vec![Node::Text("a".to_string())]),
                 ],
                 otherwise: Some((WS { left: true, right: true }, vec![Node::Text("a".to_string())])),
             }, end_ws),

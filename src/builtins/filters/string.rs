@@ -4,11 +4,10 @@ use std::collections::HashMap;
 use serde_json::value::{Value, to_value};
 use slug;
 use url::percent_encoding::{utf8_percent_encode, EncodeSet};
+use regex::{Regex, Captures};
 
 use errors::Result;
 use utils;
-
-use regex::{Regex, Captures};
 
 
 lazy_static! {

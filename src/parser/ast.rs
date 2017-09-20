@@ -31,6 +31,8 @@ pub enum MathOperator {
     Mul,
     /// /
     Div,
+    /// %
+    Modulo,
 }
 
 impl fmt::Display for MathOperator {
@@ -40,6 +42,7 @@ impl fmt::Display for MathOperator {
             MathOperator::Sub => "-",
             MathOperator::Mul => "*",
             MathOperator::Div => "/",
+            MathOperator::Modulo => "%",
         })
     }
 }
@@ -88,15 +91,9 @@ pub struct FunctionCall {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Ident {
-    pub name: String,
-    pub filters: Vec<FunctionCall>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub struct MathExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<ExprVal>,
+    pub rhs: Box<ExprVal>,
     pub operator: MathOperator,
 }
 
@@ -109,26 +106,57 @@ pub struct LogicExpr {
 
 /// An expression is the node found in variable block, kwargs and conditions.
 #[derive(Clone, Debug, PartialEq)]
-pub enum Expr {
+pub enum ExprVal {
     String(String),
     Int(i64),
     Float(f64),
     Bool(bool),
-    Ident(Ident),
+    Ident(String),
     Math(MathExpr),
     Logic(LogicExpr),
     Test(Test),
     MacroCall(MacroCall),
     FunctionCall(FunctionCall),
-    // A negated expression is still an expression!
-    Not(Box<Expr>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Expr {
+    pub val: ExprVal,
+    pub negated: bool,
+    pub filters: Vec<FunctionCall>,
+}
+
+impl Expr {
+    pub fn new(val: ExprVal) -> Expr {
+        Expr {
+            val,
+            negated: false,
+            filters: vec![],
+        }
+    }
+
+    pub fn new_negated(val: ExprVal) -> Expr {
+        Expr {
+            val,
+            negated: true,
+            filters: vec![],
+        }
+    }
+
+    pub fn with_filters(val: ExprVal, filters: Vec<FunctionCall>) -> Expr {
+        Expr {
+            val,
+            filters,
+            negated: false,
+        }
+    }
 }
 
 /// A test node `if my_var is odd`
 #[derive(Clone, Debug, PartialEq)]
 pub struct Test {
     /// Which expression is evaluated
-    pub ident: Ident,
+    pub ident: String,
     /// Name of the test
     pub name: String,
     /// Any optional arg given to the test

@@ -38,7 +38,7 @@ pub struct Template {
     /// The definition of all the blocks for the current template and the definition of those blocks
     /// in parent templates if there are some.
     /// Needed for super() to work without having to find them each time.
-    /// The type corresponds to the following block_name -> [(template name, definition)]
+    /// The type corresponds to the following `block_name -> [(template name, definition)]`
     /// The order of the Vec is from the first in hierarchy to the current template and the template
     /// name is needed in order to load its macros if necessary.
     pub blocks_definitions: HashMap<String, Vec<(String, Block)>>,
@@ -53,7 +53,7 @@ impl Template {
         // First we want all the blocks used in that template
         // This is recursive as we can have blocks inside blocks
         let mut blocks = HashMap::new();
-        fn find_blocks(ast: &Vec<Node>, blocks: &mut HashMap<String, Block>) -> Result<()> {
+        fn find_blocks(ast: &[Node], blocks: &mut HashMap<String, Block>) -> Result<()> {
             for node in ast {
                 match *node {
                     Node::Block(_, ref block, _) => {

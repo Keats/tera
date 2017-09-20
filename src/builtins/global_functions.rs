@@ -47,43 +47,6 @@ pub fn make_range_fn() -> GlobalFn {
     })
 }
 
-//pub let range_fn = |args: HashMap<String, Value>| -> Result<Value> {
-//    let start = match args.get("start") {
-//        Some(val) => match from_value::<usize>(val.clone()) {
-//            Ok(v) => v,
-//            Err(_) => bail!("Global function `range` received start={} but `start` can only be a number"),
-//        },
-//        None => 0,
-//    };
-//    let step_by = match args.get("step_by") {
-//        Some(val) => match from_value::<usize>(val.clone()) {
-//            Ok(v) => v,
-//            Err(_) => bail!("Global function `range` received step_by={} but `step` can only be a number"),
-//        },
-//        None => 1,
-//    };
-//    let end = match args.get("end") {
-//        Some(val) => match from_value::<usize>(val.clone()) {
-//            Ok(v) => v,
-//            Err(_) => bail!("Global function `range` received end={} but `end` can only be a number"),
-//        },
-//        None => bail!("Global function `range` was called without a `end` argument"),
-//    };
-//
-//    if start > end {
-//        bail!("Global function `range` was called without a `start` argument greater than the `end` one");
-//    }
-//
-//    let mut i = start;
-//    let mut res = vec![];
-//    while i < end {
-//        res.push(i);
-//        i += step_by;
-//    }
-//    Ok(to_value(res).unwrap())
-//}
-
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;

@@ -66,44 +66,125 @@ fn lex_dotted_ident() {
     }
 }
 
-
 #[test]
-fn lex_expression() {
+fn lex_basic_expr() {
     let inputs = vec![
+        "admin",
+        "true",
+        "macros::something()",
+        "something()",
+        r#""hey""#,
+        "a is defined",
+        "a is defined(2)",
         "1 + 1",
+        "1 + counts",
+        "1 + counts.first",
         "1 + 2 + 3 * 9/2 + 2.1",
-        "index + 1 > 1",
-        "show == false",
-        "name == \"bob\"",
-        "x is defined",
+        "(1 + 2 + 3) * 9/2 + 2.1",
+        "10 * 2 % 5",
     ];
 
     for i in inputs {
-        assert_lex_rule!(Rule::expression, i);
+        assert_lex_rule!(Rule::basic_expr, i);
     }
 }
 
 #[test]
-fn lex_logic_expression() {
+fn lex_comparison_val() {
     let inputs = vec![
-        // expressions still work
+        // all the basic expr still work
+        "admin",
+        "true",
+        "macros::something()",
+        "something()",
+        r#""hey""#,
+        "a is defined",
+        "a is defined(2)",
         "1 + 1",
+        "1 + counts",
+        "1 + counts.first",
         "1 + 2 + 3 * 9/2 + 2.1",
-        "index + 1 > 1",
-        "show == false",
-        "name == \"bob\"",
-        // but also logic one
-        "not show",
-        "1 > 2 or 3 == 4 and admin",
-        "not user_count or true",
-        "x > 10 or x is defined",
-        "x is defined or x > 10",
+        "(1 + 2 + 3) * 9/2 + 2.1",
+        "10 * 2 % 5",
+        // but now ones with filters also work
+        "admin | upper",
+        "admin | upper | round",
+        "admin | upper | round(var=2)",
+        "1.5 + a | round(var=2)",
     ];
 
     for i in inputs {
-        assert_lex_rule!(Rule::logic_expression, i);
+        assert_lex_rule!(Rule::comparison_val, i);
     }
 }
+
+#[test]
+fn lex_comparison_expr() {
+    let inputs = vec![
+        "1.5 + a | round(var=2) > 10",
+        "1.5 + a | round(var=2) > a | round",
+        "a == b",
+        "a + 1 == b",
+        "a != b",
+        "a % 2 == 0",
+        "a > b",
+        "a >= b",
+        "a < b",
+        "a <= b",
+        "true > false",
+    ];
+
+    for i in inputs {
+        assert_lex_rule!(Rule::comparison_expr, i);
+    }
+}
+
+#[test]
+fn lex_logic_val() {
+    let inputs = vec![
+        // all the basic expr still work
+        "admin",
+        "true",
+        "macros::something()",
+        "something()",
+        r#""hey""#,
+        "a is defined",
+        "a is defined(2)",
+        "1 + 1",
+        "1 + counts",
+        "1 + counts.first",
+        "1 + 2 + 3 * 9/2 + 2.1",
+        "(1 + 2 + 3) * 9/2 + 2.1",
+        "10 * 2 % 5",
+        // filters still work
+        "admin | upper",
+        "admin | upper | round",
+        "admin | upper | round(var=2)",
+        "1.5 + a | round(var=2)",
+        // but now we can negate things
+        "not true",
+        "not admin",
+        "not num + 1 == 0",
+    ];
+
+    for i in inputs {
+        assert_lex_rule!(Rule::logic_val, i);
+    }
+}
+
+#[test]
+fn lex_logic_expr() {
+    let inputs = vec![
+        "1.5 + a | round(var=2) > 10 and admin",
+        "1.5 + a | round(var=2) > a | round or true",
+        "1 > 0 and 2 < 3",
+    ];
+
+    for i in inputs {
+        assert_lex_rule!(Rule::logic_expr, i);
+    }
+}
+
 
 #[test]
 fn lex_kwarg() {
@@ -160,23 +241,6 @@ fn lex_filter() {
     ];
     for i in inputs {
         assert_lex_rule!(Rule::filter, i);
-    }
-}
-
-#[test]
-fn lex_context_ident() {
-    let inputs = vec![
-        "hello",
-        "hello.hey",
-        "hello | attr",
-        "hello|attr",
-        "hello|attr(key=1)",
-        "hello|attr(key=1, more=true)",
-        "hello|attr(key=1, more=true)|more",
-        "hello|attr(key=1,more=true)|another|more(ok=1)",
-    ];
-    for i in inputs {
-        assert_lex_rule!(Rule::context_ident, i);
     }
 }
 

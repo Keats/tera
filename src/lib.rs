@@ -5,12 +5,11 @@
 //! See the [README](https://github.com/Keats/tera/blob/master/README.md) for features and
 //! to get started.
 
-// Needed by pest
-#![recursion_limit = "300"]
-#![deny(missing_docs)]
+#![allow(missing_docs)]
+//#![deny(missing_docs)]
 #![allow(unused)]
 
-#![cfg_attr(feature = "cargo-clippy", allow(block_in_if_condition_stmt, linkedlist, eq_op))]
+#![cfg_attr(feature = "cargo-clippy", allow(block_in_if_condition_stmt, eq_op))]
 
 extern crate serde;
 extern crate serde_json;
@@ -31,41 +30,34 @@ extern crate chrono;
 #[macro_use]
 extern crate pretty_assertions;
 
-mod errors;
-//mod context;
 #[macro_use]
 mod macros;
+mod errors;
+mod context;
 mod parser;
 mod template;
-
-//mod parser_old;
-//mod render;
-//mod tera;
-//mod filters;
-//mod testers;
-//mod utils;
-//mod global_functions;
+mod utils;
+mod builtins;
+mod renderer;
+mod tera;
 
 
 // Library exports.
 
 // Template is meant to be used internally only but is exported for test/bench.
-//#[doc(hidden)] pub use template::Template;
-//pub use context::Context;
-//pub use tera::Tera;
-//pub use errors::{Result, Error, ErrorKind};
-//pub use utils::{escape_html};
-//pub use global_functions::GlobalFn;
-//pub use filters::FilterFn;
-//pub use testers::TesterFn;
+#[doc(hidden)] pub use template::Template;
+pub use context::Context;
+pub use tera::Tera;
+pub use errors::{Result, Error, ErrorKind};
+pub use utils::{escape_html};
+pub use builtins::global_functions::GlobalFn;
+pub use builtins::filters::FilterFn;
+pub use builtins::testers::TesterFn;
 //// Re-export Value so apps/tools can encode data in Tera types
-//// for now it's serde_json
-//pub use serde_json::value::{Value, from_value, to_value};
+//// for now it's just an alias to serde_json::Value
+pub use serde_json::value::{Value, from_value, to_value};
 
 // Exposes the AST if one needs it but changing the AST is not considered
 // a breaking change so it isn't public
-//#[doc(hidden)]
-//pub mod ast {
-//    pub use parser_old::Operator;
-//    pub use parser_old::Node;
-//}
+#[doc(hidden)]
+pub use parser::ast;
