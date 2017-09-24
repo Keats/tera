@@ -783,4 +783,48 @@ mod tests {
         my_tera.extend(&framework_tera).unwrap();
         assert!(my_tera.testers.contains_key("hello"));
     }
+
+    #[test]
+    fn can_load_from_glob() {
+        let mut tera = Tera::new("examples/templates/**/*").unwrap();
+        assert!(tera.get_template("base.html").is_ok());
+    }
+
+    #[test]
+    fn full_reload_with_glob() {
+        let mut tera = Tera::new("examples/templates/**/*").unwrap();
+        tera.full_reload().unwrap();
+
+        assert!(tera.get_template("base.html").is_ok());
+    }
+
+    #[test]
+    fn full_reload_with_glob_after_extending() {
+        let mut tera = Tera::new("examples/templates/**/*").unwrap();
+        let mut framework_tera = Tera::default();
+        framework_tera.add_raw_templates(vec![
+            ("one", "FRAMEWORK"),
+            ("four", "Framework X"),
+        ]).unwrap();
+        tera.extend(&framework_tera).unwrap();
+        tera.full_reload().unwrap();
+
+        assert!(tera.get_template("base.html").is_ok());
+        assert!(tera.get_template("one").is_ok());
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_can_only_parse_templates() {
+        let mut tera = Tera::parse("examples/templates/**/*").unwrap();
+        for tpl in tera.templates.values_mut() {
+            tpl.name = format!("a-theme/templates/{}", tpl.name);
+            if let Some(ref parent) = tpl.parent.clone() {
+                tpl.parent = Some(format!("a-theme/templates/{}", parent));
+            }
+        }
+        // Will panic here as we changed the parent and it won't be able
+        // to build the inheritance chain in this case
+        tera.build_inheritance_chains().unwrap();
+    }
 }

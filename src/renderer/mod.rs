@@ -570,7 +570,7 @@ impl<'a> Renderer<'a> {
             },
             Node::ImportMacro(_, ref filename, ref namespace) => {
                 let tpl = self.tera.get_template(filename)?;
-                let mut macros = self.macros.pop().unwrap_or_else(|| HashMap::new());
+                let mut macros = self.macros.pop().unwrap_or_else(HashMap::new);
                 macros.insert(namespace.to_string(), &tpl.macros);
                 self.macros.push(macros);
 

@@ -30,9 +30,9 @@ lazy_static! {
         // +, -
         Operator::new(Rule::op_plus, Assoc::Left) | Operator::new(Rule::op_minus, Assoc::Left),
         // *, /, %
-        Operator::new(Rule::op_times, Assoc::Left)
-        | Operator::new(Rule::op_slash, Assoc::Left)
-        | Operator::new(Rule::op_modulo, Assoc::Left),
+        Operator::new(Rule::op_times, Assoc::Left) |
+        Operator::new(Rule::op_slash, Assoc::Left) |
+        Operator::new(Rule::op_modulo, Assoc::Left),
     ]);
     static ref COMPARISON_EXPR_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
         // <, <=, >, >=, ==, !=
