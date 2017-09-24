@@ -3,6 +3,7 @@ use context::Context;
 use errors::Result;
 use tera::Tera;
 
+use super::Review;
 
 fn render_template(content: &str, context: &Context) -> Result<String> {
     let mut tera = Tera::default();
@@ -61,15 +62,18 @@ fn render_variable_block_ident() {
     context.add("b", &3);
     context.add("numbers", &vec![1, 2, 3]);
     context.add("tuple_list", &vec![(1, 2, 3), (1, 2, 3)]);
+    context.add("review", &Review::new());
 
     let inputs = vec![
         ("{{ name }}", "john"),
         ("{{ malicious }}", "&lt;html&gt;"),
         ("{{ \"<html>\" }}", "&lt;html&gt;"),
+        ("{{ \" html \" | upper | trim }}", "HTML"),
         ("{{ malicious | safe }}", "<html>"),
         ("{{ malicious | upper }}", "&LT;HTML&GT;"), // everything upper eh
         ("{{ malicious | upper | safe }}", "&LT;HTML&GT;"),
         ("{{ malicious | safe | upper }}", "<HTML>"),
+        ("{{ review.paragraphs.1 }}", "B"),
         ("{{ numbers }}", "[1, 2, 3]"),
         ("{{ numbers.0 }}", "1"),
         ("{{ tuple_list.1.1 }}", "2"),
@@ -320,6 +324,8 @@ fn render_for() {
         ),
         // https://github.com/Keats/tera/issues/184
         ("{% for note in notes %}{{ note }}{% endfor %}", "123"),
+        ("{% for note in notes | reverse %}{{ note }}{% endfor %}", "321"),
+        ("{% for v in vectors %}{{ v.0 }}{% endfor %}", "01"),
     ];
 
     for (input, expected) in inputs {
@@ -338,6 +344,23 @@ fn render_magic_variable_isnt_escaped() {
     assert_eq!(result.unwrap(), r#"{
   "html": "<html>"
 }"#.to_owned());
+}
+
+// https://github.com/Keats/tera/issues/185
+#[test]
+fn test_ok_many_variable_blocks() {
+    let mut context = Context::new();
+    context.add("username", &"bob");
+
+    let mut tpl = String::new();
+    for i in 0..200 {
+        tpl.push_str("{{ username }}")
+    }
+    let mut expected = String::new();
+    for i in 0..200 {
+        expected.push_str("bob")
+    }
+    assert_eq!(render_template(&tpl, &context).unwrap(), expected);
 }
 
 //

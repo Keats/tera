@@ -3,9 +3,12 @@ use parser::ast::*;
 
 macro_rules! trim_right_previous {
     ($vec: expr) => {
-        if let Some(last) = $vec.last_mut() {
-            if let Node::Text(ref mut s) = *last {
-                *s = s.trim_right().to_string()
+        if let Some(last) = $vec.pop() {
+            if let Node::Text(mut s) = last {
+                s = s.trim_right().to_string();
+                if !s.is_empty() {
+                    $vec.push(Node::Text(s));
+                }
             }
         }
     };
@@ -36,7 +39,6 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
         match n {
             Node::Text(s) => {
                 previous_was_text = true;
-
                 if !trim_left_next {
                     res.push(Node::Text(s));
                     continue;
@@ -76,8 +78,9 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                     continue;
                 }
             },
-            // Those 3 nodes have a body surrounded by 2 tags
+            // Those nodes have a body surrounded by 2 tags
             Node::Forloop(start_ws, _, end_ws)
+            | Node::MacroDefinition(start_ws, _, end_ws)
             | Node::FilterSection(start_ws, _, end_ws)
             | Node::Block(start_ws, _, end_ws) => {
                 trim_right_previous!(previous_was_text && start_ws.left, res);
@@ -90,6 +93,10 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                     Node::Forloop(_, mut forloop, _) => {
                         forloop.body = remove_whitespace(forloop.body, Some(body_ws));
                         res.push(Node::Forloop(start_ws, forloop, end_ws));
+                    }
+                    Node::MacroDefinition(_, mut macro_def, _) => {
+                        macro_def.body = remove_whitespace(macro_def.body, Some(body_ws));
+                        res.push(Node::MacroDefinition(start_ws, macro_def, end_ws));
                     }
                     Node::FilterSection(_, mut filter_section, _) => {
                         filter_section.body = remove_whitespace(filter_section.body, Some(body_ws));
@@ -161,7 +168,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 res.push(Node::If(If { conditions: new_conditions, otherwise }, end_ws));
                 continue;
             },
-            Node::Super | Node::VariableBlock(_) | Node::MacroDefinition(_) => (),
+            Node::Super | Node::VariableBlock(_) => (),
         };
 
         // If we are there, that means it's not a text node and we didn't have to modify the node

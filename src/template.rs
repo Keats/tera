@@ -80,7 +80,7 @@ impl Template {
         for node in &ast {
             match *node {
                 Node::Extends(_, ref name) => parent = Some(name.to_string()),
-                Node::MacroDefinition(ref macro_def) => {
+                Node::MacroDefinition(_, ref macro_def, _) => {
                     if macros.contains_key(&macro_def.name) {
                         bail!("Macro `{}` is duplicated", macro_def.name);
                     }

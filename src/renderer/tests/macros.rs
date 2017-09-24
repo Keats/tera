@@ -2,6 +2,8 @@ use context::Context;
 use errors::Result;
 use tera::Tera;
 
+use super::NestedObject;
+
 #[test]
 fn render_macros() {
     let mut tera = Tera::default();
@@ -122,6 +124,47 @@ fn render_macros_override_default_args() {
         ("hello.html", "{% import \"macros\" as macros %}{{macros::hello(val=2)}}"),
     ]).unwrap();
     let result = tera.render("hello.html", &Context::new());
+
+    assert_eq!(result.unwrap(), "2".to_string());
+}
+
+#[test]
+fn render_recursive_macro() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("macros", "{% macro factorial(n) %}{% if n > 1 %}{{ n }} - {{ self::factorial(n=n-1) }}{% else %}1{% endif %}{{ n }}{% endmacro factorial %}"),
+        ("hello.html", "{% import \"macros\" as macros %}{{macros::factorial(n=7)}}"),
+    ]).unwrap();
+    let result = tera.render("hello.html", &Context::new());
+
+    assert_eq!(result.unwrap(), "7 - 6 - 5 - 4 - 3 - 2 - 11234567".to_string());
+}
+
+// https://github.com/Keats/tera/issues/202
+#[test]
+fn recursive_macro_with_loops() {
+    let parent = NestedObject { label: "Parent".to_string(), parent: None, numbers: vec![1, 2, 3] };
+    let child = NestedObject { label: "Child".to_string(), parent: Some(Box::new(parent)), numbers: vec![1, 2, 3] };
+    let mut context = Context::new();
+    context.add("objects", &vec![child]);
+    let mut tera = Tera::default();
+
+    tera.add_raw_templates(vec![
+        (
+            "macros.html",
+            r#"
+            {% macro label_for(obj, sep) -%}
+              {%- if obj.parent -%}{{ self::label_for(obj=obj.parent, sep=sep) }}{{sep}}{%- endif -%}{{obj.label}}{%- for i in obj.numbers -%}{{ i }}{%- endfor -%}
+            {%- endmacro label_for %}
+            "#
+        ),
+        (
+            "recursive",
+            r#"{% import "macros.html" as macros %}{%- for obj in objects -%}{{ macros::label_for(obj=obj, sep="|") }}{%- endfor -%}"#
+        ),
+    ]).unwrap();
+
+    let result = tera.render("recursive", &context);
 
     assert_eq!(result.unwrap(), "2".to_string());
 }

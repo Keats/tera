@@ -531,14 +531,18 @@ fn parse_simple_macro_definition() {
 
     assert_eq!(
         ast[0],
-        Node::MacroDefinition(MacroDefinition {
-            name: "hello".to_string(),
-            args,
-            body: vec![
-                Node::Text("A: ".to_string()),
-                Node::VariableBlock(Expr::new(ExprVal::Ident("a".to_string()))),
-            ],
-        })
+        Node::MacroDefinition(
+            WS::default(),
+            MacroDefinition {
+                name: "hello".to_string(),
+                args,
+                body: vec![
+                    Node::Text("A: ".to_string()),
+                    Node::VariableBlock(Expr::new(ExprVal::Ident("a".to_string()))),
+                ],
+            },
+            WS::default(),
+        )
     );
 }
 

@@ -234,7 +234,7 @@ pub enum Node {
     /// A `{{ }}` block
     VariableBlock(Expr),
     /// A `{% macro hello() %}...{% endmacro %}`
-    MacroDefinition(MacroDefinition),
+    MacroDefinition(WS, MacroDefinition, WS),
 
     /// The `{% extends "blabla.html" %}` node, contains the template name
     Extends(WS, String),

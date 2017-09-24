@@ -484,6 +484,8 @@ fn parse_block<I: Input>(pair: Pair<Rule, I>) -> Node {
 }
 
 fn parse_macro_definition<I: Input>(pair: Pair<Rule, I>) -> Node {
+    let mut start_ws = WS::default();
+    let mut end_ws = WS::default();
     let mut name = None;
     let mut args = HashMap::new();
     let mut body = vec![];
@@ -493,6 +495,8 @@ fn parse_macro_definition<I: Input>(pair: Pair<Rule, I>) -> Node {
             Rule::macro_tag => {
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
+                        Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
+                        Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
                         Rule::ident => name = Some(p2.as_str().to_string()),
                         Rule::macro_def_arg => {
                             let mut arg_name = None;
@@ -511,12 +515,21 @@ fn parse_macro_definition<I: Input>(pair: Pair<Rule, I>) -> Node {
                 }
             },
             Rule::macro_content => body.extend(parse_content(p)),
-            Rule::endmacro_tag => (),
+            Rule::endmacro_tag => {
+                for p2 in p.into_inner() {
+                    match p2.as_rule() {
+                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::ident => (),
+                        _ => unreachable!(),
+                    };
+                }
+            },
             _ => unreachable!("unexpected {:?} rule in parse_macro_definition", p.as_rule()),
         }
     }
 
-    Node::MacroDefinition(MacroDefinition {name: name.unwrap(), args, body})
+    Node::MacroDefinition(start_ws, MacroDefinition {name: name.unwrap(), args, body}, end_ws)
 }
 
 fn parse_forloop<I: Input>(pair: Pair<Rule, I>) -> Node {
