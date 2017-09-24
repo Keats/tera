@@ -696,6 +696,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                 nodes.push(Node::Extends(ws, file));
             }
             Rule::content => nodes.extend(parse_content(p)),
+            Rule::comment_tag => (),
             _ => unreachable!("unknown tpl rule: {:?}", p.as_rule()),
         }
     }

@@ -34,6 +34,11 @@ fn parse_extends() {
     assert_eq!(ast[0], Node::Extends(WS {left: false, right: true}, "index.html".to_string()));
 }
 
+#[test]
+fn parse_comments_before_extends() {
+    let ast = parse("{# A comment #}{% extends \"index.html\" -%}").unwrap();
+    assert_eq!(ast[0], Node::Extends(WS {left: false, right: true}, "index.html".to_string()));
+}
 
 #[test]
 fn parse_import_macro() {

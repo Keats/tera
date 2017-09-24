@@ -18,6 +18,7 @@ if you want the old behaviour you will need to start the a chain of filters with
 the start and end tag anymore
 - Filters can now be applied to expressions
 - Add modulo operator `%` for math expressions
+- Allow comment tags before the extend tag
 
 ## 0.10.10 (2017-08-24)
 

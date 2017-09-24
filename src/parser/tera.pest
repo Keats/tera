@@ -208,4 +208,4 @@ content = @{
 extends_tag = !{ tag_start ~ "extends" ~ string ~ tag_end }
 
 // top level rule
-template = ${ soi ~ extends_tag? ~ content* ~ eoi }
+template = ${ soi ~ comment_tag* ~ extends_tag? ~ content* ~ eoi }
