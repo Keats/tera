@@ -153,18 +153,27 @@ fn recursive_macro_with_loops() {
         (
             "macros.html",
             r#"
-            {% macro label_for(obj, sep) -%}
-              {%- if obj.parent -%}{{ self::label_for(obj=obj.parent, sep=sep) }}{{sep}}{%- endif -%}{{obj.label}}{%- for i in obj.numbers -%}{{ i }}{%- endfor -%}
-            {%- endmacro label_for %}
+{% macro label_for(obj, sep) -%}
+  {%- if obj.parent -%}
+    {{ self::label_for(obj=obj.parent, sep=sep) }}{{sep}}
+  {%- endif -%}
+  {{obj.label}}
+  {%- for i in obj.numbers -%}{{ i }}{%- endfor -%}
+{%- endmacro label_for %}
             "#
         ),
         (
             "recursive",
-            r#"{% import "macros.html" as macros %}{%- for obj in objects -%}{{ macros::label_for(obj=obj, sep="|") }}{%- endfor -%}"#
+            r#"
+{%- import "macros.html" as macros -%}
+{%- for obj in objects -%}
+    {{ macros::label_for(obj=obj, sep="|") }}
+{%- endfor -%}
+"#
         ),
     ]).unwrap();
 
     let result = tera.render("recursive", &context);
 
-    assert_eq!(result.unwrap(), "2".to_string());
+    assert_eq!(result.unwrap(), "Parent123|Child123".to_string());
 }

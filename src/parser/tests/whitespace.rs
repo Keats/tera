@@ -73,7 +73,7 @@ fn handle_ws_both_sides_for_macro_definitions() {
                 name: "something".to_string(),
                 args: HashMap::new(),
                 body: vec![
-                    Node::Text("  ".to_string()),
+                    Node::Text("\n  ".to_string()),
                     Node::Text("hey".to_string()),
                     Node::Text("  ".to_string()),
                 ]

@@ -9,6 +9,8 @@ macro_rules! trim_right_previous {
                 if !s.is_empty() {
                     $vec.push(Node::Text(s));
                 }
+            } else {
+                $vec.push(last);
             }
         }
     };
@@ -39,6 +41,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
         match n {
             Node::Text(s) => {
                 previous_was_text = true;
+
                 if !trim_left_next {
                     res.push(Node::Text(s));
                     continue;
