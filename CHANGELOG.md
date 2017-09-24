@@ -20,6 +20,7 @@ the start and end tag anymore
 - Filters can now be applied to expressions
 - Add modulo operator `%` for math expressions
 - Allow comment tags before the extend tag
+- Make `NaiveDateTime` work with the `date` filter
 
 ## 0.10.10 (2017-08-24)
 

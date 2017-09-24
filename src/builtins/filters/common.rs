@@ -60,7 +60,10 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
             if s.contains('T') {
                 match s.parse::<DateTime<FixedOffset>>() {
                     Ok(val) => Ok(to_value(&val.format(&format).to_string())?),
-                    Err(_) => bail!("Error parsing `{:?}` as rfc3339 date", s)
+                    Err(_) => match s.parse::<NaiveDateTime>() {
+                        Ok(val) => Ok(to_value(&val.format(&format).to_string())?),
+                        Err(_) => bail!("Error parsing `{:?}` as rfc3339 date or naive datetime", s)
+                    }
                 }
             } else {
                 match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
@@ -88,49 +91,49 @@ mod tests {
     use chrono::{DateTime, Local};
 
     #[test]
-    fn test_length_vec() {
+    fn length_vec() {
         let result = length(to_value(&vec![1, 2, 3, 4]).unwrap(), HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&4).unwrap());
     }
 
     #[test]
-    fn test_length_str() {
+    fn length_str() {
         let result = length(to_value(&"Hello World").unwrap(), HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&11).unwrap());
     }
 
     #[test]
-    fn test_length_str_nonascii() {
+    fn length_str_nonascii() {
         let result = length(to_value(&"日本語").unwrap(), HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&3).unwrap());
     }
 
     #[test]
-    fn test_length_num() {
+    fn length_num() {
         let result = length(to_value(&15).unwrap(), HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&0).unwrap());
     }
 
     #[test]
-    fn test_reverse_vec() {
+    fn reverse_vec() {
         let result = reverse(to_value(&vec![1, 2, 3, 4]).unwrap(), HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&vec![4, 3, 2, 1]).unwrap());
     }
 
     #[test]
-    fn test_reverse_str() {
+    fn reverse_str() {
         let result = reverse(to_value(&"Hello World").unwrap(), HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&"dlroW olleH").unwrap());
     }
 
     #[test]
-    fn test_reverse_num() {
+    fn reverse_num() {
         let result = reverse(to_value(&1.23).unwrap(), HashMap::new());
         assert!(result.is_err());
         assert_eq!(
@@ -140,7 +143,7 @@ mod tests {
     }
 
     #[test]
-    fn test_date_default() {
+    fn date_default() {
         let args = HashMap::new();
         let result = date(to_value(1482720453).unwrap(), args);
         assert!(result.is_ok());
@@ -148,7 +151,7 @@ mod tests {
     }
 
     #[test]
-    fn test_date_custom_format() {
+    fn date_custom_format() {
         let mut args = HashMap::new();
         args.insert("format".to_string(), to_value("%Y-%m-%d %H:%M").unwrap());
         let result = date(to_value(1482720453).unwrap(), args);
@@ -157,7 +160,7 @@ mod tests {
     }
 
     #[test]
-    fn test_date_rfc3339() {
+    fn date_rfc3339() {
         let args = HashMap::new();
         let dt: DateTime<Local> = Local::now();
         let result = date(to_value(dt.to_rfc3339()).unwrap(), args);
@@ -166,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    fn test_date_rfc3339_preserves_timezone() {
+    fn date_rfc3339_preserves_timezone() {
         let mut args = HashMap::new();
         args.insert("format".to_string(), to_value("%Y-%m-%d %z").unwrap());
         let result = date(to_value("1996-12-19T16:39:57-08:00").unwrap(), args);
@@ -175,11 +178,21 @@ mod tests {
     }
 
     #[test]
-    fn test_date_yyyy_mm_dd() {
+    fn date_yyyy_mm_dd() {
         let mut args = HashMap::new();
         args.insert("format".to_string(), to_value("%a, %d %b %Y %H:%M:%S %z").unwrap());
         let result = date(to_value("2017-03-05").unwrap(), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00 +0000").unwrap());
+    }
+
+    #[test]
+    fn date_from_naive_datetime() {
+        let mut args = HashMap::new();
+        args.insert("format".to_string(), to_value("%a, %d %b %Y %H:%M:%S").unwrap());
+        let result = date(to_value("2017-03-05T00:00:00.602").unwrap(), args);
+        println!("{:?}", result);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00").unwrap());
     }
 }
