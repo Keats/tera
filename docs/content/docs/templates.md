@@ -10,7 +10,7 @@ when it is rendered. The syntax is based on Jinja2 and Django templates.
 There are 3 kinds of delimiter and those cannot be changed:
 
 - `{{` and `}}` for expressions
-- `{%` and `%}` for statements
+- `{%` or `{%-` and `%}` or `-%}` for statements
 - `{#` and `#}` for comments
 
 ## Variables
@@ -27,7 +27,7 @@ A magical variable is available in every template if you want to print the curre
 
 ## Expressions
 
-Tera allows expressions everywhere.
+Tera allows expressions almost everywhere.
 
 ### Math
 You can do some basic math in Tera but it shouldn't be abused other than the occasional `+ 1` or similar.
@@ -38,6 +38,7 @@ You can use the following operators:
 - `-`: performs a substraction, `{{ 2 - 1 }}` will print `1`
 - `/`: performs a division, `{{ 10 / 2 }}` will print `5`
 - `*`: performs a multiplication, `{{ 5 * 2 }}` will print `10`
+- `%`: performs a modulo, `{{ 2 % 2 }}` will print `0`
 
 ### Comparisons
 
@@ -61,7 +62,7 @@ Filters are separated from the variable by a pipe symbol (|) and may have named 
 Multiple filters can be chained: the output of one filter is applied to the next.
 
 For example, `{{ name | lower | replace(from="doctor", to="Dr.") }}` will take a variable called name, make it lowercase and then replace instances of `doctor` by `Dr.`. 
-It is equivalent to `replace(lower(name), from="doctor", to="Dr.")` if we were to look at it as function
+It is equivalent to `replace(lower(name), from="doctor", to="Dr.")` if we were to look at it as functions.
 
 Calling filters on a incorrect type like trying to capitalize an array or using invalid types for arguments will result in a error.
 
@@ -93,7 +94,7 @@ are made in `if` blocks using the `is` keyword.
 For example, you would write the following to test if an expression is odd:
 
 ```jinja2
-{% if my_number + 1 is odd %}
+{% if my_number is odd %}
  Odd
 {% endif %}
 ```
@@ -375,6 +376,32 @@ render what's inside. Useful if you have text that contains Tera delimiters.
 {% endraw %}
 ```
 would be rendered as `Hello {{ name }}`.
+
+## Whitespace control
+
+Tera comes with easy to use whitespace control: use `{%-` if you want to remove all whitespace
+before a statement and `-%}` if you want to remove all whitespace after.
+
+For example, let's look at the following template:
+
+```jinja2
+{% set my_var = 2 %}
+{{ my_var }}
+```
+
+will have the following output:
+
+```html
+
+2
+```
+
+If we want to get rid of the empty line, we can write the following:
+
+```jinja2
+{% set my_var = 2 -%}
+{{ my_var }}
+```
 
 ## Built-in filters
 
