@@ -92,7 +92,7 @@ impl Tera {
     ///    }
     ///};
     ///tera.build_inheritance_chains()?;
-    ///```
+    /// ```
     pub fn parse(dir: &str) -> Result<Tera> {
         Self::create(dir, true)
     }
