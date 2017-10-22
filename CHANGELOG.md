@@ -21,6 +21,8 @@ the start and end tag anymore
 - Add modulo operator `%` for math expressions
 - Allow comment tags before the extend tag
 - Make `NaiveDateTime` work with the `date` filter
+- `pluralize` filter now returns the plural suffix for 0 thing as it's apparently
+what English does
 
 ## 0.10.10 (2017-08-24)
 
