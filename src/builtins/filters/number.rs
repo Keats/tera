@@ -15,7 +15,8 @@ pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         None => "s".to_string(),
     };
 
-    if num >= 2.0 {
+    // English uses plural with zero or more than one thing
+    if num == 0.0 || num >= 2.0 {
         Ok(to_value(&suffix).unwrap())
     } else {
         Ok(to_value(&"").unwrap())
@@ -78,6 +79,13 @@ mod tests {
     #[test]
     fn test_pluralize_multiple() {
         let result = pluralize(to_value(2).unwrap(), HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("s").unwrap());
+    }
+
+    #[test]
+    fn test_pluralize_zero() {
+        let result = pluralize(to_value(0).unwrap(), HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("s").unwrap());
     }
