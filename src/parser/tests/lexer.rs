@@ -400,6 +400,8 @@ fn lex_set_tag() {
         "{% set a = macros::fn_call(with_args=true, name=name) %}",
         "{% set a = var | caps %}",
         "{% set a = var +1 >= 2%}",
+        "{% set_global a = var +1 >= 2%}",
+        "{%- set_global a = var +1 >= 2 -%}",
     ];
 
     for i in inputs {

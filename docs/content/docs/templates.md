@@ -161,6 +161,16 @@ assignments outside of those will be set in the global context.
 {% set my_var = global_fn() %}
 ```
 
+If you want to assign a value in the global context while in a forloop, you can use `set_global`:
+
+```jinja2
+{% set_global my_var = "hello" %}
+{% set_global my_var = 1 + 4 %}
+{% set_global my_var = some_var %}
+{% set_global my_var = macros::some_macro() %}
+{% set_global my_var = global_fn() %}
+```
+
 ## Comments
 To comment out part of the template, wrap it in `{# #}`. Anything in between those tags
 will not be rendered.

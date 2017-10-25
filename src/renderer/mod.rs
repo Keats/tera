@@ -147,7 +147,7 @@ impl<'a> Renderer<'a> {
         let context = match self.macro_context.last_mut() {
             Some(c) => c.0.as_object_mut().unwrap(),
             None => match self.for_loops.last_mut() {
-                Some(f) => &mut f.extra_values,
+                Some(f) => if set.global { self.context.as_object_mut().unwrap() } else { &mut f.extra_values },
                 None => self.context.as_object_mut().unwrap()
             },
         };

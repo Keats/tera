@@ -348,7 +348,7 @@ fn render_magic_variable_isnt_escaped() {
 
 // https://github.com/Keats/tera/issues/185
 #[test]
-fn test_ok_many_variable_blocks() {
+fn ok_many_variable_blocks() {
     let mut context = Context::new();
     context.add("username", &"bob");
 
@@ -361,6 +361,22 @@ fn test_ok_many_variable_blocks() {
         expected.push_str("bob")
     }
     assert_eq!(render_template(&tpl, &context).unwrap(), expected);
+}
+
+#[test]
+fn can_set_variable_in_global_context_in_forloop() {
+    let mut context = Context::new();
+    context.add("tags", &vec![1, 2, 3]);
+    context.add("default", &"default");
+
+    let result = render_template(r#"
+{%- for i in tags -%}
+{%- set default = 1 -%}
+{%- set_global global_val = i -%}
+{%- endfor -%}
+{{ default }}{{ global_val }}"#, &context);
+
+    assert_eq!(result.unwrap(), "default3");
 }
 
 //

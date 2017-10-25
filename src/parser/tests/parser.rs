@@ -404,6 +404,7 @@ fn parse_set_tag_lit() {
             Set {
                 key: "hello".to_string(),
                 value: Expr::new(ExprVal::String("hi".to_string())),
+                global: false,
             }
         )
     );
@@ -423,6 +424,7 @@ fn parse_set_tag_macro_call() {
                     name: "something".to_string(),
                     args: HashMap::new(),
                 })),
+                global: false,
             }
         )
     );
@@ -441,6 +443,26 @@ fn parse_set_tag_fn_call() {
                     name: "utcnow".to_string(),
                     args: HashMap::new(),
                 })),
+                global: false,
+            }
+        )
+    );
+}
+
+#[test]
+fn parse_set_global_tag() {
+    let ast = parse("{% set_global hello = utcnow() %}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::Set(
+            WS::default(),
+            Set {
+                key: "hello".to_string(),
+                value: Expr::new(ExprVal::FunctionCall(FunctionCall {
+                    name: "utcnow".to_string(),
+                    args: HashMap::new(),
+                })),
+                global: true,
             }
         )
     );

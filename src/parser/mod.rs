@@ -360,6 +360,7 @@ fn parse_set_tag<I: Input>(pair: Pair<Rule, I>) -> Node {
     let mut ws = WS::default();
     let mut key = None;
     let mut expr = None;
+    let mut global = false;
 
     for p in pair.into_inner() {
         match p.as_rule() {
@@ -369,13 +370,16 @@ fn parse_set_tag<I: Input>(pair: Pair<Rule, I>) -> Node {
             Rule::tag_end => {
                 ws.right = p.into_span().as_str() == "-%}";
             },
+            Rule::set_scope => {
+                global = p.into_span().as_str() == "set_global";
+            }
             Rule::ident => key = Some(p.as_str().to_string()),
             Rule::logic_expr=> expr = Some(parse_logic_expr(p)),
             _ => unreachable!("unexpected {:?} rule in parse_set_tag", p.as_rule()),
         }
     }
 
-    Node::Set(ws, Set {key: key.unwrap(), value: expr.unwrap()})
+    Node::Set(ws, Set {key: key.unwrap(), value: expr.unwrap(), global})
 }
 
 fn parse_raw_tag<I: Input>(pair: Pair<Rule, I>) -> Node {

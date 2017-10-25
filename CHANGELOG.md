@@ -21,8 +21,9 @@ the start and end tag anymore
 - Add modulo operator `%` for math expressions
 - Allow comment tags before the extend tag
 - Make `NaiveDateTime` work with the `date` filter
-- `pluralize` filter now returns the plural suffix for 0 thing as it's apparently
-what English does
+- `pluralize` filter now returns the plural suffix for 0 thing as it's apparently what English does
+- Add a `set_global` tag that allows you to set something in the global context: meant to be used in forloops where
+the normal `set` would put the value into the loop context
 
 ## 0.10.10 (2017-08-24)
 

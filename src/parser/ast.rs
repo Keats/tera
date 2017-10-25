@@ -177,6 +177,7 @@ pub struct Set {
     /// The name for that value in the context
     pub key: String,
     pub value: Expr,
+    pub global: bool,
 }
 
 /// A call to a namespaced macro `macros::my_macro()`
