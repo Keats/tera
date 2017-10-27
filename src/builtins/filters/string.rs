@@ -173,6 +173,18 @@ pub fn escape_html(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(utils::escape_html(&s)).unwrap())
 }
 
+/// Split the given string by the given pattern.
+pub fn split(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("split", "value", String, value);
+
+    let pat = match args.get("pat") {
+        Some(pat) => try_get_value!("split", "pat", String, pat),
+        None => bail!("Filter `split` expected an arg called `pat`")
+    };
+
+    Ok(to_value(s.split(&pat).collect::<Vec<_>>()).unwrap())
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -374,6 +386,24 @@ mod tests {
             let result = striptags(to_value(input).unwrap(), HashMap::new());
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_split() {
+        let tests: Vec<(_, _, &[&str])> = vec![
+            ("a/b/cde", "/", &["a", "b", "cde"]),
+            ("hello, world", ", ", &["hello", "world"]),
+        ];
+        for (input, pat, expected) in tests {
+            let mut args = HashMap::new();
+            args.insert("pat".to_string(), to_value(pat).unwrap());
+            let result = split(to_value(input).unwrap(), args).unwrap();
+            let result = result.as_array().unwrap();
+            assert_eq!(result.len(), expected.len());
+            for (result, expected) in result.iter().zip(expected.iter()) {
+                assert_eq!(result, expected);
+            }
         }
     }
 }

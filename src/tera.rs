@@ -467,6 +467,7 @@ impl Tera {
         self.register_filter("escape", string::escape_html);
         self.register_filter("slugify", string::slugify);
         self.register_filter("addslashes", string::addslashes);
+        self.register_filter("split", string::split);
 
         self.register_filter("first", array::first);
         self.register_filter("last", array::last);

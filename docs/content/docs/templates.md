@@ -540,6 +540,10 @@ Currently the position of the safe filter does not matter, e.g.
 Access a value from an object when the key is not a Tera identifier.
 Example: `{{ sections | get(key="posts/content") }}`
 
+### split
+Split a string into an array of strings, separated by a pattern given.
+Example: `{{ path | split(pat="/") }}`
+
 ## Built-in tests
 
 Here are the currently built-in tests:
