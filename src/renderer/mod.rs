@@ -444,7 +444,7 @@ impl<'a> Renderer<'a> {
                 }
                 ForLoop::new_key_value(&node.key.clone().unwrap(), &node.value, container_val)
             },
-            _ => bail!("Tried to iterate on a container ({}) that has a unsupported type", container_name)
+            _ => bail!("Tried to iterate on a container (`{}`) that has a unsupported type", container_name)
         };
 
         let length = for_loop.len();
@@ -597,6 +597,37 @@ impl<'a> Renderer<'a> {
         Ok(output)
     }
 
+    // Helper fn that tries to find the current context: are we in a macro? in a parent template?
+    // in order to give the best possible error when getting an error when rendering a tpl
+    fn get_error_location(&self) -> String {
+        let mut error_location = format!("Failed to render '{}'", self.template.name);
+
+        // in a macro?
+        if let Some(macro_namespace) = self.macro_namespaces.last() {
+            error_location += &format!(": error while rendering a macro from the `{}` namespace", macro_namespace);
+        }
+
+        // which template are we in?
+        if let Some(&(ref name, ref level)) = self.blocks.last() {
+            let block_def = self.template.blocks_definitions
+                .get(name)
+                .and_then(|b| b.get(*level));
+
+            if let Some(&(ref tpl_name, _)) = block_def {
+                if tpl_name != &self.template.name {
+                    error_location += &format!(" (error happened in '{}').", tpl_name);
+                }
+            } else {
+                error_location += " (error happened in a parent template)";
+            }
+        } else if let Some(parent) = self.template.parents.last() {
+            // Error happened in the base template, outside of blocks
+            error_location += &format!(" (error happened in '{}').", parent);
+        }
+
+        error_location
+    }
+
     pub fn render(&mut self) -> Result<String> {
         // If we have a parent for the template, we start by rendering
         // the one at the top
@@ -608,7 +639,9 @@ impl<'a> Renderer<'a> {
 
         let mut output = String::new();
         for node in ast {
-            output.push_str(&self.render_node(node)?);
+            output.push_str(
+                &self.render_node(node).chain_err(|| self.get_error_location())?
+            );
         }
 
         Ok(output)
