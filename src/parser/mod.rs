@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use pest::Parser;
+use pest::{Parser, Error as PestError};
 use pest::prec_climber::{PrecClimber, Operator, Assoc};
 use pest::iterators::Pair;
 use pest::inputs::Input;
@@ -699,9 +699,21 @@ fn parse_content<I: Input>(pair: Pair<Rule, I>) -> Vec<Node> {
 }
 
 pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
-    // TODO: return a Result and rename the rules
-    let mut pairs = TeraParser::parse_str(Rule::template, input)
-        .unwrap_or_else(|e| panic!("{}", e));
+    let mut pairs = match TeraParser::parse_str(Rule::template, input) {
+        Ok(p) => p,
+        Err(e) => match e {
+            PestError::ParsingError {
+                pos,
+                positives: _,
+                negatives: _,
+            } => {
+                let (line_no, col_no) = pos.line_col();
+                bail!("Invalid Tera syntax at line {}, col {}", line_no, col_no);
+            },
+            _ => unreachable!(),
+        }
+    };
+
 
     let mut nodes = vec![];
 
