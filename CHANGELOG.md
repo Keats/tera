@@ -24,6 +24,7 @@ the start and end tag anymore
 - `pluralize` filter now returns the plural suffix for 0 thing as it's apparently what English does
 - Add a `set_global` tag that allows you to set something in the global context: meant to be used in forloops where
 the normal `set` would put the value into the loop context
+- Add `starting_with` and `ending_with` tests
 
 ## 0.10.10 (2017-08-24)
 
