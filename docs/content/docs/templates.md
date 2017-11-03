@@ -579,6 +579,19 @@ Example:
 ### iterable
 Returns true if the given variable can be iterated over in Tera (ie is an array/tuple).
 
+### starting\_with
+Returns true if the given variable is a string starts with the arg given.
+
+Example:
+```jinja2
+{% if path is starting_with("x/") %}
+    In section x
+{% endif %}
+```
+
+### ending\_with
+Returns true if the given variable is a string ends with the arg given.
+
 ## Built-in global functions
 Tera comes with some built-in global functions.
 

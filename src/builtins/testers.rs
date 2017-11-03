@@ -118,9 +118,41 @@ pub fn iterable(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
 }
 
 
+// Helper function to extract string from an Option<Value> to remove boilerplate
+// with tester error handling
+fn extract_string<'a>(tester_name: &str, part: &str, value: Option<&'a Value>) -> Result<&'a str> {
+    match value.and_then(|v| v.as_str()) {
+        Some(s) => Ok(s),
+        None => bail!("Tester `{}` was called {} that isn't a string", tester_name, part)
+    }
+}
+
+
+/// Returns true if `value` starts with the given string. Otherwise, returns false.
+pub fn starting_with(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
+    number_args_allowed("starting_with", 1, params.len())?;
+    value_defined("starting_with", &value)?;
+
+    let value = extract_string("starting_with", "on a variable", value.as_ref())?;
+    let needle = extract_string("starting_with", "with a parameter", params.first())?;
+    Ok(value.starts_with(needle))
+}
+
+
+/// Returns true if `value` ends with the given string. Otherwise, returns false.
+pub fn ending_with(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
+    number_args_allowed("ending_with", 1, params.len())?;
+    value_defined("ending_with", &value)?;
+
+    let value = extract_string("ending_with", "on a variable", value.as_ref())?;
+    let needle = extract_string("ending_with", "with a parameter", params.first())?;
+    Ok(value.ends_with(needle))
+}
+
+
 #[cfg(test)]
 mod tests {
-    use super::{defined, string, divisible_by, iterable};
+    use super::{defined, string, divisible_by, iterable, starting_with, ending_with};
 
     use serde_json::value::{to_value};
 
@@ -162,5 +194,29 @@ mod tests {
         assert_eq!(iterable(Some(to_value(vec!["1"]).unwrap()), vec![]).unwrap(), true);
         assert_eq!(iterable(Some(to_value(1).unwrap()), vec![]).unwrap(), false);
         assert_eq!(iterable(Some(to_value("hello").unwrap()), vec![]).unwrap(), false);
+    }
+
+    #[test]
+    fn test_startswith() {
+        assert!(starting_with(
+            Some(to_value("helloworld").unwrap()),
+            vec![to_value("hello").unwrap()]
+        ).unwrap());
+        assert!(!starting_with(
+            Some(to_value("hello").unwrap()),
+            vec![to_value("hi").unwrap()]
+        ).unwrap());
+    }
+
+    #[test]
+    fn test_endswith() {
+        assert!(ending_with(
+            Some(to_value("helloworld").unwrap()),
+            vec![to_value("world").unwrap()]
+        ).unwrap());
+        assert!(!ending_with(
+            Some(to_value("hello").unwrap()),
+            vec![to_value("hi").unwrap()]
+        ).unwrap());
     }
 }
