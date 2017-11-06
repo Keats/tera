@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use serde_json::value::{Value, to_value};
+use serde_json::{to_string, to_string_pretty};
 use errors::Result;
 
 use chrono::{NaiveDateTime, NaiveDate, DateTime, FixedOffset, Utc};
@@ -34,6 +35,16 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     }
 }
 
+// Encodes a value of any type into json, optionally `pretty`-printing it
+// `pretty` can be true to enable pretty-print, or omitted for compact printing
+pub fn json_encode(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+    let pretty = args.get("pretty").and_then(|v| v.as_bool()).unwrap_or(false);
+    if pretty {
+        Ok(Value::String(to_string_pretty(&value)?))
+    } else {
+        Ok(Value::String(to_string(&value)?))
+    }
+}
 
 /// Returns a formatted time according to the given `format` argument.
 /// `format` defaults to the ISO 8601 `YYYY-MM-DD` format.
@@ -86,6 +97,7 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use serde_json;
     use serde_json::value::to_value;
     use super::*;
     use chrono::{DateTime, Local};
@@ -194,5 +206,22 @@ mod tests {
         println!("{:?}", result);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00").unwrap());
+    }
+
+    #[test]
+    fn test_json_encode() {
+        let mut args = HashMap::new();
+        let result = json_encode(serde_json::from_str("{\"key\": [\"value1\", 2, true]}").unwrap(), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("{\"key\":[\"value1\",2,true]}").unwrap());
+    }
+
+    #[test]
+    fn test_json_encode_pretty() {
+        let mut args = HashMap::new();
+        args.insert("pretty".to_string(), to_value(true).unwrap());
+        let result = json_encode(serde_json::from_str("{\"key\": [\"value1\", 2, true]}").unwrap(), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("{\n  \"key\": [\n    \"value1\",\n    2,\n    true\n  ]\n}").unwrap());
     }
 }

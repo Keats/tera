@@ -544,6 +544,15 @@ Example: `{{ sections | get(key="posts/content") }}`
 Split a string into an array of strings, separated by a pattern given.
 Example: `{{ path | split(pat="/") }}`
 
+### json_encode
+Transforms any value into a JSON representation. This filter is better used together with `safe` or when automatic escape is disabled.
+
+Example: `{{ value | safe | json_encode() }}`
+
+It accepts a parameter `pretty` (boolean) to print a formatted JSON instead of a one-liner.
+
+Example: `{{ value | safe | json_encode(pretty=true) }}`
+
 ## Built-in tests
 
 Here are the currently built-in tests:

@@ -480,6 +480,7 @@ impl Tera {
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
         self.register_filter("date", common::date);
+        self.register_filter("json_encode", common::json_encode);
 
         self.register_filter("get", object::get);
     }
