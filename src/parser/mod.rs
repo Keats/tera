@@ -702,11 +702,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
     let mut pairs = match TeraParser::parse_str(Rule::template, input) {
         Ok(p) => p,
         Err(e) => match e {
-            PestError::ParsingError {
-                pos,
-                positives: _,
-                negatives: _,
-            } => {
+            PestError::ParsingError { pos, .. } => {
                 let (line_no, col_no) = pos.line_col();
                 bail!("Invalid Tera syntax at line {}, col {}", line_no, col_no);
             },
