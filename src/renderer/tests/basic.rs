@@ -54,6 +54,19 @@ fn render_variable_block_lit_expr() {
 }
 
 #[test]
+fn render_variable_block_lit_concat_expr() {
+    let inputs = vec![
+        ("{{ \"music\" ~ \" start\" }}", "music start"),
+        ("{{ (4 + 4) ~ \"88\" }}", "888"),
+    ];
+
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &Context::new()).unwrap(), expected);
+    }
+}
+
+#[test]
 fn render_variable_block_ident() {
     let mut context = Context::new();
     context.add("name", &"john");

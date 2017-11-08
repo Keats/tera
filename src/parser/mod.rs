@@ -32,7 +32,8 @@ lazy_static! {
         // *, /, %
         Operator::new(Rule::op_times, Assoc::Left) |
         Operator::new(Rule::op_slash, Assoc::Left) |
-        Operator::new(Rule::op_modulo, Assoc::Left),
+        Operator::new(Rule::op_modulo, Assoc::Left) |
+        Operator::new(Rule::op_tilde, Assoc::Left),
     ]);
     static ref COMPARISON_EXPR_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
         // <, <=, >, >=, ==, !=
@@ -158,6 +159,7 @@ fn parse_basic_expression<I: Input>(pair: Pair<Rule, I>) -> ExprVal {
                     Rule::op_times => MathOperator::Mul,
                     Rule::op_slash => MathOperator::Div,
                     Rule::op_modulo => MathOperator::Modulo,
+                    Rule::op_tilde => MathOperator::Tilde,
                     _ => unreachable!()
                 },
                 rhs: Box::new(rhs),
