@@ -31,7 +31,7 @@ impl Context {
     /// // user is an instance of a struct implementing `Serialize`
     /// context.add("number_users", 42);
     /// ```
-    pub fn add<T: Serialize>(&mut self, key: &str, val: &T) {
+    pub fn add<T: Serialize + ?Sized>(&mut self, key: &str, val: &T) {
         self.data.insert(key.to_owned(), to_value(val).unwrap());
     }
 
