@@ -11,7 +11,7 @@ use errors::{Result as TeraResult, ResultExt};
 ///
 /// Light wrapper around a `BTreeMap` for easier insertions of Serializable
 /// values
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Context {
     data: BTreeMap<String, Value>,
 }
