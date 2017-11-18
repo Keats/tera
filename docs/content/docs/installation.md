@@ -7,7 +7,7 @@ order = 1
 To use Tera in your Rust projects, simply add it to your `Config.toml`:
 
 ```toml
-tera = "0.10"
+tera = "0.11"
 ```
 
 And add the following to your `lib.rs` or `main.rs`:

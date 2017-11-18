@@ -14,7 +14,7 @@
 /// ' --> &#x27;     &apos; is not recommended
 /// / --> &#x2F;     forward slash is included as it helps end an HTML entity
 /// ```
-#[inline]
+#[inline] // TODO: check if the inline matters in benches
 pub fn escape_html(input: &str) -> String {
     let mut output = String::with_capacity(input.len() * 2);
     for c in input.chars() {
