@@ -8,6 +8,25 @@ use errors::Result;
 
 use chrono::{NaiveDateTime, NaiveDate, DateTime, FixedOffset, Utc};
 
+pub fn contains(value: Value, args: HashMap<String, Value>) -> Result<bool> {
+    let result = match value {
+        Value::String(s) => {
+            let contained = match args.get("contains") {
+                Some(val) => try_get_value!("contains", "contained", String, val),
+                _ => panic!("unreachable")
+            };
+            s.contains(&contained)
+        },
+        _ => {
+            bail!(
+                "Filter `contains` received an incorrect type for arg `value`: got `{}` but expected Array|String",
+                value.to_string()
+            );
+        }
+    };
+    Ok(result)
+}
+
 // Returns the number of items in an array or the number of characters in a string.
 // Returns 0 if not an array or string.
 pub fn length(value: Value, _: HashMap<String, Value>) -> Result<Value> {
@@ -101,6 +120,18 @@ mod tests {
     use serde_json::value::to_value;
     use super::*;
     use chrono::{DateTime, Local};
+
+    #[test]
+    fn contains_str() {
+        let mut args = HashMap::new();
+        args.insert("contains".to_string(), to_value("llo").unwrap());
+        let result = contains(to_value("Hello world").unwrap(), args);
+        assert!(result.unwrap() == true);
+        let mut args = HashMap::new();
+        args.insert("contains".to_string(), to_value("foo").unwrap());
+        let result = contains(to_value("Hello world").unwrap(), args);
+        assert!(result.unwrap() == false);
+    }
 
     #[test]
     fn length_vec() {
