@@ -149,10 +149,33 @@ pub fn ending_with(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     Ok(value.ends_with(needle))
 }
 
+/// Returns true if `value` contains the given argument. Otherwise, returns false.
+pub fn containing(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
+    number_args_allowed("containing", 1, params.len())?;
+    value_defined("containing", &value)?;
+
+    match value.unwrap() {
+        Value::String(v) => {
+            let needle = extract_string("containing", "with a parameter", params.first())?;
+            Ok(v.contains(needle))
+        },
+        Value::Array(v) => {
+            Ok(v.contains(params.first().unwrap()))
+        },
+        Value::Object(v) => {
+            let needle = extract_string("containing", "with a parameter", params.first())?;
+            Ok(v.contains_key(needle))
+        },
+        _ => bail!("Tester `containing` can only be used on string, array or map"),
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
-    use super::{defined, string, divisible_by, iterable, starting_with, ending_with};
+    use std::collections::HashMap;
+
+    use super::{defined, string, divisible_by, iterable, starting_with, ending_with, containing};
 
     use serde_json::value::{to_value};
 
@@ -197,7 +220,7 @@ mod tests {
     }
 
     #[test]
-    fn test_startswith() {
+    fn test_starting_with() {
         assert!(starting_with(
             Some(to_value("helloworld").unwrap()),
             vec![to_value("hello").unwrap()]
@@ -209,7 +232,7 @@ mod tests {
     }
 
     #[test]
-    fn test_endswith() {
+    fn test_ending_with() {
         assert!(ending_with(
             Some(to_value("helloworld").unwrap()),
             vec![to_value("world").unwrap()]
@@ -218,5 +241,27 @@ mod tests {
             Some(to_value("hello").unwrap()),
             vec![to_value("hi").unwrap()]
         ).unwrap());
+    }
+
+    #[test]
+    fn test_containing() {
+        let mut map = HashMap::new();
+        map.insert("hey", 1);
+
+        let tests = vec![
+            (to_value("hello world").unwrap(), to_value("hel").unwrap(), true),
+            (to_value("hello world").unwrap(), to_value("hol").unwrap(), false),
+            (to_value(vec![1, 2, 3]).unwrap(), to_value(3).unwrap(), true),
+            (to_value(vec![1, 2, 3]).unwrap(), to_value(4).unwrap(), false),
+            (to_value(map.clone()).unwrap(), to_value("hey").unwrap(), true),
+            (to_value(map.clone()).unwrap(), to_value("ho").unwrap(), false),
+        ];
+
+        for (container, needle, expected) in tests {
+            assert_eq!(
+                containing(Some(container), vec![needle]).unwrap(),
+                expected
+            );
+        }
     }
 }

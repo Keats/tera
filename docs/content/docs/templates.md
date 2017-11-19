@@ -601,6 +601,22 @@ Example:
 ### ending\_with
 Returns true if the given variable is a string ends with the arg given.
 
+### containing
+Returns true if the given variable contains the arg given.
+
+The test works on:
+
+- strings: is the arg a substring?
+- arrays: is the arg given one of the member of the array?
+- maps: is the arg given a key of the map?
+
+Example:
+```jinja2
+{% if username is containing("xXx") %}
+    Bad
+{% endif %}
+```
+
 ## Built-in global functions
 Tera comes with some built-in global functions.
 
