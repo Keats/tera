@@ -150,6 +150,15 @@ impl Expr {
             negated: false,
         }
     }
+
+    // Check if the expr has a default filter as first filter
+    pub fn has_default_filter(&self) -> bool {
+        if self.filters.is_empty() {
+            return false;
+        }
+
+        self.filters[0].name == "default"
+    }
 }
 
 /// A test node `if my_var is odd`

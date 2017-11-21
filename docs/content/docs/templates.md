@@ -553,6 +553,11 @@ It accepts a parameter `pretty` (boolean) to print a formatted JSON instead of a
 
 Example: `{{ value | safe | json_encode(pretty=true) }}`
 
+### default
+Returns the default value given if the variable evaluated is not present in the context.
+
+Example: `{{ value | default(value=1) }}`
+
 ## Built-in tests
 
 Here are the currently built-in tests:

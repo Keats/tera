@@ -351,11 +351,20 @@ impl<'a> Renderer<'a> {
                 match self.lookup_ident(ident) {
                     Ok(val) => val,
                     Err(e) => {
-                        if !expr.negated {
-                            return Err(e);
+                        println!("{:?}", expr);
+                        if expr.has_default_filter() {
+                            if let Some(default_expr) = expr.filters[0].args.get("value") {
+                                self.eval_expression(default_expr)?
+                            } else {
+                                bail!("The `default` filter requires a `value` argument.");
+                            }
+                        } else {
+                            if !expr.negated {
+                                return Err(e);
+                            }
+                            // A negative undefined ident is !false so truthy
+                            return Ok(Value::Bool(true));
                         }
-                        // A negative undefined ident is !false so truthy
-                        return Ok(Value::Bool(true));
                     }
                 }
             },
@@ -383,7 +392,7 @@ impl<'a> Renderer<'a> {
         }
 
         for filter in &expr.filters {
-            if filter.name == "safe" {
+            if filter.name == "safe" || filter.name == "default" {
                 continue;
             }
             res = self.eval_filter(res, filter)?;

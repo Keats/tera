@@ -25,7 +25,7 @@ the start and end tag anymore
 - Add a `set_global` tag that allows you to set something in the global context: meant to be used in forloops where
 the normal `set` would put the value into the loop context
 - Add `starting_with`, `ending_with` and `containing` tests
-- Add a `json_encode` filter
+- Add `json_encode`, `default` filters
 
 ## 0.10.10 (2017-08-24)
 

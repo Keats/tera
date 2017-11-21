@@ -379,6 +379,16 @@ fn can_set_variable_in_global_context_in_forloop() {
     assert_eq!(result.unwrap(), "default3");
 }
 
+#[test]
+fn doesnt_error_with_the_default_filter() {
+    let result = render_template(r#"
+{{ val | default(value=1) }}
+{{ val | default(value="hey") | capitalize }}
+{{ not admin | default(value=false) }}
+{{ not admin | default(value=true) }}
+    "#.trim(), &Context::new());
+    assert_eq!(result.unwrap(), "1\nHey\ntrue\nfalse");
+}
 
 #[test]
 fn test_error_location_basic() {
