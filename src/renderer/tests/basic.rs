@@ -380,93 +380,22 @@ fn can_set_variable_in_global_context_in_forloop() {
 }
 
 #[test]
-fn doesnt_error_with_the_default_filter() {
-    let result = render_template(r#"
-{{ val | default(value=1) }}
-{{ val | default(value="hey") | capitalize }}
-{{ not admin | default(value=false) }}
-{{ not admin | default(value=true) }}
-    "#.trim(), &Context::new());
-    assert_eq!(result.unwrap(), "1\nHey\ntrue\nfalse");
+fn default_filter_works() {
+    let mut context = Context::new();
+    context.add("existing", "hello");
+
+    let inputs = vec![
+        (r#"{{ existing | default(value="hey") }}"#, "hello"),
+        (r#"{{ val | default(value=1) }}"#, "1"),
+        (r#"{{ val | default(value="hey") | capitalize }}"#, "Hey"),
+        (r#"{{ obj.val | default(value="hey") | capitalize }}"#, "Hey"),
+        (r#"{{ obj.val | default(value="hey") | capitalize }}"#, "Hey"),
+        (r#"{{ not admin | default(value=false) }}"#, "true"),
+        (r#"{{ not admin | default(value=true) }}"#, "false"),
+    ];
+
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
 }
-
-#[test]
-fn test_error_location_basic() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("tpl", "{{ 1 + true }}"),
-    ]).unwrap();
-
-    let result = tera.render("tpl", &Context::new());
-
-    assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
-        "Failed to render \'tpl\'"
-    );
-}
-
-#[test]
-fn test_error_location_inside_macro() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
-        ("tpl", "{% import \"macros\" as macros %}{{ macro::hello() }}"),
-    ]).unwrap();
-
-    let result = tera.render("tpl", &Context::new());
-
-    assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
-        "Failed to render \'tpl\': error while rendering a macro from the `macro` namespace"
-    );
-}
-
-#[test]
-fn test_error_location_base_template() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("parent", "Hello {{ greeting + 1}} {% block bob %}{% endblock bob %}"),
-        ("child", "{% extends \"parent\" %}{% block bob %}Hey{% endblock bob %}"),
-    ]).unwrap();
-
-    let result = tera.render("child", &Context::new());
-
-    assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
-        "Failed to render \'child\' (error happened in 'parent')."
-    );
-}
-
-#[test]
-fn test_error_location_in_parent_block() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("parent", "Hello {{ greeting }} {% block bob %}{{ 1 + true }}{% endblock bob %}"),
-        ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}"),
-    ]).unwrap();
-
-    let result = tera.render("child", &Context::new());
-
-    assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
-        "Failed to render \'child\' (error happened in 'parent')."
-    );
-}
-
-#[test]
-fn test_error_location_in_parent_in_macro() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
-        ("parent", "{% import \"macros\" as macros %}{{ macro::hello() }}{% block bob %}{% endblock bob %}"),
-        ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}"),
-    ]).unwrap();
-
-    let result = tera.render("child", &Context::new());
-
-    assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
-        "Failed to render \'child\': error while rendering a macro from the `macro` namespace (error happened in \'parent\')."
-    );
-}
-

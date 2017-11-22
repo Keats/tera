@@ -2,6 +2,7 @@ mod basic;
 mod inheritance;
 mod macros;
 mod whitespace;
+mod errors;
 
 #[allow(dead_code)]
 #[derive(Debug, Serialize)]
