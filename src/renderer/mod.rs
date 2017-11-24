@@ -577,14 +577,8 @@ impl<'a> Renderer<'a> {
 
                 self.eval_filter(Value::String(output), filter)?.render()
             },
-            Node::ImportMacro(_, ref filename, ref namespace) => {
-                let tpl = self.tera.get_template(filename)?;
-                let mut macros = self.macros.pop().unwrap_or_else(HashMap::new);
-                macros.insert(namespace.to_string(), &tpl.macros);
-                self.macros.push(macros);
-
-                String::new()
-            },
+            // Macros have been imported at the beginning
+            Node::ImportMacro(_, _, _) => String::new(),
             Node::If(ref if_node, _) => self.render_if(if_node)?,
             Node::Forloop(_, ref forloop, _) => self.render_for(forloop)?,
             Node::Block(_, ref block, _) => self.render_block(block, 0)?,
@@ -640,11 +634,16 @@ impl<'a> Renderer<'a> {
     pub fn render(&mut self) -> Result<String> {
         // If we have a parent for the template, we start by rendering
         // the one at the top
-        let ast = match self.template.parents.last() {
-            // this unwrap is safe; Tera will have errored already if the template doesn't exist
-            Some(parent_tpl_name) => &self.tera.get_template(parent_tpl_name).unwrap().ast,
-            None => &self.template.ast,
+        let (tpl_name, ast) = match self.template.parents.last() {
+            // this unwrap is safe; Tera would have errored already if the template didn't exist
+            Some(parent_tpl_name) => {
+                let tpl = self.tera.get_template(parent_tpl_name).unwrap();
+                (&tpl.name, &tpl.ast)
+            },
+            None => (&self.template.name, &self.template.ast),
         };
+
+        self.import_template_macros(tpl_name)?;
 
         let mut output = String::new();
         for node in ast {
