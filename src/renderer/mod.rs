@@ -351,7 +351,6 @@ impl<'a> Renderer<'a> {
                 match self.lookup_ident(ident) {
                     Ok(val) => val,
                     Err(e) => {
-                        println!("{:?}", expr);
                         if expr.has_default_filter() {
                             if let Some(default_expr) = expr.filters[0].args.get("value") {
                                 self.eval_expression(default_expr)?
