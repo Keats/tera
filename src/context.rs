@@ -149,7 +149,11 @@ impl ValueTruthy for Value {
 /// Converts a dotted path to a json pointer one
 #[inline]
 pub fn get_json_pointer(key: &str) -> String {
-    ["/", &key.replace(".", "/")].join("")
+    if key == "" {
+        "".to_string()
+    } else {
+        ["/", &key.replace(".", "/")].join("")
+    }
 }
 
 #[cfg(test)]
