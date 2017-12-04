@@ -22,7 +22,7 @@ slug = "0.1"
 # used in striptags filters
 regex = "0.2"
 # used for static regex
-lazy_static = "0.2"
+lazy_static = "1.0"
 # used in urlencode filter
 url = "1"
 # used in filesizeformat filter
