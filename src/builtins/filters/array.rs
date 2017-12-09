@@ -43,10 +43,8 @@ pub fn join(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
 /// Sorts the array in ascending order.
 /// Use the 'attribute' argument to define a field to sort by.
-/// Set the 'reverse' argument to sort in descending order.
 pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("sort", "value", Vec<Value>, value);
-    let reverse = try_get_value!("sort", "reverse", bool, args.get("reverse").unwrap_or(&false.into()));
     let attribute = try_get_value!("sort", "attribute", String, args.get("attribute").unwrap_or(&"".into()));
     let attribute = get_json_pointer(&attribute);
 
@@ -56,9 +54,6 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
             b.pointer(&attribute).unwrap_or(&Value::Null)
         )
     });
-    if reverse {
-        arr.reverse();
-    }
 
     Ok(to_value(arr)?)
 }
@@ -161,17 +156,6 @@ mod tests {
         let result = sort(v, args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(vec![1, 2, 3, 4, 5]).unwrap());
-    }
-
-    #[test]
-    fn test_sort_descending() {
-        let v = to_value(vec![3, 1, 2, 5, 4]).unwrap();
-        let mut args = HashMap::new();
-        args.insert("reverse".to_string(), to_value(true).unwrap());
-
-        let result = sort(v, args);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(vec![5, 4, 3, 2, 1]).unwrap());
     }
 
     #[derive(Serialize)]
