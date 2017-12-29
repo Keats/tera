@@ -46,40 +46,128 @@ pub fn join(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("sort", "value", Vec<Value>, value);
     let attribute = try_get_value!("sort", "attribute", String, args.get("attribute").unwrap_or(&"".into()));
-    let attribute = get_json_pointer(&attribute);
+    let ptr = get_json_pointer(&attribute);
 
-    arr.sort_unstable_by(|a, b| {
-        value_cmp(
-            a.pointer(&attribute).unwrap_or(&Value::Null),
-            b.pointer(&attribute).unwrap_or(&Value::Null)
-        )
-    });
+    if arr.is_empty() {
+        return Ok(arr.into());
+    }
 
-    Ok(to_value(arr)?)
+    let first = arr[0].pointer(&ptr).ok_or(format!("attribute '{}' does not reference a field", attribute))?;
+    let mut strategy = get_sort_strategy_for_type(first)?;
+    for v in &arr {
+        let key = v.pointer(&ptr).ok_or(format!("attribute '{}' does not reference a field", attribute))?;
+        strategy.try_add_pair(v, key)?;
+    }
+    let sorted = strategy.sort();
+
+    Ok(sorted.into())
 }
 
-fn value_cmp(a: &Value, b: &Value) -> Ordering {
-    use Value::*;
-    use self::Ordering::*;
-    match (a, b) {
-        (&Null, &Null) => Equal,
-        (&Bool(ref a), &Bool(ref b)) => a.cmp(b),
-        (&Number(ref a), &Number(ref b)) => a.as_f64().unwrap().partial_cmp(&b.as_f64().unwrap()).unwrap(),
-        (&String(ref a), &String(ref b)) => a.cmp(b),
-        (&Array(ref a), &Array(ref b)) => a.len().cmp(&b.len()),
-        (&Object(ref a), &Object(ref b)) => a.len().cmp(&b.len()),
-        (a, b) => type_of(a).cmp(&type_of(b))
+#[derive(PartialEq, PartialOrd, Default, Copy, Clone)]
+struct OrderedF64(f64);
+
+impl OrderedF64 {
+    fn new(n: f64) -> Result<Self> {
+        if n.is_finite() {
+            Ok(OrderedF64(n))
+        } else {
+            bail!("{} cannot be sorted", n)
+        }
     }
 }
 
-fn type_of(val: &Value) -> usize {
+impl Eq for OrderedF64 {}
+
+impl Ord for OrderedF64 {
+    fn cmp(&self, other: &OrderedF64) -> Ordering {
+        // unwrap is safe because self.0 is finite.
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+#[derive(Default, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
+struct ArrayLen(usize);
+
+trait GetSortKey: Ord + Sized + Clone {
+    fn get_sort_key(val: &Value) -> Result<Self>;
+}
+
+impl GetSortKey for OrderedF64 {
+    fn get_sort_key(val: &Value) -> Result<Self> {
+        let n = val.as_f64().ok_or(format!("expected number got {}", val))?;
+        OrderedF64::new(n)
+    }
+}
+
+impl GetSortKey for bool {
+    fn get_sort_key(val: &Value) -> Result<Self> {
+        val.as_bool().ok_or(format!("expected bool got {}", val).into())
+    }
+}
+
+impl GetSortKey for String {
+    fn get_sort_key(val: &Value) -> Result<Self> {
+        let str: Result<&str> = val.as_str().ok_or(format!("expected string got {}", val).into());
+        Ok(str?.to_owned())
+    }
+}
+
+impl GetSortKey for ArrayLen {
+    fn get_sort_key(val: &Value) -> Result<Self> {
+        let arr = val.as_array().ok_or(format!("expected array got {}", val))?;
+        Ok(ArrayLen(arr.len()))
+    }
+}
+
+#[derive(Default)]
+struct SortPairs<K: Ord> {
+    pairs: Vec<(Value, K)>
+}
+
+type Numbers = SortPairs<OrderedF64>;
+type Bools = SortPairs<bool>;
+type Strings = SortPairs<String>;
+type Arrays = SortPairs<ArrayLen>;
+
+impl<K: GetSortKey> SortPairs<K> {
+    fn try_add_pair(&mut self, val: &Value, key: &Value) -> Result<()> {
+        let key = K::get_sort_key(key)?;
+        self.pairs.push((val.clone(), key));
+        Ok(())
+    }
+
+    fn sort(&mut self) -> Vec<Value> {
+        self.pairs.sort_by_key(|a| a.1.clone());
+        self.pairs.iter()
+            .map(|a| a.0.clone())
+            .collect()
+    }
+}
+
+trait SortStrategy {
+    fn try_add_pair(&mut self, val: &Value, key: &Value) -> Result<()>;
+    fn sort(&mut self) -> Vec<Value>;
+}
+
+impl<K: GetSortKey> SortStrategy for SortPairs<K> {
+    fn try_add_pair(&mut self, val: &Value, key: &Value) -> Result<()> {
+        SortPairs::try_add_pair(self, val, key)
+    }
+
+    fn sort(&mut self) -> Vec<Value> {
+        SortPairs::sort(self)
+    }
+}
+
+fn get_sort_strategy_for_type(ty: &Value) -> Result<Box<SortStrategy>> {
     use Value::*;
-    match *val {
-        Null => 0,
-        Bool(_) => 1,
-        Number(_) => 2,
-        String(_) => 3,
-        Array(_) => 4, Object(_) => 5
+    match *ty {
+        Null => bail!("Null is not a sortable value"),
+        Bool(_) => Ok(Box::new(Bools::default())),
+        Number(_) => Ok(Box::new(Numbers::default())),
+        String(_) => Ok(Box::new(Strings::default())),
+        Array(_) => Ok(Box::new(Arrays::default())),
+        Object(_) => bail!("Object is not a sortable value")
     }
 }
 
@@ -158,6 +246,15 @@ mod tests {
         assert_eq!(result.unwrap(), to_value(vec![1, 2, 3, 4, 5]).unwrap());
     }
 
+    #[test]
+    fn test_sort_empty() {
+        let v = to_value(Vec::<f64>::new()).unwrap();
+        let args = HashMap::new();
+        let result = sort(v, args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(Vec::<f64>::new()).unwrap());
+    }
+
     #[derive(Serialize)]
     struct Foo {
         a: i32,
@@ -182,6 +279,69 @@ mod tests {
             Foo {a: 2, b: 8},
             Foo {a: 3, b: 5},
             Foo {a: 4, b: 7},
+        ]).unwrap());
+    }
+
+    #[test]
+    fn test_sort_invalid_attribute() {
+        let v = to_value(vec![
+            Foo {a: 3, b: 5}
+        ]).unwrap();
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value(&"invalid_field").unwrap());
+
+        let result = sort(v, args);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().description(), "attribute 'invalid_field' does not reference a field");
+    }
+
+    #[test]
+    fn test_sort_multiple_types() {
+        let v = to_value(vec![
+            Value::Number(12.into()),
+            Value::Array(vec![])
+        ]).unwrap();
+        let args = HashMap::new();
+
+        let result = sort(v, args);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().description(), "expected number got []");
+    }
+
+    #[test]
+    fn test_sort_non_finite_numbers() {
+        let v = to_value(vec![
+            ::std::f64::NEG_INFINITY, // NaN and friends get deserialized as Null by serde.
+            ::std::f64::NAN
+        ]).unwrap();
+        let args = HashMap::new();
+
+        let result = sort(v, args);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().description(), "Null is not a sortable value");
+    }
+
+    #[derive(Serialize)]
+    struct TupleStruct(i32, i32);
+
+    #[test]
+    fn test_sort_tuple() {
+        let v = to_value(vec![
+            TupleStruct(0, 1),
+            TupleStruct(7, 0),
+            TupleStruct(-1, 12),
+            TupleStruct(18, 18)
+        ]).unwrap();
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("0").unwrap());
+
+        let result = sort(v, args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(vec![
+            TupleStruct(-1, 12),
+            TupleStruct(0, 1),
+            TupleStruct(7, 0),
+            TupleStruct(18, 18)
         ]).unwrap());
     }
 }
