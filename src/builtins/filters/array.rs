@@ -45,12 +45,15 @@ pub fn join(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 /// Use the 'attribute' argument to define a field to sort by.
 pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("sort", "value", Vec<Value>, value);
-    let attribute = try_get_value!("sort", "attribute", String, args.get("attribute").unwrap_or(&"".into()));
-    let ptr = get_json_pointer(&attribute);
-
     if arr.is_empty() {
         return Ok(arr.into());
     }
+
+    let attribute = try_get_value!("sort", "attribute", String, args.get("attribute").unwrap_or(&"".into()));
+    let ptr = match attribute.as_str() {
+        "" => "".to_string(),
+        s => get_json_pointer(s)
+    };
 
     let first = arr[0].pointer(&ptr).ok_or(format!("attribute '{}' does not reference a field", attribute))?;
     let mut strategy = get_sort_strategy_for_type(first)?;
