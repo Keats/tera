@@ -26,6 +26,7 @@ the start and end tag anymore
 the normal `set` would put the value into the loop context
 - Add `starting_with`, `ending_with` and `containing` tests
 - Add `json_encode`, `default` filters
+- Strings can now also be contained in backticks and single quotes in templates
 
 ## 0.10.10 (2017-08-24)
 
