@@ -16,10 +16,10 @@ single_quoted_string  = @{ "\'" ~ ( ! ("\'") ~ any )* ~ "\'"}
 // matches anything between 2 backquotes\backticks
 backquoted_quoted_string  = @{ "`" ~ ( ! ("`") ~ any )* ~ "`"}
 
-string = @{ 
-    double_quoted_string | 
-    single_quoted_string | 
-    backquoted_quoted_string 
+string = @{
+    double_quoted_string |
+    single_quoted_string |
+    backquoted_quoted_string
 }
 
 boolean = { "true" | "false" }
