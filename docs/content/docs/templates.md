@@ -491,6 +491,43 @@ Returns the length of an array or a string, 0 if the value is not an array.
 ### reverse
 Returns a reversed string or array.
 
+### sort
+Sorts an array into ascending order.
+
+The values in the array must be a sortable type:
+- numbers are sorted by their numerical value.
+- strings are sorted in alphabetical order.
+- arrays are sorted by their length.
+- bools are sorted as if false=0 and true=1
+
+If you need to sort a list of structs or tuples, use the `attribute`
+argument to specify which field to sort by.
+
+Example:
+
+Given `people` is an array of Person
+
+```rust
+struct Name(String, String);
+
+struct Person {
+    name: Name,
+    age: u32
+}
+```
+
+The `attribute` argument can be used to sort by last name:
+
+```jinja2
+{{ people | sort(attribute="name.1") }}
+```
+
+or by age:
+
+```jinja2
+{{ people | sort(attribute="age") }}
+```
+
 ### urlencode
 Percent-encodes a string.
 

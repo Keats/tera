@@ -39,6 +39,7 @@ mod context;
 mod parser;
 mod template;
 mod utils;
+mod sort_utils;
 mod builtins;
 mod renderer;
 mod tera;
