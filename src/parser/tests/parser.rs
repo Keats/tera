@@ -94,13 +94,13 @@ fn parse_variable_tag_lit_math_expression() {
     assert_eq!(
         ast[0],
         Node::VariableBlock(Expr::new(ExprVal::Math(MathExpr {
-            lhs: Box::new(ExprVal::Ident("count".to_string())),
+            lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
             operator: MathOperator::Add,
-            rhs: Box::new(ExprVal::Math(MathExpr {
-                lhs: Box::new(ExprVal::Int(1)),
+            rhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                lhs: Box::new(Expr::new(ExprVal::Int(1))),
                 operator: MathOperator::Mul,
-                rhs: Box::new(ExprVal::Float(2.5)),
-            })),
+                rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
+            }))),
         })))
     );
 }
@@ -112,13 +112,13 @@ fn parse_variable_tag_lit_math_expression_with_parentheses() {
         ast[0],
         Node::VariableBlock(
             Expr::new(ExprVal::Math(MathExpr {
-                lhs: Box::new(ExprVal::Math(MathExpr {
-                    lhs: Box::new(ExprVal::Ident("count".to_string())),
+                lhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                    lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
                     operator: MathOperator::Add,
-                    rhs: Box::new(ExprVal::Int(1)),
-                })),
+                    rhs: Box::new(Expr::new(ExprVal::Int(1))),
+                }))),
                 operator: MathOperator::Mul,
-                rhs: Box::new(ExprVal::Float(2.5)),
+                rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
             })
         ))
     );
@@ -132,13 +132,13 @@ fn parse_variable_tag_lit_math_expression_with_parentheses_and_filter() {
         Node::VariableBlock(
             Expr::with_filters(
                 ExprVal::Math(MathExpr {
-                    lhs: Box::new(ExprVal::Math(MathExpr {
-                        lhs: Box::new(ExprVal::Ident("count".to_string())),
+                    lhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                        lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
                         operator: MathOperator::Add,
-                        rhs: Box::new(ExprVal::Int(1)),
-                    })),
+                        rhs: Box::new(Expr::new(ExprVal::Int(1))),
+                    }))),
                     operator: MathOperator::Mul,
-                    rhs: Box::new(ExprVal::Float(2.5)),
+                    rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
                 }),
                 vec![
                     FunctionCall { name: "round".to_string(), args: HashMap::new() },
@@ -147,6 +147,27 @@ fn parse_variable_tag_lit_math_expression_with_parentheses_and_filter() {
     );
 }
 
+#[test]
+fn parse_variable_math_on_filter() {
+    let ast = parse("{{ a | length - 1 }}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(
+            Expr::new(
+                ExprVal::Math(MathExpr {
+                    lhs: Box::new(Expr::with_filters(
+                        ExprVal::Ident("a".to_string()),
+                        vec![
+                            FunctionCall { name: "length".to_string(), args: HashMap::new() },
+                        ],
+                    )),
+                    operator: MathOperator::Sub,
+                    rhs: Box::new(Expr::new(ExprVal::Int(1))),
+                })
+            )
+        )
+    );
+}
 
 #[test]
 fn parse_variable_tag_simple_logic_expression() {
@@ -176,13 +197,13 @@ fn parse_variable_tag_math_and_logic_expression() {
             Expr::new(
                 ExprVal::Logic(LogicExpr {
                     lhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
-                        lhs: Box::new(ExprVal::Ident("count".to_string())),
+                        lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
                         operator: MathOperator::Add,
-                        rhs: Box::new(ExprVal::Math(MathExpr {
-                            lhs: Box::new(ExprVal::Int(1)),
+                        rhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                            lhs: Box::new(Expr::new(ExprVal::Int(1))),
                             operator: MathOperator::Mul,
-                            rhs: Box::new(ExprVal::Float(2.5)),
-                        })),
+                            rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
+                        }))),
                     }))),
                     operator: LogicOperator::And,
                     rhs: Box::new(Expr::new(ExprVal::Ident("admin".to_string()))),
@@ -203,13 +224,13 @@ fn parse_variable_tag_math_with_filters_and_logic_expression() {
                     lhs: Box::new(
                         Expr::with_filters(
                             ExprVal::Math(MathExpr {
-                                lhs: Box::new(ExprVal::Ident("count".to_string())),
+                                lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
                                 operator: MathOperator::Add,
-                                rhs: Box::new(ExprVal::Math(MathExpr {
-                                    lhs: Box::new(ExprVal::Int(1)),
+                                rhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                                    lhs: Box::new(Expr::new(ExprVal::Int(1))),
                                     operator: MathOperator::Mul,
-                                    rhs: Box::new(ExprVal::Float(2.5)),
-                                })),
+                                    rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
+                                }))),
                             }),
                             vec![
                                 FunctionCall { name: "round".to_string(), args: HashMap::new() },
@@ -255,9 +276,9 @@ fn parse_variable_tag_negated_expr() {
                     }))),
                     operator: LogicOperator::And,
                     rhs: Box::new(Expr::new_negated(ExprVal::Math(MathExpr {
-                        lhs: Box::new(ExprVal::Int(1)),
+                        lhs: Box::new(Expr::new(ExprVal::Int(1))),
                         operator: MathOperator::Add,
-                        rhs: Box::new(ExprVal::Int(1)),
+                        rhs: Box::new(Expr::new(ExprVal::Int(1))),
                     }))),
                 })
             )

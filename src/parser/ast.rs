@@ -92,8 +92,8 @@ pub struct FunctionCall {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MathExpr {
-    pub lhs: Box<ExprVal>,
-    pub rhs: Box<ExprVal>,
+    pub lhs: Box<Expr>,
+    pub rhs: Box<Expr>,
     pub operator: MathOperator,
 }
 

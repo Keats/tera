@@ -40,6 +40,11 @@ You can use the following operators:
 - `*`: performs a multiplication, `{{ 5 * 2 }}` will print `10`
 - `%`: performs a modulo, `{{ 2 % 2 }}` will print `0`
 
+The priority of operations is the following, from lowest to highest:
+
+- `+` and `-`
+- `*` and `/` and `%`
+
 ### Comparisons
 
 - `==`: checks whether the values are equal
@@ -72,6 +77,17 @@ Filters are functions with the `fn(Value, HashMap<String, Value>) -> Result<Valu
 tera.register_filter("upper", string::upper);
 ```
 
+While filters can be used in math operations, they will have the lowest priority and therefore might not do what you expect:
+
+
+```css
+{{ 1 + a | length }}
+// is equal to
+{{ (1 + a) | length } // this will probably error
+
+// This will do what you wanted initially
+{{ a | length + 1 }}
+```
 Tera has many [built-in filters](./docs/templates.md#built-in-filters) that you can use.
 
 ### Filter sections

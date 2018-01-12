@@ -26,7 +26,7 @@ pub use self::whitespace::remove_whitespace;
 use self::ast::*;
 
 lazy_static! {
-    static ref BASIC_EXPR_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
+    static ref MATH_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
         // +, -
         Operator::new(Rule::op_plus, Assoc::Left) | Operator::new(Rule::op_minus, Assoc::Left),
         // *, /, %
@@ -151,7 +151,7 @@ fn parse_basic_expression<I: Input>(pair: Pair<Rule, I>) -> ExprVal {
     let infix = |lhs: ExprVal, op: Pair<Rule, I>, rhs: ExprVal| {
         ExprVal::Math(
             MathExpr {
-                lhs: Box::new(lhs),
+                lhs: Box::new(Expr::new(lhs)),
                 operator: match op.as_rule() {
                     Rule::op_plus => MathOperator::Add,
                     Rule::op_minus => MathOperator::Sub,
@@ -160,7 +160,7 @@ fn parse_basic_expression<I: Input>(pair: Pair<Rule, I>) -> ExprVal {
                     Rule::op_modulo => MathOperator::Modulo,
                     _ => unreachable!()
                 },
-                rhs: Box::new(rhs),
+                rhs: Box::new(Expr::new(rhs)),
             }
         )
     };
@@ -178,13 +178,13 @@ fn parse_basic_expression<I: Input>(pair: Pair<Rule, I>) -> ExprVal {
         Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)),
         Rule::string => ExprVal::String(pair.as_str().replace("\"", "").to_string()),
         Rule::dotted_ident => ExprVal::Ident(pair.as_str().to_string()),
-        Rule::basic_expr => BASIC_EXPR_CLIMBER.climb(pair.into_inner(), primary, infix),
+        Rule::basic_expr => MATH_CLIMBER.climb(pair.into_inner(), primary, infix),
         _ => unreachable!("Got {:?} in parse_basic_expression", pair.as_rule())
     }
 }
 
 /// A basic expression with optional filters
-fn parse_comparison_val<I: Input>(pair: Pair<Rule, I>) -> Expr {
+fn parse_basic_expr_with_filters<I: Input>(pair: Pair<Rule, I>) -> Expr {
     let mut expr = None;
     let mut filters = vec![];
 
@@ -192,11 +192,43 @@ fn parse_comparison_val<I: Input>(pair: Pair<Rule, I>) -> Expr {
         match p.as_rule() {
             Rule::basic_expr => expr = Some(parse_basic_expression(p)),
             Rule::filter => filters.push(parse_filter(p)),
-            _ => unreachable!(),
+            _ => unreachable!("Got {:?}", p),
         };
     }
 
     Expr { val: expr.unwrap(), negated: false, filters }
+}
+
+
+/// A basic expression with optional filters
+/// TODO: to rewrite
+fn parse_comparison_val<I: Input>(pair: Pair<Rule, I>) -> Expr {
+    let primary = |pair| {
+        parse_comparison_val(pair)
+    };
+
+    let infix = |lhs: Expr, op: Pair<Rule, I>, rhs: Expr| {
+        Expr::new(ExprVal::Math(
+            MathExpr {
+                lhs: Box::new(lhs),
+                operator: match op.as_rule() {
+                    Rule::op_plus => MathOperator::Add,
+                    Rule::op_minus => MathOperator::Sub,
+                    Rule::op_times => MathOperator::Mul,
+                    Rule::op_slash => MathOperator::Div,
+                    Rule::op_modulo => MathOperator::Modulo,
+                    _ => unreachable!()
+                },
+                rhs: Box::new(rhs),
+            }
+        ))
+    };
+
+    match pair.as_rule() {
+        Rule::basic_expr_filter => parse_basic_expr_with_filters(pair),
+        Rule::comparison_val => MATH_CLIMBER.climb(pair.into_inner(), primary, infix),
+        _ => unreachable!("Got {:?} in parse_comparison_val", pair.as_rule())
+    }
 }
 
 fn parse_comparison_expression<I: Input>(pair: Pair<Rule, I>) -> Expr {

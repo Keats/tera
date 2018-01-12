@@ -6,8 +6,8 @@
 
 - Tests parentheses are now mandatory if there are arguments (`divisibleby 2` -> `divisibleby(2)`)
 - Tests can be only used on variables now, not on expressions
-- Escaping happens immediately now instead of waiting for the filters to be called unless `safe` is first, 
-if you want the old behaviour you will need to start the a chain of filters with `| safe` as the first one
+- Escaping happens immediately now instead of waiting for the filters to be called, unless `safe` is first.
+If you want the old behaviour you will need to start the a chain of filters with `| safe` as the first one
 
 ### Others
 

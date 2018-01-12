@@ -156,6 +156,19 @@ impl<'a> Renderer<'a> {
         Ok(())
     }
 
+    /// In some cases, we will have filters in lhs/rhs of a math expression
+    /// `eval_as_number` only works on ExprVal rather than Expr
+    fn eval_expr_as_number(&mut self, expr: &Expr) -> Result<f64> {
+        if !expr.filters.is_empty() {
+            match self.eval_expression(expr)? {
+                Value::Number(s) => Ok(s.as_f64().unwrap()),
+                _ => bail!("Tried to do math with an expression not resulting in a number"),
+            }
+        } else {
+            self.eval_as_number(&expr.val)
+        }
+    }
+
     /// Return the value of an expression as a number
     fn eval_as_number(&mut self, expr: &ExprVal) -> Result<f64> {
         let res = match *expr {
@@ -168,9 +181,8 @@ impl<'a> Renderer<'a> {
             ExprVal::Int(val) => val as f64,
             ExprVal::Float(val) => val,
             ExprVal::Math(MathExpr { ref lhs, ref rhs, ref operator }) => {
-                let l = self.eval_as_number(lhs)?;
-                let r = self.eval_as_number(rhs)?;
-
+                let l = self.eval_expr_as_number(&lhs)?;
+                let r = self.eval_expr_as_number(&rhs)?;
                 match *operator {
                     MathOperator::Mul => l * r,
                     MathOperator::Div => l / r,

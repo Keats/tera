@@ -86,8 +86,15 @@ fn render_variable_block_ident() {
         ("{{ range(start=1, end=4) }}", "[1, 2, 3]"),
         ("{{ a + b }}", "5"),
         ("{{ a + 1.5 }}", "3.5"),
+        ("{{ 1 + 1 + 1 }}", "3"),
+        ("{{ 2 - 2 - 1 }}", "-1"),
+        ("{{ 1 - 1 + 1 }}", "1"),
         ("{{ (1.9 + a) | round }}", "4"),
         ("{{ 1.9 + a | round }}", "4"),
+        ("{{ numbers | length - 1 }}", "2"),
+        ("{{ 1.9 + a | round - 1 }}", "3"),
+        ("{{ 1.9 + a | round - 1.8 + a | round }}", "0"),
+        ("{{ 1.9 + a | round - 1.8 + a | round - 1 }}", "-1"),
     ];
 
     for (input, expected) in inputs {

@@ -94,6 +94,29 @@ fn lex_basic_expr() {
 }
 
 #[test]
+fn lex_basic_expr_with_filter() {
+    let inputs = vec![
+        "admin | hello",
+        "true | ho",
+        "macros::something() | hey",
+        "something() | hey",
+        r#""hey" | capitalize"#,
+        "a is defined | ho",
+        "a is defined(2) | ho",
+        "1 + 1 | round",
+        "1 + counts | round",
+        "1 + counts.first | round",
+        "1 + 2 + 3 * 9/2 + 2.1 | round",
+        "(1 + 2 + 3) * 9/2 + 2.1 | round",
+        "10 * 2 % 5 | round",
+    ];
+
+    for i in inputs {
+        assert_lex_rule!(Rule::basic_expr_filter, i);
+    }
+}
+
+#[test]
 fn lex_comparison_val() {
     let inputs = vec![
         // all the basic expr still work
@@ -115,6 +138,11 @@ fn lex_comparison_val() {
         "admin | upper | round",
         "admin | upper | round(var=2)",
         "1.5 + a | round(var=2)",
+        // and maths after filters is ok
+        "a | length - 1",
+        "1.5 + a | round - 1",
+        "1.5 + a | round - (1 + 1.5) | round",
+        "1.5 + a | round - (1 + 1.5) | round",
     ];
 
     for i in inputs {
