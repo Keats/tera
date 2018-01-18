@@ -14,8 +14,8 @@ categories = ["template-engine"]
 glob = "0.2"
 serde = "1.0"
 serde_json = "1.0"
-pest = "^1.0.0-beta"
-pest_derive = "^1.0.0-beta"
+pest = "^1.0.0-rc"
+pest_derive = "^1.0.0-rc"
 error-chain = "0.11"
 # used in slugify filter
 slug = "0.1"

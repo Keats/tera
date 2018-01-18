@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use pest::{Parser, Error as PestError};
 use pest::prec_climber::{PrecClimber, Operator, Assoc};
 use pest::iterators::Pair;
-use pest::inputs::Input;
 
 use errors::{Result as TeraResult, ResultExt};
 
@@ -46,7 +45,7 @@ lazy_static! {
     ]);
 }
 
-fn parse_kwarg<I: Input>(pair: Pair<Rule, I>) -> (String, Expr) {
+fn parse_kwarg(pair: Pair<Rule>) -> (String, Expr) {
     let mut name = None;
     let mut val = None;
 
@@ -61,7 +60,7 @@ fn parse_kwarg<I: Input>(pair: Pair<Rule, I>) -> (String, Expr) {
     (name.unwrap(), val.unwrap())
 }
 
-fn parse_fn_call<I: Input>(pair: Pair<Rule, I>) -> FunctionCall {
+fn parse_fn_call(pair: Pair<Rule>) -> FunctionCall {
     let mut name = None;
     let mut args = HashMap::new();
 
@@ -79,7 +78,7 @@ fn parse_fn_call<I: Input>(pair: Pair<Rule, I>) -> FunctionCall {
     FunctionCall { name: name.unwrap(), args }
 }
 
-fn parse_filter<I: Input>(pair: Pair<Rule, I>) -> FunctionCall {
+fn parse_filter(pair: Pair<Rule>) -> FunctionCall {
     let mut name = None;
     let mut args = HashMap::new();
     for p in pair.into_inner() {
@@ -99,7 +98,7 @@ fn parse_filter<I: Input>(pair: Pair<Rule, I>) -> FunctionCall {
     FunctionCall { name: name.unwrap(), args }
 }
 
-fn parse_test_call<I: Input>(pair: Pair<Rule, I>) -> (String, Vec<Expr>) {
+fn parse_test_call(pair: Pair<Rule>) -> (String, Vec<Expr>) {
     let mut name = None;
     let mut args = vec![];
 
@@ -122,7 +121,7 @@ fn parse_test_call<I: Input>(pair: Pair<Rule, I>) -> (String, Vec<Expr>) {
     (name.unwrap(), args)
 }
 
-fn parse_test<I: Input>(pair: Pair<Rule, I>) -> Test {
+fn parse_test(pair: Pair<Rule>) -> Test {
     let mut ident = None;
     let mut name = None;
     let mut args = vec![];
@@ -143,12 +142,12 @@ fn parse_test<I: Input>(pair: Pair<Rule, I>) -> Test {
 
 }
 
-fn parse_basic_expression<I: Input>(pair: Pair<Rule, I>) -> ExprVal {
+fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
     let primary = |pair| {
         parse_basic_expression(pair)
     };
 
-    let infix = |lhs: ExprVal, op: Pair<Rule, I>, rhs: ExprVal| {
+    let infix = |lhs: ExprVal, op: Pair<Rule>, rhs: ExprVal| {
         ExprVal::Math(
             MathExpr {
                 lhs: Box::new(Expr::new(lhs)),
@@ -184,7 +183,7 @@ fn parse_basic_expression<I: Input>(pair: Pair<Rule, I>) -> ExprVal {
 }
 
 /// A basic expression with optional filters
-fn parse_basic_expr_with_filters<I: Input>(pair: Pair<Rule, I>) -> Expr {
+fn parse_basic_expr_with_filters(pair: Pair<Rule>) -> Expr {
     let mut expr = None;
     let mut filters = vec![];
 
@@ -202,12 +201,12 @@ fn parse_basic_expr_with_filters<I: Input>(pair: Pair<Rule, I>) -> Expr {
 
 /// A basic expression with optional filters
 /// TODO: to rewrite
-fn parse_comparison_val<I: Input>(pair: Pair<Rule, I>) -> Expr {
+fn parse_comparison_val(pair: Pair<Rule>) -> Expr {
     let primary = |pair| {
         parse_comparison_val(pair)
     };
 
-    let infix = |lhs: Expr, op: Pair<Rule, I>, rhs: Expr| {
+    let infix = |lhs: Expr, op: Pair<Rule>, rhs: Expr| {
         Expr::new(ExprVal::Math(
             MathExpr {
                 lhs: Box::new(lhs),
@@ -231,12 +230,12 @@ fn parse_comparison_val<I: Input>(pair: Pair<Rule, I>) -> Expr {
     }
 }
 
-fn parse_comparison_expression<I: Input>(pair: Pair<Rule, I>) -> Expr {
+fn parse_comparison_expression(pair: Pair<Rule>) -> Expr {
     let primary = |pair| {
         parse_comparison_expression(pair)
     };
 
-    let infix = |lhs: Expr, op: Pair<Rule, I>, rhs: Expr| {
+    let infix = |lhs: Expr, op: Pair<Rule>, rhs: Expr| {
         Expr::new(
             ExprVal::Logic(
                 LogicExpr {
@@ -264,7 +263,7 @@ fn parse_comparison_expression<I: Input>(pair: Pair<Rule, I>) -> Expr {
 }
 
 /// An expression that can be negated
-fn parse_logic_val<I: Input>(pair: Pair<Rule, I>) -> Expr {
+fn parse_logic_val(pair: Pair<Rule>) -> Expr {
     let mut negated = false;
     let mut expr = None;
 
@@ -281,12 +280,12 @@ fn parse_logic_val<I: Input>(pair: Pair<Rule, I>) -> Expr {
     e
 }
 
-fn parse_logic_expr<I: Input>(pair: Pair<Rule, I>) -> Expr {
-    let primary = |pair: Pair<Rule, I>| {
+fn parse_logic_expr(pair: Pair<Rule>) -> Expr {
+    let primary = |pair: Pair<Rule>| {
         parse_logic_expr(pair)
     };
 
-    let infix = |lhs: Expr, op: Pair<Rule, I>, rhs: Expr| {
+    let infix = |lhs: Expr, op: Pair<Rule>, rhs: Expr| {
         match op.as_rule() {
             Rule::op_or => {
                 Expr::new(ExprVal::Logic(LogicExpr {
@@ -313,7 +312,7 @@ fn parse_logic_expr<I: Input>(pair: Pair<Rule, I>) -> Expr {
     }
 }
 
-fn parse_macro_call<I: Input>(pair: Pair<Rule, I>) -> MacroCall {
+fn parse_macro_call(pair: Pair<Rule>) -> MacroCall {
     let mut namespace = None;
     let mut name = None;
     let mut args = HashMap::new();
@@ -340,12 +339,12 @@ fn parse_macro_call<I: Input>(pair: Pair<Rule, I>) -> MacroCall {
     MacroCall { namespace: namespace.unwrap(), name: name.unwrap(), args }
 }
 
-fn parse_variable_tag<I: Input>(pair: Pair<Rule, I>) -> Node {
+fn parse_variable_tag(pair: Pair<Rule>) -> Node {
     let p = pair.into_inner().nth(0).unwrap();
     Node::VariableBlock(parse_logic_expr(p))
 }
 
-fn parse_import_macro<I: Input>(pair: Pair<Rule, I>) -> Node {
+fn parse_import_macro(pair: Pair<Rule>) -> Node {
     let mut ws = WS::default();
     let mut file = None;
     let mut ident = None;
@@ -368,7 +367,7 @@ fn parse_import_macro<I: Input>(pair: Pair<Rule, I>) -> Node {
 }
 
 /// `extends` and `include` have the same structure so only way fn to parse them both
-fn parse_extends_include<I: Input>(pair: Pair<Rule, I>) -> (WS, String) {
+fn parse_extends_include(pair: Pair<Rule>) -> (WS, String) {
     let mut ws = WS::default();
     let mut file = None;
 
@@ -388,7 +387,7 @@ fn parse_extends_include<I: Input>(pair: Pair<Rule, I>) -> (WS, String) {
     (ws, file.unwrap())
 }
 
-fn parse_set_tag<I: Input>(pair: Pair<Rule, I>) -> Node {
+fn parse_set_tag(pair: Pair<Rule>) -> Node {
     let mut ws = WS::default();
     let mut key = None;
     let mut expr = None;
@@ -414,7 +413,7 @@ fn parse_set_tag<I: Input>(pair: Pair<Rule, I>) -> Node {
     Node::Set(ws, Set {key: key.unwrap(), value: expr.unwrap(), global})
 }
 
-fn parse_raw_tag<I: Input>(pair: Pair<Rule, I>) -> Node {
+fn parse_raw_tag(pair: Pair<Rule>) -> Node {
     let mut start_ws = WS::default();
     let mut end_ws = WS::default();
     let mut text = None;
@@ -447,7 +446,7 @@ fn parse_raw_tag<I: Input>(pair: Pair<Rule, I>) -> Node {
     Node::Raw(start_ws, text.unwrap(), end_ws)
 }
 
-fn parse_filter_section<I: Input>(pair: Pair<Rule, I>) -> Node {
+fn parse_filter_section(pair: Pair<Rule>) -> Node {
     let mut start_ws = WS::default();
     let mut end_ws = WS::default();
     let mut filter = None;
@@ -483,7 +482,7 @@ fn parse_filter_section<I: Input>(pair: Pair<Rule, I>) -> Node {
     Node::FilterSection(start_ws, FilterSection {filter: filter.unwrap(), body}, end_ws)
 }
 
-fn parse_block<I: Input>(pair: Pair<Rule, I>) -> Node {
+fn parse_block(pair: Pair<Rule>) -> Node {
     let mut start_ws = WS::default();
     let mut end_ws = WS::default();
     let mut name = None;
@@ -519,7 +518,7 @@ fn parse_block<I: Input>(pair: Pair<Rule, I>) -> Node {
     Node::Block(start_ws, Block {name: name.unwrap(), body} ,end_ws)
 }
 
-fn parse_macro_definition<I: Input>(pair: Pair<Rule, I>) -> Node {
+fn parse_macro_definition(pair: Pair<Rule>) -> Node {
     let mut start_ws = WS::default();
     let mut end_ws = WS::default();
     let mut name = None;
@@ -568,7 +567,7 @@ fn parse_macro_definition<I: Input>(pair: Pair<Rule, I>) -> Node {
     Node::MacroDefinition(start_ws, MacroDefinition {name: name.unwrap(), args, body}, end_ws)
 }
 
-fn parse_forloop<I: Input>(pair: Pair<Rule, I>) -> Node {
+fn parse_forloop(pair: Pair<Rule>) -> Node {
     let mut start_ws = WS::default();
     let mut end_ws = WS::default();
 
@@ -625,7 +624,7 @@ fn parse_forloop<I: Input>(pair: Pair<Rule, I>) -> Node {
     )
 }
 
-fn parse_if<I: Input>(pair: Pair<Rule, I>) -> Node {
+fn parse_if(pair: Pair<Rule>) -> Node {
     // the `endif` tag ws handling
     let mut end_ws = WS::default();
     let mut conditions = vec![];
@@ -699,7 +698,7 @@ fn parse_if<I: Input>(pair: Pair<Rule, I>) -> Node {
     Node::If(If {conditions, otherwise}, end_ws)
 }
 
-fn parse_content<I: Input>(pair: Pair<Rule, I>) -> Vec<Node> {
+fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
     let mut nodes = vec![];
 
     for p in pair.into_inner() {
@@ -731,7 +730,7 @@ fn parse_content<I: Input>(pair: Pair<Rule, I>) -> Vec<Node> {
 }
 
 pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
-    let mut pairs = match TeraParser::parse_str(Rule::template, input) {
+    let mut pairs = match TeraParser::parse(Rule::template, input) {
         Ok(p) => p,
         Err(e) => match e {
             PestError::ParsingError { pos, .. } => {
