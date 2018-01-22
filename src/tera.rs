@@ -9,11 +9,11 @@ use serde::Serialize;
 use serde_json::value::to_value;
 
 use template::Template;
-use filters::{FilterFn, string, array, common, number, object};
+use builtins::filters::{FilterFn, string, array, common, number, object};
+use builtins::testers::{self, TesterFn};
+use builtins::global_functions::{self, GlobalFn};
 use errors::{Result, ResultExt};
-use render::Renderer;
-use testers::{self, TesterFn};
-use global_functions::{self, GlobalFn};
+use renderer::Renderer;
 
 
 /// The main point of interaction in this library.
@@ -92,7 +92,7 @@ impl Tera {
     ///    }
     ///};
     ///tera.build_inheritance_chains()?;
-    ///```
+    /// ```
     pub fn parse(dir: &str) -> Result<Tera> {
         Self::create(dir, true)
     }
@@ -467,10 +467,12 @@ impl Tera {
         self.register_filter("escape", string::escape_html);
         self.register_filter("slugify", string::slugify);
         self.register_filter("addslashes", string::addslashes);
+        self.register_filter("split", string::split);
 
         self.register_filter("first", array::first);
         self.register_filter("last", array::last);
         self.register_filter("join", array::join);
+        self.register_filter("sort", array::sort);
 
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
@@ -479,6 +481,7 @@ impl Tera {
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
         self.register_filter("date", common::date);
+        self.register_filter("json_encode", common::json_encode);
 
         self.register_filter("get", object::get);
     }
@@ -492,6 +495,9 @@ impl Tera {
         self.register_tester("number", testers::number);
         self.register_tester("divisibleby", testers::divisible_by);
         self.register_tester("iterable", testers::iterable);
+        self.register_tester("starting_with", testers::starting_with);
+        self.register_tester("ending_with", testers::ending_with);
+        self.register_tester("containing", testers::containing);
     }
 
     fn register_tera_global_functions(&mut self) {
@@ -782,5 +788,49 @@ mod tests {
         framework_tera.register_tester("hello", my_tera.testers["divisibleby"]);
         my_tera.extend(&framework_tera).unwrap();
         assert!(my_tera.testers.contains_key("hello"));
+    }
+
+    #[test]
+    fn can_load_from_glob() {
+        let mut tera = Tera::new("examples/templates/**/*").unwrap();
+        assert!(tera.get_template("base.html").is_ok());
+    }
+
+    #[test]
+    fn full_reload_with_glob() {
+        let mut tera = Tera::new("examples/templates/**/*").unwrap();
+        tera.full_reload().unwrap();
+
+        assert!(tera.get_template("base.html").is_ok());
+    }
+
+    #[test]
+    fn full_reload_with_glob_after_extending() {
+        let mut tera = Tera::new("examples/templates/**/*").unwrap();
+        let mut framework_tera = Tera::default();
+        framework_tera.add_raw_templates(vec![
+            ("one", "FRAMEWORK"),
+            ("four", "Framework X"),
+        ]).unwrap();
+        tera.extend(&framework_tera).unwrap();
+        tera.full_reload().unwrap();
+
+        assert!(tera.get_template("base.html").is_ok());
+        assert!(tera.get_template("one").is_ok());
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_can_only_parse_templates() {
+        let mut tera = Tera::parse("examples/templates/**/*").unwrap();
+        for tpl in tera.templates.values_mut() {
+            tpl.name = format!("a-theme/templates/{}", tpl.name);
+            if let Some(ref parent) = tpl.parent.clone() {
+                tpl.parent = Some(format!("a-theme/templates/{}", parent));
+            }
+        }
+        // Will panic here as we changed the parent and it won't be able
+        // to build the inheritance chain in this case
+        tera.build_inheritance_chains().unwrap();
     }
 }

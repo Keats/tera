@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.11.0 (unreleased)
+
+### Breaking changes
+
+- Tests parentheses are now mandatory if there are arguments (`divisibleby 2` -> `divisibleby(2)`)
+- Tests can be only used on variables now, not on expressions
+- Escaping happens immediately now instead of waiting for the filters to be called, unless `safe` is first.
+If you want the old behaviour you will need to start the a chain of filters with `| safe` as the first one
+
+### Others
+
+- Tests, global functions calls and macro calls are now expressions and can be combined like so: `if x is divisibleby(2) and x > 10`
+- Add default arguments for macro arguments
+- Add whitespace management similar to Liquid and Jinja2
+- Add parentheses to expressions to remove ambiguities
+- Block & macro end tag name are no longer mandatory and it doesn't error on mismatched names between
+the start and end tag anymore
+- Filters can now be applied to expressions
+- Add modulo operator `%` for math expressions
+- Allow comment tags before the extend tag
+- Make `NaiveDateTime` work with the `date` filter
+- `pluralize` filter now returns the plural suffix for 0 thing as it's apparently what English does
+- Add a `set_global` tag that allows you to set something in the global context: meant to be used in forloops where
+the normal `set` would put the value into the loop context
+- Add `starting_with`, `ending_with` and `containing` tests
+- Add `json_encode`, `default` and `sort` filters
+- Strings can now also be contained in backticks and single quotes in templates
 
 ## 0.10.10 (2017-08-24)
 

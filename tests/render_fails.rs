@@ -29,7 +29,7 @@ fn test_error_render_field_unknown() {
     assert_eq!(result.is_err(), true);
     assert_eq!(
         result.unwrap_err().iter().nth(1).unwrap().description(),
-        "Field `hey` not found in context while rendering \'field_unknown.html\'"
+        "Variable `hey` not found in context while rendering \'field_unknown.html\'"
     );
 }
 
@@ -45,7 +45,7 @@ fn test_error_render_field_unknown_in_forloop() {
     );
     assert_eq!(
         err.iter().nth(2).unwrap().description(),
-        "Field `random` not found in context while rendering \'field_unknown_forloop.html\'"
+        "Variable `random` not found in context while rendering \'field_unknown_forloop.html\'"
     );
 }
 
@@ -78,7 +78,7 @@ fn test_error_render_iterate_non_array() {
     assert_eq!(result.is_err(), true);
     assert_eq!(
         result.unwrap_err().iter().nth(1).unwrap().description(),
-        "Tried to iterate on variable `username`, but it isn\'t an array"
+        "Tried to iterate on a container (`username`) that has a unsupported type"
     );
 }
 
@@ -100,9 +100,9 @@ fn test_error_wrong_args_macros() {
     let result = render_tpl("macro_wrong_args.html");
 
     assert_eq!(result.is_err(), true);
-    assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
-        "Macro `input` got `[\"label\", \"type\"]` for args but was expecting `[\"greeting\"]` (order does not matter)"
+    assert!(
+        result.unwrap_err().iter().nth(1).unwrap().description()
+            .contains("Macro `input` is missing the argument")
     );
 }
 
@@ -153,7 +153,7 @@ fn test_error_in_parent_template_location() {
     let errs = result.unwrap_err();
     assert_eq!(
         errs.iter().nth(0).unwrap().description(),
-        "Failed to render 'error-location/error_in_parent.html' (error happened in 'error-location/base_error.html')."
+        "Failed to render 'error-location/error_in_parent.html' (error happened in a parent template)"
     );
 }
 
