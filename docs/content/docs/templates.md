@@ -356,13 +356,14 @@ Macros currently need to be defined in a separate file and imported to be useabl
 They are defined as follows:
 
 ```jinja2
-{% macro input(label, type) %}
+{% macro input(label, type="text") %}
     <label>
         {{ label }}
         <input type="{{type}}" />
     </label>
 {% endmacro hello_world %}
 ```
+As shown in the example above, macro arguments can have a default literal (bool, string, number) value.
 
 In order to use them, you need to import the file containing the macros:
 
