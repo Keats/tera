@@ -13,6 +13,15 @@ There are 3 kinds of delimiter and those cannot be changed:
 - `{%` or `{%-` and `%}` or `-%}` for statements
 - `{#` and `#}` for comments
 
+## Literals
+
+Tera has a few literals that can be used:
+
+- booleans: `true` and `false`
+- integers
+- floats
+- strings: text delimited by `""`, `''` or backticks
+
 ## Variables
 
 Variables are defined by the context given when rendering a template.
@@ -363,7 +372,7 @@ They are defined as follows:
     </label>
 {% endmacro hello_world %}
 ```
-As shown in the example above, macro arguments can have a default literal (bool, string, number) value.
+As shown in the example above, macro arguments can have a default [literal](./docs/templates.md#literals) value.
 
 In order to use them, you need to import the file containing the macros:
 
