@@ -33,6 +33,8 @@ pub enum MathOperator {
     Div,
     /// %
     Modulo,
+    /// ~
+    Tilde,
 }
 
 impl fmt::Display for MathOperator {
@@ -43,6 +45,7 @@ impl fmt::Display for MathOperator {
             MathOperator::Mul => "*",
             MathOperator::Div => "/",
             MathOperator::Modulo => "%",
+            MathOperator::Tilde => "~",
         })
     }
 }

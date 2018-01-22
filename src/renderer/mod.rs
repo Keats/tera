@@ -189,6 +189,7 @@ impl<'a> Renderer<'a> {
                     MathOperator::Add => l + r,
                     MathOperator::Sub => l - r,
                     MathOperator::Modulo => l % r,
+                    _ => unreachable!(),
                 }
             },
             ExprVal::String(ref val) => bail!("Tried to do math with a string: `{}`", val),
@@ -254,6 +255,22 @@ impl<'a> Renderer<'a> {
         if expr.negated {
             return Ok(!res);
         }
+
+        Ok(res)
+    }
+
+    fn eval_to_string(&mut self, expr: &ExprVal) -> Result<String> {
+        let res = match *expr {
+            ExprVal::String(ref s) => s.to_string(),
+            ExprVal::Int(_) | ExprVal::Float(_) | ExprVal::Math(_) => {
+                self.eval_as_number(expr)?.to_string()
+            },
+            ExprVal::Ident(ref ident) => self.lookup_ident(ident)?.render(),
+            ExprVal::Test(ref test) => self.eval_test(test)?.to_string(),
+            ExprVal::FunctionCall(ref call) => self.eval_global_fn_call(call)?.render(),
+            ExprVal::MacroCall(ref call) => self.eval_macro_call(call)?,
+            _ => unreachable!("unimplemented"),
+        };
 
         Ok(res)
     }
@@ -386,12 +403,21 @@ impl<'a> Renderer<'a> {
             ExprVal::MacroCall(ref macro_call) => Value::String(self.eval_macro_call(macro_call)?),
             ExprVal::Test(ref test) => Value::Bool(self.eval_test(test)?),
             ExprVal::Logic(_) => Value::Bool(self.eval_as_bool(expr)?),
-            ExprVal::Math(_) => {
-                let result = self.eval_as_number(&expr.val)?;
-
-                match Number::from_f64(result) {
-                    Some(x) => Value::Number(x),
-                    None => Value::String("NaN".to_string())
+            ExprVal::Math(ref math) => {
+                match math.operator {
+                    MathOperator::Tilde => {
+                        needs_escape = true;
+                        let mut string = self.eval_to_string(&math.lhs)?;
+                        string.push_str(&self.eval_to_string(&math.rhs)?);
+                        Value::String(string)
+                    },
+                    _ => {
+                        let number = self.eval_as_number(&expr.val)?;
+                        match Number::from_f64(number) {
+                            Some(x) => Value::Number(x),
+                            None => Value::String("NaN".to_string())
+                        }
+                    }
                 }
             },
             _ => unreachable!("{:?}", expr),
