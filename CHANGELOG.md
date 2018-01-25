@@ -1,9 +1,8 @@
 # Changelog
 
-## 0.11.1 (unreleased)
+## 0.11.1 (2018-01-25)
 
 - Fix regression with expressions in comparisons
-
 
 ## 0.11.0 (2018-01-22)
 
