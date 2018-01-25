@@ -207,8 +207,8 @@ impl<'a> Renderer<'a> {
                     LogicOperator::Or => self.eval_as_bool(lhs)? || self.eval_as_bool(rhs)?,
                     LogicOperator::And => self.eval_as_bool(lhs)? && self.eval_as_bool(rhs)?,
                     LogicOperator::Gt | LogicOperator::Gte | LogicOperator::Lt | LogicOperator::Lte => {
-                        let l = self.eval_as_number(&lhs.val)?;
-                        let r = self.eval_as_number(&rhs.val)?;
+                        let l = self.eval_expr_as_number(&lhs)?;
+                        let r = self.eval_expr_as_number(&rhs)?;
 
                         match *operator {
                             LogicOperator::Gte => l >= r,

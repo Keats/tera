@@ -64,7 +64,7 @@ impl Tera {
     ///
     /// The example below is what the [compile_templates](macro.compile_templates.html) macros expands to.
     ///
-    /// ```rust,ignore
+    /// ```rust, ignore
     ///match Tera::new("templates/**/*") {
     ///    Ok(t) => t,
     ///    Err(e) => {
@@ -83,7 +83,7 @@ impl Tera {
     /// You will NOT get a working Tera instance using `Tera::parse`, you will need to call
     /// `tera.build_inheritance_chains()` to make it usable
     ///
-    /// ```rust,ignore
+    /// ```rust, ignore
     ///let mut tera = match Tera::parse("templates/**/*") {
     ///    Ok(t) => t,
     ///    Err(e) => {
