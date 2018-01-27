@@ -64,7 +64,7 @@ impl Tera {
     ///
     /// The example below is what the [compile_templates](macro.compile_templates.html) macros expands to.
     ///
-    /// ```rust, ignore
+    ///```ignore
     ///match Tera::new("templates/**/*") {
     ///    Ok(t) => t,
     ///    Err(e) => {
@@ -72,7 +72,7 @@ impl Tera {
     ///        ::std::process::exit(1);
     ///    }
     ///}
-    /// ```
+    ///```
     pub fn new(dir: &str) -> Result<Tera> {
         Self::create(dir, false)
     }
@@ -83,7 +83,7 @@ impl Tera {
     /// You will NOT get a working Tera instance using `Tera::parse`, you will need to call
     /// `tera.build_inheritance_chains()` to make it usable
     ///
-    /// ```rust, ignore
+    ///```ignore
     ///let mut tera = match Tera::parse("templates/**/*") {
     ///    Ok(t) => t,
     ///    Err(e) => {
@@ -92,7 +92,7 @@ impl Tera {
     ///    }
     ///};
     ///tera.build_inheritance_chains()?;
-    /// ```
+    ///```
     pub fn parse(dir: &str) -> Result<Tera> {
         Self::create(dir, true)
     }
@@ -510,12 +510,12 @@ impl Tera {
     /// Only call this function if you wish to change the defaults.
     ///
     ///
-    /// ```rust,ignore
+    ///```ignore
     /// // escape only files ending with `.php.html`
     /// tera.autoescape_on(vec![".php.html"]);
     /// // disable autoescaping completely
     /// tera.autoescape_on(vec![]);
-    /// ```
+    ///```
     pub fn autoescape_on(&mut self, suffixes: Vec<&'static str>) {
         self.autoescape_suffixes = suffixes;
     }
@@ -541,11 +541,11 @@ impl Tera {
     /// to your own. If a template/filter/tester with the same name already exists in your instance,
     /// it will not be overwritten.
     ///
-    /// ```rust,ignore
+    ///```rust,ignore
     /// // add all the templates from FRAMEWORK_TERA
     /// // except the ones that have an identical name to the ones in `my_tera`
     /// my_tera.extend(&FRAMEWORK_TERA);
-    /// ```
+    ///```
     pub fn extend(&mut self, other: &Tera) -> Result<()> {
         for (name, template) in &other.templates {
             if !self.templates.contains_key(name) {
