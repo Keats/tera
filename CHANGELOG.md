@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.2 (unreleased)
+
+- Fix regression when including templates that import macros
+
 ## 0.11.1 (2018-01-25)
 
 - Fix regression with expressions in comparisons

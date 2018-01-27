@@ -594,7 +594,14 @@ impl<'a> Renderer<'a> {
             Node::Forloop(_, ref forloop, _) => self.render_for(forloop)?,
             Node::Block(_, ref block, _) => self.render_block(block, 0)?,
             Node::Super => self.do_super()?,
-            Node::Include(_, ref tpl_name) => self.render_body(&self.tera.get_template(tpl_name)?.ast)?,
+            Node::Include(_, ref tpl_name) => {
+                let has_macro = self.import_template_macros(tpl_name)?;
+                let res = self.render_body(&self.tera.get_template(tpl_name)?.ast);
+                if has_macro {
+                    self.macros.pop();
+                }
+                return res;
+            },
             _ => unreachable!("render_node -> unexpected node: {:?}", node),
         };
 
