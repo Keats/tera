@@ -7,7 +7,7 @@ use humansize::{FileSize, file_size_opts};
 use errors::Result;
 
 
-/// Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
+/// Returns a suffix if the value is not equal to 1. Suffix defaults to `s`
 pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("pluralize", "value", f64, value);
     let suffix = match args.get("suffix") {
@@ -15,8 +15,8 @@ pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         None => "s".to_string(),
     };
 
-    // English uses plural with zero or more than one thing
-    if num == 0.0 || num >= 2.0 {
+    // English uses plural when it isn't one
+    if num.abs() != 1. {
         Ok(to_value(&suffix).unwrap())
     } else {
         Ok(to_value(&"").unwrap())
