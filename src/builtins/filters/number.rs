@@ -7,7 +7,7 @@ use humansize::{FileSize, file_size_opts};
 use errors::Result;
 
 
-/// Returns a suffix if the value is not equal to 1. Suffix defaults to `s`
+/// Returns a suffix if the value is not equal to ±1. Suffix defaults to `s`
 pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("pluralize", "value", f64, value);
     let suffix = match args.get("suffix") {
