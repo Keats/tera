@@ -554,6 +554,22 @@ or by age:
 {{ people | sort(attribute="age") }}
 ```
 
+### slice
+Slice an array by the given `start` and `end` parameter. Both parameters are
+optional and omitting them will return the same array.
+Use the `start` argument to define where to start (inclusive, default to `0`)
+and `end` argument to define where to stop (exclusive, default to the length of the array).
+`start` and `end` are 0-indexed.
+
+```jinja2
+{% for i in my_arr | slice(end=5) %}
+{% for i in my_arr | slice(start=1) %}
+{% for i in my_arr | slice(start=1, end=5) %}
+```
+
+
+
+
 ### urlencode
 Percent-encodes a string.
 
@@ -629,6 +645,7 @@ Example: `{{ value | safe | json_encode(pretty=true) }}`
 Returns the default value given if the variable evaluated is not present in the context.
 
 Example: `{{ value | default(value=1) }}`
+
 
 ## Built-in tests
 

@@ -66,6 +66,29 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     Ok(sorted.into())
 }
 
+/// Slice the array
+/// Use the `start` argument to define where to start (inclusive, default to `0`)
+/// and `end` argument to define where to stop (exclusive, default to the length of the array)
+/// `start` and `end` are 0-indexed
+pub fn slice(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+    let mut arr = try_get_value!("slice", "value", Vec<Value>, value);
+    if arr.is_empty() {
+        return Ok(arr.into());
+    }
+
+    let start = try_get_value!("slice", "start", f64, args.get("start").unwrap_or(&0.0.into())) as usize;
+    // Not an error, but returns an empty Vec
+    if start > arr.len() {
+        return Ok(Vec::<Value>::new().into());
+    }
+    let mut end = try_get_value!("slice", "end", f64, args.get("end").unwrap_or(&arr.len().into())) as usize;
+    if end > arr.len() {
+        end = arr.len();
+    }
+
+    Ok(arr[start..end].into())
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -238,5 +261,34 @@ mod tests {
             TupleStruct(7, 0),
             TupleStruct(18, 18)
         ]).unwrap());
+    }
+
+    #[test]
+    fn test_slice() {
+        fn make_args(start: Option<usize>, end: Option<usize>) -> HashMap<String, Value> {
+            let mut args = HashMap::new();
+            if let Some(s) = start {
+                args.insert("start".to_string(), to_value(s).unwrap());
+            }
+            if let Some(e) = end {
+                args.insert("end".to_string(), to_value(e).unwrap());
+            }
+            args
+        }
+
+        let v = to_value(vec![1, 2, 3, 4, 5]).unwrap();
+
+        let inputs = vec![
+            (make_args(Some(1), None), vec![2, 3, 4, 5]),
+            (make_args(None, Some(2)), vec![1, 2]),
+            (make_args(Some(1), Some(2)), vec![2]),
+            (make_args(None, None), vec![1, 2, 3, 4, 5]),
+        ];
+
+        for (args, expected) in inputs {
+            let res = slice(v.clone(), args);
+            assert!(res.is_ok());
+            assert_eq!(res.unwrap(), to_value(expected).unwrap());
+        }
     }
 }

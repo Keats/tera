@@ -473,6 +473,7 @@ impl Tera {
         self.register_filter("last", array::last);
         self.register_filter("join", array::join);
         self.register_filter("sort", array::sort);
+        self.register_filter("slice", array::slice);
 
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
