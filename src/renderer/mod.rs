@@ -496,19 +496,32 @@ impl<'a> Renderer<'a> {
     /// Adds the macro for the given template into the renderer and returns
     /// whether it had some macros or not
     /// Used when rendering blocks
-    /// TODO: refactor that once all tests are passing as there are duplicate code in render_block and do_super
     fn import_template_macros(&mut self, tpl_name: &str) -> Result<bool> {
         let tpl = self.tera.get_template(tpl_name)?;
         if tpl.imported_macro_files.is_empty() {
             return Ok(false);
         }
 
-        let mut map = HashMap::new();
-        for &(ref filename, ref namespace) in &tpl.imported_macro_files {
-            let macro_tpl = self.tera.get_template(filename)?;
-            map.insert(namespace.to_string(), &macro_tpl.macros);
+        /// Macro templates can import other macro templates so the macro loading
+        /// needs to happen recursively
+        /// We need all of the macros loaded in one go to be in the same hashmap
+        /// for easy popping as well, otherwise there could be stray macro definitions
+        /// remaining
+        fn load_macros<'a>(tera: &'a Tera, tpl: &Template) -> Result<HashMap<String, &'a HashMap<String, MacroDefinition>>> {
+            let mut macros = HashMap::new();
+
+            for &(ref filename, ref namespace) in &tpl.imported_macro_files {
+                let macro_tpl = tera.get_template(filename)?;
+                macros.insert(namespace.to_string(), &macro_tpl.macros);
+                if !macro_tpl.imported_macro_files.is_empty() {
+                    macros.extend(load_macros(tera, macro_tpl)?);
+                }
+            }
+
+            Ok(macros)
         }
-        self.macros.push(map);
+
+        self.macros.push(load_macros(self.tera, &tpl)?);
 
         Ok(true)
     }
