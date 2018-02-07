@@ -139,7 +139,7 @@ macro_tag        = !{ tag_start ~ "macro" ~ macro_fn ~ tag_end }
 if_tag           = !{ tag_start ~ "if" ~ logic_expr ~ tag_end }
 elif_tag         = !{ tag_start ~ "elif" ~ logic_expr ~ tag_end }
 else_tag         = !{ tag_start ~ "else" ~ tag_end }
-for_tag          = !{ tag_start ~ "for" ~ ident ~ ("," ~ ident)? ~ "in" ~ logic_expr ~ tag_end }
+for_tag          = !{ tag_start ~ "for" ~ ident ~ ("," ~ ident)? ~ "in" ~ basic_expr_filter ~ tag_end }
 filter_tag       = !{ tag_start ~ "filter" ~ (fn_call | ident) ~ tag_end }
 set_scope        = { "set_global" | "set" }
 set_tag          = !{ tag_start ~ set_scope ~ ident ~ "=" ~ logic_expr ~ tag_end }

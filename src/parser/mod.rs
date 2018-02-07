@@ -585,7 +585,7 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
                         Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
                         Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
                         Rule::ident => idents.push(p2.as_str().to_string()),
-                        Rule::logic_expr => container = Some(parse_logic_expr(p2)),
+                        Rule::basic_expr_filter => container = Some(parse_basic_expr_with_filters(p2)),
                         _ => unreachable!(),
                     };
                 }
@@ -732,15 +732,55 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
 pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
     let mut pairs = match TeraParser::parse(Rule::template, input) {
         Ok(p) => p,
-        Err(e) => match e {
-            PestError::ParsingError { pos, .. } => {
-                let (line_no, col_no) = pos.line_col();
-                bail!("Invalid Tera syntax at line {}, col {}", line_no, col_no);
-            },
-            _ => unreachable!(),
+        Err(e) => {
+            let fancy_e = e.renamed_rules(|rule| {
+                match *rule {
+                    Rule::int => "an integer".to_string(),
+                    Rule::float => "a float".to_string(),
+                    Rule::string => "a string".to_string(),
+                    Rule::boolean => "`true` or `false`".to_string(),
+                    Rule::ident => "an identifier".to_string(),
+                    Rule::dotted_ident => "a dotted identifier (identifiers separated by `.`)".to_string(),
+                    Rule::basic_expr => "an expression".to_string(),
+                    Rule::basic_expr_filter => "an expression with an optional filter".to_string(),
+                    Rule::comparison_val => "a comparison value".to_string(),
+                    Rule::comparison_expr => "an expression".to_string(),
+                    Rule::logic_val => "a value that can be negated".to_string(),
+                    Rule::logic_expr => "any expressions".to_string(),
+                    Rule::fn_call => "a function call".to_string(),
+                    Rule::kwarg => "a keyword argument: `key=value` where `value` can be any expression".to_string(),
+                    Rule::kwargs => "a list of keyword arguments: `key=value` where `value` can be any expressions and separated by `,`".to_string(),
+                    Rule::op_or => "`or`".to_string(),
+                    Rule::op_and => "`and`".to_string(),
+                    Rule::op_not => "`not`".to_string(),
+                    Rule::op_lte => "`<=`".to_string(),
+                    Rule::op_gte => "`>=`".to_string(),
+                    Rule::op_lt => "`<`".to_string(),
+                    Rule::op_gt => "`>`".to_string(),
+                    Rule::op_ineq => "`!=`".to_string(),
+                    Rule::op_eq => "`==`".to_string(),
+                    Rule::op_plus => "`+`".to_string(),
+                    Rule::op_minus => "`-`".to_string(),
+                    Rule::op_times => "`*`".to_string(),
+                    Rule::op_slash => "`/`".to_string(),
+                    Rule::op_modulo => "`%`".to_string(),
+                    Rule::filter => "a filter".to_string(),
+                    Rule::test => "a test".to_string(),
+                    Rule::test_call => "a test call".to_string(),
+                    Rule::test_arg => "a test argument (any expression)".to_string(),
+                    Rule::test_args => "a list of test arguments (any expression)".to_string(),
+                    Rule::macro_fn => "a macro function".to_string(),
+                    Rule::macro_call => "a macro function call".to_string(),
+                    Rule::macro_def_arg => "an argument name with an optional default literal value: `id`, `key=1`".to_string(),
+                    Rule::macro_def_args => "a list of argument names with an optional default literal value: `id`, `key=1`".to_string(),
+                    Rule::set_scope => "`set` or `set_global`".to_string(),
+                    Rule::text => "some text".to_string(),
+                    _ => format!("TODO: {:?}", rule),
+                }
+            });
+            bail!("{}", fancy_e)
         }
     };
-
 
     let mut nodes = vec![];
 

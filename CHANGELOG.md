@@ -4,7 +4,8 @@
 
 - Add a `slice` filter for arrays
 - Fix macro files importing other macro files not loading properly
-
+- Fix forloop container being allowed logic expressions
+- Much improved parsing error messages
 
 ## 0.11.2 (2018-02-01)
 
