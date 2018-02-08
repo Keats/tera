@@ -78,8 +78,8 @@ fn invalid_macro_content() {
 {% endmacro input %}
     "#,
         &[
-            "3:8",
-            "expected `set` or `set_global`"  // TODO: investigate that weird error
+            "3:5",
+            "unexpected tag; expected `{% endmacro %}` or the macro content"
         ]
     );
 }
@@ -94,8 +94,8 @@ fn invalid_elif() {
 {% endif %}
     "#,
         &[
-            "4:4",
-            "expected `set` or `set_global`"  // TODO: investigate that weird error
+            "4:1",
+            "unexpected tag; expected a `endif` tag` or some content"
         ]
     );
 }
@@ -110,24 +110,22 @@ fn invalid_else() {
 {% endif %}
     "#,
         &[
-            "4:4",
-            "expected `set` or `set_global`"  // TODO: investigate that weird error
+            "4:1",
+            "unexpected tag; expected a `endif` tag` or some content"
         ]
     );
 }
 
 #[test]
-fn invalid_extends() {
+fn invalid_extends_position() {
         assert_err_msg(
         r#"
-{% if true %}
-{% else %}
-{% else %}
-{% endif %}
+hello
+{% extends "hey.html" %}
     "#,
         &[
-            "4:4",
-            "expected `set` or `set_global`"  // TODO: investigate that weird error
+            "3:1",
+            "unexpected tag; expected some content"
         ]
     );
 }
@@ -160,7 +158,7 @@ fn missing_expression_in_if() {
         "{% if %}",
         &[
             "1:7",
-            "expected `not` or an expression"
+            "expected any expression"
         ]
     );
 }

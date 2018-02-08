@@ -387,11 +387,10 @@ fn parse_extends_include(pair: Pair<Rule>) -> (WS, String) {
     (ws, file.unwrap())
 }
 
-fn parse_set_tag(pair: Pair<Rule>) -> Node {
+fn parse_set_tag(pair: Pair<Rule>, global: bool) -> Node {
     let mut ws = WS::default();
     let mut key = None;
     let mut expr = None;
-    let mut global = false;
 
     for p in pair.into_inner() {
         match p.as_rule() {
@@ -401,9 +400,6 @@ fn parse_set_tag(pair: Pair<Rule>) -> Node {
             Rule::tag_end => {
                 ws.right = p.into_span().as_str() == "-%}";
             },
-            Rule::set_scope => {
-                global = p.into_span().as_str() == "set_global";
-            }
             Rule::ident => key = Some(p.as_str().to_string()),
             Rule::logic_expr=> expr = Some(parse_logic_expr(p)),
             _ => unreachable!("unexpected {:?} rule in parse_set_tag", p.as_rule()),
@@ -710,7 +706,8 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             // Ignore comments
             Rule::comment_tag => (),
             Rule::super_tag => nodes.push(Node::Super),
-            Rule::set_tag => nodes.push(parse_set_tag(p)),
+            Rule::set_tag => nodes.push(parse_set_tag(p, false)),
+            Rule::set_global_tag => nodes.push(parse_set_tag(p, true)),
             Rule::raw => nodes.push(parse_raw_tag(p)),
             Rule::variable_tag => nodes.push(parse_variable_tag(p)),
             Rule::import_macro_tag => nodes.push(parse_import_macro(p)),
@@ -773,8 +770,18 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::macro_call => "a macro function call".to_string(),
                     Rule::macro_def_arg => "an argument name with an optional default literal value: `id`, `key=1`".to_string(),
                     Rule::macro_def_args => "a list of argument names with an optional default literal value: `id`, `key=1`".to_string(),
-                    Rule::set_scope => "`set` or `set_global`".to_string(),
+                    Rule::endmacro_tag => "`{% endmacro %}`".to_string(),
+                    Rule::macro_content => "the macro content".to_string(),
+                    Rule::set_tag => "a `set` tag`".to_string(),
+                    Rule::set_global_tag => "a `set_global` tag`".to_string(),
+                    Rule::endif_tag => "a `endif` tag`".to_string(),
+                    Rule::content => "some content".to_string(),
                     Rule::text => "some text".to_string(),
+                    // Pest will error an unexpected tag as Rule::tag_start
+                    // and just showing `{%` is not clear as some other valid
+                    // tags will also start with `{%`
+                    Rule::tag_start => "tag".to_string(),
+                    Rule::tag_end => "`%}` or `-%}`".to_string(),
                     _ => format!("TODO: {:?}", rule),
                 }
             });
