@@ -734,7 +734,14 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                 match *rule {
                     Rule::int => "an integer".to_string(),
                     Rule::float => "a float".to_string(),
-                    Rule::string => "a string".to_string(),
+                    Rule::string | Rule::double_quoted_string
+                    | Rule::single_quoted_string | Rule::backquoted_quoted_string => {
+                        "a string".to_string()
+                    },
+                    Rule::all_chars => "a character".to_string(),
+                    Rule::basic_val => "a value".to_string(),
+                    Rule::basic_op => "a mathematical operator".to_string(),
+                    Rule::comparison_op => "a comparison operator".to_string(),
                     Rule::boolean => "`true` or `false`".to_string(),
                     Rule::ident => "an identifier".to_string(),
                     Rule::dotted_ident => "a dotted identifier (identifiers separated by `.`)".to_string(),
@@ -745,7 +752,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::logic_val => "a value that can be negated".to_string(),
                     Rule::logic_expr => "any expressions".to_string(),
                     Rule::fn_call => "a function call".to_string(),
-                    Rule::kwarg => "a keyword argument: `key=value` where `value` can be any expression".to_string(),
+                    Rule::kwarg => "a keyword argument: `key=value` where `value` can be any expressions".to_string(),
                     Rule::kwargs => "a list of keyword arguments: `key=value` where `value` can be any expressions and separated by `,`".to_string(),
                     Rule::op_or => "`or`".to_string(),
                     Rule::op_and => "`and`".to_string(),
@@ -764,25 +771,62 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::filter => "a filter".to_string(),
                     Rule::test => "a test".to_string(),
                     Rule::test_call => "a test call".to_string(),
-                    Rule::test_arg => "a test argument (any expression)".to_string(),
-                    Rule::test_args => "a list of test arguments (any expression)".to_string(),
+                    Rule::test_arg => "a test argument (any expressions)".to_string(),
+                    Rule::test_args => "a list of test arguments (any expressions)".to_string(),
                     Rule::macro_fn => "a macro function".to_string(),
                     Rule::macro_call => "a macro function call".to_string(),
-                    Rule::macro_def_arg => "an argument name with an optional default literal value: `id`, `key=1`".to_string(),
-                    Rule::macro_def_args => "a list of argument names with an optional default literal value: `id`, `key=1`".to_string(),
+                    Rule::macro_def_arg => {
+                        "an argument name with an optional default literal value: `id`, `key=1`".to_string()
+                    },
+                    Rule::macro_def_args => {
+                        "a list of argument names with an optional default literal value: `id`, `key=1`".to_string()
+                    },
                     Rule::endmacro_tag => "`{% endmacro %}`".to_string(),
                     Rule::macro_content => "the macro content".to_string(),
                     Rule::set_tag => "a `set` tag`".to_string(),
                     Rule::set_global_tag => "a `set_global` tag`".to_string(),
                     Rule::endif_tag => "a `endif` tag`".to_string(),
-                    Rule::content => "some content".to_string(),
+                    Rule::block_content | Rule::content => "some content".to_string(),
                     Rule::text => "some text".to_string(),
                     // Pest will error an unexpected tag as Rule::tag_start
                     // and just showing `{%` is not clear as some other valid
                     // tags will also start with `{%`
                     Rule::tag_start => "tag".to_string(),
                     Rule::tag_end => "`%}` or `-%}`".to_string(),
-                    _ => format!("TODO: {:?}", rule),
+                    Rule::super_tag => "`{{ super() }}`".to_string(),
+                    Rule::raw_tag => "`{% raw %}`".to_string(),
+                    Rule::raw_text => "some raw text".to_string(),
+                    Rule::raw => "a raw block (`{% raw %}...{% endraw %}`".to_string(),
+                    Rule::endraw_tag => "`{% endraw %}`".to_string(),
+                    Rule::include_tag => r#"an include tag (`{% include "..." %}`)"#.to_string(),
+                    Rule::comment_tag => "a comment tag (`{#...#}`)".to_string(),
+                    Rule::variable_tag => "a variable tag (`{{ ... }}`)".to_string(),
+                    Rule::filter_tag | Rule::filter_section | Rule::block_filter_section | Rule::macro_filter_section => {
+                        "a filter section (`{% filter something %}...{% endfilter %}`)".to_string()
+                    },
+                    Rule::for_tag | Rule::forloop | Rule::block_forloop | Rule::macro_forloop => {
+                        "a forloop (`{% for i in something %}...{% endfor %}".to_string()
+                    },
+                    Rule::endfilter_tag => "an endfilter tag (`{% endfilter %}`)".to_string(),
+                    Rule::endfor_tag => "an endfor tag (`{% endfor %}`)".to_string(),
+                    Rule::if_tag | Rule::content_if | Rule::block_if | Rule::macro_if => {
+                        "a `if` tag".to_string()
+                    },
+                    Rule::elif_tag => "an `elif` tag".to_string(),
+                    Rule::else_tag => "an `else` tag".to_string(),
+                    Rule::endif_tag => "an endif tag (`{% endif %}`)".to_string(),
+                    Rule::whitespace => "whitespace".to_string(),
+                    Rule::variable_start => "a variable start (`{{`)".to_string(),
+                    Rule::variable_end => "a variable end (`}}`)".to_string(),
+                    Rule::comment_start => "a comment start (`{#`)".to_string(),
+                    Rule::comment_end => "a comment end (`#}`)".to_string(),
+                    Rule::block_start => "`{{`, `{%` or `{#`".to_string(),
+                    Rule::import_macro_tag => r#"an import macro tag (`{% import "filename" as namespace %}`"#.to_string(),
+                    Rule::block | Rule::block_tag => r#"a block tag (`{% block block_name %}`"#.to_string(),
+                    Rule::endblock_tag => r#"an enblock tag (`{% endblock block_name %}`"#.to_string(),
+                    Rule::macro_definition | Rule::macro_tag => r#"a macro definition tag (`{% macro my_macro() %}`"#.to_string(),
+                    Rule::extends_tag => r#"an extends tag (`{% extends "myfile" %}`"#.to_string(),
+                    Rule::template => "a template".to_string(),
                 }
             });
             bail!("{}", fancy_e)

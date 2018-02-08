@@ -26,6 +26,17 @@ fn invalid_number() {
 }
 
 #[test]
+fn invalid_op() {
+    assert_err_msg(
+        "{{ 1.2 >+ 3 }}",
+        &[
+            "1:9",
+            "expected an expression or a comparison value"
+        ]
+    );
+}
+
+#[test]
 fn wrong_start_block() {
     assert_err_msg(
         "{{ if true %}",
@@ -68,6 +79,40 @@ fn unterminated_string() {
         ]
     );
 }
+
+#[test]
+fn unterminated_if_tag() {
+    assert_err_msg(
+        r#"{% if true %}sd"#,
+        &[
+            "1:16",
+            r#"expected tag, an include tag (`{% include "..." %}`), a comment tag (`{#...#}`), a variable tag (`{{ ... }}`), or some text"#
+        ],
+    );
+}
+
+#[test]
+fn unterminated_filter_section() {
+    assert_err_msg(
+        r#"{% filter uppercase %}sd"#,
+        &[
+            "1:25",
+            r#"expected tag, an include tag (`{% include "..." %}`), a comment tag (`{#...#}`), a variable tag (`{{ ... }}`), or some text"#
+        ],
+    );
+}
+
+#[test]
+fn invalid_filter_section_missing_name() {
+    assert_err_msg(
+        r#"{% filter %}sd{% endfilter %}"#,
+        &[
+            "1:11",
+            "expected an identifier or a function call"
+        ],
+    );
+}
+
 #[test]
 fn invalid_macro_content() {
     assert_err_msg(
@@ -80,6 +125,20 @@ fn invalid_macro_content() {
         &[
             "3:5",
             "unexpected tag; expected `{% endmacro %}` or the macro content"
+        ]
+    );
+}
+
+#[test]
+fn invalid_macro_default_arg_value() {
+    assert_err_msg(
+        r#"
+{% macro input(label=something) %}
+{% endmacro input %}
+    "#,
+        &[
+            "2:22",
+            "expected an integer, a float, a string, or `true` or `false`"
         ]
     );
 }
@@ -313,6 +372,39 @@ fn invalid_block_missing_name() {
         &[
             "1:10",
             "expected an identifier"
+        ],
+    );
+}
+
+#[test]
+fn unterminated_test() {
+    assert_err_msg(
+        r#"{% if a is odd( %}"#,
+        &[
+            "1:17",
+            "expected a list of test arguments (any expressions)"
+        ],
+    );
+}
+
+#[test]
+fn invalid_test_argument() {
+    assert_err_msg(
+        r#"{% if a is odd(key=1) %}"#,
+        &[
+            "1:19",
+            "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, or a filter"
+        ],
+    );
+}
+
+#[test]
+fn unterminated_raw_tag() {
+    assert_err_msg(
+        r#"{% raw %}sd"#,
+        &[
+            "1:12",
+            "expected `{% endraw %}`"
         ],
     );
 }

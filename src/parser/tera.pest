@@ -141,7 +141,6 @@ elif_tag         = !{ tag_start ~ "elif" ~ logic_expr ~ tag_end }
 else_tag         = !{ tag_start ~ "else" ~ tag_end }
 for_tag          = !{ tag_start ~ "for" ~ ident ~ ("," ~ ident)? ~ "in" ~ basic_expr_filter ~ tag_end }
 filter_tag       = !{ tag_start ~ "filter" ~ (fn_call | ident) ~ tag_end }
-set_scope        = { "set_global" | "set" }
 set_tag          = !{ tag_start ~ "set" ~ ident ~ "=" ~ logic_expr ~ tag_end }
 set_global_tag   = !{ tag_start ~ "set_global" ~ ident ~ "=" ~ logic_expr ~ tag_end }
 endblock_tag     = !{ tag_start ~ "endblock" ~ ident? ~ tag_end }
