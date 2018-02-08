@@ -135,7 +135,7 @@ impl Tera {
                 if let Err(e) = self.add_file(Some(&filepath), path) {
                     errors += &format!("\n* {}", e);
                     for e in e.iter().skip(1) {
-                        errors += &format!("\n-- {}", e);
+                        errors += &format!("\n{}", e);
                     }
                 }
             }
@@ -160,7 +160,7 @@ impl Tera {
         f.read_to_string(&mut input).chain_err(|| format!("Failed to read template '{:?}'", path))?;
 
         let tpl = Template::new(tpl_name, Some(path.to_str().unwrap().to_string()), &input)
-            .chain_err(|| format!("Failed to parse '{:?}'", path))?;
+            .chain_err(|| format!("Failed to parse {:?}", path))?;
 
         self.templates.insert(tpl_name.to_string(), tpl);
         Ok(())
