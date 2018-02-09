@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use serde_json::value::Value;
 use errors::Result;
 
-
 pub mod string;
 pub mod number;
 pub mod array;

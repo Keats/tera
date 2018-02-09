@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
 
-
 /// Whether to remove the whitespace of a `{% %}` tag
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct WS {
@@ -37,13 +36,17 @@ pub enum MathOperator {
 
 impl fmt::Display for MathOperator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match *self {
-            MathOperator::Add => "+",
-            MathOperator::Sub => "-",
-            MathOperator::Mul => "*",
-            MathOperator::Div => "/",
-            MathOperator::Modulo => "%",
-        })
+        write!(
+            f,
+            "{}",
+            match *self {
+                MathOperator::Add => "+",
+                MathOperator::Sub => "-",
+                MathOperator::Mul => "*",
+                MathOperator::Div => "/",
+                MathOperator::Modulo => "%",
+            }
+        )
     }
 }
 
@@ -70,16 +73,20 @@ pub enum LogicOperator {
 
 impl fmt::Display for LogicOperator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match *self {
-            LogicOperator::Gt => ">",
-            LogicOperator::Gte => ">=",
-            LogicOperator::Lt => "<",
-            LogicOperator::Lte => "<=",
-            LogicOperator::Eq => "==",
-            LogicOperator::NotEq => "!=",
-            LogicOperator::And => "and",
-            LogicOperator::Or => "or",
-        })
+        write!(
+            f,
+            "{}",
+            match *self {
+                LogicOperator::Gt => ">",
+                LogicOperator::Gte => ">=",
+                LogicOperator::Lt => "<",
+                LogicOperator::Lte => "<=",
+                LogicOperator::Eq => "==",
+                LogicOperator::NotEq => "!=",
+                LogicOperator::And => "and",
+                LogicOperator::Or => "or",
+            }
+        )
     }
 }
 
@@ -172,7 +179,6 @@ pub struct Test {
     pub args: Vec<Expr>,
 }
 
-
 /// A filter section node `{{ filter name(param="value") }} content {{ endfilter }}`
 #[derive(Clone, Debug, PartialEq)]
 pub struct FilterSection {
@@ -196,7 +202,6 @@ pub struct MacroCall {
     pub name: String,
     pub args: HashMap<String, Expr>,
 }
-
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MacroDefinition {
@@ -231,7 +236,6 @@ pub struct If {
     /// The optional `else` block
     pub otherwise: Option<(WS, Vec<Node>)>,
 }
-
 
 /// All Tera nodes that can be encountered
 #[derive(Clone, Debug, PartialEq)]

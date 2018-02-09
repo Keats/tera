@@ -1,20 +1,18 @@
 /// Filters operating on string
 use std::collections::HashMap;
 
-use serde_json::value::{Value, to_value};
+use serde_json::value::{to_value, Value};
 use slug;
-use url::percent_encoding::{utf8_percent_encode, EncodeSet};
-use regex::{Regex, Captures};
+use url::percent_encoding::{EncodeSet, utf8_percent_encode};
+use regex::{Captures, Regex};
 
 use errors::Result;
 use utils;
-
 
 lazy_static! {
     static ref STRIPTAGS_RE: Regex = Regex::new(r"(<!--.*?-->|<[^>]*>)").unwrap();
     static ref WORDS_RE: Regex = Regex::new(r"\b(?P<first>\w)(?P<rest>\w*)\b").unwrap();
 }
-
 
 /// Convert a value to uppercase.
 pub fn upper(value: Value, _: HashMap<String, Value>) -> Result<Value> {
@@ -42,7 +40,7 @@ pub fn truncate(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("truncate", "value", String, value);
     let length = match args.get("length") {
         Some(l) => try_get_value!("truncate", "length", usize, l),
-        None => 255
+        None => 255,
     };
 
     // Nothing to truncate?
@@ -67,12 +65,12 @@ pub fn replace(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     let from = match args.get("from") {
         Some(val) => try_get_value!("replace", "from", String, val),
-        None => bail!("Filter `replace` expected an arg called `from`")
+        None => bail!("Filter `replace` expected an arg called `from`"),
     };
 
     let to = match args.get("to") {
         Some(val) => try_get_value!("replace", "to", String, val),
-        None => bail!("Filter `replace` expected an arg called `to`")
+        None => bail!("Filter `replace` expected an arg called `to`"),
     };
 
     Ok(to_value(&s.replace(&from, &to)).unwrap())
@@ -103,13 +101,17 @@ impl UrlEncodeSet {
 
 impl EncodeSet for UrlEncodeSet {
     fn contains(&self, byte: u8) -> bool {
-        if byte >= 48 && byte <= 57 { // digit
+        if byte >= 48 && byte <= 57 {
+            // digit
             false
-        } else if byte >= 65 && byte <= 90 { // uppercase character
+        } else if byte >= 65 && byte <= 90 {
+            // uppercase character
             false
-        } else if byte >= 97 && byte <= 122 { // lowercase character
+        } else if byte >= 97 && byte <= 122 {
+            // lowercase character
             false
-        } else if byte == 45 || byte == 46 || byte == 95 { // -, . or _
+        } else if byte == 45 || byte == 46 || byte == 95 {
+            // -, . or _
             false
         } else {
             !self.safe_bytes().contains(&byte)
@@ -132,12 +134,10 @@ pub fn urlencode(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 /// Escapes quote characters
 pub fn addslashes(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("addslashes", "value", String, value);
-    Ok(to_value(
-        &s
-            .replace("\\","\\\\")
-            .replace("\"", "\\\"")
-            .replace("\'", "\\\'")
-    ).unwrap())
+    Ok(to_value(&s.replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\'", "\\\'"))
+        .unwrap())
 }
 
 /// Transform a string into a slug
@@ -150,14 +150,11 @@ pub fn slugify(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 pub fn title(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("title", "value", String, value);
 
-    Ok(to_value(
-        &WORDS_RE.replace_all(&s, |caps: &Captures| {
-            let first = caps["first"].to_uppercase();
-            let rest = caps["rest"].to_lowercase();
-            format!("{}{}", first, rest)
-        })
-    ).unwrap())
-
+    Ok(to_value(&WORDS_RE.replace_all(&s, |caps: &Captures| {
+        let first = caps["first"].to_uppercase();
+        let rest = caps["rest"].to_lowercase();
+        format!("{}{}", first, rest)
+    })).unwrap())
 }
 
 /// Removes html tags from string
@@ -179,21 +176,19 @@ pub fn split(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     let pat = match args.get("pat") {
         Some(pat) => try_get_value!("split", "pat", String, pat),
-        None => bail!("Filter `split` expected an arg called `pat`")
+        None => bail!("Filter `split` expected an arg called `pat`"),
     };
 
     Ok(to_value(s.split(&pat).collect::<Vec<_>>()).unwrap())
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
-    use serde_json::value::{to_value};
+    use serde_json::value::to_value;
 
     use super::*;
-
 
     #[test]
     fn test_upper() {
@@ -292,8 +287,11 @@ mod tests {
             (r#"I'm so happy"#, r#"I\'m so happy"#),
             (r#"Let "me" help you"#, r#"Let \"me\" help you"#),
             (r#"<a>'"#, r#"<a>\'"#),
-            (r#""double quotes" and \'single quotes\'"#, r#"\"double quotes\" and \\\'single quotes\\\'"#),
-            (r#"\ : backslashes too"#, r#"\\ : backslashes too"#)
+            (
+                r#""double quotes" and \'single quotes\'"#,
+                r#"\"double quotes\" and \\\'single quotes\\\'"#,
+            ),
+            (r#"\ : backslashes too"#, r#"\\ : backslashes too"#),
         ];
         for (input, expected) in tests {
             let result = addslashes(to_value(input).unwrap(), HashMap::new());
@@ -320,8 +318,16 @@ mod tests {
     #[test]
     fn test_urlencode() {
         let tests = vec![
-            (r#"https://www.example.org/foo?a=b&c=d"#, None, r#"https%3A//www.example.org/foo%3Fa%3Db%26c%3Dd"#),
-            (r#"https://www.example.org/"#, Some(""), r#"https%3A%2F%2Fwww.example.org%2F"#),
+            (
+                r#"https://www.example.org/foo?a=b&c=d"#,
+                None,
+                r#"https%3A//www.example.org/foo%3Fa%3Db%26c%3Dd"#,
+            ),
+            (
+                r#"https://www.example.org/"#,
+                Some(""),
+                r#"https%3A%2F%2Fwww.example.org%2F"#,
+            ),
             (r#"/test&"/me?/"#, None, r#"/test%26%22/me%3F/"#),
             (r#"escape/slash"#, Some(""), r#"escape%2Fslash"#),
         ];
@@ -353,7 +359,7 @@ mod tests {
             ("  foo  bar", "  Foo  Bar"),
             ("\tfoo\tbar\t", "\tFoo\tBar\t"),
             ("foo bar ", "Foo Bar "),
-            ("foo bar\t", "Foo Bar\t")
+            ("foo bar\t", "Foo Bar\t"),
         ];
         for (input, expected) in tests {
             let result = title(to_value(input).unwrap(), HashMap::new());

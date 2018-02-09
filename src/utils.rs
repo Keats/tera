@@ -28,7 +28,7 @@ pub fn escape_html(input: &str) -> String {
             // Additional one for old IE (unpatched IE8 and below)
             // See https://github.com/OWASP/owasp-java-encoder/wiki/Grave-Accent-Issue
             '`' => output.push_str("&#96;"),
-            _ => output.push(c)
+            _ => output.push(c),
         }
     }
 
@@ -36,10 +36,9 @@ pub fn escape_html(input: &str) -> String {
     output
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::{escape_html};
+    use super::escape_html;
 
     #[test]
     fn test_escape_html() {

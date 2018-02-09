@@ -5,20 +5,18 @@ mod tests;
 use std::collections::HashMap;
 
 use serde_json::to_string_pretty;
-use serde_json::value::{Value, to_value, Number};
-use serde_json::map::{Map as JsonMap};
+use serde_json::value::{to_value, Number, Value};
+use serde_json::map::Map as JsonMap;
 
-use self::forloop::{ForLoop};
+use self::forloop::ForLoop;
 use parser::ast::*;
 use template::Template;
 use tera::Tera;
 use errors::{Result, ResultExt};
-use context::{ValueRender, ValueNumber, ValueTruthy, get_json_pointer};
+use context::{get_json_pointer, ValueNumber, ValueRender, ValueTruthy};
 use utils::escape_html;
 
-
 static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
-
 
 #[derive(Debug)]
 pub struct Renderer<'a> {
@@ -42,7 +40,6 @@ pub struct Renderer<'a> {
     /// Vec<(block name, level)>
     blocks: Vec<(String, usize)>,
 }
-
 
 impl<'a> Renderer<'a> {
     pub fn new(template: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
@@ -72,7 +69,7 @@ impl<'a> Renderer<'a> {
         // Differentiate between macros and general context
         let (context, for_loops) = match self.macro_context.last() {
             Some(c) => (&c.0, &c.1),
-            None => (&self.context, &self.for_loops)
+            None => (&self.context, &self.for_loops),
         };
 
         // Magical variable that just dumps the context
@@ -85,7 +82,11 @@ impl<'a> Renderer<'a> {
         fn find_variable(context: &Value, key: &str, tpl_name: &str) -> Result<Value> {
             match context.pointer(&get_json_pointer(key)) {
                 Some(v) => Ok(v.clone()),
-                None => bail!("Variable `{}` not found in context while rendering '{}'", key, tpl_name)
+                None => bail!(
+                    "Variable `{}` not found in context while rendering '{}'",
+                    key,
+                    tpl_name
+                ),
             }
         }
 
@@ -106,11 +107,21 @@ impl<'a> Renderer<'a> {
             // 1st case: one of Tera loop built-in variable
             if real_key == "loop" {
                 match tail {
-                    "index" => { return Ok(to_value(&(for_loop.current + 1))?); },
-                    "index0" => { return Ok(to_value(&for_loop.current)?); },
-                    "first" => { return Ok(to_value(&(for_loop.current == 0))?); },
-                    "last" => { return Ok(to_value(&(for_loop.current == for_loop.len() - 1))?); },
-                    _ => { bail!("Unknown loop built-in variable: {:?}", key); }
+                    "index" => {
+                        return Ok(to_value(&(for_loop.current + 1))?);
+                    }
+                    "index0" => {
+                        return Ok(to_value(&for_loop.current)?);
+                    }
+                    "first" => {
+                        return Ok(to_value(&(for_loop.current == 0))?);
+                    }
+                    "last" => {
+                        return Ok(to_value(&(for_loop.current == for_loop.len() - 1))?);
+                    }
+                    _ => {
+                        bail!("Unknown loop built-in variable: {:?}", key);
+                    }
                 }
             }
 
@@ -147,8 +158,12 @@ impl<'a> Renderer<'a> {
         let context = match self.macro_context.last_mut() {
             Some(c) => c.0.as_object_mut().unwrap(),
             None => match self.for_loops.last_mut() {
-                Some(f) => if set.global { self.context.as_object_mut().unwrap() } else { &mut f.extra_values },
-                None => self.context.as_object_mut().unwrap()
+                Some(f) => if set.global {
+                    self.context.as_object_mut().unwrap()
+                } else {
+                    &mut f.extra_values
+                },
+                None => self.context.as_object_mut().unwrap(),
             },
         };
 
@@ -172,15 +187,20 @@ impl<'a> Renderer<'a> {
     /// Return the value of an expression as a number
     fn eval_as_number(&mut self, expr: &ExprVal) -> Result<f64> {
         let res = match *expr {
-            ExprVal::Ident(ref ident) => {
-                match self.lookup_ident(ident)?.as_f64() {
-                    Some(v) => v,
-                    None => bail!("Variable `{}` was used in a math operation but is not a number", ident)
-                }
+            ExprVal::Ident(ref ident) => match self.lookup_ident(ident)?.as_f64() {
+                Some(v) => v,
+                None => bail!(
+                    "Variable `{}` was used in a math operation but is not a number",
+                    ident
+                ),
             },
             ExprVal::Int(val) => val as f64,
             ExprVal::Float(val) => val,
-            ExprVal::Math(MathExpr { ref lhs, ref rhs, ref operator }) => {
+            ExprVal::Math(MathExpr {
+                ref lhs,
+                ref rhs,
+                ref operator,
+            }) => {
                 let l = self.eval_expr_as_number(&lhs)?;
                 let r = self.eval_expr_as_number(&rhs)?;
                 match *operator {
@@ -190,7 +210,7 @@ impl<'a> Renderer<'a> {
                     MathOperator::Sub => l - r,
                     MathOperator::Modulo => l % r,
                 }
-            },
+            }
             ExprVal::String(ref val) => bail!("Tried to do math with a string: `{}`", val),
             ExprVal::Bool(val) => bail!("Tried to do math with a boolean: `{}`", val),
             _ => unreachable!("unimplemented"),
@@ -202,11 +222,18 @@ impl<'a> Renderer<'a> {
     /// Return the value of an expression as a bool
     fn eval_as_bool(&mut self, expr: &Expr) -> Result<bool> {
         let res = match expr.val {
-            ExprVal::Logic(LogicExpr { ref lhs, ref rhs, ref operator}) => {
+            ExprVal::Logic(LogicExpr {
+                ref lhs,
+                ref rhs,
+                ref operator,
+            }) => {
                 match *operator {
                     LogicOperator::Or => self.eval_as_bool(lhs)? || self.eval_as_bool(rhs)?,
                     LogicOperator::And => self.eval_as_bool(lhs)? && self.eval_as_bool(rhs)?,
-                    LogicOperator::Gt | LogicOperator::Gte | LogicOperator::Lt | LogicOperator::Lte => {
+                    LogicOperator::Gt
+                    | LogicOperator::Gte
+                    | LogicOperator::Lt
+                    | LogicOperator::Lte => {
                         let l = self.eval_expr_as_number(&lhs)?;
                         let r = self.eval_expr_as_number(&rhs)?;
 
@@ -215,9 +242,9 @@ impl<'a> Renderer<'a> {
                             LogicOperator::Gt => l > r,
                             LogicOperator::Lte => l <= r,
                             LogicOperator::Lt => l < r,
-                            _ => unreachable!()
+                            _ => unreachable!(),
                         }
-                    },
+                    }
                     LogicOperator::Eq | LogicOperator::NotEq => {
                         let mut lhs_val = self.eval_expression(lhs)?;
                         let mut rhs_val = self.eval_expression(rhs)?;
@@ -229,22 +256,26 @@ impl<'a> Renderer<'a> {
                                 return Ok(false);
                             }
 
-                            lhs_val = Value::Number(Number::from_f64(lhs_val.as_f64().unwrap()).unwrap());
-                            rhs_val = Value::Number(Number::from_f64(rhs_val.as_f64().unwrap()).unwrap());
+                            lhs_val =
+                                Value::Number(Number::from_f64(lhs_val.as_f64().unwrap()).unwrap());
+                            rhs_val =
+                                Value::Number(Number::from_f64(rhs_val.as_f64().unwrap()).unwrap());
                         }
 
                         match *operator {
                             LogicOperator::Eq => lhs_val == rhs_val,
                             LogicOperator::NotEq => lhs_val != rhs_val,
-                            _ => unreachable!()
+                            _ => unreachable!(),
                         }
-                    },
+                    }
                 }
-            },
-            ExprVal::Ident(ref ident) => self.lookup_ident(ident).map(|v| v.is_truthy()).unwrap_or(false),
-            ExprVal::Math(_) | ExprVal::Int(_) | ExprVal::Float(_) => {
-                self.eval_as_number(&expr.val).map(|v| v != 0.0 && !v.is_nan())?
-            },
+            }
+            ExprVal::Ident(ref ident) => self.lookup_ident(ident)
+                .map(|v| v.is_truthy())
+                .unwrap_or(false),
+            ExprVal::Math(_) | ExprVal::Int(_) | ExprVal::Float(_) => self.eval_as_number(
+                &expr.val,
+            ).map(|v| v != 0.0 && !v.is_nan())?,
             ExprVal::Test(ref test) => self.eval_test(test).unwrap_or(false),
             ExprVal::Bool(val) => val,
             ExprVal::String(ref string) => !string.is_empty(),
@@ -292,7 +323,7 @@ impl<'a> Renderer<'a> {
                     .last()
                     .expect("Open an issue with a template sample please (mention `self namespace macro`)!")
                     .to_string()
-            },
+            }
             _ => {
                 self.macro_namespaces.push(macro_call.namespace.clone());
                 macro_call.namespace.clone()
@@ -304,7 +335,12 @@ impl<'a> Renderer<'a> {
             .last()
             .and_then(|m| m.get(&active_namespace))
             .and_then(|m| m.get(&macro_call.name))
-            .ok_or_else(|| format!("Macro `{}` was not found in the namespace `{}`", macro_call.name, active_namespace))?;
+            .ok_or_else(|| {
+                format!(
+                    "Macro `{}` was not found in the namespace `{}`",
+                    macro_call.name, active_namespace
+                )
+            })?;
 
         let mut macro_context = JsonMap::new();
 
@@ -314,8 +350,12 @@ impl<'a> Renderer<'a> {
                 Some(val) => self.safe_eval_expression(val)?,
                 None => match *default_value {
                     Some(ref val) => self.safe_eval_expression(val)?,
-                    None => bail!("Macro `{}` is missing the argument `{}`", macro_call.name, arg_name),
-                }
+                    None => bail!(
+                        "Macro `{}` is missing the argument `{}`",
+                        macro_call.name,
+                        arg_name
+                    ),
+                },
             };
             macro_context.insert(arg_name.to_string(), value);
         }
@@ -352,7 +392,7 @@ impl<'a> Renderer<'a> {
             ExprVal::String(ref val) => {
                 needs_escape = true;
                 Value::String(val.to_string())
-            },
+            }
             ExprVal::Int(val) => Value::Number(val.into()),
             ExprVal::Float(val) => Value::Number(Number::from_f64(val).unwrap()),
             ExprVal::Bool(val) => Value::Bool(val),
@@ -378,11 +418,11 @@ impl<'a> Renderer<'a> {
                         }
                     }
                 }
-            },
+            }
             ExprVal::FunctionCall(ref fn_call) => {
                 needs_escape = true;
                 self.eval_global_fn_call(fn_call)?
-            },
+            }
             ExprVal::MacroCall(ref macro_call) => Value::String(self.eval_macro_call(macro_call)?),
             ExprVal::Test(ref test) => Value::Bool(self.eval_test(test)?),
             ExprVal::Logic(_) => Value::Bool(self.eval_as_bool(expr)?),
@@ -391,14 +431,16 @@ impl<'a> Renderer<'a> {
 
                 match Number::from_f64(result) {
                     Some(x) => Value::Number(x),
-                    None => Value::String("NaN".to_string())
+                    None => Value::String("NaN".to_string()),
                 }
-            },
+            }
             _ => unreachable!("{:?}", expr),
         };
 
         // Checks if it's a string and we need to escape it (if the first filter is `safe` we don't)
-        if self.should_escape && needs_escape && res.is_string() && expr.filters.first().map_or(true, |f| f.name != "safe") {
+        if self.should_escape && needs_escape && res.is_string()
+            && expr.filters.first().map_or(true, |f| f.name != "safe")
+        {
             res = to_value(escape_html(res.as_str().unwrap()))?;
         }
 
@@ -457,21 +499,24 @@ impl<'a> Renderer<'a> {
                     bail!("Tried to iterate using key value on variable `{}`, but it isn't an object/map", container_name);
                 }
                 ForLoop::new(&node.value, container_val)
-            },
+            }
             Value::Object(_) => {
                 if node.key.is_none() {
                     bail!("Tried to iterate using key value on variable `{}`, but it is missing a key", container_name);
                 }
                 ForLoop::new_key_value(&node.key.clone().unwrap(), &node.value, container_val)
-            },
-            _ => bail!("Tried to iterate on a container (`{}`) that has a unsupported type", container_name)
+            }
+            _ => bail!(
+                "Tried to iterate on a container (`{}`) that has a unsupported type",
+                container_name
+            ),
         };
 
         let length = for_loop.len();
 
         match self.macro_context.last_mut() {
             Some(m) => m.1.push(for_loop),
-            None => self.for_loops.push(for_loop)
+            None => self.for_loops.push(for_loop),
         };
 
         let mut output = String::new();
@@ -481,13 +526,13 @@ impl<'a> Renderer<'a> {
             // Safe unwrap
             match self.macro_context.last_mut() {
                 Some(m) => m.1.last_mut().unwrap().increment(),
-                None => self.for_loops.last_mut().unwrap().increment()
+                None => self.for_loops.last_mut().unwrap().increment(),
             };
         }
         // Clean up after ourselves
         match self.macro_context.last_mut() {
             Some(m) => m.1.pop(),
-            None => self.for_loops.pop()
+            None => self.for_loops.pop(),
         };
 
         Ok(output)
@@ -507,7 +552,10 @@ impl<'a> Renderer<'a> {
         /// We need all of the macros loaded in one go to be in the same hashmap
         /// for easy popping as well, otherwise there could be stray macro definitions
         /// remaining
-        fn load_macros<'a>(tera: &'a Tera, tpl: &Template) -> Result<HashMap<String, &'a HashMap<String, MacroDefinition>>> {
+        fn load_macros<'a>(
+            tera: &'a Tera,
+            tpl: &Template,
+        ) -> Result<HashMap<String, &'a HashMap<String, MacroDefinition>>> {
             let mut macros = HashMap::new();
 
             for &(ref filename, ref namespace) in &tpl.imported_macro_files {
@@ -526,21 +574,25 @@ impl<'a> Renderer<'a> {
         Ok(true)
     }
 
-    /// The way inheritance work is that the top parent will be rendered by the renderer so for blocks
-    /// we want to look from the bottom (`level = 0`, the template the user is actually rendering)
-    /// to the top (the base template).
-    /// If we are rendering a block,
+    /// The way inheritance work is that the top parent will be rendered
+    /// by the renderer so for blocks we want to look from the bottom
+    /// (`level = 0`, the template the user is actually rendering) to the top (the base template).
     fn render_block(&mut self, block: &Block, level: usize) -> Result<String> {
         let blocks_definitions = match level {
             // look for the template we're currently rendering
             0 => &self.template.blocks_definitions,
             // or look at its parents
-            _ => &self.tera.get_template(&self.template.parents[level - 1]).unwrap().blocks_definitions,
+            _ => {
+                &self.tera
+                    .get_template(&self.template.parents[level - 1])
+                    .unwrap()
+                    .blocks_definitions
+            }
         };
 
         // Can we find this one block in these definitions? If so render it
         if let Some(block_def) = blocks_definitions.get(&block.name) {
-            let (ref tpl_name, Block {ref body, ..}) = block_def[0];
+            let (ref tpl_name, Block { ref body, .. }) = block_def[0];
             self.blocks.push((block.name.to_string(), level));
             let has_macro = self.import_template_macros(tpl_name)?;
             let res = self.render_body(body);
@@ -567,7 +619,10 @@ impl<'a> Renderer<'a> {
         let mut next_level = level + 1;
 
         while next_level <= self.template.parents.len() {
-            let blocks_definitions = &self.tera.get_template(&self.template.parents[next_level - 1]).unwrap().blocks_definitions;
+            let blocks_definitions = &self.tera
+                .get_template(&self.template.parents[next_level - 1])
+                .unwrap()
+                .blocks_definitions;
 
             if let Some(block_def) = blocks_definitions.get(&block_name) {
                 let (ref tpl_name, Block { ref body, .. }) = block_def[0];
@@ -596,11 +651,18 @@ impl<'a> Renderer<'a> {
             Node::Text(ref s) | Node::Raw(_, ref s, _) => s.to_string(),
             Node::VariableBlock(ref expr) => self.eval_expression(expr)?.render(),
             Node::Set(_, ref set) => self.eval_set(set).and(Ok(String::new()))?,
-            Node::FilterSection(_, FilterSection {ref filter, ref body}, _) => {
+            Node::FilterSection(
+                _,
+                FilterSection {
+                    ref filter,
+                    ref body,
+                },
+                _,
+            ) => {
                 let output = self.render_body(body)?;
 
                 self.eval_filter(Value::String(output), filter)?.render()
-            },
+            }
             // Macros have been imported at the beginning
             Node::ImportMacro(_, _, _) => String::new(),
             Node::If(ref if_node, _) => self.render_if(if_node)?,
@@ -614,7 +676,7 @@ impl<'a> Renderer<'a> {
                     self.macros.pop();
                 }
                 return res;
-            },
+            }
             _ => unreachable!("render_node -> unexpected node: {:?}", node),
         };
 
@@ -638,12 +700,16 @@ impl<'a> Renderer<'a> {
 
         // in a macro?
         if let Some(macro_namespace) = self.macro_namespaces.last() {
-            error_location += &format!(": error while rendering a macro from the `{}` namespace", macro_namespace);
+            error_location += &format!(
+                ": error while rendering a macro from the `{}` namespace",
+                macro_namespace
+            );
         }
 
         // which template are we in?
         if let Some(&(ref name, ref level)) = self.blocks.last() {
-            let block_def = self.template.blocks_definitions
+            let block_def = self.template
+                .blocks_definitions
                 .get(name)
                 .and_then(|b| b.get(*level));
 
@@ -670,7 +736,7 @@ impl<'a> Renderer<'a> {
             Some(parent_tpl_name) => {
                 let tpl = self.tera.get_template(parent_tpl_name).unwrap();
                 (&tpl.name, &tpl.ast)
-            },
+            }
             None => (&self.template.name, &self.template.ast),
         };
 
@@ -678,9 +744,8 @@ impl<'a> Renderer<'a> {
 
         let mut output = String::new();
         for node in ast {
-            output.push_str(
-                &self.render_node(node).chain_err(|| self.get_error_location())?
-            );
+            output.push_str(&self.render_node(node)
+                .chain_err(|| self.get_error_location())?);
         }
 
         Ok(output)
