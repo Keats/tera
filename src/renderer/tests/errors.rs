@@ -6,9 +6,8 @@ use tera::Tera;
 #[test]
 fn error_location_basic() {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("tpl", "{{ 1 + true }}"),
-    ]).unwrap();
+    tera.add_raw_templates(vec![("tpl", "{{ 1 + true }}")])
+        .unwrap();
 
     let result = tera.render("tpl", &Context::new());
 
@@ -22,8 +21,14 @@ fn error_location_basic() {
 fn error_location_inside_macro() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![
-        ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
-        ("tpl", "{% import \"macros\" as macros %}{{ macro::hello() }}"),
+        (
+            "macros",
+            "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}",
+        ),
+        (
+            "tpl",
+            "{% import \"macros\" as macros %}{{ macro::hello() }}",
+        ),
     ]).unwrap();
 
     let result = tera.render("tpl", &Context::new());
@@ -38,8 +43,14 @@ fn error_location_inside_macro() {
 fn error_location_base_template() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![
-        ("parent", "Hello {{ greeting + 1}} {% block bob %}{% endblock bob %}"),
-        ("child", "{% extends \"parent\" %}{% block bob %}Hey{% endblock bob %}"),
+        (
+            "parent",
+            "Hello {{ greeting + 1}} {% block bob %}{% endblock bob %}",
+        ),
+        (
+            "child",
+            "{% extends \"parent\" %}{% block bob %}Hey{% endblock bob %}",
+        ),
     ]).unwrap();
 
     let result = tera.render("child", &Context::new());
@@ -54,8 +65,14 @@ fn error_location_base_template() {
 fn error_location_in_parent_block() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![
-        ("parent", "Hello {{ greeting }} {% block bob %}{{ 1 + true }}{% endblock bob %}"),
-        ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}"),
+        (
+            "parent",
+            "Hello {{ greeting }} {% block bob %}{{ 1 + true }}{% endblock bob %}",
+        ),
+        (
+            "child",
+            "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}",
+        ),
     ]).unwrap();
 
     let result = tera.render("child", &Context::new());
@@ -82,4 +99,3 @@ fn error_location_in_parent_in_macro() {
         "Failed to render \'child\': error while rendering a macro from the `macro` namespace (error happened in \'parent\')."
     );
 }
-

@@ -1,13 +1,13 @@
-
-#[macro_use] extern crate tera;
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 extern crate serde_json;
+#[macro_use]
+extern crate tera;
 
 use std::collections::HashMap;
 
-use tera::{Tera, Context, Result};
-use serde_json::value::{Value, to_value};
-
+use tera::{Context, Result, Tera};
+use serde_json::value::{to_value, Value};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
@@ -26,7 +26,7 @@ pub fn do_nothing_filter(value: Value, _: HashMap<String, Value>) -> Result<Valu
 fn main() {
     let mut context = Context::new();
     context.add("username", &"Bob");
-    context.add("numbers", &vec![1,2,3]);
+    context.add("numbers", &vec![1, 2, 3]);
     context.add("show_all", &false);
     context.add("bio", &"<script>alert('pwnd');</script>");
 

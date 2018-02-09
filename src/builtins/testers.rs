@@ -1,11 +1,9 @@
 use errors::Result;
-use serde_json::value::{Value};
+use serde_json::value::Value;
 use context::ValueNumber;
-
 
 /// The tester function type definition
 pub type TesterFn = fn(Option<Value>, Vec<Value>) -> Result<bool>;
-
 
 // Some helper functions to remove boilerplate with tester error handling
 fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result<()> {
@@ -19,7 +17,9 @@ fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result
     if args_len > max {
         bail!(
             "Tester `{}` was called with {} args, the max number is {}",
-            tester_name, args_len, max
+            tester_name,
+            args_len,
+            max
         );
     }
 
@@ -29,7 +29,10 @@ fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result
 // Called to check if the Value is defined and return an Err if not
 fn value_defined(tester_name: &str, value: &Option<Value>) -> Result<()> {
     if value.is_none() {
-        bail!("Tester `{}` was called on an undefined variable", tester_name);
+        bail!(
+            "Tester `{}` was called on an undefined variable",
+            tester_name
+        );
     }
 
     Ok(())
@@ -56,7 +59,7 @@ pub fn string(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
 
     match value {
         Some(Value::String(_)) => Ok(true),
-        _ => Ok(false)
+        _ => Ok(false),
     }
 }
 
@@ -67,7 +70,7 @@ pub fn number(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
 
     match value {
         Some(Value::Number(_)) => Ok(true),
-        _ => Ok(false)
+        _ => Ok(false),
     }
 }
 
@@ -78,10 +81,9 @@ pub fn odd(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
 
     match value.and_then(|v| v.to_number().ok()) {
         Some(f) => Ok(f % 2.0 != 0.0),
-        _ => bail!("Tester `odd` was called on a variable that isn't a number")
+        _ => bail!("Tester `odd` was called on a variable that isn't a number"),
     }
 }
-
 
 /// Returns true if `value` is an even number. Otherwise, returns false.
 pub fn even(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
@@ -92,7 +94,6 @@ pub fn even(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     Ok(!is_odd)
 }
 
-
 /// Returns true if `value` is divisible by the first param. Otherwise, returns false.
 pub fn divisible_by(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     number_args_allowed("divisibleby", 1, params.len())?;
@@ -101,12 +102,11 @@ pub fn divisible_by(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     match value.and_then(|v| v.to_number().ok()) {
         Some(val) => match params.first().and_then(|v| v.to_number().ok()) {
             Some(p) => Ok(val % p == 0.0),
-            None => bail!("Tester `divisibleby` was called with a parameter that isn't a number")
+            None => bail!("Tester `divisibleby` was called with a parameter that isn't a number"),
         },
-        None => bail!("Tester `divisibleby` was called on a variable that isn't a number")
+        None => bail!("Tester `divisibleby` was called on a variable that isn't a number"),
     }
 }
-
 
 /// Returns true if `value` can be iterated over in Tera (ie is an array/tuple).
 /// Otherwise, returns false.
@@ -117,16 +117,18 @@ pub fn iterable(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     Ok(value.unwrap().is_array())
 }
 
-
 // Helper function to extract string from an Option<Value> to remove boilerplate
 // with tester error handling
 fn extract_string<'a>(tester_name: &str, part: &str, value: Option<&'a Value>) -> Result<&'a str> {
     match value.and_then(|v| v.as_str()) {
         Some(s) => Ok(s),
-        None => bail!("Tester `{}` was called {} that isn't a string", tester_name, part)
+        None => bail!(
+            "Tester `{}` was called {} that isn't a string",
+            tester_name,
+            part
+        ),
     }
 }
-
 
 /// Returns true if `value` starts with the given string. Otherwise, returns false.
 pub fn starting_with(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
@@ -137,7 +139,6 @@ pub fn starting_with(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     let needle = extract_string("starting_with", "with a parameter", params.first())?;
     Ok(value.starts_with(needle))
 }
-
 
 /// Returns true if `value` ends with the given string. Otherwise, returns false.
 pub fn ending_with(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
@@ -158,26 +159,23 @@ pub fn containing(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
         Value::String(v) => {
             let needle = extract_string("containing", "with a parameter", params.first())?;
             Ok(v.contains(needle))
-        },
-        Value::Array(v) => {
-            Ok(v.contains(params.first().unwrap()))
-        },
+        }
+        Value::Array(v) => Ok(v.contains(params.first().unwrap())),
         Value::Object(v) => {
             let needle = extract_string("containing", "with a parameter", params.first())?;
             Ok(v.contains_key(needle))
-        },
+        }
         _ => bail!("Tester `containing` can only be used on string, array or map"),
     }
 }
-
 
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
-    use super::{defined, string, divisible_by, iterable, starting_with, ending_with, containing};
+    use super::{containing, defined, divisible_by, ending_with, iterable, starting_with, string};
 
-    use serde_json::value::{to_value};
+    use serde_json::value::to_value;
 
     #[test]
     fn test_number_args_ok() {
@@ -206,7 +204,10 @@ mod tests {
 
         for (val, divisor, expected) in tests {
             assert_eq!(
-                divisible_by(Some(to_value(val).unwrap()), vec![to_value(divisor).unwrap()]).unwrap(),
+                divisible_by(
+                    Some(to_value(val).unwrap()),
+                    vec![to_value(divisor).unwrap()]
+                ).unwrap(),
                 expected
             );
         }
@@ -214,17 +215,25 @@ mod tests {
 
     #[test]
     fn test_iterable() {
-        assert_eq!(iterable(Some(to_value(vec!["1"]).unwrap()), vec![]).unwrap(), true);
+        assert_eq!(
+            iterable(Some(to_value(vec!["1"]).unwrap()), vec![]).unwrap(),
+            true
+        );
         assert_eq!(iterable(Some(to_value(1).unwrap()), vec![]).unwrap(), false);
-        assert_eq!(iterable(Some(to_value("hello").unwrap()), vec![]).unwrap(), false);
+        assert_eq!(
+            iterable(Some(to_value("hello").unwrap()), vec![]).unwrap(),
+            false
+        );
     }
 
     #[test]
     fn test_starting_with() {
-        assert!(starting_with(
-            Some(to_value("helloworld").unwrap()),
-            vec![to_value("hello").unwrap()]
-        ).unwrap());
+        assert!(
+            starting_with(
+                Some(to_value("helloworld").unwrap()),
+                vec![to_value("hello").unwrap()]
+            ).unwrap()
+        );
         assert!(!starting_with(
             Some(to_value("hello").unwrap()),
             vec![to_value("hi").unwrap()]
@@ -233,10 +242,12 @@ mod tests {
 
     #[test]
     fn test_ending_with() {
-        assert!(ending_with(
-            Some(to_value("helloworld").unwrap()),
-            vec![to_value("world").unwrap()]
-        ).unwrap());
+        assert!(
+            ending_with(
+                Some(to_value("helloworld").unwrap()),
+                vec![to_value("world").unwrap()]
+            ).unwrap()
+        );
         assert!(!ending_with(
             Some(to_value("hello").unwrap()),
             vec![to_value("hi").unwrap()]
@@ -249,19 +260,36 @@ mod tests {
         map.insert("hey", 1);
 
         let tests = vec![
-            (to_value("hello world").unwrap(), to_value("hel").unwrap(), true),
-            (to_value("hello world").unwrap(), to_value("hol").unwrap(), false),
+            (
+                to_value("hello world").unwrap(),
+                to_value("hel").unwrap(),
+                true,
+            ),
+            (
+                to_value("hello world").unwrap(),
+                to_value("hol").unwrap(),
+                false,
+            ),
             (to_value(vec![1, 2, 3]).unwrap(), to_value(3).unwrap(), true),
-            (to_value(vec![1, 2, 3]).unwrap(), to_value(4).unwrap(), false),
-            (to_value(map.clone()).unwrap(), to_value("hey").unwrap(), true),
-            (to_value(map.clone()).unwrap(), to_value("ho").unwrap(), false),
+            (
+                to_value(vec![1, 2, 3]).unwrap(),
+                to_value(4).unwrap(),
+                false,
+            ),
+            (
+                to_value(map.clone()).unwrap(),
+                to_value("hey").unwrap(),
+                true,
+            ),
+            (
+                to_value(map.clone()).unwrap(),
+                to_value("ho").unwrap(),
+                false,
+            ),
         ];
 
         for (container, needle, expected) in tests {
-            assert_eq!(
-                containing(Some(container), vec![needle]).unwrap(),
-                expected
-            );
+            assert_eq!(containing(Some(container), vec![needle]).unwrap(), expected);
         }
     }
 }

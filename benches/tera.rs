@@ -1,11 +1,10 @@
 #![feature(test)]
-extern crate test;
-extern crate tera;
 #[macro_use]
 extern crate serde_derive;
+extern crate tera;
+extern crate test;
 
-use tera::{Tera, Template, Context, escape_html};
-
+use tera::{escape_html, Context, Template, Tera};
 
 static VARIABLE_ONLY: &'static str = "{{product.name}}";
 
@@ -65,13 +64,12 @@ static USE_MACRO_TEMPLATE: &'static str = r#"
 {{ macros::render_product(product=product) }}
 "#;
 
-
 #[derive(Debug, Serialize)]
 struct Product {
     name: String,
     manufacturer: String,
     price: i32,
-    summary: String
+    summary: String,
 }
 impl Product {
     pub fn new() -> Product {
@@ -79,7 +77,7 @@ impl Product {
             name: "Moto G".to_owned(),
             manufacturer: "Motorala".to_owned(),
             summary: "A phone".to_owned(),
-            price: 100
+            price: 100,
         }
     }
 }
@@ -92,11 +90,13 @@ fn bench_parsing_basic_template(b: &mut test::Bencher) {
 #[bench]
 fn bench_parsing_with_inheritance_and_macros(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    b.iter(|| tera.add_raw_templates(vec![
-        ("parent.html", PARENT_TEMPLATE),
-        ("child.html", CHILD_TEMPLATE),
-        ("macros.html", MACRO_TEMPLATE),
-    ]));
+    b.iter(|| {
+        tera.add_raw_templates(vec![
+            ("parent.html", PARENT_TEMPLATE),
+            ("child.html", CHILD_TEMPLATE),
+            ("macros.html", MACRO_TEMPLATE),
+        ])
+    });
 }
 
 #[bench]
@@ -113,7 +113,8 @@ fn bench_rendering_only_variable(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_basic_template(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_template("bench.html", SIMPLE_TEMPLATE).unwrap();
+    tera.add_raw_template("bench.html", SIMPLE_TEMPLATE)
+        .unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -124,9 +125,8 @@ fn bench_rendering_basic_template(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_parent(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("parent.html", PARENT_TEMPLATE),
-    ]).unwrap();
+    tera.add_raw_templates(vec![("parent.html", PARENT_TEMPLATE)])
+        .unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -137,9 +137,8 @@ fn bench_rendering_only_parent(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_macro_call(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("hey.html", USE_MACRO_TEMPLATE),
-    ]).unwrap();
+    tera.add_raw_templates(vec![("hey.html", USE_MACRO_TEMPLATE)])
+        .unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -186,7 +185,6 @@ fn bench_build_inheritance_chains(b: &mut test::Bencher) {
     ]).unwrap();
     b.iter(|| tera.build_inheritance_chains());
 }
-
 
 #[bench]
 fn bench_escape_html(b: &mut test::Bencher) {
