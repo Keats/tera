@@ -8,7 +8,7 @@ use errors::{Result as TeraResult, ResultExt};
 
 // This include forces recompiling this source file if the grammar file changes.
 // Uncomment it when doing changes to the .pest file
-const _GRAMMAR: &'static str = include_str!("tera.pest");
+const _GRAMMAR: &str = include_str!("tera.pest");
 
 
 #[derive(Parser)]
@@ -745,10 +745,9 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::boolean => "`true` or `false`".to_string(),
                     Rule::ident => "an identifier".to_string(),
                     Rule::dotted_ident => "a dotted identifier (identifiers separated by `.`)".to_string(),
-                    Rule::basic_expr => "an expression".to_string(),
                     Rule::basic_expr_filter => "an expression with an optional filter".to_string(),
                     Rule::comparison_val => "a comparison value".to_string(),
-                    Rule::comparison_expr => "an expression".to_string(),
+                    Rule::basic_expr | Rule::comparison_expr => "an expression".to_string(),
                     Rule::logic_val => "a value that can be negated".to_string(),
                     Rule::logic_expr => "any expressions".to_string(),
                     Rule::fn_call => "a function call".to_string(),

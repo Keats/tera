@@ -33,7 +33,7 @@ pub fn join(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("join", "value", Vec<Value>, value);
     let sep = match args.get("sep") {
         Some(val) => try_get_value!("truncate", "sep", String, val),
-        None => "".to_string(),
+        None => String::new(),
     };
 
     // Convert all the values to strings before we join them together.
@@ -49,16 +49,24 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         return Ok(arr.into());
     }
 
-    let attribute = try_get_value!("sort", "attribute", String, args.get("attribute").unwrap_or(&"".into()));
+    let attribute = match args.get("attribute") {
+        Some(val) => try_get_value!("sort", "attribute", String, val),
+        None => String::new(),
+    };
     let ptr = match attribute.as_str() {
         "" => "".to_string(),
         s => get_json_pointer(s)
     };
 
-    let first = arr[0].pointer(&ptr).ok_or(format!("attribute '{}' does not reference a field", attribute))?;
+    let first = arr[0]
+        .pointer(&ptr)
+        .ok_or_else(|| format!("attribute '{}' does not reference a field", attribute))?;
+
     let mut strategy = get_sort_strategy_for_type(first)?;
     for v in &arr {
-        let key = v.pointer(&ptr).ok_or(format!("attribute '{}' does not reference a field", attribute))?;
+        let key = v
+            .pointer(&ptr)
+            .ok_or_else(|| format!("attribute '{}' does not reference a field", attribute))?;
         strategy.try_add_pair(v, key)?;
     }
     let sorted = strategy.sort();
@@ -76,12 +84,18 @@ pub fn slice(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         return Ok(arr.into());
     }
 
-    let start = try_get_value!("slice", "start", f64, args.get("start").unwrap_or(&0.0.into())) as usize;
+    let start = match args.get("start") {
+        Some(val) => try_get_value!("slice", "start", f64, val) as usize,
+        None => 0,
+    };
     // Not an error, but returns an empty Vec
     if start > arr.len() {
         return Ok(Vec::<Value>::new().into());
     }
-    let mut end = try_get_value!("slice", "end", f64, args.get("end").unwrap_or(&arr.len().into())) as usize;
+    let mut end = match args.get("end") {
+        Some(val) => try_get_value!("slice", "end", f64, val) as usize,
+        None => arr.len(),
+    };
     if end > arr.len() {
         end = arr.len();
     }

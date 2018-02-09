@@ -181,8 +181,8 @@ impl<'a> Renderer<'a> {
             ExprVal::Int(val) => val as f64,
             ExprVal::Float(val) => val,
             ExprVal::Math(MathExpr { ref lhs, ref rhs, ref operator }) => {
-                let l = self.eval_expr_as_number(&lhs)?;
-                let r = self.eval_expr_as_number(&rhs)?;
+                let l = self.eval_expr_as_number(lhs)?;
+                let r = self.eval_expr_as_number(rhs)?;
                 match *operator {
                     MathOperator::Mul => l * r,
                     MathOperator::Div => l / r,
@@ -207,8 +207,8 @@ impl<'a> Renderer<'a> {
                     LogicOperator::Or => self.eval_as_bool(lhs)? || self.eval_as_bool(rhs)?,
                     LogicOperator::And => self.eval_as_bool(lhs)? && self.eval_as_bool(rhs)?,
                     LogicOperator::Gt | LogicOperator::Gte | LogicOperator::Lt | LogicOperator::Lte => {
-                        let l = self.eval_expr_as_number(&lhs)?;
-                        let r = self.eval_expr_as_number(&rhs)?;
+                        let l = self.eval_expr_as_number(lhs)?;
+                        let r = self.eval_expr_as_number(rhs)?;
 
                         match *operator {
                             LogicOperator::Gte => l >= r,
@@ -521,7 +521,7 @@ impl<'a> Renderer<'a> {
             Ok(macros)
         }
 
-        self.macros.push(load_macros(self.tera, &tpl)?);
+        self.macros.push(load_macros(self.tera, tpl)?);
 
         Ok(true)
     }
