@@ -83,7 +83,11 @@ impl<'a> Renderer<'a> {
 
         #[inline]
         fn find_variable(context: &Value, key: &str, tpl_name: &str) -> Result<Value> {
-            match context.pointer(&get_json_pointer(key)) {
+            let mut new_key = key.to_string();
+            new_key = new_key.replace("['", ".").replace("[\"", ".").replace("[", ".");
+            new_key = new_key.replace("']", "").replace("\"]", "").replace("]", "");
+
+            match context.pointer(&get_json_pointer(new_key.as_ref())) {
                 Some(v) => Ok(v.clone()),
                 None => bail!("Variable `{}` not found in context while rendering '{}'", key, tpl_name)
             }

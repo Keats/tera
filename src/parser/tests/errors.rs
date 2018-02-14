@@ -8,7 +8,9 @@ fn assert_err_msg(input: &str, needles: &[&str]) {
     let err = res.unwrap_err();
     let err_msg = err.description();
     println!("{}", err_msg);
+    println!("Looking for:");
     for needle in needles {
+        println!("{}", needle);
         assert!(err_msg.contains(needle));
     }
 
@@ -53,7 +55,7 @@ fn wrong_end_block() {
         "{{ hey %}",
         &[
             "1:9",
-            "expected an integer, a float, a string, `true` or `false`, an identifier, a dotted identifier (identifiers separated by `.`), or an expression"
+            "expected an integer, a float, a string, `true` or `false`, an identifier, a dotted identifier (identifiers separated by `.`), an identifier (identifiers separated by `.` or `[]`s), or an expression"
         ]
     );
 }

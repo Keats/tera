@@ -704,6 +704,21 @@ mod tests {
         assert_eq!(ending_definitions.len(), 1);
     }
 
+    #[derive(Serialize)]
+    struct Test {
+      a: String,
+      b: String,
+      c: Vec<String>,
+    }
+
+    #[test]
+    fn test_var_access_by_index() {
+        let mut context = Context::new();
+        context.add("var", &Test{a:"hi".into(), b:"there".into(), c: vec!["fred".into()]});
+        let result = Tera::one_off("{{var['a']}} {{var[\"b\"]}} {{var['c'][0]}}",& context, true).unwrap();
+        assert_eq!(result, "hi there fred")
+    }
+
     #[test]
     fn test_can_autoescape_one_off_template() {
         let mut context = Context::new();

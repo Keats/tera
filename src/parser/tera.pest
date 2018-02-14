@@ -63,13 +63,17 @@ dotted_ident = @{
     ("." ~ all_chars+)*
 }
 
+dotted_square_bracket_ident = @{
+    dotted_ident ~ ( ("." ~ all_chars+) | ("[" ~ (int | string) ~ "]") )*
+}
+
 // ----------------------------------------------------
 
 /// EXPRESSIONS
 /// We'll use precedence climbing on those in the parser phase
 
 // boolean first so they are not caught as identifiers
-basic_val  = _{ boolean | test | macro_call | fn_call | dotted_ident | string | float | int }
+basic_val  = _{ boolean | test | macro_call | fn_call | dotted_square_bracket_ident | float | int | string }
 basic_op   = _{ op_plus | op_minus | op_times | op_slash | op_modulo }
 basic_expr = { ("(" ~ basic_expr ~ ")" | basic_val) ~ (basic_op ~ basic_val)* }
 basic_expr_filter = { basic_expr ~ filter* }

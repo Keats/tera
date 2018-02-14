@@ -71,6 +71,22 @@ fn lex_dotted_ident() {
 }
 
 #[test]
+fn lex_dotted_square_bracket_ident() {
+    let inputs = vec![
+        "hey.ho.hu", "hey.0", "h.u.x.0",
+        "hey['ho'][\"hu\"]", "hey[0]", "h['u'].x[0]",
+    ];
+    for i in inputs {
+        assert_lex_rule!(Rule::dotted_square_bracket_ident, i);
+    }
+
+    let invalid_inputs = vec![".", "9.w" ];
+    for i in invalid_inputs {
+        assert!(TeraParser::parse(Rule::dotted_square_bracket_ident, i).is_err());
+    }
+}
+
+#[test]
 fn lex_basic_expr() {
     let inputs = vec![
         "admin",
