@@ -83,13 +83,51 @@ impl<'a> Renderer<'a> {
 
         #[inline]
         fn find_variable(context: &Value, key: &str, tpl_name: &str) -> Result<Value> {
+            let sub_vars_to_calc = pull_out_square_bracket(key);
             let mut new_key = key.to_string();
-            new_key = new_key.replace("['", ".").replace("[\"", ".").replace("[", ".");
-            new_key = new_key.replace("']", "").replace("\"]", "").replace("]", "");
+
+            for sub_var in sub_vars_to_calc.iter() {
+                // Translate from variable name to variable value
+                let post_var = find_variable(context, sub_var.as_ref(), tpl_name).unwrap();
+                let post_var_as_str = {
+                    if post_var.is_string() {
+                        post_var.as_str().unwrap().to_string()
+                    } else if post_var.is_boolean() {
+                        post_var.as_bool().unwrap().to_string()
+                    } else if post_var.is_i64() {
+                        post_var.as_i64().unwrap().to_string()
+                    } else {
+                        panic!("unknown type")
+                    }
+                };
+
+                // Rebuild the original key String replacing variable name with value
+                let nk = new_key.clone();
+                let divider = "[".to_string() + sub_var + "]";
+                let mut the_parts = nk.splitn(2, divider.as_str());
+
+                new_key = String::from(
+                    the_parts.next().unwrap().to_string()
+                        + "."
+                        + post_var_as_str.as_ref()
+                        + the_parts.next().unwrap_or(""),
+                );
+            }
+            new_key = new_key
+                .replace("['", ".")
+                .replace("[\"", ".")
+                .replace("[", ".")
+                .replace("']", "")
+                .replace("\"]", "")
+                .replace("]", "");
 
             match context.pointer(&get_json_pointer(new_key.as_ref())) {
                 Some(v) => Ok(v.clone()),
-                None => bail!("Variable `{}` not found in context while rendering '{}'", key, tpl_name)
+                None => bail!(
+                    "Variable `{}` not found in context while rendering '{}'",
+                    key,
+                    tpl_name
+                ),
             }
         }
 
@@ -690,3 +728,54 @@ impl<'a> Renderer<'a> {
         Ok(output)
     }
 }
+
+/// Return a Vec of all substrings contained in '[ ]'s
+/// Ignore quoted strings and integers.
+fn pull_out_square_bracket(s: &str) -> Vec<String> {
+    let mut chars = s.chars();
+    let mut results = vec![];
+    loop {
+        match chars.next() {
+            Some('[') => {
+                let c = chars.next().unwrap();
+                if c != '"' && c != '\'' {
+                    let mut inside_bracket = vec![c];
+                    let mut bracket_count = 1;
+                    loop {
+                        let c = chars.next();
+                        match c {
+                            Some(']') => bracket_count -= 1,
+                            Some('[') => bracket_count += 1,
+                            Some(_) => (),
+                            None => break,
+                        };
+                        if bracket_count == 0 {
+                            // Only store results which aren't numbers
+                            let sub :String = inside_bracket.into_iter().collect();
+                            if sub.parse::<usize>().is_err() {
+                                results.push(sub);
+                            }
+                            break;
+                        }
+                        inside_bracket.push(c.unwrap());
+                    }
+                }
+            },
+            None => break,
+            _ => (),
+        }
+    }
+    results
+}
+
+#[test]
+fn test_pull_out_square_bracket() {
+    assert_eq!(pull_out_square_bracket("hi"), Vec::<String>::new());
+    assert_eq!(pull_out_square_bracket("['hi']"), Vec::<String>::new());
+    assert_eq!(pull_out_square_bracket("[hi] a[0]"), vec!["hi"]);
+    assert_eq!(
+        pull_out_square_bracket("hi [th[e]['r']e] [fish]"),
+        vec!["th[e]['r']e", "fish"]
+    );
+}
+

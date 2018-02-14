@@ -746,6 +746,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::ident => "an identifier".to_string(),
                     Rule::dotted_ident => "a dotted identifier (identifiers separated by `.`)".to_string(),
                     Rule::dotted_square_bracket_ident => "an identifier (identifiers separated by `.` or `[]`s)".to_string(),
+                    Rule::square_brackets => "an identifier, string or integer inside `[]`s".to_string(),
                     Rule::basic_expr_filter => "an expression with an optional filter".to_string(),
                     Rule::comparison_val => "a comparison value".to_string(),
                     Rule::basic_expr | Rule::comparison_expr => "an expression".to_string(),

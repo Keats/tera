@@ -622,6 +622,7 @@ mod tests {
     use super::{Tera};
     use context::Context;
     use serde_json::{Map as JsonObject, Value as JsonValue};
+    use std::collections::HashMap;
 
     #[test]
     fn test_get_inheritance_chain() {
@@ -715,8 +716,36 @@ mod tests {
     fn test_var_access_by_index() {
         let mut context = Context::new();
         context.add("var", &Test{a:"hi".into(), b:"there".into(), c: vec!["fred".into()]});
-        let result = Tera::one_off("{{var['a']}} {{var[\"b\"]}} {{var['c'][0]}}",& context, true).unwrap();
+        let result = Tera::one_off("{{var['a']}} {{var[\"b\"]}} {{var['c'][0]}}", &context, true).unwrap();
         assert_eq!(result, "hi there fred")
+    }
+
+    #[test]
+    fn test_var_access_by_variable() {
+        let mut context = Context::new();
+        context.add("var", &Test{a:"hi".into(), b:"there".into(), c: vec!["no".into(), "fred".into()]});
+        context.add("a", "b");
+        context.add("i", &1);
+        let result = Tera::one_off("{{var[a]}} {{var['c'][i]}}", &context, true).unwrap();
+        assert_eq!(result, "there fred");
+    }
+
+    #[test]
+    fn test_var_access_by_hashmap() {
+        let mut context = Context::new();
+        let mut map = HashMap::new();
+        map.insert("true", "yes");
+        map.insert("false", "no");
+        let mut deep_map = HashMap::new();
+        deep_map.insert("inner_map", &map);
+        context.add("deep_map", &deep_map);
+        context.add("a", &vec!["true", "false"]);
+        context.add("zero", &0);
+
+        let result = Tera::one_off(
+            "{{deep_map['inner_map'][a[zero]]}}", &context, true
+        ).unwrap();
+        assert_eq!(result, "yes");
     }
 
     #[test]
