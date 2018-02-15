@@ -3,11 +3,8 @@
     publish = "docs/public"
     command = "gutenberg build"
 
-[context.production.environment]
+[build.environment]
     GUTENBERG_VERSION = "0.3.0"
 
 [context.deploy-preview]
     command = "gutenberg build --base-url $DEPLOY_PRIME_URL"
-
-    [context.deploy-preview.environment]
-        GUTENBERG_VERSION = "0.3.0"
