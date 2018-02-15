@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.11.3 (unreleased)
+## 0.11.3 (2018-02-15)
 
 - Add a `slice` filter for arrays
 - Fix macro files importing other macro files not loading properly
