@@ -8,7 +8,7 @@ use errors::{Result as TeraResult, ResultExt};
 
 // This include forces recompiling this source file if the grammar file changes.
 // Uncomment it when doing changes to the .pest file
-const _GRAMMAR: &'static str = include_str!("tera.pest");
+const _GRAMMAR: &str = include_str!("tera.pest");
 
 
 #[derive(Parser)]
@@ -387,11 +387,10 @@ fn parse_extends_include(pair: Pair<Rule>) -> (WS, String) {
     (ws, file.unwrap())
 }
 
-fn parse_set_tag(pair: Pair<Rule>) -> Node {
+fn parse_set_tag(pair: Pair<Rule>, global: bool) -> Node {
     let mut ws = WS::default();
     let mut key = None;
     let mut expr = None;
-    let mut global = false;
 
     for p in pair.into_inner() {
         match p.as_rule() {
@@ -401,9 +400,6 @@ fn parse_set_tag(pair: Pair<Rule>) -> Node {
             Rule::tag_end => {
                 ws.right = p.into_span().as_str() == "-%}";
             },
-            Rule::set_scope => {
-                global = p.into_span().as_str() == "set_global";
-            }
             Rule::ident => key = Some(p.as_str().to_string()),
             Rule::logic_expr=> expr = Some(parse_logic_expr(p)),
             _ => unreachable!("unexpected {:?} rule in parse_set_tag", p.as_rule()),
@@ -585,7 +581,7 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
                         Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
                         Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
                         Rule::ident => idents.push(p2.as_str().to_string()),
-                        Rule::logic_expr => container = Some(parse_logic_expr(p2)),
+                        Rule::basic_expr_filter => container = Some(parse_basic_expr_with_filters(p2)),
                         _ => unreachable!(),
                     };
                 }
@@ -710,7 +706,8 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             // Ignore comments
             Rule::comment_tag => (),
             Rule::super_tag => nodes.push(Node::Super),
-            Rule::set_tag => nodes.push(parse_set_tag(p)),
+            Rule::set_tag => nodes.push(parse_set_tag(p, false)),
+            Rule::set_global_tag => nodes.push(parse_set_tag(p, true)),
             Rule::raw => nodes.push(parse_raw_tag(p)),
             Rule::variable_tag => nodes.push(parse_variable_tag(p)),
             Rule::import_macro_tag => nodes.push(parse_import_macro(p)),
@@ -732,15 +729,108 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
 pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
     let mut pairs = match TeraParser::parse(Rule::template, input) {
         Ok(p) => p,
-        Err(e) => match e {
-            PestError::ParsingError { pos, .. } => {
-                let (line_no, col_no) = pos.line_col();
-                bail!("Invalid Tera syntax at line {}, col {}", line_no, col_no);
-            },
-            _ => unreachable!(),
+        Err(e) => {
+            let fancy_e = e.renamed_rules(|rule| {
+                match *rule {
+                    Rule::int => "an integer".to_string(),
+                    Rule::float => "a float".to_string(),
+                    Rule::string | Rule::double_quoted_string
+                    | Rule::single_quoted_string | Rule::backquoted_quoted_string => {
+                        "a string".to_string()
+                    },
+                    Rule::all_chars => "a character".to_string(),
+                    Rule::basic_val => "a value".to_string(),
+                    Rule::basic_op => "a mathematical operator".to_string(),
+                    Rule::comparison_op => "a comparison operator".to_string(),
+                    Rule::boolean => "`true` or `false`".to_string(),
+                    Rule::ident => "an identifier".to_string(),
+                    Rule::dotted_ident => "a dotted identifier (identifiers separated by `.`)".to_string(),
+                    Rule::basic_expr_filter => "an expression with an optional filter".to_string(),
+                    Rule::comparison_val => "a comparison value".to_string(),
+                    Rule::basic_expr | Rule::comparison_expr => "an expression".to_string(),
+                    Rule::logic_val => "a value that can be negated".to_string(),
+                    Rule::logic_expr => "any expressions".to_string(),
+                    Rule::fn_call => "a function call".to_string(),
+                    Rule::kwarg => "a keyword argument: `key=value` where `value` can be any expressions".to_string(),
+                    Rule::kwargs => "a list of keyword arguments: `key=value` where `value` can be any expressions and separated by `,`".to_string(),
+                    Rule::op_or => "`or`".to_string(),
+                    Rule::op_and => "`and`".to_string(),
+                    Rule::op_not => "`not`".to_string(),
+                    Rule::op_lte => "`<=`".to_string(),
+                    Rule::op_gte => "`>=`".to_string(),
+                    Rule::op_lt => "`<`".to_string(),
+                    Rule::op_gt => "`>`".to_string(),
+                    Rule::op_ineq => "`!=`".to_string(),
+                    Rule::op_eq => "`==`".to_string(),
+                    Rule::op_plus => "`+`".to_string(),
+                    Rule::op_minus => "`-`".to_string(),
+                    Rule::op_times => "`*`".to_string(),
+                    Rule::op_slash => "`/`".to_string(),
+                    Rule::op_modulo => "`%`".to_string(),
+                    Rule::filter => "a filter".to_string(),
+                    Rule::test => "a test".to_string(),
+                    Rule::test_call => "a test call".to_string(),
+                    Rule::test_arg => "a test argument (any expressions)".to_string(),
+                    Rule::test_args => "a list of test arguments (any expressions)".to_string(),
+                    Rule::macro_fn => "a macro function".to_string(),
+                    Rule::macro_call => "a macro function call".to_string(),
+                    Rule::macro_def_arg => {
+                        "an argument name with an optional default literal value: `id`, `key=1`".to_string()
+                    },
+                    Rule::macro_def_args => {
+                        "a list of argument names with an optional default literal value: `id`, `key=1`".to_string()
+                    },
+                    Rule::endmacro_tag => "`{% endmacro %}`".to_string(),
+                    Rule::macro_content => "the macro content".to_string(),
+                    Rule::set_tag => "a `set` tag`".to_string(),
+                    Rule::set_global_tag => "a `set_global` tag`".to_string(),
+                    Rule::endif_tag => "a `endif` tag`".to_string(),
+                    Rule::block_content | Rule::content => "some content".to_string(),
+                    Rule::text => "some text".to_string(),
+                    // Pest will error an unexpected tag as Rule::tag_start
+                    // and just showing `{%` is not clear as some other valid
+                    // tags will also start with `{%`
+                    Rule::tag_start => "tag".to_string(),
+                    Rule::tag_end => "`%}` or `-%}`".to_string(),
+                    Rule::super_tag => "`{{ super() }}`".to_string(),
+                    Rule::raw_tag => "`{% raw %}`".to_string(),
+                    Rule::raw_text => "some raw text".to_string(),
+                    Rule::raw => "a raw block (`{% raw %}...{% endraw %}`".to_string(),
+                    Rule::endraw_tag => "`{% endraw %}`".to_string(),
+                    Rule::include_tag => r#"an include tag (`{% include "..." %}`)"#.to_string(),
+                    Rule::comment_tag => "a comment tag (`{#...#}`)".to_string(),
+                    Rule::variable_tag => "a variable tag (`{{ ... }}`)".to_string(),
+                    Rule::filter_tag | Rule::filter_section | Rule::block_filter_section | Rule::macro_filter_section => {
+                        "a filter section (`{% filter something %}...{% endfilter %}`)".to_string()
+                    },
+                    Rule::for_tag | Rule::forloop | Rule::block_forloop | Rule::macro_forloop => {
+                        "a forloop (`{% for i in something %}...{% endfor %}".to_string()
+                    },
+                    Rule::endfilter_tag => "an endfilter tag (`{% endfilter %}`)".to_string(),
+                    Rule::endfor_tag => "an endfor tag (`{% endfor %}`)".to_string(),
+                    Rule::if_tag | Rule::content_if | Rule::block_if | Rule::macro_if => {
+                        "a `if` tag".to_string()
+                    },
+                    Rule::elif_tag => "an `elif` tag".to_string(),
+                    Rule::else_tag => "an `else` tag".to_string(),
+                    Rule::endif_tag => "an endif tag (`{% endif %}`)".to_string(),
+                    Rule::whitespace => "whitespace".to_string(),
+                    Rule::variable_start => "a variable start (`{{`)".to_string(),
+                    Rule::variable_end => "a variable end (`}}`)".to_string(),
+                    Rule::comment_start => "a comment start (`{#`)".to_string(),
+                    Rule::comment_end => "a comment end (`#}`)".to_string(),
+                    Rule::block_start => "`{{`, `{%` or `{#`".to_string(),
+                    Rule::import_macro_tag => r#"an import macro tag (`{% import "filename" as namespace %}`"#.to_string(),
+                    Rule::block | Rule::block_tag => r#"a block tag (`{% block block_name %}`"#.to_string(),
+                    Rule::endblock_tag => r#"an enblock tag (`{% endblock block_name %}`"#.to_string(),
+                    Rule::macro_definition | Rule::macro_tag => r#"a macro definition tag (`{% macro my_macro() %}`"#.to_string(),
+                    Rule::extends_tag => r#"an extends tag (`{% extends "myfile" %}`"#.to_string(),
+                    Rule::template => "a template".to_string(),
+                }
+            });
+            bail!("{}", fancy_e)
         }
     };
-
 
     let mut nodes = vec![];
 

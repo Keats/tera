@@ -1,3 +1,4 @@
 # Tera documentation
 
-Uses the latest version of Gutenberg (0.1.1)
+Uses [Gutenberg](https://www.getgutenberg.io/), see `netlify.toml` for
+the exact version

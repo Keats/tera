@@ -28,9 +28,10 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
         Value::String(s) => Ok(to_value(&String::from_iter(s.chars().rev()))?),
         _ => {
             bail!(
-                "Filter `reverse` received an incorrect type for arg `value`: got `{}` but expected Array|String",
+                "Filter `reverse` received an incorrect type for arg `value`: \
+                got `{}` but expected Array|String",
                 value.to_string()
-            );
+            )
         }
     }
 }
@@ -60,26 +61,24 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
         None => "%Y-%m-%d".to_string(),
     };
 
-    match value {
-        Value::Number(n) => {
-            match n.as_i64() {
-                Some(i) => Ok(to_value(&NaiveDateTime::from_timestamp(i, 0).format(&format).to_string())?),
-                None => bail!("Filter `date` was invoked on a float: {:?}", n)
-            }
+    let formatted = match value {
+        Value::Number(n) => match n.as_i64() {
+            Some(i) => NaiveDateTime::from_timestamp(i, 0).format(&format),
+            None => bail!("Filter `date` was invoked on a float: {}", n)
         },
         Value::String(s) => {
             if s.contains('T') {
                 match s.parse::<DateTime<FixedOffset>>() {
-                    Ok(val) => Ok(to_value(&val.format(&format).to_string())?),
+                    Ok(val) => val.format(&format),
                     Err(_) => match s.parse::<NaiveDateTime>() {
-                        Ok(val) => Ok(to_value(&val.format(&format).to_string())?),
+                        Ok(val) => val.format(&format),
                         Err(_) => bail!("Error parsing `{:?}` as rfc3339 date or naive datetime", s)
                     }
                 }
             } else {
                 match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
                     Ok(val) => {
-                        Ok(to_value(&DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format).to_string())?)
+                        DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format)
                     },
                     Err(_) => bail!("Error parsing `{:?}` as YYYY-MM-DD date", s)
                 }
@@ -87,11 +86,14 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
         },
         _ => {
             bail!(
-                "Filter `date` received an incorrect type for arg `value`: got `{:?}` but expected i64|u64|String",
+                "Filter `date` received an incorrect type for arg `value`: \
+                got `{:?}` but expected i64|u64|String",
                 value
-            );
+            )
         }
-    }
+    };
+
+    Ok(to_value(&formatted.to_string())?)
 }
 
 #[cfg(test)]

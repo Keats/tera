@@ -33,7 +33,7 @@ pub fn join(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("join", "value", Vec<Value>, value);
     let sep = match args.get("sep") {
         Some(val) => try_get_value!("truncate", "sep", String, val),
-        None => "".to_string(),
+        None => String::new(),
     };
 
     // Convert all the values to strings before we join them together.
@@ -49,21 +49,58 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         return Ok(arr.into());
     }
 
-    let attribute = try_get_value!("sort", "attribute", String, args.get("attribute").unwrap_or(&"".into()));
+    let attribute = match args.get("attribute") {
+        Some(val) => try_get_value!("sort", "attribute", String, val),
+        None => String::new(),
+    };
     let ptr = match attribute.as_str() {
         "" => "".to_string(),
         s => get_json_pointer(s)
     };
 
-    let first = arr[0].pointer(&ptr).ok_or(format!("attribute '{}' does not reference a field", attribute))?;
+    let first = arr[0]
+        .pointer(&ptr)
+        .ok_or_else(|| format!("attribute '{}' does not reference a field", attribute))?;
+
     let mut strategy = get_sort_strategy_for_type(first)?;
     for v in &arr {
-        let key = v.pointer(&ptr).ok_or(format!("attribute '{}' does not reference a field", attribute))?;
+        let key = v
+            .pointer(&ptr)
+            .ok_or_else(|| format!("attribute '{}' does not reference a field", attribute))?;
         strategy.try_add_pair(v, key)?;
     }
     let sorted = strategy.sort();
 
     Ok(sorted.into())
+}
+
+/// Slice the array
+/// Use the `start` argument to define where to start (inclusive, default to `0`)
+/// and `end` argument to define where to stop (exclusive, default to the length of the array)
+/// `start` and `end` are 0-indexed
+pub fn slice(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+    let mut arr = try_get_value!("slice", "value", Vec<Value>, value);
+    if arr.is_empty() {
+        return Ok(arr.into());
+    }
+
+    let start = match args.get("start") {
+        Some(val) => try_get_value!("slice", "start", f64, val) as usize,
+        None => 0,
+    };
+    // Not an error, but returns an empty Vec
+    if start > arr.len() {
+        return Ok(Vec::<Value>::new().into());
+    }
+    let mut end = match args.get("end") {
+        Some(val) => try_get_value!("slice", "end", f64, val) as usize,
+        None => arr.len(),
+    };
+    if end > arr.len() {
+        end = arr.len();
+    }
+
+    Ok(arr[start..end].into())
 }
 
 #[cfg(test)]
@@ -238,5 +275,34 @@ mod tests {
             TupleStruct(7, 0),
             TupleStruct(18, 18)
         ]).unwrap());
+    }
+
+    #[test]
+    fn test_slice() {
+        fn make_args(start: Option<usize>, end: Option<usize>) -> HashMap<String, Value> {
+            let mut args = HashMap::new();
+            if let Some(s) = start {
+                args.insert("start".to_string(), to_value(s).unwrap());
+            }
+            if let Some(e) = end {
+                args.insert("end".to_string(), to_value(e).unwrap());
+            }
+            args
+        }
+
+        let v = to_value(vec![1, 2, 3, 4, 5]).unwrap();
+
+        let inputs = vec![
+            (make_args(Some(1), None), vec![2, 3, 4, 5]),
+            (make_args(None, Some(2)), vec![1, 2]),
+            (make_args(Some(1), Some(2)), vec![2]),
+            (make_args(None, None), vec![1, 2, 3, 4, 5]),
+        ];
+
+        for (args, expected) in inputs {
+            let res = slice(v.clone(), args);
+            assert!(res.is_ok());
+            assert_eq!(res.unwrap(), to_value(expected).unwrap());
+        }
     }
 }

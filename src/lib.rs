@@ -8,7 +8,6 @@
 //#![deny(missing_docs)]
 #![allow(unused)]
 
-#![cfg_attr(feature = "cargo-clippy", allow(block_in_if_condition_stmt, eq_op))]
 
 extern crate serde;
 extern crate serde_json;
