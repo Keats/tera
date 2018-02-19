@@ -55,7 +55,7 @@ fn wrong_end_block() {
         "{{ hey %}",
         &[
             "1:9",
-            "expected an integer, a float, a string, `true` or `false`, an identifier, a dotted identifier (identifiers separated by `.`), an identifier (identifiers separated by `.` or `[]`s), or an expression"
+            "expected an integer, a float, a string, `true` or `false`, an identifier (must start with a-z), a dotted identifier (identifiers separated by `.`), a square bracketed identifier (identifiers separated by `.` or `[]`s), or an expression"
         ]
     );
 }
@@ -110,7 +110,7 @@ fn invalid_filter_section_missing_name() {
         r#"{% filter %}sd{% endfilter %}"#,
         &[
             "1:11",
-            "expected an identifier or a function call"
+            "expected an identifier (must start with a-z) or a function call"
         ],
     );
 }
@@ -241,7 +241,7 @@ fn missing_variable_name_in_set() {
         "{% set = 1 %}",
         &[
             "1:8",
-            "expected an identifier"
+            "expected an identifier (must start with a-z)"
         ]
     );
 }
@@ -362,7 +362,7 @@ fn invalid_import_macros_missing_namespace() {
         r#"{% import "hello" as %}"#,
         &[
             "1:22",
-            "expected an identifier"
+            "expected an identifier (must start with a-z)"
         ],
     );
 }
@@ -373,7 +373,7 @@ fn invalid_block_missing_name() {
         r#"{% block %}"#,
         &[
             "1:10",
-            "expected an identifier"
+            "expected an identifier (must start with a-z)"
         ],
     );
 }
