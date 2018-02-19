@@ -82,7 +82,7 @@ impl<'a> Renderer<'a> {
         }
 
         #[inline]
-        fn find_variable(context: &Value, key: &str, tpl_name: &str) -> Result<Value> {
+        fn evaluate_sub_variable(context: &Value, key: &str, tpl_name: &str) -> String {
             let sub_vars_to_calc = pull_out_square_bracket(key);
             let mut new_key = key.to_string();
 
@@ -92,12 +92,12 @@ impl<'a> Renderer<'a> {
                 let post_var_as_str = {
                     if post_var.is_string() {
                         post_var.as_str().unwrap().to_string()
-                    } else if post_var.is_boolean() {
-                        post_var.as_bool().unwrap().to_string()
-                    } else if post_var.is_i64() {
-                        post_var.as_i64().unwrap().to_string()
                     } else if post_var.is_f64() {
                         post_var.as_f64().unwrap().to_string()
+                    } else if post_var.is_i64() {
+                        post_var.as_i64().unwrap().to_string()
+                    } else if post_var.is_boolean() {
+                        post_var.as_bool().unwrap().to_string()
                     } else {
                         panic!("Unknown Type")
                     }
@@ -115,19 +115,26 @@ impl<'a> Renderer<'a> {
                         + the_parts.next().unwrap_or(""),
                 );
             }
-            new_key = new_key
+            new_key
                 .replace("['", ".")
                 .replace("[\"", ".")
                 .replace("[", ".")
                 .replace("']", "")
                 .replace("\"]", "")
-                .replace("]", "");
+                .replace("]", "")
+        }
 
-            match context.pointer(&get_json_pointer(new_key.as_ref())) {
+        #[inline]
+        fn find_variable(context: &Value, key: &str, tpl_name: &str) -> Result<Value> {
+            let key_s = match key.contains('[') {
+                false => key.into(),
+                true => evaluate_sub_variable(context, key, tpl_name),
+            };
+            match context.pointer(&get_json_pointer(key_s.as_ref())) {
                 Some(v) => Ok(v.clone()),
                 None => bail!(
                     "Variable `{}` not found in context while rendering '{}'",
-                    key,
+                    key_s,
                     tpl_name
                 ),
             }
