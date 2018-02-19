@@ -96,8 +96,10 @@ impl<'a> Renderer<'a> {
                         post_var.as_bool().unwrap().to_string()
                     } else if post_var.is_i64() {
                         post_var.as_i64().unwrap().to_string()
+                    } else if post_var.is_f64() {
+                        post_var.as_f64().unwrap().to_string()
                     } else {
-                        panic!("unknown type")
+                        panic!("Unknown Type")
                     }
                 };
 
