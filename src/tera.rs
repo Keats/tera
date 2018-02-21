@@ -622,7 +622,6 @@ mod tests {
     use super::{Tera};
     use context::Context;
     use serde_json::{Map as JsonObject, Value as JsonValue};
-    use std::collections::HashMap;
 
     #[test]
     fn test_get_inheritance_chain() {
