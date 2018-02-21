@@ -128,10 +128,13 @@ impl<'a> Renderer<'a> {
 
         #[inline]
         fn find_variable(context: &Value, key: &str, tpl_name: &str) -> Result<Value> {
-            let key_s = match key.contains('[') {
-                false => key.into(),
-                true => evaluate_sub_variable(context, key, tpl_name),
-            };
+            let key_s =
+                if key.contains('[') {
+                    evaluate_sub_variable(context, key, tpl_name)
+                } else {
+                    key.into()
+                };
+
             match context.pointer(&get_json_pointer(key_s.as_ref())) {
                 Some(v) => Ok(v.clone()),
                 None => bail!(
