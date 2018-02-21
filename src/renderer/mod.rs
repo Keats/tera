@@ -110,12 +110,10 @@ impl<'a> Renderer<'a> {
                 let divider = "[".to_string() + sub_var + "]";
                 let mut the_parts = nk.splitn(2, divider.as_str());
 
-                new_key = String::from(
-                    the_parts.next().unwrap().to_string()
+                new_key = the_parts.next().unwrap().to_string()
                         + "."
                         + post_var_as_str.as_ref()
-                        + the_parts.next().unwrap_or(""),
-                );
+                        + the_parts.next().unwrap_or("");
             }
             new_key
                 .replace("['", ".")
