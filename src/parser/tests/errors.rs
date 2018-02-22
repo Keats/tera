@@ -31,7 +31,7 @@ fn invalid_op() {
         "{{ 1.2 >+ 3 }}",
         &[
             "1:9",
-            "expected an expression or a comparison value"
+            "expected a comparison value"
         ]
     );
 }
