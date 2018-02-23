@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.4 (unreleased)
+
+- Re-export `serde_json::Map` as well
+
 ## 0.11.3 (2018-02-15)
 
 - Add a `slice` filter for arrays
