@@ -826,6 +826,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::op_times => "`*`".to_string(),
                     Rule::op_slash => "`/`".to_string(),
                     Rule::op_modulo => "`%`".to_string(),
+                    Rule::op_tilde => "`~`".to_string(),
                     Rule::filter => "a filter".to_string(),
                     Rule::test => "a test".to_string(),
                     Rule::test_call => "a test call".to_string(),
