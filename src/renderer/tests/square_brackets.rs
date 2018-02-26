@@ -42,3 +42,11 @@ fn test_var_access_by_square_brackets() {
     }
 }
 
+#[test]
+fn test_var_access_by_square_brackets_errors() {
+    let mut context = Context::new();
+    context.add("var", &Test{a: "hi".into(), b: "there".into(), c: vec![]});
+    let t = Tera::one_off("{{var[csd]}}", &context, true);
+    assert!(t.is_err(), "Access of csd should be impossible");
+}
+
