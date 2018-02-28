@@ -83,30 +83,28 @@ impl<'a> Renderer<'a> {
             return Ok(to_value(to_string_pretty(context).unwrap()).unwrap());
         }
 
+        /// This will convert a Tera variable to a json pointer if it is possible by replacing
+        /// the index with their evaluated stringified value
         #[inline]
         fn evaluate_sub_variable(context: &Value, key: &str, tpl_name: &str) -> Result<String> {
             let sub_vars_to_calc = pull_out_square_bracket(key);
             let mut new_key = key.to_string();
 
-            for sub_var in sub_vars_to_calc.iter() {
+            for sub_var in &sub_vars_to_calc {
                 // Translate from variable name to variable value
                 match find_variable(context, sub_var.as_ref(), tpl_name) {
                     Err(e) => {
-                        bail!(format!("Variable {} can not be built because: {}", key, e));
+                        bail!(format!("Variable {} can not be evaluated because: {}", key, e));
                     },
                     Ok(post_var) => {
-                        let post_var_as_str = {
-                            if post_var.is_string() {
-                                post_var.as_str().unwrap().to_string()
-                            } else if post_var.is_f64() {
-                                post_var.as_f64().unwrap().to_string()
-                            } else if post_var.is_i64() {
-                                post_var.as_i64().unwrap().to_string()
-                            } else if post_var.is_boolean() {
-                                post_var.as_bool().unwrap().to_string()
-                            } else {
-                                panic!("Unknown Type")
-                            }
+                        let post_var_as_str = match post_var {
+                            Value::String(ref s) => s.to_string(),
+                            Value::Number(ref n) => n.to_string(),
+                            _  => bail!(
+                                "Only variables evaluating to String or Number can be used as \
+                                index (`{}` of `{}`)",
+                                sub_var, key,
+                            ),
                         };
 
                         // Rebuild the original key String replacing variable name with value
@@ -115,9 +113,9 @@ impl<'a> Renderer<'a> {
                         let mut the_parts = nk.splitn(2, divider.as_str());
 
                         new_key = the_parts.next().unwrap().to_string()
-                                + "."
-                                + post_var_as_str.as_ref()
-                                + the_parts.next().unwrap_or("");
+                            + "."
+                            + post_var_as_str.as_ref()
+                            + the_parts.next().unwrap_or("");
                     }
                 }
             }

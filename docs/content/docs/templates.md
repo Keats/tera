@@ -40,10 +40,12 @@ Specific members of an array or tuple are accessed by using the `.i` notation, w
 A more powerful alternative to (`.`) is to use square brackets (`[ ]`).
 Variables can be rendering using the notation `{{product['name']}}` or `{{product["name"]}}`.
 
-If the item is not in quotes it will be treated as a variable allowing things like:
-- `my_field = "name"`,
-- `product = Product{name:"Fred"}`
-- `{{product[my_field]}}` which resolves to: `{{product.name}}`
+If the item is not in quotes it will be treated as a variable. 
+Assuming you have the following objects in your context `product = Product{ name: "Fred" }`
+and `my_field = "name"`, calling `{{product[my_field]}}` will resolve to: `{{product.name}}`.
+
+Only variables evaluating to String and Number can be used as index: anything else will be
+an error.
 
 ## Expressions
 

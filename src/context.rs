@@ -35,6 +35,17 @@ impl Context {
         self.data.insert(key.to_owned(), to_value(val).unwrap());
     }
 
+    /// Converts the `val` parameter to `Value` and insert it into the context
+    ///
+    /// ```rust,ignore
+    /// let mut context = Context::new();
+    /// // user is an instance of a struct implementing `Serialize`
+    /// context.insert("number_users", 42);
+    /// ```
+    pub fn insert<T: Serialize + ?Sized>(&mut self, key: &str, val: &T) {
+        self.data.insert(key.to_owned(), to_value(val).unwrap());
+    }
+
     #[doc(hidden)]
     pub fn as_json(&self) -> TeraResult<Value> {
         to_value(&self.data).chain_err(|| "Failed to convert data to JSON")

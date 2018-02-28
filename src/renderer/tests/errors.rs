@@ -83,3 +83,55 @@ fn error_location_in_parent_in_macro() {
     );
 }
 
+#[test]
+fn error_out_of_range_index() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("tpl", "{{ arr[10] }}"),
+    ]).unwrap();
+    let mut context = Context::new();
+    context.add("arr", &[1, 2, 3]);
+
+    let result = tera.render("tpl", &Context::new());
+
+    assert_eq!(
+        result.unwrap_err().iter().nth(1).unwrap().description(),
+        "Variable `arr[10]` not found in context while rendering \'tpl\'"
+    );
+}
+
+#[test]
+fn error_unknown_index_variable() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("tpl", "{{ arr[a] }}"),
+    ]).unwrap();
+    let mut context = Context::new();
+    context.add("arr", &[1, 2, 3]);
+
+    let result = tera.render("tpl", &Context::new());
+
+    assert_eq!(
+        result.unwrap_err().iter().nth(1).unwrap().description(),
+        "Variable arr[a] can not be evaluated because: Variable `a` not found in context while rendering \'tpl\'"
+    );
+}
+
+#[test]
+fn error_invalid_type_index_variable() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("tpl", "{{ arr[a] }}"),
+    ]).unwrap();
+
+    let mut context = Context::new();
+    context.add("arr", &[1, 2, 3]);
+    context.add("a", &true);
+
+    let result = tera.render("tpl", &context);
+
+    assert_eq!(
+        result.unwrap_err().iter().nth(1).unwrap().description(),
+        "Only variables evaluating to String or Number can be used as index (`a` of `arr[a]`)"
+    );
+}

@@ -3,6 +3,10 @@
 ## 0.11.4 (unreleased)
 
 - Re-export `serde_json::Map` as well
+- You can now access inside a variable using index notation: `{{ arr[0] }}`, `{{ arr[idx] }}` etc
+thanks to @bootandy
+- Add `Context::insert` identical to `Context::add` to mirror Rust HashMap/BTreeMap syntax
+
 
 ## 0.11.3 (2018-02-15)
 
