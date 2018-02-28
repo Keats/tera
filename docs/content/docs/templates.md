@@ -370,7 +370,7 @@ They are defined as follows:
         {{ label }}
         <input type="{{type}}" />
     </label>
-{% endmacro hello_world %}
+{% endmacro input %}
 ```
 As shown in the example above, macro arguments can have a default [literal](./docs/templates.md#literals) value.
 
