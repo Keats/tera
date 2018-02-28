@@ -176,7 +176,7 @@ fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
         Rule::fn_call => ExprVal::FunctionCall(parse_fn_call(pair)),
         Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)),
         Rule::string => ExprVal::String(pair.as_str().replace("\"", "").to_string()),
-        Rule::dotted_ident => ExprVal::Ident(pair.as_str().to_string()),
+        Rule::dotted_square_bracket_ident => ExprVal::Ident(pair.as_str().to_string()),
         Rule::basic_expr => MATH_CLIMBER.climb(pair.into_inner(), primary, infix),
         _ => unreachable!("Got {:?} in parse_basic_expression", pair.as_rule())
     }
@@ -743,8 +743,10 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::basic_op => "a mathematical operator".to_string(),
                     Rule::comparison_op => "a comparison operator".to_string(),
                     Rule::boolean => "`true` or `false`".to_string(),
-                    Rule::ident => "an identifier".to_string(),
+                    Rule::ident => "an identifier (must start with a-z)".to_string(),
                     Rule::dotted_ident => "a dotted identifier (identifiers separated by `.`)".to_string(),
+                    Rule::dotted_square_bracket_ident => "a square bracketed identifier (identifiers separated by `.` or `[]`s)".to_string(),
+                    Rule::square_brackets => "an identifier, string or integer inside `[]`s".to_string(),
                     Rule::basic_expr_filter => "an expression with an optional filter".to_string(),
                     Rule::comparison_val => "a comparison value".to_string(),
                     Rule::basic_expr | Rule::comparison_expr => "an expression".to_string(),

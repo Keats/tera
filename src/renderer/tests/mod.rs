@@ -3,6 +3,7 @@ mod inheritance;
 mod macros;
 mod whitespace;
 mod errors;
+mod square_brackets;
 
 #[allow(dead_code)]
 #[derive(Debug, Serialize)]

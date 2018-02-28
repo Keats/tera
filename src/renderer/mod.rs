@@ -1,4 +1,5 @@
 mod forloop;
+mod square_brackets;
 #[cfg(test)]
 mod tests;
 
@@ -9,6 +10,7 @@ use serde_json::value::{Value, to_value, Number};
 use serde_json::map::{Map as JsonMap};
 
 use self::forloop::{ForLoop};
+use self::square_brackets::{pull_out_square_bracket};
 use parser::ast::*;
 use template::Template;
 use tera::Tera;
@@ -82,10 +84,69 @@ impl<'a> Renderer<'a> {
         }
 
         #[inline]
+        fn evaluate_sub_variable(context: &Value, key: &str, tpl_name: &str) -> Result<String> {
+            let sub_vars_to_calc = pull_out_square_bracket(key);
+            let mut new_key = key.to_string();
+
+            for sub_var in sub_vars_to_calc.iter() {
+                // Translate from variable name to variable value
+                match find_variable(context, sub_var.as_ref(), tpl_name) {
+                    Err(e) => {
+                        bail!(format!("Variable {} can not be built because: {}", key, e));
+                    },
+                    Ok(post_var) => {
+                        let post_var_as_str = {
+                            if post_var.is_string() {
+                                post_var.as_str().unwrap().to_string()
+                            } else if post_var.is_f64() {
+                                post_var.as_f64().unwrap().to_string()
+                            } else if post_var.is_i64() {
+                                post_var.as_i64().unwrap().to_string()
+                            } else if post_var.is_boolean() {
+                                post_var.as_bool().unwrap().to_string()
+                            } else {
+                                panic!("Unknown Type")
+                            }
+                        };
+
+                        // Rebuild the original key String replacing variable name with value
+                        let nk = new_key.clone();
+                        let divider = "[".to_string() + sub_var + "]";
+                        let mut the_parts = nk.splitn(2, divider.as_str());
+
+                        new_key = the_parts.next().unwrap().to_string()
+                                + "."
+                                + post_var_as_str.as_ref()
+                                + the_parts.next().unwrap_or("");
+                    }
+                }
+            }
+            Ok(new_key
+                .replace("['", ".")
+                .replace("[\"", ".")
+                .replace("[", ".")
+                .replace("']", "")
+                .replace("\"]", "")
+                .replace("]", "")
+            )
+        }
+
+        #[inline]
         fn find_variable(context: &Value, key: &str, tpl_name: &str) -> Result<Value> {
-            match context.pointer(&get_json_pointer(key)) {
+            let key_s =
+                if key.contains('[') {
+                    evaluate_sub_variable(context, key, tpl_name)?
+                } else {
+                    key.into()
+                };
+
+            match context.pointer(&get_json_pointer(key_s.as_ref())) {
                 Some(v) => Ok(v.clone()),
-                None => bail!("Variable `{}` not found in context while rendering '{}'", key, tpl_name)
+                None => bail!(
+                    "Variable `{}` not found in context while rendering '{}'",
+                    key,
+                    tpl_name
+                ),
             }
         }
 

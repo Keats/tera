@@ -26,13 +26,24 @@ Tera has a few literals that can be used:
 
 Variables are defined by the context given when rendering a template.
 
-You can render a variable by using the `{{ name }}` construct and attributes
-can be accessed by using the dot (`.`) like `{{ product.name }}`. 
-Specific members of an array or tuple are accessed by using the `.i` notation, where i is a zero-based index.
+You can render a variable by using the `{{ name }}`.
 
 Trying to access or render a variable that doesn't exist will result in an error.
 
 A magical variable is available in every template if you want to print the current context: `__tera_context`.
+
+### Dot notation:
+Construct and attributes can be accessed by using the dot (`.`) like `{{ product.name }}`.
+Specific members of an array or tuple are accessed by using the `.i` notation, where i is a zero-based index.
+
+### Square bracket notation:
+A more powerful alternative to (`.`) is to use square brackets (`[ ]`).
+Variables can be rendering using the notation `{{product['name']}}` or `{{product["name"]}}`.
+
+If the item is not in quotes it will be treated as a variable allowing things like:
+- `my_field = "name"`,
+- `product = Product{name:"Fred"}`
+- `{{product[my_field]}}` which resolves to: `{{product.name}}`
 
 ## Expressions
 
