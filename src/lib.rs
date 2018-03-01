@@ -57,7 +57,7 @@ pub use builtins::filters::FilterFn;
 pub use builtins::testers::TesterFn;
 //// Re-export Value so apps/tools can encode data in Tera types
 //// for now it's just an alias to serde_json::Value
-pub use serde_json::value::{Map, Value, from_value, to_value};
+pub use serde_json::value::{Map, Number, Value, from_value, to_value};
 
 // Exposes the AST if one needs it but changing the AST is not considered
 // a breaking change so it isn't public

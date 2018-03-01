@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.11.4 (unreleased)
+## 0.11.5 (2018-03-01)
+
+- Re-export `serde_json::Number` as well
+
+## 0.11.4 (2018-02-28)
 
 - Re-export `serde_json::Map` as well
 - You can now access inside a variable using index notation: `{{ arr[0] }}`, `{{ arr[idx] }}` etc
