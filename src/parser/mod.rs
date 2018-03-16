@@ -589,6 +589,42 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
     )
 }
 
+fn parse_break_tag(pair: Pair<Rule>) -> Node {
+    let mut ws = WS::default();
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::tag_start => {
+                ws.left = p.into_span().as_str() == "{%-";
+            },
+            Rule::tag_end => {
+                ws.right = p.into_span().as_str() == "-%}";
+            }
+            _ => unreachable!()
+        };
+    };
+
+    Node::Break(ws)
+}
+
+fn parse_continue_tag(pair: Pair<Rule>) -> Node {
+    let mut ws = WS::default();
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::tag_start => {
+                ws.left = p.into_span().as_str() == "{%-";
+            },
+            Rule::tag_end => {
+                ws.right = p.into_span().as_str() == "-%}";
+            }
+            _ => unreachable!()
+        };
+    };
+
+    Node::Continue(ws)
+}
+
 fn parse_if(pair: Pair<Rule>) -> Node {
     // the `endif` tag ws handling
     let mut end_ws = WS::default();
@@ -685,7 +721,9 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             Rule::macro_definition => nodes.push(parse_macro_definition(p)),
             Rule::forloop | Rule::macro_forloop | Rule::block_forloop => {
                 nodes.push(parse_forloop(p))
-            }
+            },
+            Rule::break_tag => nodes.push(parse_break_tag(p)),
+            Rule::continue_tag => nodes.push(parse_continue_tag(p)),
             Rule::content_if | Rule::macro_if | Rule::block_if => nodes.push(parse_if(p)),
             Rule::filter_section | Rule::macro_filter_section | Rule::block_filter_section => {
                 nodes.push(parse_filter_section(p))
@@ -807,6 +845,8 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     | Rule::macro_tag => r#"a macro definition tag (`{% macro my_macro() %}`"#.to_string(),
                     Rule::extends_tag => r#"an extends tag (`{% extends "myfile" %}`"#.to_string(),
                     Rule::template => "a template".to_string(),
+                    Rule::break_tag => "a break tag".to_string(),
+                    Rule::continue_tag => "a continue tag".to_string(),
                 }
             });
             bail!("{}", fancy_e)

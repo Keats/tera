@@ -156,6 +156,8 @@ endmacro_tag     = !{ tag_start ~ "endmacro" ~ ident? ~ tag_end }
 endif_tag        = !{ tag_start ~ "endif" ~ tag_end }
 endfor_tag       = !{ tag_start ~ "endfor" ~ tag_end }
 endfilter_tag    = !{ tag_start ~ "endfilter" ~ tag_end }
+break_tag        = !{ tag_start ~ "break" ~ tag_end }
+continue_tag     = !{ tag_start ~ "continue" ~ tag_end }
 
 variable_tag     = !{ variable_start ~ logic_expr ~ variable_end }
 super_tag        = !{ variable_start ~ "super()" ~ variable_end }
@@ -192,6 +194,8 @@ macro_content = @{
     set_global_tag |
     macro_if |
     macro_forloop |
+    break_tag |
+    continue_tag |
     raw |
     macro_filter_section |
     text
@@ -208,6 +212,8 @@ block_content = @{
     block |
     block_if |
     block_forloop |
+    break_tag |
+    continue_tag |
     block_filter_section |
     raw |
     text
@@ -224,6 +230,8 @@ content = @{
     block |
     content_if |
     forloop |
+    break_tag |
+    continue_tag |
     filter_section |
     raw |
     text

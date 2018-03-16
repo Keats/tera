@@ -654,3 +654,15 @@ fn parse_if() {
         )
     );
 }
+
+#[test]
+fn parse_break() {
+    let ast = parse("{% break -%}").unwrap();
+    assert_eq!(ast[0], Node::Break(WS {left:false, right:true}));
+}
+
+#[test]
+fn parse_continue() {
+    let ast = parse("{% continue -%}").unwrap();
+    assert_eq!(ast[0], Node::Continue(WS {left:false, right:true}));
+}

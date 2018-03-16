@@ -56,7 +56,9 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
             Node::ImportMacro(ws, _, _)
             | Node::Extends(ws, _)
             | Node::Include(ws, _)
-            | Node::Set(ws, _) => {
+            | Node::Set(ws, _)
+            | Node::Break(ws)
+            | Node::Continue(ws) => {
                 trim_right_previous!(previous_was_text && ws.left, res);
                 previous_was_text = false;
                 trim_left_next = ws.right;

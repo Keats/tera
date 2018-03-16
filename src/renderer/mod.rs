@@ -411,7 +411,7 @@ impl<'a> Renderer<'a> {
         // Push this context to our stack of macro context so the renderer can pick variables
         // from it
         self.macro_context.push((macro_context.into(), vec![]));
-        let output = self.render_body(&macro_definition.body)?;
+        let output = self.render_body(&macro_definition.body)?.into_normal_result()?;
         // If the current namespace wasn't `self`, we remove it since it's not needed anymore
         // In the `self` case, we are still in the parent macro and its namespace is still
         // needed so we keep it
@@ -520,7 +520,7 @@ impl<'a> Renderer<'a> {
         res
     }
 
-    fn render_if(&mut self, node: &If) -> Result<String> {
+    fn render_if(&mut self, node: &If) -> Result<LoopControl> {
         for &(_, ref expr, ref body) in &node.conditions {
             if self.eval_as_bool(expr)? {
                 return self.render_body(body);
@@ -531,7 +531,7 @@ impl<'a> Renderer<'a> {
             return self.render_body(body);
         }
 
-        Ok(String::new())
+        Ok(LoopControl::Normal(String::new()))
     }
 
     fn render_for(&mut self, node: &Forloop) -> Result<String> {
@@ -585,12 +585,22 @@ impl<'a> Renderer<'a> {
         let mut output = String::new();
 
         for _ in 0..length {
-            output.push_str(&self.render_body(&node.body)?);
+            let res = self.render_body(&node.body)?;
+
             // Safe unwrap
             match self.macro_context.last_mut() {
                 Some(m) => m.1.last_mut().unwrap().increment(),
                 None => self.for_loops.last_mut().unwrap().increment(),
             };
+
+            match res {
+                LoopControl::Break(body_output) => {
+                    output.push_str(&body_output);
+                    break;
+                },
+                LoopControl::Continue(body_output) |
+                LoopControl::Normal(body_output) => output.push_str(&body_output),
+            }
         }
         // Clean up after ourselves
         match self.macro_context.last_mut() {
@@ -659,7 +669,7 @@ impl<'a> Renderer<'a> {
             let (ref tpl_name, Block { ref body, .. }) = block_def[0];
             self.blocks.push((block.name.to_string(), level));
             let has_macro = self.import_template_macros(tpl_name)?;
-            let res = self.render_body(body);
+            let res = self.render_body(body)?.into_normal_result();
             if has_macro {
                 self.macros.pop();
             }
@@ -672,7 +682,7 @@ impl<'a> Renderer<'a> {
         }
 
         // Nope, just render the body we got
-        self.render_body(&block.body)
+        self.render_body(&block.body)?.into_normal_result()
     }
 
     /// Only called while rendering a block.
@@ -692,7 +702,7 @@ impl<'a> Renderer<'a> {
                 let (ref tpl_name, Block { ref body, .. }) = block_def[0];
                 self.blocks.push((block_name.to_string(), next_level));
                 let has_macro = self.import_template_macros(tpl_name)?;
-                let res = self.render_body(body);
+                let res = self.render_body(body)?.into_normal_result();
                 if has_macro {
                     self.macros.pop();
                 }
@@ -710,44 +720,58 @@ impl<'a> Renderer<'a> {
         bail!("Tried to use super() in the top level block")
     }
 
-    fn render_node(&mut self, node: &Node) -> Result<String> {
+    fn render_node(&mut self, node: &Node) -> Result<LoopControl> {
         let output = match *node {
             Node::Text(ref s) | Node::Raw(_, ref s, _) => s.to_string(),
             Node::VariableBlock(ref expr) => self.eval_expression(expr)?.render(),
             Node::Set(_, ref set) => self.eval_set(set).and(Ok(String::new()))?,
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
-                let output = self.render_body(body)?;
-
-                self.eval_filter(Value::String(output), filter)?.render()
+                return self.render_body(body)?.try_map(|output| {
+                    Ok(self.eval_filter(Value::String(output), filter)?.render())
+                })
             }
             // Macros have been imported at the beginning
             Node::ImportMacro(_, _, _) => String::new(),
-            Node::If(ref if_node, _) => self.render_if(if_node)?,
+            Node::If(ref if_node, _) => return self.render_if(if_node),
             Node::Forloop(_, ref forloop, _) => self.render_for(forloop)?,
+            Node::Break(_) => return Ok(LoopControl::Break(String::default())),
+            Node::Continue(_) => return Ok(LoopControl::Continue(String::default())),
             Node::Block(_, ref block, _) => self.render_block(block, 0)?,
             Node::Super => self.do_super()?,
             Node::Include(_, ref tpl_name) => {
                 let has_macro = self.import_template_macros(tpl_name)?;
-                let res = self.render_body(&self.tera.get_template(tpl_name)?.ast);
+                let res = self
+                    .render_body(&self.tera.get_template(tpl_name)?.ast)?
+                    .into_normal_result()?;
                 if has_macro {
                     self.macros.pop();
                 }
-                return res;
+                res
             }
             _ => unreachable!("render_node -> unexpected node: {:?}", node),
         };
 
-        Ok(output)
+        Ok(LoopControl::Normal(output))
     }
 
-    fn render_body(&mut self, body: &[Node]) -> Result<String> {
+    fn render_body(&mut self, body: &[Node]) -> Result<LoopControl> {
         let mut output = String::new();
 
         for n in body {
-            output.push_str(&self.render_node(n)?);
+            match self.render_node(n)? {
+                LoopControl::Normal(node_output) => output.push_str(&node_output),
+                LoopControl::Break(node_output) => {
+                    output.push_str(&node_output);
+                    return Ok(LoopControl::Break(output))
+                },
+                LoopControl::Continue(node_output) => {
+                    output.push_str(&node_output);
+                    return Ok(LoopControl::Continue(output))
+                }
+            }
         }
 
-        Ok(output)
+        Ok(LoopControl::Normal(output))
     }
 
     // Helper fn that tries to find the current context: are we in a macro? in a parent template?
@@ -802,10 +826,42 @@ impl<'a> Renderer<'a> {
         let mut output = String::new();
         for node in ast {
             output.push_str(
-                &self.render_node(node).chain_err(|| self.get_error_location())?
+                &self.render_node(node)
+                    .and_then(|lc| lc.into_normal_result())
+                    .chain_err(|| self.get_error_location())?
             );
         }
 
         Ok(output)
+    }
+}
+
+
+#[derive(Debug, PartialEq)]
+enum LoopControl {
+    Normal(String),
+    Continue(String),
+    Break(String),
+}
+
+impl LoopControl {
+    fn into_normal_result(self) -> Result<String> {
+        match self {
+            LoopControl::Normal(inner) => Ok(inner),
+            LoopControl::Break(_) => bail!("`break` appeared outside a loop"),
+            LoopControl::Continue(_) => bail!("`continue` appeared outside a loop"),
+        }
+    }
+
+    fn try_map<F>(self, mut f: F) -> Result<LoopControl>
+        where F: FnMut(String) -> Result<String>
+    {
+        let res = match self {
+            LoopControl::Normal(inner) => LoopControl::Normal(f(inner)?),
+            LoopControl::Break(inner) => LoopControl::Break(f(inner)?),
+            LoopControl::Continue(inner) => LoopControl::Continue(f(inner)?),
+        };
+
+        Ok(res)
     }
 }

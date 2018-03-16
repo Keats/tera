@@ -271,4 +271,9 @@ pub enum Node {
 
     /// A if/elif/else block, WS for the if/elif/else is directly in the struct
     If(If, WS),
+
+    /// The `{% break %}` tag
+    Break(WS),
+    /// The `{% continue %}` tag
+    Continue(WS),
 }
