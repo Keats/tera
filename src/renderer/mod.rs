@@ -218,7 +218,7 @@ impl<'a> Renderer<'a> {
                 } else {
                     &mut f.extra_values
                 },
-                None => self.context.as_object_mut().unwrap()
+                None => self.context.as_object_mut().unwrap(),
             },
         };
 
@@ -401,7 +401,8 @@ impl<'a> Renderer<'a> {
                     Some(ref val) => self.safe_eval_expression(val)?,
                     None => bail!(
                         "Macro `{}` is missing the argument `{}`",
-                        macro_call.name, arg_name,
+                        macro_call.name,
+                        arg_name,
                     ),
                 }
             };
@@ -645,10 +646,12 @@ impl<'a> Renderer<'a> {
             // look for the template we're currently rendering
             0 => &self.template.blocks_definitions,
             // or look at its parents
-            _ => &self.tera
-                .get_template(&self.template.parents[level - 1])
-                .unwrap()
-                .blocks_definitions,
+            _ => {
+                &self.tera
+                    .get_template(&self.template.parents[level - 1])
+                    .unwrap()
+                    .blocks_definitions
+            },
         };
 
         // Can we find this one block in these definitions? If so render it

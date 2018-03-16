@@ -73,12 +73,17 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
                     Ok(val) => val.format(&format),
                     Err(_) => match s.parse::<NaiveDateTime>() {
                         Ok(val) => val.format(&format),
-                        Err(_) => bail!("Error parsing `{:?}` as rfc3339 date or naive datetime", s),
+                        Err(_) => {
+                            bail!("Error parsing `{:?}` as rfc3339 date or naive datetime", s)
+                        },
                     },
                 }
             } else {
                 match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
-                    Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format),
+                    Ok(val) => {
+                        DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc)
+                            .format(&format)
+                    },
                     Err(_) => bail!("Error parsing `{:?}` as YYYY-MM-DD date", s),
                 }
             }

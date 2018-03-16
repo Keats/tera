@@ -4,7 +4,6 @@ use context::Context;
 use errors::Result;
 use tera::Tera;
 
-
 #[derive(Serialize)]
 struct Test {
     a: String,

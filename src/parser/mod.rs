@@ -10,7 +10,6 @@ use errors::{Result as TeraResult, ResultExt};
 // Uncomment it when doing changes to the .pest file
 const _GRAMMAR: &str = include_str!("tera.pest");
 
-
 #[derive(Parser)]
 #[grammar = "parser/tera.pest"]
 pub struct TeraParser;
@@ -193,7 +192,6 @@ fn parse_basic_expr_with_filters(pair: Pair<Rule>) -> Expr {
     Expr { val: expr.unwrap(), negated: false, filters }
 }
 
-
 /// A basic expression with optional filters
 fn parse_comparison_val(pair: Pair<Rule>) -> Expr {
     let primary = |pair| parse_comparison_val(pair);
@@ -265,25 +263,19 @@ fn parse_logic_val(pair: Pair<Rule>) -> Expr {
 }
 
 fn parse_logic_expr(pair: Pair<Rule>) -> Expr {
-    let primary = |pair: Pair<Rule>| {
-        parse_logic_expr(pair)
-    };
+    let primary = |pair: Pair<Rule>| parse_logic_expr(pair);
 
     let infix = |lhs: Expr, op: Pair<Rule>, rhs: Expr| match op.as_rule() {
-        Rule::op_or => {
-            Expr::new(ExprVal::Logic(LogicExpr {
-                lhs: Box::new(lhs),
-                operator: LogicOperator::Or,
-                rhs: Box::new(rhs),
-            }))
-        }
-        Rule::op_and => {
-            Expr::new(ExprVal::Logic(LogicExpr {
-                lhs: Box::new(lhs),
-                operator: LogicOperator::And,
-                rhs: Box::new(rhs),
-            }))
-        }
+        Rule::op_or => Expr::new(ExprVal::Logic(LogicExpr {
+            lhs: Box::new(lhs),
+            operator: LogicOperator::Or,
+            rhs: Box::new(rhs),
+        })),
+        Rule::op_and => Expr::new(ExprVal::Logic(LogicExpr {
+            lhs: Box::new(lhs),
+            operator: LogicOperator::And,
+            rhs: Box::new(rhs),
+        })),
         _ => unreachable!(
             "{:?} not supposed to get there (infix of logic_expression)!",
             op.as_rule()

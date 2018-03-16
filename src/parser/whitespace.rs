@@ -100,10 +100,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                         res.push(Node::MacroDefinition(start_ws, macro_def, end_ws));
                     }
                     Node::FilterSection(_, mut filter_section, _) => {
-                        filter_section.body = remove_whitespace(
-                            filter_section.body,
-                            Some(body_ws),
-                        );
+                        filter_section.body = remove_whitespace(filter_section.body, Some(body_ws));
                         res.push(Node::FilterSection(start_ws, filter_section, end_ws));
                     }
                     Node::Block(_, mut block, _) => {

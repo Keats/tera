@@ -4,7 +4,6 @@ use errors::Result;
 use parser::{parse, remove_whitespace};
 use parser::ast::{Block, MacroDefinition, Node};
 
-
 /// This is the parsed equivalent of a template file.
 /// It also does some pre-processing to ensure it does as less as possible at runtime
 /// Not mean to be used directly.
@@ -43,7 +42,6 @@ pub struct Template {
     /// name is needed in order to load its macros if necessary.
     pub blocks_definitions: HashMap<String, Vec<(String, Block)>>,
 }
-
 
 impl Template {
     /// Parse the template string given
@@ -110,7 +108,6 @@ impl Template {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::Template;
@@ -154,11 +151,7 @@ mod tests {
 
     #[test]
     fn test_can_find_macros() {
-        let tpl = Template::new(
-            "hello",
-            None,
-            "{% macro hey() %}{% endmacro hey %}",
-        ).unwrap();
+        let tpl = Template::new("hello", None, "{% macro hey() %}{% endmacro hey %}").unwrap();
         assert_eq!(tpl.macros.contains_key("hey"), true);
     }
 

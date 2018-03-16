@@ -152,11 +152,9 @@ impl Tera {
     // inheritance chains.
     fn add_file<P: AsRef<Path>>(&mut self, name: Option<&str>, path: P) -> Result<()> {
         let path = path.as_ref();
-        // TODO: unwrap_or
-        let tpl_name = if let Some(n) = name { n } else { path.to_str().unwrap() };
+        let tpl_name = name.unwrap_or_else(|| path.to_str().unwrap());
 
-        let mut f = File::open(path)
-            .chain_err(|| format!("Couldn't open template '{:?}'", path))?;
+        let mut f = File::open(path).chain_err(|| format!("Couldn't open template '{:?}'", path))?;
 
         let mut input = String::new();
         f.read_to_string(&mut input)
@@ -189,7 +187,8 @@ impl Tera {
             if !parents.is_empty() && start.name == template.name {
                 bail!(
                     "Circular extend detected for template '{}'. Inheritance chain: `{:?}`",
-                    start.name, parents,
+                    start.name,
+                    parents,
                 );
             }
 
@@ -225,13 +224,12 @@ impl Tera {
 
                 // and then see if our parents have it
                 for parent in &parents {
-                    let t = self.get_template(parent)
-                        .chain_err(|| {
-                            format!(
-                                "Couldn't find template {} while building inheritance chains",
-                                parent,
-                            )
-                        })?;
+                    let t = self.get_template(parent).chain_err(|| {
+                        format!(
+                            "Couldn't find template {} while building inheritance chains",
+                            parent,
+                        )
+                    })?;
 
                     if let Some(b) = t.blocks.get(block_name) {
                         definitions.push((t.name.clone(), b.clone()));
@@ -400,7 +398,10 @@ impl Tera {
     ///     (path2, Some("hey")), // this template will have `hey` as name
     /// ]);
     /// ```
-    pub fn add_template_files<P: AsRef<Path>>(&mut self, files: Vec<(P, Option<&str>)>) -> Result<()> {
+    pub fn add_template_files<P: AsRef<Path>>(
+        &mut self,
+        files: Vec<(P, Option<&str>)>
+    ) -> Result<()> {
         for (path, name) in files {
             self.add_file(name, path)?;
         }
