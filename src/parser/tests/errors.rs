@@ -13,7 +13,6 @@ fn assert_err_msg(input: &str, needles: &[&str]) {
         println!("{}", needle);
         assert!(err_msg.contains(needle));
     }
-
 }
 
 #[test]
@@ -29,13 +28,7 @@ fn invalid_number() {
 
 #[test]
 fn invalid_op() {
-    assert_err_msg(
-        "{{ 1.2 >+ 3 }}",
-        &[
-            "1:9",
-            "expected a comparison value"
-        ]
-    );
+    assert_err_msg("{{ 1.2 >+ 3 }}", &["1:9", "expected a comparison value"]);
 }
 
 #[test]
@@ -73,13 +66,7 @@ fn unterminated_variable_block() {
 
 #[test]
 fn unterminated_string() {
-    assert_err_msg(
-        r#"{{ "hey }}"#,
-        &[
-            "1:4",
-            "expected any expressions"
-        ]
-    );
+    assert_err_msg(r#"{{ "hey }}"#, &["1:4", "expected any expressions"]);
 }
 
 #[test]
@@ -110,7 +97,7 @@ fn invalid_filter_section_missing_name() {
         r#"{% filter %}sd{% endfilter %}"#,
         &[
             "1:11",
-            "expected an identifier (must start with a-z) or a function call"
+            "expected an identifier (must start with a-z) or a function call",
         ],
     );
 }
@@ -126,8 +113,8 @@ fn invalid_macro_content() {
     "#,
         &[
             "3:5",
-            "unexpected tag; expected `{% endmacro %}` or the macro content"
-        ]
+            "unexpected tag; expected `{% endmacro %}` or the macro content",
+        ],
     );
 }
 
@@ -140,8 +127,8 @@ fn invalid_macro_default_arg_value() {
     "#,
         &[
             "2:22",
-            "expected an integer, a float, a string, or `true` or `false`"
-        ]
+            "expected an integer, a float, a string, or `true` or `false`",
+        ],
     );
 }
 
@@ -156,14 +143,14 @@ fn invalid_elif() {
     "#,
         &[
             "4:1",
-            "unexpected tag; expected a `endif` tag` or some content"
-        ]
+            "unexpected tag; expected a `endif` tag` or some content",
+        ],
     );
 }
 
 #[test]
 fn invalid_else() {
-        assert_err_msg(
+    assert_err_msg(
         r#"
 {% if true %}
 {% else %}
@@ -172,22 +159,19 @@ fn invalid_else() {
     "#,
         &[
             "4:1",
-            "unexpected tag; expected a `endif` tag` or some content"
-        ]
+            "unexpected tag; expected a `endif` tag` or some content",
+        ],
     );
 }
 
 #[test]
 fn invalid_extends_position() {
-        assert_err_msg(
+    assert_err_msg(
         r#"
 hello
 {% extends "hey.html" %}
     "#,
-        &[
-            "3:1",
-            "unexpected tag; expected some content"
-        ]
+        &["3:1", "unexpected tag; expected some content"],
     );
 }
 
@@ -204,34 +188,19 @@ fn invalid_operator() {
 
 #[test]
 fn missing_expression_with_not() {
-        assert_err_msg(
-        "{% if not %}",
-        &[
-            "1:11",
-            "expected an expression"
-        ]
-    );
+    assert_err_msg("{% if not %}", &["1:11", "expected an expression"]);
 }
 
 #[test]
 fn missing_expression_in_if() {
-        assert_err_msg(
-        "{% if %}",
-        &[
-            "1:7",
-            "expected any expression"
-        ]
-    );
+    assert_err_msg("{% if %}", &["1:7", "expected any expression"]);
 }
 
 #[test]
 fn missing_container_name_in_forloop() {
-        assert_err_msg(
+    assert_err_msg(
         "{% for i in %}",
-        &[
-            "1:13",
-            "expected an expression with an optional filter"
-        ]
+        &["1:13", "expected an expression with an optional filter"],
     );
 }
 
@@ -239,22 +208,13 @@ fn missing_container_name_in_forloop() {
 fn missing_variable_name_in_set() {
     assert_err_msg(
         "{% set = 1 %}",
-        &[
-            "1:8",
-            "expected an identifier (must start with a-z)"
-        ]
+        &["1:8", "expected an identifier (must start with a-z)"],
     );
 }
 
 #[test]
 fn missing_value_in_set() {
-    assert_err_msg(
-        "{% set a =  %}",
-        &[
-            "1:13",
-            "expected any expressions"
-        ],
-    );
+    assert_err_msg("{% set a =  %}", &["1:13", "expected any expressions"]);
 }
 
 #[test]
@@ -263,7 +223,7 @@ fn unterminated_fn_call() {
         "{{ a | slice( }}",
         &[
             "1:15",
-            "expected a keyword argument: `key=value` where `value` can be any expression"
+            "expected a keyword argument: `key=value` where `value` can be any expression",
         ],
     );
 }
@@ -272,10 +232,7 @@ fn unterminated_fn_call() {
 fn invalid_fn_call_missing_value() {
     assert_err_msg(
         "{{ a | slice(start=) }}",
-        &[
-            "1:20",
-            "expected any expressions"
-        ],
+        &["1:20", "expected any expressions"],
     );
 }
 
@@ -285,7 +242,7 @@ fn unterminated_macro_call() {
         "{{ my::macro( }}",
         &[
             "1:15",
-            "expected a keyword argument: `key=value` where `value` can be any expression"
+            "expected a keyword argument: `key=value` where `value` can be any expression",
         ],
     );
 }
@@ -303,67 +260,34 @@ fn invalid_macro_call() {
 
 #[test]
 fn unterminated_include() {
-    assert_err_msg(
-        "{% include %}",
-        &[
-            "1:12",
-            "expected a string"
-        ],
-    );
+    assert_err_msg("{% include %}", &["1:12", "expected a string"]);
 }
 
 #[test]
 fn invalid_include_no_string() {
-    assert_err_msg(
-        "{% include 1 %}",
-        &[
-            "1:12",
-            "expected a string"
-        ],
-    );
+    assert_err_msg("{% include 1 %}", &["1:12", "expected a string"]);
 }
 
 #[test]
 fn unterminated_extends() {
-    assert_err_msg(
-        "{% extends %}",
-        &[
-            "1:12",
-            "expected a string"
-        ],
-    );
+    assert_err_msg("{% extends %}", &["1:12", "expected a string"]);
 }
 
 #[test]
 fn invalid_extends_no_string() {
-    assert_err_msg(
-        "{% extends 1 %}",
-        &[
-            "1:12",
-            "expected a string"
-        ],
-    );
+    assert_err_msg("{% extends 1 %}", &["1:12", "expected a string"]);
 }
 
 #[test]
 fn invalid_import_macros_missing_filename() {
-    assert_err_msg(
-        "{% import as macros %}",
-        &[
-            "1:11",
-            "expected a string"
-        ],
-    );
+    assert_err_msg("{% import as macros %}", &["1:11", "expected a string"]);
 }
 
 #[test]
 fn invalid_import_macros_missing_namespace() {
     assert_err_msg(
         r#"{% import "hello" as %}"#,
-        &[
-            "1:22",
-            "expected an identifier (must start with a-z)"
-        ],
+        &["1:22", "expected an identifier (must start with a-z)"],
     );
 }
 
@@ -371,10 +295,7 @@ fn invalid_import_macros_missing_namespace() {
 fn invalid_block_missing_name() {
     assert_err_msg(
         r#"{% block %}"#,
-        &[
-            "1:10",
-            "expected an identifier (must start with a-z)"
-        ],
+        &["1:10", "expected an identifier (must start with a-z)"],
     );
 }
 
@@ -384,7 +305,7 @@ fn unterminated_test() {
         r#"{% if a is odd( %}"#,
         &[
             "1:17",
-            "expected a list of test arguments (any expressions)"
+            "expected a list of test arguments (any expressions)",
         ],
     );
 }
@@ -402,11 +323,5 @@ fn invalid_test_argument() {
 
 #[test]
 fn unterminated_raw_tag() {
-    assert_err_msg(
-        r#"{% raw %}sd"#,
-        &[
-            "1:12",
-            "expected `{% endraw %}`"
-        ],
-    );
+    assert_err_msg(r#"{% raw %}sd"#, &["1:12", "expected `{% endraw %}`"]);
 }

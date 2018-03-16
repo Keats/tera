@@ -1,6 +1,5 @@
 use parser::ast::*;
 
-
 macro_rules! trim_right_previous {
     ($vec: expr) => {
         if let Some(last) = $vec.pop() {
@@ -21,7 +20,6 @@ macro_rules! trim_right_previous {
     };
 }
 
-
 /// Removes whitespace from the AST nodes according to the `{%-` and `-%}` defined in the template.
 /// Empty string nodes will be discarded.
 ///
@@ -35,7 +33,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
     // Whether the node we just added to res is a Text node
     let mut previous_was_text = false;
     // Whether the previous block ended wth `-%}` and we need to trim left the next text node
-    let mut trim_left_next = body_ws.map_or(false,|ws| ws.left);
+    let mut trim_left_next = body_ws.map_or(false, |ws| ws.left);
 
     for n in nodes {
         match n {
@@ -102,7 +100,10 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                         res.push(Node::MacroDefinition(start_ws, macro_def, end_ws));
                     }
                     Node::FilterSection(_, mut filter_section, _) => {
-                        filter_section.body = remove_whitespace(filter_section.body, Some(body_ws));
+                        filter_section.body = remove_whitespace(
+                            filter_section.body,
+                            Some(body_ws)
+                        );
                         res.push(Node::FilterSection(start_ws, filter_section, end_ws));
                     }
                     Node::Block(_, mut block, _) => {
@@ -118,7 +119,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 trim_left_next = end_ws.right;
                 // Whether we are past the initial if
                 let mut if_done = false;
-                let mut new_conditions: Vec<(WS, Expr, Vec<Node>)> = Vec::with_capacity(conditions.len());
+                let mut new_conditions: Vec<(_, _, Vec<_>)> = Vec::with_capacity(conditions.len());
                 // We need to keep track of the last elif or else to know whether we need
                 // to right trim the last text as we can't peek
                 let mut last_trim_right = false;
@@ -137,7 +138,10 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
 
                     // we can't peek at the next one to know whether we need to trim right since
                     // are consuming conditions. We'll find out at the next iteration.
-                    condition.2 = remove_whitespace(condition.2, Some(WS { left: condition.0.right, right: false }));
+                    condition.2 = remove_whitespace(
+                        condition.2,
+                        Some(WS { left: condition.0.right, right: false }),
+                    );
                     new_conditions.push(condition);
                 }
 
@@ -152,12 +156,21 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                             trim_right_previous!(body);
                         }
                     }
-                    let mut else_body = remove_whitespace(body, Some(WS { left: else_ws.right, right: false }));
+                    let mut else_body = remove_whitespace(
+                        body,
+                        Some(WS { left: else_ws.right, right: false })
+                    );
                     // if we have an `else`, the `endif` will affect the else node so we need to check
                     if end_ws.left {
                         trim_right_previous!(else_body);
                     }
-                    res.push(Node::If(If { conditions: new_conditions, otherwise: Some((else_ws, else_body)) }, end_ws));
+                    res.push(Node::If(
+                        If {
+                            conditions: new_conditions,
+                            otherwise: Some((else_ws, else_body)),
+                        },
+                        end_ws,
+                    ));
                     continue;
                 }
 

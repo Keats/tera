@@ -1,6 +1,6 @@
 use pest::Parser;
 
-use parser::{TeraParser, Rule};
+use parser::{Rule, TeraParser};
 
 macro_rules! assert_lex_rule {
     ($rule: expr, $input: expr) => {
@@ -35,9 +35,12 @@ fn lex_float() {
 #[test]
 fn lex_string() {
     let inputs = vec![
-        "\"Blabla\"", "\"123\"",
-        "\'123\'", "\'This is still a string\'",
-        "`this is backquted`", "`and this too`"
+        "\"Blabla\"",
+        "\"123\"",
+        "\'123\'",
+        "\'This is still a string\'",
+        "`this is backquted`",
+        "`and this too`",
     ];
     for i in inputs {
         assert_lex_rule!(Rule::string, i);
@@ -57,8 +60,17 @@ fn lex_ident() {
 #[test]
 fn lex_dotted_ident() {
     let inputs = vec![
-        "hello", "hello_", "hello_1", "HELLO", "_1", "hey.ho", "h", "ho",
-        "hey.ho.hu", "hey.0", "h.u",
+        "hello",
+        "hello_",
+        "hello_1",
+        "HELLO",
+        "_1",
+        "hey.ho",
+        "h",
+        "ho",
+        "hey.ho.hu",
+        "hey.0",
+        "h.u",
     ];
     for i in inputs {
         assert_lex_rule!(Rule::dotted_ident, i);
@@ -73,14 +85,19 @@ fn lex_dotted_ident() {
 #[test]
 fn lex_dotted_square_bracket_ident() {
     let inputs = vec![
-        "hey.ho.hu", "hey.0", "h.u.x.0",
-        "hey['ho'][\"hu\"]", "hey[0]", "h['u'].x[0]", "hey[a[0]]",
+        "hey.ho.hu",
+        "hey.0",
+        "h.u.x.0",
+        "hey['ho'][\"hu\"]",
+        "hey[0]",
+        "h['u'].x[0]",
+        "hey[a[0]]",
     ];
     for i in inputs {
         assert_lex_rule!(Rule::dotted_square_bracket_ident, i);
     }
 
-    let invalid_inputs = vec![".", "9.w" ];
+    let invalid_inputs = vec![".", "9.w"];
     for i in invalid_inputs {
         assert!(TeraParser::parse(Rule::dotted_square_bracket_ident, i).is_err());
     }
@@ -233,7 +250,6 @@ fn lex_logic_expr() {
     }
 }
 
-
 #[test]
 fn lex_kwarg() {
     let inputs = vec![
@@ -309,11 +325,7 @@ fn lex_macro_definition() {
 
 #[test]
 fn lex_test() {
-    let inputs = vec![
-        "a is defined",
-        "a is defined()",
-        "a is divisibleby(2)",
-    ];
+    let inputs = vec!["a is defined", "a is defined()", "a is divisibleby(2)"];
     for i in inputs {
         // The () are not counted as tokens for some reasons so can't use the macro
         assert!(TeraParser::parse(Rule::test, i).is_ok());
@@ -322,12 +334,7 @@ fn lex_test() {
 
 #[test]
 fn lex_include_tag() {
-    assert!(
-        TeraParser::parse(
-            Rule::include_tag,
-            "{% include \"index.html\" %}"
-        ).is_ok()
-    );
+    assert!(TeraParser::parse(Rule::include_tag, "{% include \"index.html\" %}").is_ok());
 }
 
 #[test]
@@ -342,31 +349,17 @@ fn lex_import_macro_tag() {
 
 #[test]
 fn lex_extends_tag() {
-    assert!(
-        TeraParser::parse(
-            Rule::extends_tag,
-            "{% extends \"index.html\" %}"
-        ).is_ok()
-    );
+    assert!(TeraParser::parse(Rule::extends_tag, "{% extends \"index.html\" %}").is_ok());
 }
 
 #[test]
 fn lex_comment_tag() {
-    assert!(
-        TeraParser::parse(
-            Rule::comment_tag,
-            "{# #comment# {{}} {%%} #}"
-        ).is_ok()
-    );
+    assert!(TeraParser::parse(Rule::comment_tag, "{# #comment# {{}} {%%} #}").is_ok());
 }
-
 
 #[test]
 fn lex_block_tag() {
-    let inputs = vec![
-        "{% block tag %}",
-        "{% block my_block %}",
-    ];
+    let inputs = vec!["{% block tag %}", "{% block my_block %}"];
     for i in inputs {
         assert_lex_rule!(Rule::block_tag, i);
     }
@@ -414,12 +407,7 @@ fn lex_elif_tag() {
 
 #[test]
 fn lex_else_tag() {
-    assert!(
-        TeraParser::parse(
-            Rule::else_tag,
-            "{% else %}"
-        ).is_ok()
-    );
+    assert!(TeraParser::parse(Rule::else_tag, "{% else %}").is_ok());
 }
 
 #[test]

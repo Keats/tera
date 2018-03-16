@@ -7,15 +7,18 @@ use tera::Tera;
 
 #[derive(Serialize)]
 struct Test {
-  a: String,
-  b: String,
-  c: Vec<String>,
+    a: String,
+    b: String,
+    c: Vec<String>,
 }
 
 #[test]
 fn test_var_access_by_square_brackets() {
     let mut context = Context::new();
-    context.add("var", &Test{a: "hi".into(), b: "i_am_actually_b".into(), c: vec!["fred".into()]});
+    context.add(
+        "var",
+        &Test{a: "hi".into(), b: "i_am_actually_b".into(), c: vec!["fred".into()]}
+    );
     context.add("zero", &0);
     context.add("a", "b");
 
@@ -36,9 +39,10 @@ fn test_var_access_by_square_brackets() {
         ("{{var[a]}}", "i_am_actually_b"),
         ("{{deep_map['inner_map'][bool_vec[zero]]}}", "yes"),
     ];
+
     for (input, expected) in inputs {
-          println!("{:?} -> {:?}", input, expected);
-          assert_eq!(Tera::one_off(input, &context, true).unwrap(), expected);
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(Tera::one_off(input, &context, true).unwrap(), expected);
     }
 }
 
@@ -49,4 +53,3 @@ fn test_var_access_by_square_brackets_errors() {
     let t = Tera::one_off("{{var[csd]}}", &context, true);
     assert!(t.is_err(), "Access of csd should be impossible");
 }
-

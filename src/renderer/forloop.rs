@@ -1,7 +1,6 @@
 use serde_json::map::Map;
 use serde_json::to_string_pretty;
-use serde_json::value::{Value, to_value, Number};
-
+use serde_json::value::{to_value, Number, Value};
 
 #[derive(PartialEq, Debug)]
 pub enum ForLoopKind {
