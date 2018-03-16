@@ -133,13 +133,12 @@ fn parse_test(pair: Pair<Rule>) -> Test {
                 let (_name, _args) = parse_test_call(p);
                 name = Some(_name);
                 args = _args;
-            },
+            }
             _ => unreachable!("{:?} not supposed to get there (parse_ident)!", p.as_rule()),
         };
     }
 
     Test { ident: ident.unwrap(), name: name.unwrap(), args }
-
 }
 
 fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
@@ -312,11 +311,11 @@ fn parse_macro_call(pair: Pair<Rule>) -> MacroCall {
                 } else {
                     name = Some(p.into_span().as_str().to_string());
                 }
-            },
+            }
             Rule::kwarg => {
                 let (key, val) = parse_kwarg(p);
                 args.insert(key, val);
-            },
+            }
             _ => unreachable!("Got {:?} in parse_macro_call", p.as_rule()),
         }
     }
@@ -381,17 +380,17 @@ fn parse_set_tag(pair: Pair<Rule>, global: bool) -> Node {
         match p.as_rule() {
             Rule::tag_start => {
                 ws.left = p.into_span().as_str() == "{%-";
-            },
+            }
             Rule::tag_end => {
                 ws.right = p.into_span().as_str() == "-%}";
-            },
+            }
             Rule::ident => key = Some(p.as_str().to_string()),
             Rule::logic_expr => expr = Some(parse_logic_expr(p)),
             _ => unreachable!("unexpected {:?} rule in parse_set_tag", p.as_rule()),
         }
     }
 
-    Node::Set(ws, Set {key: key.unwrap(), value: expr.unwrap(), global})
+    Node::Set(ws, Set { key: key.unwrap(), value: expr.unwrap(), global })
 }
 
 fn parse_raw_tag(pair: Pair<Rule>) -> Node {
@@ -439,15 +438,15 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
                     Rule::ident => {
                         filter = Some(FunctionCall {
                             name: p2.as_str().to_string(),
-                            args: HashMap::new() ,
+                            args: HashMap::new(),
                         });
-                    },
+                    }
                     _ => unreachable!("Got {:?} while parsing filter_tag", p2),
                 }
             },
             Rule::content | Rule::macro_content | Rule::block_content => {
                 body.extend(parse_content(p));
-            },
+            }
             Rule::endfilter_tag => for p2 in p.into_inner() {
                 match p2.as_rule() {
                     Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
@@ -459,7 +458,7 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
         };
     }
 
-    Node::FilterSection(start_ws, FilterSection {filter: filter.unwrap(), body}, end_ws)
+    Node::FilterSection(start_ws, FilterSection { filter: filter.unwrap(), body }, end_ws)
 }
 
 fn parse_block(pair: Pair<Rule>) -> Node {
@@ -491,7 +490,7 @@ fn parse_block(pair: Pair<Rule>) -> Node {
         };
     }
 
-    Node::Block(start_ws, Block {name: name.unwrap(), body} ,end_ws)
+    Node::Block(start_ws, Block { name: name.unwrap(), body }, end_ws)
 }
 
 fn parse_macro_definition(pair: Pair<Rule>) -> Node {
@@ -519,7 +518,7 @@ fn parse_macro_definition(pair: Pair<Rule>) -> Node {
                             };
                         }
                         args.insert(arg_name.unwrap(), default_val);
-                    },
+                    }
                     _ => continue,
                 };
             },
@@ -536,7 +535,7 @@ fn parse_macro_definition(pair: Pair<Rule>) -> Node {
         }
     }
 
-    Node::MacroDefinition(start_ws, MacroDefinition {name: name.unwrap(), args, body}, end_ws)
+    Node::MacroDefinition(start_ws, MacroDefinition { name: name.unwrap(), args, body }, end_ws)
 }
 
 fn parse_forloop(pair: Pair<Rule>) -> Node {
@@ -559,7 +558,7 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
                         Rule::ident => idents.push(p2.as_str().to_string()),
                         Rule::basic_expr_filter => {
                             container = Some(parse_basic_expr_with_filters(p2));
-                        },
+                        }
                         _ => unreachable!(),
                     };
                 }
@@ -570,10 +569,10 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
                     key = Some(idents[0].clone());
                     value = Some(idents[1].clone());
                 }
-            },
+            }
             Rule::content | Rule::macro_content | Rule::block_content => {
                 body.extend(parse_content(p));
-            },
+            }
             Rule::endfor_tag => for p2 in p.into_inner() {
                 match p2.as_rule() {
                     Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
@@ -629,10 +628,10 @@ fn parse_if(pair: Pair<Rule>) -> Node {
                         _ => unreachable!(),
                     };
                 }
-            },
+            }
             Rule::content | Rule::macro_content | Rule::block_content => {
                 current_body.extend(parse_content(p))
-            },
+            }
             Rule::else_tag => {
                 // had an elif before the else
                 if expr.is_some() {
@@ -649,7 +648,7 @@ fn parse_if(pair: Pair<Rule>) -> Node {
                         _ => unreachable!(),
                     };
                 }
-            },
+            }
             Rule::endif_tag => {
                 if in_else {
                     otherwise = Some((current_ws, current_body));
@@ -666,12 +665,12 @@ fn parse_if(pair: Pair<Rule>) -> Node {
                     };
                 }
                 break;
-            },
+            }
             _ => unreachable!("unreachable rule in parse_if: {:?}", p.as_rule()),
         }
     }
 
-    Node::If(If {conditions, otherwise}, end_ws)
+    Node::If(If { conditions, otherwise }, end_ws)
 }
 
 fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
@@ -682,7 +681,7 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             Rule::include_tag => {
                 let (ws, file) = parse_extends_include(p);
                 nodes.push(Node::Include(ws, file));
-            },
+            }
             // Ignore comments
             Rule::comment_tag => (),
             Rule::super_tag => nodes.push(Node::Super),
@@ -694,11 +693,11 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             Rule::macro_definition => nodes.push(parse_macro_definition(p)),
             Rule::forloop | Rule::macro_forloop | Rule::block_forloop => {
                 nodes.push(parse_forloop(p))
-            },
+            }
             Rule::content_if | Rule::macro_if | Rule::block_if => nodes.push(parse_if(p)),
             Rule::filter_section | Rule::macro_filter_section | Rule::block_filter_section => {
                 nodes.push(parse_filter_section(p))
-            },
+            }
             Rule::text => nodes.push(Node::Text(p.into_span().as_str().to_string())),
             Rule::block => nodes.push(parse_block(p)),
             _ => unreachable!("unreachable content rule: {:?}", p.as_rule()),
@@ -721,7 +720,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     | Rule::single_quoted_string
                     | Rule::backquoted_quoted_string => {
                         "a string".to_string()
-                    },
+                    }
                     Rule::all_chars => "a character".to_string(),
                     Rule::basic_val => "a value".to_string(),
                     Rule::basic_op => "a mathematical operator".to_string(),
@@ -762,10 +761,10 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::macro_call => "a macro function call".to_string(),
                     Rule::macro_def_arg => {
                         "an argument name with an optional default literal value: `id`, `key=1`".to_string()
-                    },
+                    }
                     Rule::macro_def_args => {
                         "a list of argument names with an optional default literal value: `id`, `key=1`".to_string()
-                    },
+                    }
                     Rule::endmacro_tag => "`{% endmacro %}`".to_string(),
                     Rule::macro_content => "the macro content".to_string(),
                     Rule::set_tag => "a `set` tag`".to_string(),
@@ -791,15 +790,15 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     | Rule::block_filter_section
                     | Rule::macro_filter_section => {
                         "a filter section (`{% filter something %}...{% endfilter %}`)".to_string()
-                    },
+                    }
                     Rule::for_tag | Rule::forloop | Rule::block_forloop | Rule::macro_forloop => {
                         "a forloop (`{% for i in something %}...{% endfor %}".to_string()
-                    },
+                    }
                     Rule::endfilter_tag => "an endfilter tag (`{% endfilter %}`)".to_string(),
                     Rule::endfor_tag => "an endfor tag (`{% endfor %}`)".to_string(),
                     Rule::if_tag | Rule::content_if | Rule::block_if | Rule::macro_if => {
                         "a `if` tag".to_string()
-                    },
+                    }
                     Rule::elif_tag => "an `elif` tag".to_string(),
                     Rule::else_tag => "an `else` tag".to_string(),
                     Rule::endif_tag => "an endif tag (`{% endif %}`)".to_string(),

@@ -27,7 +27,7 @@ fn parse_include_tag() {
     assert_eq!(
         ast[0],
         Node::Include(
-            WS {left: false, right: true},
+            WS { left: false, right: true },
             "index.html".to_string(),
         ),
     );
@@ -39,7 +39,7 @@ fn parse_extends() {
     assert_eq!(
         ast[0],
         Node::Extends(
-            WS {left: false, right: true},
+            WS { left: false, right: true },
             "index.html".to_string(),
         ),
     );
@@ -51,7 +51,7 @@ fn parse_comments_before_extends() {
     assert_eq!(
         ast[0],
         Node::Extends(
-            WS {left: false, right: true},
+            WS { left: false, right: true },
             "index.html".to_string(),
         ),
     );
@@ -63,7 +63,7 @@ fn parse_import_macro() {
     assert_eq!(
         ast[0],
         Node::ImportMacro(
-            WS {left: false, right: true},
+            WS { left: false, right: true },
             "macros.html".to_string(),
             "macros".to_string(),
         ),
@@ -93,7 +93,7 @@ fn parse_variable_tag_ident_with_simple_filters() {
                 vec![
                     FunctionCall { name: "first".to_string(), args: HashMap::new() },
                     FunctionCall { name: "join".to_string(), args: join_args },
-                ]
+                ],
             )
         )
     );
@@ -479,7 +479,7 @@ fn parse_raw_tag() {
 
     assert_eq!(
         ast[0],
-        Node::Raw(start_ws, "{{hey}}".to_string(),end_ws)
+        Node::Raw(start_ws, "{{hey}}".to_string(), end_ws)
     );
 }
 
@@ -496,7 +496,7 @@ fn parse_filter_section_without_args() {
         Node::FilterSection(
             start_ws,
             FilterSection {
-                filter: FunctionCall {name: "upper".to_string(), args: HashMap::new()},
+                filter: FunctionCall { name: "upper".to_string(), args: HashMap::new() },
                 body: vec![Node::Text("A".to_string())],
             },
             end_ws,
@@ -520,7 +520,7 @@ fn parse_filter_section_with_args() {
         Node::FilterSection(
             start_ws,
             FilterSection {
-                filter: FunctionCall {name: "upper".to_string(), args},
+                filter: FunctionCall { name: "upper".to_string(), args },
                 body: vec![Node::Text("A".to_string())],
             },
             end_ws,
@@ -541,7 +541,7 @@ fn parse_block() {
             start_ws,
             Block {
                 name: "hello".to_string(),
-                body: vec![Node::Super, Node::Text(" hey".to_string())]
+                body: vec![Node::Super, Node::Text(" hey".to_string())],
             },
             end_ws,
         )
@@ -588,7 +588,7 @@ fn parse_value_forloop() {
                 value: "item".to_string(),
                 container: Expr::with_filters(
                     ExprVal::Ident("items".to_string()),
-                    vec![FunctionCall {name: "reverse".to_string(), args: HashMap::new()}],
+                    vec![FunctionCall { name: "reverse".to_string(), args: HashMap::new() }],
                 ),
                 body: vec![Node::Text("A".to_string())],
             },
@@ -661,7 +661,7 @@ fn parse_if() {
                         vec![Node::Text("B".to_string())],
                     ),
                 ],
-                otherwise: Some((else_ws, vec![Node::Text(" C".to_string())]))
+                otherwise: Some((else_ws, vec![Node::Text(" C".to_string())])),
             },
             end_ws,
         )

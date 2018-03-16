@@ -342,7 +342,7 @@ fn lex_import_macro_tag() {
     assert!(
         TeraParser::parse(
             Rule::import_macro_tag,
-            "{% import \"macros.html\" as macros %}"
+            "{% import \"macros.html\" as macros %}",
         ).is_ok()
     );
 }
@@ -504,7 +504,7 @@ fn lex_template() {
             Hello {% if i18n %}世界{% else %}world{% endif %}
             {% for country in countries %}
                 {{ loop.index }}.{{ country }}
-            {% endfor %}"
+            {% endfor %}",
         ).is_ok()
     );
 }

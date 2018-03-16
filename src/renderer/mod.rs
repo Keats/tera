@@ -93,12 +93,12 @@ impl<'a> Renderer<'a> {
                 match find_variable(context, sub_var.as_ref(), tpl_name) {
                     Err(e) => {
                         bail!(format!("Variable {} can not be evaluated because: {}", key, e));
-                    },
+                    }
                     Ok(post_var) => {
                         let post_var_as_str = match post_var {
                             Value::String(ref s) => s.to_string(),
                             Value::Number(ref n) => n.to_string(),
-                            _  => bail!(
+                            _ => bail!(
                                 "Only variables evaluating to String or Number can be used as \
                                 index (`{}` of `{}`)",
                                 sub_var,
@@ -166,16 +166,16 @@ impl<'a> Renderer<'a> {
                 match tail {
                     "index" => {
                         return Ok(to_value(&(for_loop.current + 1))?);
-                    },
+                    }
                     "index0" => {
                         return Ok(to_value(&for_loop.current)?);
-                    },
+                    }
                     "first" => {
                         return Ok(to_value(&(for_loop.current == 0))?);
-                    },
+                    }
                     "last" => {
                         return Ok(to_value(&(for_loop.current == for_loop.len() - 1))?);
-                    },
+                    }
                     _ => bail!("Unknown loop built-in variable: {:?}", key),
                 }
             }
@@ -261,7 +261,7 @@ impl<'a> Renderer<'a> {
                     MathOperator::Sub => l - r,
                     MathOperator::Modulo => l % r,
                 }
-            },
+            }
             ExprVal::String(ref val) => bail!("Tried to do math with a string: `{}`", val),
             ExprVal::Bool(val) => bail!("Tried to do math with a boolean: `{}`", val),
             _ => unreachable!("unimplemented"),
@@ -273,7 +273,7 @@ impl<'a> Renderer<'a> {
     /// Return the value of an expression as a bool
     fn eval_as_bool(&mut self, expr: &Expr) -> Result<bool> {
         let res = match expr.val {
-            ExprVal::Logic(LogicExpr { ref lhs, ref rhs, ref operator}) => {
+            ExprVal::Logic(LogicExpr { ref lhs, ref rhs, ref operator }) => {
                 match *operator {
                     LogicOperator::Or => self.eval_as_bool(lhs)? || self.eval_as_bool(rhs)?,
                     LogicOperator::And => self.eval_as_bool(lhs)? && self.eval_as_bool(rhs)?,
@@ -291,7 +291,7 @@ impl<'a> Renderer<'a> {
                             LogicOperator::Lt => l < r,
                             _ => unreachable!(),
                         }
-                    },
+                    }
                     LogicOperator::Eq | LogicOperator::NotEq => {
                         let mut lhs_val = self.eval_expression(lhs)?;
                         let mut rhs_val = self.eval_expression(rhs)?;
@@ -316,15 +316,15 @@ impl<'a> Renderer<'a> {
                             LogicOperator::NotEq => lhs_val != rhs_val,
                             _ => unreachable!(),
                         }
-                    },
+                    }
                 }
-            },
+            }
             ExprVal::Ident(ref ident) => {
                 self.lookup_ident(ident).map(|v| v.is_truthy()).unwrap_or(false)
-            },
+            }
             ExprVal::Math(_) | ExprVal::Int(_) | ExprVal::Float(_) => {
                 self.eval_as_number(&expr.val).map(|v| v != 0.0 && !v.is_nan())?
-            },
+            }
             ExprVal::Test(ref test) => self.eval_test(test).unwrap_or(false),
             ExprVal::Bool(val) => val,
             ExprVal::String(ref string) => !string.is_empty(),
@@ -372,7 +372,7 @@ impl<'a> Renderer<'a> {
                     .last()
                     .expect("Open an issue with a template sample please (mention `self namespace macro`)!")
                     .to_string()
-            },
+            }
             _ => {
                 self.macro_namespaces.push(macro_call.namespace.clone());
                 macro_call.namespace.clone()
@@ -440,7 +440,7 @@ impl<'a> Renderer<'a> {
             ExprVal::String(ref val) => {
                 needs_escape = true;
                 Value::String(val.to_string())
-            },
+            }
             ExprVal::Int(val) => Value::Number(val.into()),
             ExprVal::Float(val) => Value::Number(Number::from_f64(val).unwrap()),
             ExprVal::Bool(val) => Value::Bool(val),
@@ -466,11 +466,11 @@ impl<'a> Renderer<'a> {
                         }
                     }
                 }
-            },
+            }
             ExprVal::FunctionCall(ref fn_call) => {
                 needs_escape = true;
                 self.eval_global_fn_call(fn_call)?
-            },
+            }
             ExprVal::MacroCall(ref macro_call) => Value::String(self.eval_macro_call(macro_call)?),
             ExprVal::Test(ref test) => Value::Bool(self.eval_test(test)?),
             ExprVal::Logic(_) => Value::Bool(self.eval_as_bool(expr)?),
@@ -481,7 +481,7 @@ impl<'a> Renderer<'a> {
                     Some(x) => Value::Number(x),
                     None => Value::String("NaN".to_string()),
                 }
-            },
+            }
             _ => unreachable!("{:?}", expr),
         };
 
@@ -536,7 +536,7 @@ impl<'a> Renderer<'a> {
     fn render_for(&mut self, node: &Forloop) -> Result<String> {
         let container_name = match node.container.val {
             ExprVal::Ident(ref ident) => ident,
-            ExprVal::FunctionCall(FunctionCall {ref name, ..}) => name,
+            ExprVal::FunctionCall(FunctionCall { ref name, .. }) => name,
             _ => bail!(
                 "Forloop containers have to be an ident or a function call (tried to iterate on '{:?}')",
                 node.container.val,
@@ -554,7 +554,7 @@ impl<'a> Renderer<'a> {
                     );
                 }
                 ForLoop::new(&node.value, container_val)
-            },
+            }
             Value::Object(_) => {
                 if node.key.is_none() {
                     bail!(
@@ -567,7 +567,7 @@ impl<'a> Renderer<'a> {
                     &node.value,
                     container_val,
                 )
-            },
+            }
             _ => bail!(
                 "Tried to iterate on a container (`{}`) that has a unsupported type",
                 container_name,
@@ -616,7 +616,7 @@ impl<'a> Renderer<'a> {
         /// remaining
         fn load_macros<'a>(
             tera: &'a Tera,
-            tpl: &Template
+            tpl: &Template,
         ) -> Result<HashMap<String, &'a HashMap<String, MacroDefinition>>> {
             let mut macros = HashMap::new();
 
@@ -712,11 +712,11 @@ impl<'a> Renderer<'a> {
             Node::Text(ref s) | Node::Raw(_, ref s, _) => s.to_string(),
             Node::VariableBlock(ref expr) => self.eval_expression(expr)?.render(),
             Node::Set(_, ref set) => self.eval_set(set).and(Ok(String::new()))?,
-            Node::FilterSection(_, FilterSection {ref filter, ref body}, _) => {
+            Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
                 let output = self.render_body(body)?;
 
                 self.eval_filter(Value::String(output), filter)?.render()
-            },
+            }
             // Macros have been imported at the beginning
             Node::ImportMacro(_, _, _) => String::new(),
             Node::If(ref if_node, _) => self.render_if(if_node)?,
@@ -730,7 +730,7 @@ impl<'a> Renderer<'a> {
                     self.macros.pop();
                 }
                 return res;
-            },
+            }
             _ => unreachable!("render_node -> unexpected node: {:?}", node),
         };
 
@@ -790,7 +790,7 @@ impl<'a> Renderer<'a> {
             Some(parent_tpl_name) => {
                 let tpl = self.tera.get_template(parent_tpl_name).unwrap();
                 (&tpl.name, &tpl.ast)
-            },
+            }
             None => (&self.template.name, &self.template.ast),
         };
 

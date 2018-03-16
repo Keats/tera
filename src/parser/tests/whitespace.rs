@@ -136,7 +136,7 @@ fn handle_ws_both_sides_for_forloop_tag_and_remove_empty_node() {
                         Node::Text("hey".to_string()),
                     ],
                 },
-                end_ws
+                end_ws,
             ),
             Node::Text("hey".to_string()),
         ]
@@ -170,7 +170,7 @@ fn handle_ws_for_if_nodes() {
                 ],
                 otherwise: None,
             },
-            end_ws
+            end_ws,
         ),
         Node::Text("  hey".to_string()),
     ];
@@ -268,7 +268,7 @@ fn handle_ws_for_if_nodes_with_else() {
                         (WS { left: true, right: true }, vec![Node::Text("a".to_string())])
                     ),
                 },
-                end_ws
+                end_ws,
             ),
             Node::Text("hey".to_string()),
         ]

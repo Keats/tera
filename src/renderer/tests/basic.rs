@@ -279,7 +279,6 @@ fn render_if_elif_else() {
         // doesn't fallthrough elifs
         // https://github.com/Keats/tera/issues/188
         ("{% if 1 < 4 %}a{% elif 2 < 4 %}b{% elif 3 < 4 %}c{% else %}d{% endif %}", "a"),
-
     ];
 
     for (input, expected) in inputs {

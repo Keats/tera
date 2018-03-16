@@ -206,7 +206,7 @@ mod tests {
             assert_eq!(
                 divisible_by(
                     Some(to_value(val).unwrap()),
-                    vec![to_value(divisor).unwrap()]
+                    vec![to_value(divisor).unwrap()],
                 ).unwrap(),
                 expected
             );
@@ -231,12 +231,12 @@ mod tests {
         assert!(
             starting_with(
                 Some(to_value("helloworld").unwrap()),
-                vec![to_value("hello").unwrap()]
+                vec![to_value("hello").unwrap()],
             ).unwrap()
         );
         assert!(!starting_with(
             Some(to_value("hello").unwrap()),
-            vec![to_value("hi").unwrap()]
+            vec![to_value("hi").unwrap()],
         ).unwrap());
     }
 
@@ -245,7 +245,7 @@ mod tests {
         assert!(
             ending_with(
                 Some(to_value("helloworld").unwrap()),
-                vec![to_value("world").unwrap()]
+                vec![to_value("world").unwrap()],
             ).unwrap()
         );
         assert!(

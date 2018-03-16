@@ -22,7 +22,7 @@ fn invalid_number() {
         &[
             "1:7",
             "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, or a filter"
-        ]
+        ],
     );
 }
 
@@ -38,7 +38,7 @@ fn wrong_start_block() {
         &[
             "1:7",
             "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, or a filter"
-        ]
+        ],
     );
 }
 
@@ -49,7 +49,7 @@ fn wrong_end_block() {
         &[
             "1:9",
             "expected an integer, a float, a string, `true` or `false`, an identifier (must start with a-z), a dotted identifier (identifiers separated by `.`), a square bracketed identifier (identifiers separated by `.` or `[]`s), or an expression"
-        ]
+        ],
     );
 }
 
@@ -60,7 +60,7 @@ fn unterminated_variable_block() {
         &[
             "1:7",
             "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, or a filter"
-        ]
+        ],
     );
 }
 
@@ -182,7 +182,7 @@ fn invalid_operator() {
         &[
             "1:8",
             "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, or a filter"
-        ]
+        ],
     );
 }
 

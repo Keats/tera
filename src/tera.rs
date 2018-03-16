@@ -198,7 +198,7 @@ impl Tera {
                     Some(parent) => {
                         parents.push(parent.name.clone());
                         build_chain(templates, start, parent, parents)
-                    },
+                    }
                     None => bail!(
                         "Template '{}' is inheriting from '{}', which doesn't exist or isn't loaded.",
                         template.name, p,
@@ -359,7 +359,7 @@ impl Tera {
         for (name, content) in templates {
             let tpl = Template::new(name, None, content)
                 .chain_err(|| format!("Failed to parse '{}'", name))?;
-            self.templates.insert(name.to_string(),tpl);
+            self.templates.insert(name.to_string(), tpl);
         }
         self.build_inheritance_chains()?;
         Ok(())
@@ -400,7 +400,7 @@ impl Tera {
     ///     (path2, Some("hey")), // this template will have `hey` as name
     /// ]);
     /// ```
-    pub fn add_template_files<P: AsRef<Path>>(&mut self, files: Vec<(P, Option<&str>)>) -> Result<()>  {
+    pub fn add_template_files<P: AsRef<Path>>(&mut self, files: Vec<(P, Option<&str>)>) -> Result<()> {
         for (path, name) in files {
             self.add_file(name, path)?;
         }
@@ -752,7 +752,7 @@ mod tests {
     fn test_can_autoescape_one_off_template() {
         let mut context = Context::new();
         context.add("greeting", &"<p>");
-        let result = Tera::one_off("{{ greeting }} world",&context, true).unwrap();
+        let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "&lt;p&gt; world");
     }

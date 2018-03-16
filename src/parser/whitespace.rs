@@ -52,7 +52,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 }
                 // empty text nodes will be skipped
                 continue;
-            },
+            }
             Node::ImportMacro(ws, _, _)
             | Node::Extends(ws, _)
             | Node::Include(ws, _)
@@ -60,7 +60,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 trim_right_previous!(previous_was_text && ws.left, res);
                 previous_was_text = false;
                 trim_left_next = ws.right;
-            },
+            }
             Node::Raw(start_ws, ref s, end_ws) => {
                 trim_right_previous!(previous_was_text && start_ws.left, res);
                 previous_was_text = false;
@@ -78,7 +78,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                     res.push(Node::Raw(start_ws, val.to_string(), end_ws));
                     continue;
                 }
-            },
+            }
             // Those nodes have a body surrounded by 2 tags
             Node::Forloop(start_ws, _, end_ws)
             | Node::MacroDefinition(start_ws, _, end_ws)
@@ -102,7 +102,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                     Node::FilterSection(_, mut filter_section, _) => {
                         filter_section.body = remove_whitespace(
                             filter_section.body,
-                            Some(body_ws)
+                            Some(body_ws),
                         );
                         res.push(Node::FilterSection(start_ws, filter_section, end_ws));
                     }
@@ -113,9 +113,9 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                     _ => unreachable!(),
                 };
                 continue;
-            },
+            }
             // The ugly one
-            Node::If(If {conditions, otherwise}, end_ws) => {
+            Node::If(If { conditions, otherwise }, end_ws) => {
                 trim_left_next = end_ws.right;
                 // Whether we are past the initial if
                 let mut if_done = false;
@@ -158,7 +158,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                     }
                     let mut else_body = remove_whitespace(
                         body,
-                        Some(WS { left: else_ws.right, right: false })
+                        Some(WS { left: else_ws.right, right: false }),
                     );
                     // if we have an `else`, the `endif` will affect the else node so we need to check
                     if end_ws.left {
@@ -183,7 +183,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
 
                 res.push(Node::If(If { conditions: new_conditions, otherwise }, end_ws));
                 continue;
-            },
+            }
             Node::Super | Node::VariableBlock(_) => (),
         };
 

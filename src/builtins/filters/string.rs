@@ -136,8 +136,8 @@ pub fn addslashes(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("addslashes", "value", String, value);
     Ok(to_value(
         &s.replace("\\", "\\\\")
-        .replace("\"", "\\\"")
-        .replace("\'", "\\\'")
+            .replace("\"", "\\\"")
+            .replace("\'", "\\\'")
     ).unwrap())
 }
 
@@ -376,8 +376,8 @@ mod tests {
         let tests = vec![
             (r"<b>Joel</b> <button>is</button> a <span>slug</span>", "Joel is a slug"),
             (r#"<p>just a small   \n <a href="x"> example</a> link</p>\n<p>to a webpage</p><!-- <p>and some commented stuff</p> -->"#,
-            r#"just a small   \n  example link\nto a webpage"#),
-            (r"<p>See: &#39;&eacute; is an apostrophe followed by e acute</p>",r"See: &#39;&eacute; is an apostrophe followed by e acute"),
+             r#"just a small   \n  example link\nto a webpage"#),
+            (r"<p>See: &#39;&eacute; is an apostrophe followed by e acute</p>", r"See: &#39;&eacute; is an apostrophe followed by e acute"),
             (r"<adf>a", "a"),
             (r"</adf>a", "a"),
             (r"<asdf><asdf>e", "e"),

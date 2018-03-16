@@ -18,6 +18,7 @@ pub struct Review {
     title: String,
     paragraphs: Vec<String>,
 }
+
 impl Review {
     #[allow(dead_code)]
     pub fn new() -> Review {
