@@ -177,7 +177,6 @@ fn filter_args_are_not_escaped() {
     assert_eq!(render_template(input, &context).unwrap(), "&ey");
 }
 
-
 #[test]
 fn render_include_tag() {
     let mut tera = Tera::default();
@@ -235,11 +234,7 @@ fn add_set_values_in_context() {
 
 #[test]
 fn render_filter_section() {
-    let result = render_template(
-        "{% filter upper %}Hello{% endfilter %}",
-        &Context::new()
-    );
-
+    let result = render_template("{% filter upper %}Hello{% endfilter %}", &Context::new());
     assert_eq!(result.unwrap(), "HELLO".to_owned());
 }
 
@@ -284,7 +279,6 @@ fn render_if_elif_else() {
         // doesn't fallthrough elifs
         // https://github.com/Keats/tera/issues/188
         ("{% if 1 < 4 %}a{% elif 2 < 4 %}b{% elif 3 < 4 %}c{% else %}d{% endif %}", "a"),
-
     ];
 
     for (input, expected) in inputs {

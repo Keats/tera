@@ -33,7 +33,8 @@ pub trait GetSortKey: Ord + Sized + Clone {
 
 impl GetSortKey for OrderedF64 {
     fn get_sort_key(val: &Value) -> Result<Self> {
-        let n = val.as_f64().ok_or_else(|| format!("expected number got {}", val))?;
+        let n = val.as_f64()
+            .ok_or_else(|| format!("expected number got {}", val))?;
         OrderedF64::new(n)
     }
 }
@@ -46,21 +47,23 @@ impl GetSortKey for bool {
 
 impl GetSortKey for String {
     fn get_sort_key(val: &Value) -> Result<Self> {
-        let str: Result<&str> = val.as_str().ok_or_else(|| format!("expected string got {}", val).into());
+        let str: Result<&str> = val.as_str()
+            .ok_or_else(|| format!("expected string got {}", val).into());
         Ok(str?.to_owned())
     }
 }
 
 impl GetSortKey for ArrayLen {
     fn get_sort_key(val: &Value) -> Result<Self> {
-        let arr = val.as_array().ok_or_else(|| format!("expected array got {}", val))?;
+        let arr = val.as_array()
+            .ok_or_else(|| format!("expected array got {}", val))?;
         Ok(ArrayLen(arr.len()))
     }
 }
 
 #[derive(Default)]
 pub struct SortPairs<K: Ord> {
-    pairs: Vec<(Value, K)>
+    pairs: Vec<(Value, K)>,
 }
 
 type Numbers = SortPairs<OrderedF64>;
@@ -77,9 +80,7 @@ impl<K: GetSortKey> SortPairs<K> {
 
     fn sort(&mut self) -> Vec<Value> {
         self.pairs.sort_by_key(|a| a.1.clone());
-        self.pairs.iter()
-            .map(|a| a.0.clone())
-            .collect()
+        self.pairs.iter().map(|a| a.0.clone()).collect()
     }
 }
 
@@ -106,6 +107,6 @@ pub fn get_sort_strategy_for_type(ty: &Value) -> Result<Box<SortStrategy>> {
         Number(_) => Ok(Box::new(Numbers::default())),
         String(_) => Ok(Box::new(Strings::default())),
         Array(_) => Ok(Box::new(Arrays::default())),
-        Object(_) => bail!("Object is not a sortable value")
+        Object(_) => bail!("Object is not a sortable value"),
     }
 }

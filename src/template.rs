@@ -2,8 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use errors::Result;
 use parser::{parse, remove_whitespace};
-use parser::ast::{Node, MacroDefinition, Block};
-
+use parser::ast::{Block, MacroDefinition, Node};
 
 /// This is the parsed equivalent of a template file.
 /// It also does some pre-processing to ensure it does as less as possible at runtime
@@ -44,7 +43,6 @@ pub struct Template {
     pub blocks_definitions: HashMap<String, Vec<(String, Block)>>,
 }
 
-
 impl Template {
     /// Parse the template string given
     pub fn new(tpl_name: &str, tpl_path: Option<String>, input: &str) -> Result<Template> {
@@ -63,7 +61,7 @@ impl Template {
 
                         blocks.insert(block.name.to_string(), block.clone());
                         find_blocks(&block.body, blocks)?;
-                    },
+                    }
                     _ => continue,
                 };
             }
@@ -85,10 +83,10 @@ impl Template {
                         bail!("Macro `{}` is duplicated", macro_def.name);
                     }
                     macros.insert(macro_def.name.clone(), macro_def.clone());
-                },
+                }
                 Node::ImportMacro(_, ref tpl_name, ref namespace) => {
                     imported_macro_files.push((tpl_name.to_string(), namespace.to_string()));
-                },
+                }
                 _ => continue,
             }
         }
@@ -110,7 +108,6 @@ impl Template {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::Template;
@@ -122,7 +119,7 @@ mod tests {
 
     #[test]
     fn test_can_find_parent_template() {
-        let tpl = Template::new("hello", None,"{% extends \"base.html\" %}").unwrap();
+        let tpl = Template::new("hello", None, "{% extends \"base.html\" %}").unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
     }
@@ -132,7 +129,7 @@ mod tests {
         let tpl = Template::new(
             "hello",
             None,
-            "{% extends \"base.html\" %}{% block hey %}{% endblock hey %}"
+            "{% extends \"base.html\" %}{% block hey %}{% endblock hey %}",
         ).unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
@@ -144,7 +141,7 @@ mod tests {
         let tpl = Template::new(
             "hello",
             None,
-            "{% extends \"base.html\" %}{% block hey %}{% block extrahey %}{% endblock extrahey %}{% endblock hey %}"
+            "{% extends \"base.html\" %}{% block hey %}{% block extrahey %}{% endblock extrahey %}{% endblock hey %}",
         ).unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
@@ -160,7 +157,11 @@ mod tests {
 
     #[test]
     fn test_can_find_imported_macros() {
-        let tpl = Template::new("hello", None, "{% import \"macros.html\" as macros %}").unwrap();
+        let tpl = Template::new(
+            "hello",
+            None,
+            "{% import \"macros.html\" as macros %}",
+        ).unwrap();
         assert_eq!(tpl.imported_macro_files, vec![("macros.html".to_string(), "macros".to_string())]);
     }
 }

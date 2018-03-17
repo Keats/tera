@@ -132,7 +132,10 @@ fn render_macros_override_default_args() {
 fn render_recursive_macro() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![
-        ("macros", "{% macro factorial(n) %}{% if n > 1 %}{{ n }} - {{ self::factorial(n=n-1) }}{% else %}1{% endif %}{{ n }}{% endmacro factorial %}"),
+        (
+            "macros",
+            "{% macro factorial(n) %}{% if n > 1 %}{{ n }} - {{ self::factorial(n=n-1) }}{% else %}1{% endif %}{{ n }}{% endmacro factorial %}",
+        ),
         ("hello.html", "{% import \"macros\" as macros %}{{macros::factorial(n=7)}}"),
     ]).unwrap();
     let result = tera.render("hello.html", &Context::new());
@@ -143,8 +146,16 @@ fn render_recursive_macro() {
 // https://github.com/Keats/tera/issues/202
 #[test]
 fn recursive_macro_with_loops() {
-    let parent = NestedObject { label: "Parent".to_string(), parent: None, numbers: vec![1, 2, 3] };
-    let child = NestedObject { label: "Child".to_string(), parent: Some(Box::new(parent)), numbers: vec![1, 2, 3] };
+    let parent = NestedObject {
+        label: "Parent".to_string(),
+        parent: None,
+        numbers: vec![1, 2, 3],
+    };
+    let child = NestedObject {
+        label: "Child".to_string(),
+        parent: Some(Box::new(parent)),
+        numbers: vec![1, 2, 3],
+    };
     let mut context = Context::new();
     context.add("objects", &vec![child]);
     let mut tera = Tera::default();
@@ -160,7 +171,7 @@ fn recursive_macro_with_loops() {
   {{obj.label}}
   {%- for i in obj.numbers -%}{{ i }}{%- endfor -%}
 {%- endmacro label_for %}
-            "#
+            "#,
         ),
         (
             "recursive",
@@ -169,7 +180,7 @@ fn recursive_macro_with_loops() {
 {%- for obj in objects -%}
     {{ macros::label_for(obj=obj, sep="|") }}
 {%- endfor -%}
-"#
+"#,
         ),
     ]).unwrap();
 
@@ -204,5 +215,4 @@ fn import_macros_into_other_macro_files() {
     let result = tera.render("index", &Context::new());
 
     assert_eq!(result.unwrap(), "Success!".to_string());
-
 }

@@ -1,8 +1,8 @@
 /// Filters operating on array
 use std::collections::HashMap;
 
-use serde_json::value::{Value, to_value};
-use context::{ValueRender, get_json_pointer};
+use serde_json::value::{to_value, Value};
+use context::{get_json_pointer, ValueRender};
 use errors::Result;
 use sort_utils::get_sort_strategy_for_type;
 
@@ -55,7 +55,7 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     };
     let ptr = match attribute.as_str() {
         "" => "".to_string(),
-        s => get_json_pointer(s)
+        s => get_json_pointer(s),
     };
 
     let first = arr[0]
@@ -64,8 +64,7 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     let mut strategy = get_sort_strategy_for_type(first)?;
     for v in &arr {
-        let key = v
-            .pointer(&ptr)
+        let key = v.pointer(&ptr)
             .ok_or_else(|| format!("attribute '{}' does not reference a field", attribute))?;
         strategy.try_add_pair(v, key)?;
     }
@@ -106,7 +105,7 @@ pub fn slice(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use serde_json::value::{Value, to_value};
+    use serde_json::value::{to_value, Value};
     use super::*;
 
     #[test]
@@ -190,49 +189,50 @@ mod tests {
     #[derive(Serialize)]
     struct Foo {
         a: i32,
-        b: i32
+        b: i32,
     }
 
     #[test]
     fn test_sort_attribute() {
         let v = to_value(vec![
-            Foo {a: 3, b: 5},
-            Foo {a: 2, b: 8},
-            Foo {a: 4, b: 7},
-            Foo {a: 1, b: 6},
+            Foo { a: 3, b: 5 },
+            Foo { a: 2, b: 8 },
+            Foo { a: 4, b: 7 },
+            Foo { a: 1, b: 6 },
         ]).unwrap();
         let mut args = HashMap::new();
         args.insert("attribute".to_string(), to_value(&"a").unwrap());
 
         let result = sort(v, args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(vec![
-            Foo {a: 1, b: 6},
-            Foo {a: 2, b: 8},
-            Foo {a: 3, b: 5},
-            Foo {a: 4, b: 7},
-        ]).unwrap());
+        assert_eq!(
+            result.unwrap(),
+            to_value(vec![
+                Foo { a: 1, b: 6 },
+                Foo { a: 2, b: 8 },
+                Foo { a: 3, b: 5 },
+                Foo { a: 4, b: 7 },
+            ]).unwrap()
+        );
     }
 
     #[test]
     fn test_sort_invalid_attribute() {
-        let v = to_value(vec![
-            Foo {a: 3, b: 5}
-        ]).unwrap();
+        let v = to_value(vec![Foo { a: 3, b: 5 }]).unwrap();
         let mut args = HashMap::new();
         args.insert("attribute".to_string(), to_value(&"invalid_field").unwrap());
 
         let result = sort(v, args);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().description(), "attribute 'invalid_field' does not reference a field");
+        assert_eq!(
+            result.unwrap_err().description(),
+            "attribute 'invalid_field' does not reference a field"
+        );
     }
 
     #[test]
     fn test_sort_multiple_types() {
-        let v = to_value(vec![
-            Value::Number(12.into()),
-            Value::Array(vec![])
-        ]).unwrap();
+        let v = to_value(vec![Value::Number(12.into()), Value::Array(vec![])]).unwrap();
         let args = HashMap::new();
 
         let result = sort(v, args);
@@ -244,13 +244,16 @@ mod tests {
     fn test_sort_non_finite_numbers() {
         let v = to_value(vec![
             ::std::f64::NEG_INFINITY, // NaN and friends get deserialized as Null by serde.
-            ::std::f64::NAN
+            ::std::f64::NAN,
         ]).unwrap();
         let args = HashMap::new();
 
         let result = sort(v, args);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().description(), "Null is not a sortable value");
+        assert_eq!(
+            result.unwrap_err().description(),
+            "Null is not a sortable value"
+        );
     }
 
     #[derive(Serialize)]
@@ -262,19 +265,22 @@ mod tests {
             TupleStruct(0, 1),
             TupleStruct(7, 0),
             TupleStruct(-1, 12),
-            TupleStruct(18, 18)
+            TupleStruct(18, 18),
         ]).unwrap();
         let mut args = HashMap::new();
         args.insert("attribute".to_string(), to_value("0").unwrap());
 
         let result = sort(v, args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(vec![
-            TupleStruct(-1, 12),
-            TupleStruct(0, 1),
-            TupleStruct(7, 0),
-            TupleStruct(18, 18)
-        ]).unwrap());
+        assert_eq!(
+            result.unwrap(),
+            to_value(vec![
+                TupleStruct(-1, 12),
+                TupleStruct(0, 1),
+                TupleStruct(7, 0),
+                TupleStruct(18, 18),
+            ]).unwrap()
+        );
     }
 
     #[test]

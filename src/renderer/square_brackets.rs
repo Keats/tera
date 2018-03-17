@@ -1,4 +1,3 @@
-
 /// Return a Vec of all substrings contained in '[ ]'s
 /// Ignore quoted strings and integers.
 pub fn pull_out_square_bracket(s: &str) -> Vec<String> {
@@ -21,7 +20,7 @@ pub fn pull_out_square_bracket(s: &str) -> Vec<String> {
                         };
                         if bracket_count == 0 {
                             // Only store results which aren't numbers
-                            let sub :String = inside_bracket.into_iter().collect();
+                            let sub: String = inside_bracket.into_iter().collect();
                             if sub.parse::<usize>().is_err() {
                                 results.push(sub);
                             }
@@ -30,7 +29,7 @@ pub fn pull_out_square_bracket(s: &str) -> Vec<String> {
                         inside_bracket.push(c.unwrap());
                     }
                 }
-            },
+            }
             None => break,
             _ => (),
         }
@@ -53,5 +52,3 @@ mod tests {
         );
     }
 }
-
-

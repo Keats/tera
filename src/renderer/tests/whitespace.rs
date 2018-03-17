@@ -2,7 +2,6 @@ use context::Context;
 use errors::Result;
 use tera::Tera;
 
-
 #[test]
 fn can_remove_whitespace_basic() {
     let mut context = Context::new();
@@ -25,7 +24,7 @@ fn can_remove_whitespace_basic() {
 
     for (input, expected) in inputs {
         let mut tera = Tera::default();
-        tera.add_raw_template("tpl", input);
+        tera.add_raw_template("tpl", input).unwrap();
         assert_eq!(tera.render("tpl", &context).unwrap(), expected);
     }
 }
@@ -46,7 +45,7 @@ fn can_remove_whitespace_include() {
         tera.add_raw_templates(vec![
             ("include", "Included"),
             ("tpl", input),
-        ]);
+        ]).unwrap();
         assert_eq!(tera.render("tpl", &context).unwrap(), expected);
     }
 }
@@ -67,7 +66,7 @@ fn can_remove_whitespace_macros() {
         tera.add_raw_templates(vec![
             ("macros", "{% macro hey() -%} Hey! {%- endmacro %}"),
             ("tpl", input),
-        ]);
+        ]).unwrap();
         assert_eq!(tera.render("tpl", &context).unwrap(), expected);
     }
 }
@@ -88,7 +87,7 @@ fn can_remove_whitespace_inheritance() {
         tera.add_raw_templates(vec![
             ("base", "{% block content %} Hey! {% endblock %}"),
             ("tpl", input),
-        ]);
+        ]).unwrap();
         assert_eq!(tera.render("tpl", &context).unwrap(), expected);
     }
 }

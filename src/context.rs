@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
-use serde_json::value::{Value, to_value};
+use serde_json::value::{to_value, Value};
 use serde::Serializer;
 use serde::ser::SerializeMap;
 
@@ -20,7 +20,7 @@ impl Context {
     /// Initializes an empty context
     pub fn new() -> Context {
         Context {
-            data: BTreeMap::new()
+            data: BTreeMap::new(),
         }
     }
 
@@ -108,12 +108,11 @@ impl ValueRender for Value {
                 }
                 buf.push(']');
                 buf
-            },
-            Value::Object(_) => "[object]".to_owned()
+            }
+            Value::Object(_) => "[object]".to_owned(),
         }
     }
 }
-
 
 pub trait ValueNumber {
     fn to_number(&self) -> Result<f64, ()>;
@@ -124,7 +123,7 @@ impl ValueNumber for Value {
     fn to_number(&self) -> Result<f64, ()> {
         match *self {
             Value::Number(ref i) => Ok(i.as_f64().unwrap()),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -151,11 +150,10 @@ impl ValueTruthy for Value {
             Value::Null => false,
             Value::String(ref i) => !i.is_empty(),
             Value::Array(ref i) => !i.is_empty(),
-            Value::Object(ref i) => !i.is_empty()
+            Value::Object(ref i) => !i.is_empty(),
         }
     }
 }
-
 
 /// Converts a dotted path to a json pointer one
 #[inline]
