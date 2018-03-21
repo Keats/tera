@@ -169,17 +169,23 @@ endraw_tag = { tag_start ~ "endraw" ~ tag_end }
 raw_text   = { (!endraw_tag ~ any)* }
 raw        = !{ raw_tag ~ raw_text ~ endraw_tag }
 
-macro_filter_section = !{ filter_tag ~ macro_content* ~ endfilter_tag }
-block_filter_section = !{ filter_tag ~ block_content* ~ endfilter_tag }
-filter_section       = !{ filter_tag ~ content* ~ endfilter_tag }
+macro_filter_section = !{ filter_tag ~ macro_for_content* ~ endfilter_tag }
+block_filter_section = !{ filter_tag ~ block_for_content* ~ endfilter_tag }
+filter_section       = !{ filter_tag ~ for_content* ~ endfilter_tag }
+macro_for_filter_section = !{ filter_tag ~ macro_for_content* ~ endfilter_tag }
+block_for_filter_section = !{ filter_tag ~ block_for_content* ~ endfilter_tag }
+for_filter_section       = !{ filter_tag ~ for_content* ~ endfilter_tag }
 
-macro_forloop = ${ for_tag ~ macro_content* ~ endfor_tag }
-block_forloop = ${ for_tag ~ content* ~ endfor_tag }
-forloop       = ${ for_tag ~ block_content* ~ endfor_tag }
+macro_forloop = ${ for_tag ~ macro_for_content* ~ endfor_tag }
+block_forloop = ${ for_tag ~ for_content* ~ endfor_tag }
+forloop       = ${ for_tag ~ block_for_content* ~ endfor_tag }
 
 macro_if   = ${ if_tag ~ macro_content* ~ (elif_tag ~ macro_content*)* ~ (else_tag ~ macro_content*)? ~ endif_tag }
 block_if   = ${ if_tag ~ block_content* ~ (elif_tag ~ block_content*)* ~ (else_tag ~ block_content*)? ~ endif_tag }
 content_if = ${ if_tag ~ content* ~ (elif_tag ~ content*)* ~ (else_tag ~ content*)? ~ endif_tag }
+macro_for_if   = ${ if_tag ~ macro_for_content* ~ (elif_tag ~ macro_for_content*)* ~ (else_tag ~ macro_for_content*)? ~ endif_tag }
+block_for_if   = ${ if_tag ~ block_for_content* ~ (elif_tag ~ block_for_content*)* ~ (else_tag ~ block_for_content*)? ~ endif_tag }
+content_for_if = ${ if_tag ~ for_content* ~ (elif_tag ~ for_content*)* ~ (else_tag ~ for_content*)? ~ endif_tag }
 
 
 block            = ${ block_tag ~ block_content* ~ endblock_tag }
@@ -194,10 +200,24 @@ macro_content = @{
     set_global_tag |
     macro_if |
     macro_forloop |
+    raw |
+    macro_filter_section |
+    text
+}
+
+// set of allowed content in for loops within macros
+macro_for_content = @{
+    include_tag |
+    variable_tag |
+    comment_tag |
+    set_tag |
+    set_global_tag |
+    macro_for_if |
+    macro_forloop |
     break_tag |
     continue_tag |
     raw |
-    macro_filter_section |
+    macro_for_filter_section |
     text
 }
 
@@ -212,9 +232,25 @@ block_content = @{
     block |
     block_if |
     block_forloop |
+    block_filter_section |
+    raw |
+    text
+}
+
+// set of allowed content in for loops within block
+block_for_content = @{
+    include_tag |
+    super_tag |
+    variable_tag |
+    comment_tag |
+    set_tag |
+    set_global_tag |
+    block |
+    block_for_if |
+    block_forloop |
     break_tag |
     continue_tag |
-    block_filter_section |
+    block_for_filter_section |
     raw |
     text
 }
@@ -230,9 +266,26 @@ content = @{
     block |
     content_if |
     forloop |
+    filter_section |
+    raw |
+    text
+}
+
+// set of allowed content inside for loops
+for_content = @{
+    include_tag |
+    import_macro_tag |
+    variable_tag |
+    comment_tag |
+    set_tag |
+    set_global_tag |
+    macro_definition |
+    block |
+    content_for_if |
+    forloop |
     break_tag |
     continue_tag |
-    filter_section |
+    for_filter_section |
     raw |
     text
 }

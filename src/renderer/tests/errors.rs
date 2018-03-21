@@ -135,35 +135,3 @@ fn error_invalid_type_index_variable() {
         "Only variables evaluating to String or Number can be used as index (`a` of `arr[a]`)"
     );
 }
-
-#[test]
-fn error_break_outside_loop() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("tpl", "{% break %}"),
-    ]).unwrap();
-
-    let context = Context::new();
-    let result = tera.render("tpl", &context);
-
-    assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
-        "`break` appeared outside a loop",
-    );
-}
-
-#[test]
-fn error_continue_outside_loop() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("tpl", "{% continue %}"),
-    ]).unwrap();
-
-    let context = Context::new();
-    let result = tera.render("tpl", &context);
-
-    assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
-        "`continue` appeared outside a loop",
-    );
-}

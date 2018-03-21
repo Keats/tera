@@ -169,22 +169,3 @@ fn test_error_in_macro_location() {
         "Failed to render 'error-location/error_in_macro.html': error while rendering a macro from the `macros` namespace"
     );
 }
-
-
-#[test]
-fn test_error_illegal_loop_control() {
-    let result = render_tpl("error-location/error_in_macro_illegal_break.html");
-
-    assert_eq!(result.is_err(), true);
-    let errs = result.unwrap_err();
-
-    assert_eq!(
-        errs.iter().nth(0).unwrap().description(),
-        "Failed to render 'error-location/error_in_macro_illegal_break.html': error while rendering a macro from the `macros` namespace"
-    );
-
-    assert_eq!(
-        errs.iter().nth(1).unwrap().description(),
-        "`break` appeared outside a loop"
-    );
-}
