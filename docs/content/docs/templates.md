@@ -275,26 +275,6 @@ If you are iterating on an array, you can also apply filters to the container:
 {% endfor %}
 ```
 
-### Loop Controls
-
-Within a loop, `break` and `continue` may be used to control iteration.
-
-To stop iterating when `target_id` is reached:
-```jinja2
-{% for product in products %}
-  {% if product.id == target_id %}{% break %}{% endif %}
-  {{loop.index}}. {{product.name}}
-{% endfor %}
-```
-
-To skip even-numbered items:
-```jinja2
-{% for product in products %}
-  {% if loop.index is even %}{% continue %}{% endif %}
-  {{loop.index}}. {{product.name}}
-{% endfor %}
-```
-
 ## Include
 
 You can include a template to be rendered using the current context with the `include` tag.
