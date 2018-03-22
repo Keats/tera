@@ -169,21 +169,31 @@ endraw_tag = { tag_start ~ "endraw" ~ tag_end }
 raw_text   = { (!endraw_tag ~ any)* }
 raw        = !{ raw_tag ~ raw_text ~ endraw_tag }
 
-macro_filter_section = !{ filter_tag ~ macro_content* ~ endfilter_tag }
-block_filter_section = !{ filter_tag ~ block_content* ~ endfilter_tag }
-filter_section       = !{ filter_tag ~ content* ~ endfilter_tag }
-for_filter_section   = !{ filter_tag ~ for_content* ~ endfilter_tag }
+filter_section = !{ filter_tag ~ filter_section_content* ~ endfilter_tag }
 
 forloop = ${ for_tag ~ for_content* ~ endfor_tag }
 
-macro_if   = ${ if_tag ~ macro_content* ~ (elif_tag ~ macro_content*)* ~ (else_tag ~ macro_content*)? ~ endif_tag }
-block_if   = ${ if_tag ~ block_content* ~ (elif_tag ~ block_content*)* ~ (else_tag ~ block_content*)? ~ endif_tag }
-content_if = ${ if_tag ~ content* ~ (elif_tag ~ content*)* ~ (else_tag ~ content*)? ~ endif_tag }
-for_if = ${ if_tag ~ for_content* ~ (elif_tag ~ for_content*)* ~ (else_tag ~ for_content*)? ~ endif_tag }
-
+macro_if          = ${ if_tag ~ macro_content* ~ (elif_tag ~ macro_content*)* ~ (else_tag ~ macro_content*)? ~ endif_tag }
+block_if          = ${ if_tag ~ block_content* ~ (elif_tag ~ block_content*)* ~ (else_tag ~ block_content*)? ~ endif_tag }
+for_if            = ${ if_tag ~ for_content* ~ (elif_tag ~ for_content*)* ~ (else_tag ~ for_content*)? ~ endif_tag }
+filter_section_if = ${ if_tag ~ filter_section_content* ~ (elif_tag ~ filter_section_content*)* ~ (else_tag ~ filter_section_content*)? ~ endif_tag }
+content_if        = ${ if_tag ~ content* ~ (elif_tag ~ content*)* ~ (else_tag ~ content*)? ~ endif_tag }
 
 block            = ${ block_tag ~ block_content* ~ endblock_tag }
 macro_definition = ${ macro_tag ~ macro_content* ~ endmacro_tag }
+
+filter_section_content = @{
+    include_tag |
+    variable_tag |
+    comment_tag |
+    set_tag |
+    set_global_tag |
+    forloop |
+    filter_section_if |
+    raw |
+    filter_section |
+    text
+}
 
 // smaller sets of allowed content in macros
 macro_content = @{
@@ -194,8 +204,8 @@ macro_content = @{
     set_global_tag |
     macro_if |
     forloop |
+    filter_section |
     raw |
-    macro_filter_section |
     text
 }
 
@@ -210,7 +220,7 @@ block_content = @{
     block |
     block_if |
     forloop |
-    block_filter_section |
+    filter_section |
     raw |
     text
 }
@@ -226,7 +236,7 @@ for_content = @{
     forloop |
     break_tag |
     continue_tag |
-    for_filter_section |
+    filter_section |
     raw |
     text
 }

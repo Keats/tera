@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.6 (unreleased)
+
+- Add `break` and `continue` to forloops
+- Fix strings delimited by single quote and backtick not removing the delimiters
+
+
 ## 0.11.5 (2018-03-01)
 
 - Re-export `serde_json::Number` as well

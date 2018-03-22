@@ -69,6 +69,8 @@ fn render_variable_block_ident() {
         ("{{ malicious }}", "&lt;html&gt;"),
         ("{{ \"<html>\" }}", "&lt;html&gt;"),
         ("{{ \" html \" | upper | trim }}", "HTML"),
+        ("{{ 'html' }}", "html"),
+        ("{{ `html` }}", "html"),
         ("{{ malicious | safe }}", "<html>"),
         ("{{ malicious | upper }}", "&LT;HTML&GT;"), // everything upper eh
         ("{{ malicious | upper | safe }}", "&LT;HTML&GT;"),
@@ -234,8 +236,22 @@ fn add_set_values_in_context() {
 
 #[test]
 fn render_filter_section() {
-    let result = render_template("{% filter upper %}Hello{% endfilter %}", &Context::new());
-    assert_eq!(result.unwrap(), "HELLO".to_owned());
+    let inputs = vec![
+        ("{% filter upper %}Hello{% endfilter %}", "HELLO"),
+        ("{% filter upper %}Hello{% if true %} world{% endif %}{% endfilter %}", "HELLO WORLD"),
+        ("{% filter upper %}Hello {% for i in range(end=3) %}i{% endfor %}{% endfilter %}", "HELLO III"),
+        (
+            "{% filter upper %}Hello {% for i in range(end=3) %}{% if i == 1 %}{% break %} {% endif %}i{% endfor %}{% endfilter %}",
+            "HELLO I",
+        ),
+        ("{% filter title %}Hello {% if true %}{{ 'world' | upper | safe }}{% endif %}{% endfilter %}", "Hello World"),
+    ];
+
+    let context = Context::new();
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
 }
 
 #[test]

@@ -44,6 +44,17 @@ lazy_static! {
     ]);
 }
 
+/// Strings are delimited by double quotes, single quotes and backticks
+/// We need to remove those before putting them in the AST
+fn replace_string_markers(input: &str) -> String {
+    match input.chars().next().unwrap() {
+        '"' => input.replace('"', "").to_string(),
+        '\'' => input.replace('\'', "").to_string(),
+        '`' => input.replace('`', "").to_string(),
+        _ => unreachable!("How did you even get there"),
+    }
+}
+
 fn parse_kwarg(pair: Pair<Rule>) -> (String, Expr) {
     let mut name = None;
     let mut val = None;
@@ -169,7 +180,7 @@ fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
         Rule::test => ExprVal::Test(parse_test(pair)),
         Rule::fn_call => ExprVal::FunctionCall(parse_fn_call(pair)),
         Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)),
-        Rule::string => ExprVal::String(pair.as_str().replace("\"", "").to_string()),
+        Rule::string => ExprVal::String(replace_string_markers(pair.as_str())),
         Rule::dotted_square_bracket_ident => ExprVal::Ident(pair.as_str().to_string()),
         Rule::basic_expr => MATH_CLIMBER.climb(pair.into_inner(), primary, infix),
         _ => unreachable!("Got {:?} in parse_basic_expression", pair.as_rule()),
@@ -330,7 +341,7 @@ fn parse_import_macro(pair: Pair<Rule>) -> Node {
             Rule::tag_start => {
                 ws.left = p.into_span().as_str() == "{%-";
             }
-            Rule::string => file = Some(p.into_span().as_str().replace("\"", "").to_string()),
+            Rule::string => file = Some(replace_string_markers(p.into_span().as_str())),
             Rule::ident => ident = Some(p.into_span().as_str().to_string()),
             Rule::tag_end => {
                 ws.right = p.into_span().as_str() == "-%}";
@@ -352,7 +363,7 @@ fn parse_extends_include(pair: Pair<Rule>) -> (WS, String) {
             Rule::tag_start => {
                 ws.left = p.into_span().as_str() == "{%-";
             }
-            Rule::string => file = Some(p.into_span().as_str().replace("\"", "").to_string()),
+            Rule::string => file = Some(replace_string_markers(p.into_span().as_str())),
             Rule::tag_end => {
                 ws.right = p.into_span().as_str() == "-%}";
             }
@@ -439,6 +450,7 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
             Rule::content
             | Rule::macro_content
             | Rule::block_content
+            | Rule::filter_section_content
             | Rule::for_content => {
                 body.extend(parse_content(p));
             }
@@ -568,6 +580,7 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
             Rule::content
             | Rule::macro_content
             | Rule::block_content
+            | Rule::filter_section_content
             | Rule::for_content => {
                 body.extend(parse_content(p));
             }
@@ -663,7 +676,11 @@ fn parse_if(pair: Pair<Rule>) -> Node {
                     };
                 }
             }
-            Rule::content | Rule::macro_content | Rule::block_content | Rule::for_content => {
+            Rule::content
+            | Rule::macro_content
+            | Rule::block_content
+            | Rule::for_content
+            | Rule::filter_section_content => {
                 current_body.extend(parse_content(p))
             }
             Rule::else_tag => {
@@ -728,12 +745,14 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             Rule::forloop => nodes.push(parse_forloop(p)),
             Rule::break_tag => nodes.push(parse_break_tag(p)),
             Rule::continue_tag => nodes.push(parse_continue_tag(p)),
-            Rule::content_if | Rule::macro_if | Rule::block_if | Rule::for_if => {
+            Rule::content_if
+            | Rule::macro_if
+            | Rule::block_if
+            | Rule::for_if
+            | Rule::filter_section_if => {
                 nodes.push(parse_if(p))
             },
-            Rule::filter_section | Rule::macro_filter_section | Rule::block_filter_section => {
-                nodes.push(parse_filter_section(p))
-            }
+            Rule::filter_section => nodes.push(parse_filter_section(p)),
             Rule::text => nodes.push(Node::Text(p.into_span().as_str().to_string())),
             Rule::block => nodes.push(parse_block(p)),
             _ => unreachable!("unreachable content rule: {:?}", p.as_rule()),
@@ -803,6 +822,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     }
                     Rule::endmacro_tag => "`{% endmacro %}`".to_string(),
                     Rule::macro_content => "the macro content".to_string(),
+                    Rule::filter_section_content => "the filter section content".to_string(),
                     Rule::set_tag => "a `set` tag`".to_string(),
                     Rule::set_global_tag => "a `set_global` tag`".to_string(),
                     Rule::endif_tag => "a `endif` tag`".to_string(),
@@ -823,11 +843,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::include_tag => r#"an include tag (`{% include "..." %}`)"#.to_string(),
                     Rule::comment_tag => "a comment tag (`{#...#}`)".to_string(),
                     Rule::variable_tag => "a variable tag (`{{ ... }}`)".to_string(),
-                    Rule::filter_tag
-                    | Rule::filter_section
-                    | Rule::block_filter_section
-                    | Rule::macro_filter_section
-                    | Rule::for_filter_section => {
+                    Rule::filter_tag | Rule::filter_section => {
                         "a filter section (`{% filter something %}...{% endfilter %}`)".to_string()
                     }
                     Rule::for_tag | Rule::forloop => {
@@ -835,7 +851,12 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     },
                     Rule::endfilter_tag => "an endfilter tag (`{% endfilter %}`)".to_string(),
                     Rule::endfor_tag => "an endfor tag (`{% endfor %}`)".to_string(),
-                    Rule::if_tag | Rule::content_if | Rule::block_if | Rule::macro_if | Rule::for_if => {
+                    Rule::if_tag
+                    | Rule::content_if
+                    | Rule::block_if
+                    | Rule::macro_if
+                    | Rule::for_if
+                    | Rule::filter_section_if => {
                         "a `if` tag".to_string()
                     }
                     Rule::elif_tag => "an `elif` tag".to_string(),
