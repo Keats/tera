@@ -9,7 +9,7 @@ use serde_json::to_string_pretty;
 use serde_json::value::{to_value, Number, Value};
 use serde_json::map::Map as JsonMap;
 
-use self::forloop::ForLoop;
+use self::forloop::{ForLoop, ForLoopState};
 use self::square_brackets::pull_out_square_bracket;
 use parser::ast::*;
 use template::Template;
@@ -42,7 +42,6 @@ pub struct Renderer<'a> {
     /// Vec<(block name, level)>
     blocks: Vec<(String, usize)>,
 }
-
 
 impl<'a> Renderer<'a> {
     pub fn new(template: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
@@ -204,6 +203,20 @@ impl<'a> Renderer<'a> {
 
         // Gets there when looking a variable in the global context while in a forloop
         find_variable(context, key, &self.template.name)
+    }
+
+    fn current_for_loop_mut(&mut self) -> Option<&mut ForLoop> {
+        match self.macro_context.last_mut() {
+            Some(&mut (_, ref mut for_loops)) => for_loops.last_mut(),
+            None => self.for_loops.last_mut(),
+        }
+    }
+
+    fn current_for_loop(&self) -> Option<&ForLoop> {
+        match self.macro_context.last() {
+            Some(&(_, ref for_loops)) => for_loops.last(),
+            None => self.for_loops.last(),
+        }
     }
 
     /// Inserts the result of the expression in the right context with `key` as the ... key
@@ -586,6 +599,11 @@ impl<'a> Renderer<'a> {
 
         for _ in 0..length {
             output.push_str(&self.render_body(&node.body)?);
+
+            if self.current_for_loop_mut().unwrap().state == ForLoopState::Break {
+                break
+            }
+
             // Safe unwrap
             match self.macro_context.last_mut() {
                 Some(m) => m.1.last_mut().unwrap().increment(),
@@ -724,6 +742,14 @@ impl<'a> Renderer<'a> {
             Node::ImportMacro(_, _, _) => String::new(),
             Node::If(ref if_node, _) => self.render_if(if_node)?,
             Node::Forloop(_, ref forloop, _) => self.render_for(forloop)?,
+            Node::Break(_) => {
+                self.current_for_loop_mut().unwrap().break_loop();
+                String::new()
+            },
+            Node::Continue(_) => {
+                self.current_for_loop_mut().unwrap().continue_loop();
+                String::new()
+            },
             Node::Block(_, ref block, _) => self.render_block(block, 0)?,
             Node::Super => self.do_super()?,
             Node::Include(_, ref tpl_name) => {
@@ -745,6 +771,13 @@ impl<'a> Renderer<'a> {
 
         for n in body {
             output.push_str(&self.render_node(n)?);
+            if let Some(for_loop) = self.current_for_loop() {
+                match for_loop.state {
+                    ForLoopState::Continue
+                    | ForLoopState::Break => break,
+                    ForLoopState::Normal => {},
+                }
+            }
         }
 
         Ok(output)

@@ -436,7 +436,10 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
                     _ => unreachable!("Got {:?} while parsing filter_tag", p2),
                 }
             },
-            Rule::content | Rule::macro_content | Rule::block_content => {
+            Rule::content
+            | Rule::macro_content
+            | Rule::block_content
+            | Rule::for_content => {
                 body.extend(parse_content(p));
             }
             Rule::endfilter_tag => for p2 in p.into_inner() {
@@ -562,7 +565,10 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
                     value = Some(idents[1].clone());
                 }
             }
-            Rule::content | Rule::macro_content | Rule::block_content => {
+            Rule::content
+            | Rule::macro_content
+            | Rule::block_content
+            | Rule::for_content => {
                 body.extend(parse_content(p));
             }
             Rule::endfor_tag => for p2 in p.into_inner() {
@@ -587,6 +593,42 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
         },
         end_ws,
     )
+}
+
+fn parse_break_tag(pair: Pair<Rule>) -> Node {
+    let mut ws = WS::default();
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::tag_start => {
+                ws.left = p.into_span().as_str() == "{%-";
+            },
+            Rule::tag_end => {
+                ws.right = p.into_span().as_str() == "-%}";
+            }
+            _ => unreachable!()
+        };
+    };
+
+    Node::Break(ws)
+}
+
+fn parse_continue_tag(pair: Pair<Rule>) -> Node {
+    let mut ws = WS::default();
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::tag_start => {
+                ws.left = p.into_span().as_str() == "{%-";
+            },
+            Rule::tag_end => {
+                ws.right = p.into_span().as_str() == "-%}";
+            }
+            _ => unreachable!()
+        };
+    };
+
+    Node::Continue(ws)
 }
 
 fn parse_if(pair: Pair<Rule>) -> Node {
@@ -621,7 +663,7 @@ fn parse_if(pair: Pair<Rule>) -> Node {
                     };
                 }
             }
-            Rule::content | Rule::macro_content | Rule::block_content => {
+            Rule::content | Rule::macro_content | Rule::block_content | Rule::for_content => {
                 current_body.extend(parse_content(p))
             }
             Rule::else_tag => {
@@ -683,10 +725,12 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             Rule::variable_tag => nodes.push(parse_variable_tag(p)),
             Rule::import_macro_tag => nodes.push(parse_import_macro(p)),
             Rule::macro_definition => nodes.push(parse_macro_definition(p)),
-            Rule::forloop | Rule::macro_forloop | Rule::block_forloop => {
-                nodes.push(parse_forloop(p))
-            }
-            Rule::content_if | Rule::macro_if | Rule::block_if => nodes.push(parse_if(p)),
+            Rule::forloop => nodes.push(parse_forloop(p)),
+            Rule::break_tag => nodes.push(parse_break_tag(p)),
+            Rule::continue_tag => nodes.push(parse_continue_tag(p)),
+            Rule::content_if | Rule::macro_if | Rule::block_if | Rule::for_if => {
+                nodes.push(parse_if(p))
+            },
             Rule::filter_section | Rule::macro_filter_section | Rule::block_filter_section => {
                 nodes.push(parse_filter_section(p))
             }
@@ -762,7 +806,9 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::set_tag => "a `set` tag`".to_string(),
                     Rule::set_global_tag => "a `set_global` tag`".to_string(),
                     Rule::endif_tag => "a `endif` tag`".to_string(),
-                    Rule::block_content | Rule::content => "some content".to_string(),
+                    Rule::block_content | Rule::content | Rule::for_content => {
+                        "some content".to_string()
+                    },
                     Rule::text => "some text".to_string(),
                     // Pest will error an unexpected tag as Rule::tag_start
                     // and just showing `{%` is not clear as some other valid
@@ -780,15 +826,16 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::filter_tag
                     | Rule::filter_section
                     | Rule::block_filter_section
-                    | Rule::macro_filter_section => {
+                    | Rule::macro_filter_section
+                    | Rule::for_filter_section => {
                         "a filter section (`{% filter something %}...{% endfilter %}`)".to_string()
                     }
-                    Rule::for_tag | Rule::forloop | Rule::block_forloop | Rule::macro_forloop => {
+                    Rule::for_tag | Rule::forloop => {
                         "a forloop (`{% for i in something %}...{% endfor %}".to_string()
-                    }
+                    },
                     Rule::endfilter_tag => "an endfilter tag (`{% endfilter %}`)".to_string(),
                     Rule::endfor_tag => "an endfor tag (`{% endfor %}`)".to_string(),
-                    Rule::if_tag | Rule::content_if | Rule::block_if | Rule::macro_if => {
+                    Rule::if_tag | Rule::content_if | Rule::block_if | Rule::macro_if | Rule::for_if => {
                         "a `if` tag".to_string()
                     }
                     Rule::elif_tag => "an `elif` tag".to_string(),
@@ -807,6 +854,8 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     | Rule::macro_tag => r#"a macro definition tag (`{% macro my_macro() %}`"#.to_string(),
                     Rule::extends_tag => r#"an extends tag (`{% extends "myfile" %}`"#.to_string(),
                     Rule::template => "a template".to_string(),
+                    Rule::break_tag => "a break tag".to_string(),
+                    Rule::continue_tag => "a continue tag".to_string(),
                 }
             });
             bail!("{}", fancy_e)

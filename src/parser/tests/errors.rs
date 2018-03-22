@@ -325,3 +325,27 @@ fn invalid_test_argument() {
 fn unterminated_raw_tag() {
     assert_err_msg(r#"{% raw %}sd"#, &["1:12", "expected `{% endraw %}`"]);
 }
+
+#[test]
+fn invalid_break_outside_loop() {
+    assert_err_msg(
+        r#"{% break %}"#,
+        &[
+            "1:1",
+            "{% break %}",
+            "expected a template"
+        ],
+    );
+}
+
+#[test]
+fn invalid_continue_outside_loop() {
+    assert_err_msg(
+        r#"{% continue %}"#,
+        &[
+            "1:1",
+            "{% continue %}",
+            "expected a template"
+        ],
+    );
+}

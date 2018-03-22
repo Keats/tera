@@ -8,6 +8,13 @@ pub enum ForLoopKind {
     KeyValue,
 }
 
+#[derive(PartialEq, Debug)]
+pub enum ForLoopState {
+    Normal,
+    Break,
+    Continue,
+}
+
 // We need to have some data in the renderer for when we are in a ForLoop
 // For example, accessing the local variable would fail when
 // looking it up in the global context
@@ -25,6 +32,8 @@ pub struct ForLoop {
     pub kind: ForLoopKind,
     /// Values set using the {% set %} tag in forloops
     pub extra_values: Map<String, Value>,
+    /// Has the for loop encountered break or continue?
+    pub state: ForLoopState,
 }
 
 impl ForLoop {
@@ -40,6 +49,7 @@ impl ForLoop {
             values: for_values,
             kind: ForLoopKind::Value,
             extra_values: Map::new(),
+            state: ForLoopState::Normal,
         }
     }
 
@@ -56,12 +66,24 @@ impl ForLoop {
             values: for_values,
             kind: ForLoopKind::KeyValue,
             extra_values: Map::new(),
+            state: ForLoopState::Normal,
         }
     }
 
     #[inline]
     pub fn increment(&mut self) {
         self.current += 1;
+        self.state = ForLoopState::Normal;
+    }
+
+    #[inline]
+    pub fn break_loop(&mut self) {
+        self.state = ForLoopState::Break;
+    }
+
+    #[inline]
+    pub fn continue_loop(&mut self) {
+        self.state = ForLoopState::Continue;
     }
 
     #[inline]

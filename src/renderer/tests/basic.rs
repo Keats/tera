@@ -330,6 +330,24 @@ fn render_for() {
         ("{% for note in notes %}{{ note }}{% endfor %}", "123"),
         ("{% for note in notes | reverse %}{{ note }}{% endfor %}", "321"),
         ("{% for v in vectors %}{{ v.0 }}{% endfor %}", "01"),
+        // Loop control (`break` and `continue`)
+        // https://github.com/Keats/tera/issues/267
+        (
+            "{% for i in data %}{{ i }}{% if i == 2 %}{% break %}{% endif %}{% endfor %}",
+            "12"
+        ),
+        (
+            "{% for i in data %}{% if i == 2 %}{% continue %}{% endif %}{{ i }}{% endfor %}",
+            "13"
+        ),
+        (
+            "{% for v in vectors %}{% for i in v %}{% if i == 3 %}{% break %}{% endif %}{{ i }}{% endfor %}{% endfor %}",
+            "0147"
+        ),
+        (
+            "{% for v in vectors %}{% for i in v %}{% if i == 3 %}{% continue %}{% endif %}{{ i }}{% endfor %}{% endfor %}",
+            "06147"
+        ),
     ];
 
     for (input, expected) in inputs {

@@ -654,3 +654,41 @@ fn parse_if() {
         )
     );
 }
+
+#[test]
+fn parse_break() {
+    let ast = parse("{% for item in items %}{% break -%}{% endfor %}").unwrap();
+    let for_ws = WS::default();
+    assert_eq!(
+        ast[0],
+        Node::Forloop(
+            for_ws,
+            Forloop {
+                key: None,
+                value: "item".to_string(),
+                container: Expr::new(ExprVal::Ident("items".to_string())),
+                body: vec![Node::Break(WS {left:false, right:true})],
+            },
+            for_ws,
+        )
+    );
+}
+
+#[test]
+fn parse_continue() {
+    let ast = parse("{% for item in items %}{% continue -%}{% endfor %}").unwrap();
+    let for_ws = WS::default();
+    assert_eq!(
+        ast[0],
+        Node::Forloop(
+            for_ws,
+            Forloop {
+                key: None,
+                value: "item".to_string(),
+                container: Expr::new(ExprVal::Ident("items".to_string())),
+                body: vec![Node::Continue(WS {left:false, right:true})],
+            },
+            for_ws,
+        )
+    );
+}
