@@ -439,9 +439,7 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
             Rule::content
             | Rule::macro_content
             | Rule::block_content
-            | Rule::for_content
-            | Rule::macro_for_content
-            | Rule::block_for_content => {
+            | Rule::for_content => {
                 body.extend(parse_content(p));
             }
             Rule::endfilter_tag => for p2 in p.into_inner() {
@@ -570,9 +568,7 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
             Rule::content
             | Rule::macro_content
             | Rule::block_content
-            | Rule::for_content
-            | Rule::macro_for_content
-            | Rule::block_for_content => {
+            | Rule::for_content => {
                 body.extend(parse_content(p));
             }
             Rule::endfor_tag => for p2 in p.into_inner() {
@@ -667,12 +663,7 @@ fn parse_if(pair: Pair<Rule>) -> Node {
                     };
                 }
             }
-            Rule::content
-            | Rule::macro_content
-            | Rule::block_content
-            | Rule::for_content
-            | Rule::macro_for_content
-            | Rule::block_for_content => {
+            Rule::content | Rule::macro_content | Rule::block_content | Rule::for_content => {
                 current_body.extend(parse_content(p))
             }
             Rule::else_tag => {
@@ -734,17 +725,12 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             Rule::variable_tag => nodes.push(parse_variable_tag(p)),
             Rule::import_macro_tag => nodes.push(parse_import_macro(p)),
             Rule::macro_definition => nodes.push(parse_macro_definition(p)),
-            Rule::forloop | Rule::macro_forloop | Rule::block_forloop => {
-                nodes.push(parse_forloop(p))
-            },
+            Rule::forloop => nodes.push(parse_forloop(p)),
             Rule::break_tag => nodes.push(parse_break_tag(p)),
             Rule::continue_tag => nodes.push(parse_continue_tag(p)),
-            Rule::content_if
-            | Rule::macro_if
-            | Rule::block_if
-            | Rule::content_for_if
-            | Rule::macro_for_if
-            | Rule::block_for_if => nodes.push(parse_if(p)),
+            Rule::content_if | Rule::macro_if | Rule::block_if | Rule::for_if => {
+                nodes.push(parse_if(p))
+            },
             Rule::filter_section | Rule::macro_filter_section | Rule::block_filter_section => {
                 nodes.push(parse_filter_section(p))
             }
@@ -816,11 +802,11 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                         "a list of argument names with an optional default literal value: `id`, `key=1`".to_string()
                     }
                     Rule::endmacro_tag => "`{% endmacro %}`".to_string(),
-                    Rule::macro_content | Rule::macro_for_content => "the macro content".to_string(),
+                    Rule::macro_content => "the macro content".to_string(),
                     Rule::set_tag => "a `set` tag`".to_string(),
                     Rule::set_global_tag => "a `set_global` tag`".to_string(),
                     Rule::endif_tag => "a `endif` tag`".to_string(),
-                    Rule::block_content | Rule::content | Rule::block_for_content | Rule::for_content => {
+                    Rule::block_content | Rule::content | Rule::for_content => {
                         "some content".to_string()
                     },
                     Rule::text => "some text".to_string(),
@@ -841,23 +827,15 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     | Rule::filter_section
                     | Rule::block_filter_section
                     | Rule::macro_filter_section
-                    | Rule::for_filter_section
-                    | Rule::block_for_filter_section
-                    | Rule::macro_for_filter_section => {
+                    | Rule::for_filter_section => {
                         "a filter section (`{% filter something %}...{% endfilter %}`)".to_string()
                     }
-                    Rule::for_tag | Rule::forloop | Rule::block_forloop | Rule::macro_forloop => {
+                    Rule::for_tag | Rule::forloop => {
                         "a forloop (`{% for i in something %}...{% endfor %}".to_string()
                     },
                     Rule::endfilter_tag => "an endfilter tag (`{% endfilter %}`)".to_string(),
                     Rule::endfor_tag => "an endfor tag (`{% endfor %}`)".to_string(),
-                    Rule::if_tag
-                    | Rule::content_if
-                    | Rule::block_if
-                    | Rule::macro_if
-                    | Rule::content_for_if
-                    | Rule::block_for_if
-                    | Rule::macro_for_if => {
+                    Rule::if_tag | Rule::content_if | Rule::block_if | Rule::macro_if | Rule::for_if => {
                         "a `if` tag".to_string()
                     }
                     Rule::elif_tag => "an `elif` tag".to_string(),
