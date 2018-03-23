@@ -71,6 +71,11 @@ fn render_variable_block_ident() {
         ("{{ \" html \" | upper | trim }}", "HTML"),
         ("{{ 'html' }}", "html"),
         ("{{ `html` }}", "html"),
+        // https://github.com/Keats/tera/issues/273
+        (
+            r#"{{ 'hangar new "Will Smoth <will_s@example.com>"' | safe }}"#,
+            r#"hangar new "Will Smoth <will_s@example.com>""#
+        ),
         ("{{ malicious | safe }}", "<html>"),
         ("{{ malicious | upper }}", "&LT;HTML&GT;"), // everything upper eh
         ("{{ malicious | upper | safe }}", "&LT;HTML&GT;"),

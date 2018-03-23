@@ -10,11 +10,11 @@ float = @{
     )
 }
 // matches anything between 2 double quotes
-double_quoted_string  = @{ "\"" ~ ( ! ("\"") ~ any )* ~ "\""}
+double_quoted_string  = @{ "\"" ~ (!("\"") ~ any)* ~ "\""}
 // matches anything between 2 single quotes
-single_quoted_string  = @{ "\'" ~ ( ! ("\'") ~ any )* ~ "\'"}
+single_quoted_string  = @{ "\'" ~ (!("\'") ~ any)* ~ "\'"}
 // matches anything between 2 backquotes\backticks
-backquoted_quoted_string  = @{ "`" ~ ( ! ("`") ~ any )* ~ "`"}
+backquoted_quoted_string  = @{ "`" ~ (!("`") ~ any)* ~ "`"}
 
 string = @{
     double_quoted_string |

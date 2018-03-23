@@ -483,7 +483,9 @@ fn lex_variable_tag() {
     let inputs = vec![
         "{{ a }}",
         "{{ a | caps }}",
-        "{{ \"hey\" }}",
+        r#"{{ "hey" }}"#,
+        r#"{{ 'hey' }}"#,
+        r#"{{ `hey` }}"#,
         "{{ fn_call() }}",
         "{{ macros::fn() }}",
         "{{ name + 42 }}",
