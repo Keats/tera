@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.11.6 (unreleased)
+## 0.11.6 (2018-03-25)
 
 - Add `break` and `continue` to forloops
 - Fix strings delimited by single quote and backtick not removing the delimiters
