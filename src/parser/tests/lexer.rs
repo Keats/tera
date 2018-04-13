@@ -104,6 +104,22 @@ fn lex_dotted_square_bracket_ident() {
 }
 
 #[test]
+fn lex_array() {
+    let inputs = vec![
+        "[]",
+        "[1,2,3]",
+        "[1, 2,3,]",
+        "[1 + 1, 2,3 * 2,]",
+        "[1,true,'string', 0.5, hello(), macros::hey(arg=1)]",
+    ];
+
+    for i in inputs {
+        assert_lex_rule!(Rule::array, i);
+    }
+}
+
+
+#[test]
 fn lex_basic_expr() {
     let inputs = vec![
         "admin",
@@ -255,6 +271,8 @@ fn lex_kwarg() {
     let inputs = vec![
         "hello=1",
         "hello=1+1",
+        "hello=[]",
+        "hello=[true, false]",
         "hello1=true",
         "hello=name",
         "hello=name|filter",
@@ -417,6 +435,8 @@ fn lex_for_tag() {
         "{% for a, b in object -%}",
         "{% for a, b in fn_call() %}",
         "{% for a in fn_call() %}",
+        "{% for a in [] %}",
+        "{% for a in [1,2,3,] %}",
         "{% for a,b in fn_call(with_args=true, name=name) %}",
         "{% for client in clients | slice(start=1, end=9) %}",
     ];
@@ -451,6 +471,7 @@ fn lex_set_tag() {
     let inputs = vec![
         "{%- set a = true %}",
         "{% set a = object -%}",
+        "{% set a = [1,2,3, 'hey'] -%}",
         "{% set a = fn_call() %}",
         "{% set a = fn_call(with_args=true, name=name) %}",
         "{% set a = macros::fn_call(with_args=true, name=name) %}",
@@ -467,6 +488,7 @@ fn lex_set_tag() {
 fn lex_set_global_tag() {
     let inputs = vec![
         "{% set_global a = 1 %}",
+        "{% set_global a = [1,2,3, 'hey'] -%}",
         "{% set_global a = another_var %}",
         "{% set_global a = another_var | filter %}",
         "{% set_global a = var +1 >= 2%}",

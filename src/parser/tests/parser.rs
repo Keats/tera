@@ -324,6 +324,30 @@ fn parse_variable_tag_macro_call() {
     );
 }
 
+// smoke test for array in kwargs
+#[test]
+fn parse_variable_tag_macro_call_with_array() {
+    let ast = parse("{{ macros::get_time(some=[1, 2]) }}").unwrap();
+    let mut args = HashMap::new();
+    args.insert(
+        "some".to_string(),
+        Expr::new(ExprVal::Array(vec![
+            Expr::new(ExprVal::Int(1)),
+            Expr::new(ExprVal::Int(2)),
+        ]))
+    );
+
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::new(ExprVal::MacroCall(
+            MacroCall {
+                namespace: "macros".to_string(),
+                name: "get_time".to_string(),
+                args,
+            }
+        )))
+    );
+}
 #[test]
 fn parse_variable_tag_macro_call_with_filter() {
     let ast = parse("{{ macros::get_time(some=1) | round }}").unwrap();
@@ -438,6 +462,26 @@ fn parse_set_tag_fn_call() {
                     name: "utcnow".to_string(),
                     args: HashMap::new(),
                 })),
+                global: false,
+            },
+        )
+    );
+}
+
+#[test]
+fn parse_set_array() {
+    let ast = parse("{% set hello = [1, true, 'hello'] %}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::Set(
+            WS::default(),
+            Set {
+                key: "hello".to_string(),
+                value: Expr::new(ExprVal::Array(vec![
+                    Expr::new(ExprVal::Int(1)),
+                    Expr::new(ExprVal::Bool(true)),
+                    Expr::new(ExprVal::String("hello".to_string())),
+                ])),
                 global: false,
             },
         )
@@ -608,6 +652,31 @@ fn parse_key_value_forloop() {
                         args: HashMap::new(),
                     }
                 )),
+                body: vec![Node::Text("A".to_string())],
+            },
+            end_ws,
+        )
+    );
+}
+
+#[test]
+fn parse_value_forloop_array() {
+    let ast = parse("{% for item in [1,2,] %}A{%- endfor %}").unwrap();
+    let start_ws = WS::default();
+    let mut end_ws = WS::default();
+    end_ws.left = true;
+
+    assert_eq!(
+        ast[0],
+        Node::Forloop(
+            start_ws,
+            Forloop {
+                key: None,
+                value: "item".to_string(),
+                container: Expr::new(ExprVal::Array(vec![
+                    Expr::new(ExprVal::Int(1)),
+                    Expr::new(ExprVal::Int(2)),
+                ])),
                 body: vec![Node::Text("A".to_string())],
             },
             end_ws,

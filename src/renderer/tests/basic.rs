@@ -231,6 +231,7 @@ fn add_set_values_in_context() {
         ("{% set i = admin or true %}{{ i }}", "true"),
         ("{% set i = admin and num > 0 %}{{ i }}", "true"),
         ("{% set i = 0 / 0 %}{{ i }}", "NaN"),
+        ("{% set i = [1,2] %}{{ i }}", "[1, 2]"),
     ];
 
     for (input, expected) in inputs {
@@ -368,6 +369,10 @@ fn render_for() {
         (
             "{% for v in vectors %}{% for i in v %}{% if i == 3 %}{% continue %}{% endif %}{{ i }}{% endfor %}{% endfor %}",
             "06147"
+        ),
+        (
+            "{% for a in [1, true, 1.1, 'hello'] %}{{a}}{% endfor %}",
+            "1true1.1hello"
         ),
     ];
 

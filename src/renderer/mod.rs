@@ -451,10 +451,17 @@ impl<'a> Renderer<'a> {
         let mut needs_escape = false;
 
         let mut res = match expr.val {
+            ExprVal::Array(ref arr) => {
+                let mut vals = vec![];
+                for v in arr {
+                    vals.push(self.eval_expression(v)?);
+                }
+                Value::Array(vals)
+            },
             ExprVal::String(ref val) => {
                 needs_escape = true;
                 Value::String(val.to_string())
-            }
+            },
             ExprVal::Int(val) => Value::Number(val.into()),
             ExprVal::Float(val) => Value::Number(Number::from_f64(val).unwrap()),
             ExprVal::Bool(val) => Value::Bool(val),
@@ -551,6 +558,7 @@ impl<'a> Renderer<'a> {
         let container_name = match node.container.val {
             ExprVal::Ident(ref ident) => ident,
             ExprVal::FunctionCall(FunctionCall { ref name, .. }) => name,
+            ExprVal::Array(_) => "an array literal",
             _ => bail!(
                 "Forloop containers have to be an ident or a function call (tried to iterate on '{:?}')",
                 node.container.val,

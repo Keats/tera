@@ -63,6 +63,7 @@ fn parse_kwarg(pair: Pair<Rule>) -> (String, Expr) {
         match p.as_rule() {
             Rule::ident => name = Some(p.into_span().as_str().to_string()),
             Rule::logic_expr => val = Some(parse_logic_expr(p)),
+            Rule::array => val = Some(Expr::new(parse_array(p))),
             _ => unreachable!("{:?} not supposed to get there (parse_kwarg)!", p.as_rule()),
         };
     }
@@ -300,6 +301,21 @@ fn parse_logic_expr(pair: Pair<Rule>) -> Expr {
     }
 }
 
+fn parse_array(pair: Pair<Rule>) -> ExprVal {
+    let mut vals = vec![];
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::basic_expr_filter => {
+                vals.push(parse_basic_expr_with_filters(p));
+            },
+            _ => unreachable!("Got {:?} in parse_array", p.as_rule()),
+        }
+    }
+
+    ExprVal::Array(vals)
+}
+
 fn parse_macro_call(pair: Pair<Rule>) -> MacroCall {
     let mut namespace = None;
     let mut name = None;
@@ -389,6 +405,7 @@ fn parse_set_tag(pair: Pair<Rule>, global: bool) -> Node {
             }
             Rule::ident => key = Some(p.as_str().to_string()),
             Rule::logic_expr => expr = Some(parse_logic_expr(p)),
+            Rule::array => expr = Some(Expr::new(parse_array(p))),
             _ => unreachable!("unexpected {:?} rule in parse_set_tag", p.as_rule()),
         }
     }
@@ -565,7 +582,8 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
                         Rule::ident => idents.push(p2.as_str().to_string()),
                         Rule::basic_expr_filter => {
                             container = Some(parse_basic_expr_with_filters(p2));
-                        }
+                        },
+                        Rule::array => container = Some(Expr::new(parse_array(p2))),
                         _ => unreachable!(),
                     };
                 }
@@ -777,6 +795,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                         "a string".to_string()
                     }
                     Rule::all_chars => "a character".to_string(),
+                    Rule::array => "an array of values".to_string(),
                     Rule::basic_val => "a value".to_string(),
                     Rule::basic_op => "a mathematical operator".to_string(),
                     Rule::comparison_op => "a comparison operator".to_string(),

@@ -124,6 +124,9 @@ pub enum ExprVal {
     Test(Test),
     MacroCall(MacroCall),
     FunctionCall(FunctionCall),
+    // A vec of Expr, not ExprVal since filters are allowed
+    // on values inside arrays
+    Array(Vec<Expr>),
 }
 
 #[derive(Clone, Debug, PartialEq)]

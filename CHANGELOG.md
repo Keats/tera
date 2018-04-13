@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.7 (unreleased)
+
+- Add array literal instantiation from inside Tera for set, set_global, kwargs
+and for loop container
+
 ## 0.11.6 (2018-03-25)
 
 - Add `break` and `continue` to forloops
@@ -262,7 +267,7 @@ Thanks to @SergioBenitez and @andrelmartins for the contributions!
 - Added filters, see README for current list
 - Added tests, only `defined` for now
 
-Thanks to @SergioBenitez, @orhanbalci, @foophoof and @Peternator7 for the 
+Thanks to @SergioBenitez, @orhanbalci, @foophoof and @Peternator7 for the
 contribution!
 
 ## 0.1.3 (2016/08/14)
