@@ -543,6 +543,9 @@ Example: `{{ value | striptags}}`
 
 If value is "<b>Joel</b>", the output will be "Joel".
 
+Note that if the template you using it in is automatically escaped, you will need to call the `safe` filter
+before `striptags`.
+
 ### first
 Returns the first element of an array.
 If the array is empty, returns empty string.
