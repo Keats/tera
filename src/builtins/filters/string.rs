@@ -44,7 +44,7 @@ pub fn truncate(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     };
 
     // Nothing to truncate?
-    if length > s.len() {
+    if length >= s.len() {
         return Ok(to_value(&s).unwrap());
     }
 
