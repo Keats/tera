@@ -1,9 +1,10 @@
 # Changelog
 
-## 0.11.7 (unreleased)
+## 0.11.7 (2018-04-24)
 
 - Add array literal instantiation from inside Tera for set, set_global, kwargs
 and for loop container
+- Fix panic on truncate filter
 
 ## 0.11.6 (2018-03-25)
 
