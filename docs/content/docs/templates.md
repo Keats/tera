@@ -21,6 +21,7 @@ Tera has a few literals that can be used:
 - integers
 - floats
 - strings: text delimited by `""`, `''` or backticks
+- arrays: a list of literals and/or idents by `[` and `]` and comma separated (trailing comma allowed)
 
 ## Variables
 
@@ -40,7 +41,7 @@ Specific members of an array or tuple are accessed by using the `.i` notation, w
 A more powerful alternative to (`.`) is to use square brackets (`[ ]`).
 Variables can be rendering using the notation `{{product['name']}}` or `{{product["name"]}}`.
 
-If the item is not in quotes it will be treated as a variable. 
+If the item is not in quotes it will be treated as a variable.
 Assuming you have the following objects in your context `product = Product{ name: "Fred" }`
 and `my_field = "name"`, calling `{{product[my_field]}}` will resolve to: `{{product.name}}`.
 
@@ -84,11 +85,11 @@ The priority of operations is the following, from lowest to highest:
 
 ## Filters
 
-You can modify variables using **filters**. 
-Filters are separated from the variable by a pipe symbol (|) and may have named arguments in parentheses. 
+You can modify variables using **filters**.
+Filters are separated from the variable by a pipe symbol (|) and may have named arguments in parentheses.
 Multiple filters can be chained: the output of one filter is applied to the next.
 
-For example, `{{ name | lower | replace(from="doctor", to="Dr.") }}` will take a variable called name, make it lowercase and then replace instances of `doctor` by `Dr.`. 
+For example, `{{ name | lower | replace(from="doctor", to="Dr.") }}` will take a variable called name, make it lowercase and then replace instances of `doctor` by `Dr.`.
 It is equivalent to `replace(lower(name), from="doctor", to="Dr.")` if we were to look at it as functions.
 
 Calling filters on a incorrect type like trying to capitalize an array or using invalid types for arguments will result in a error.
@@ -127,8 +128,8 @@ This example transforms the text `Hello` in all upper-case (`HELLO`).
 
 ## Tests
 
-Tests can be used against an expression to check some condition on it and 
-are made in `if` blocks using the `is` keyword. 
+Tests can be used against an expression to check some condition on it and
+are made in `if` blocks using the `is` keyword.
 For example, you would write the following to test if an expression is odd:
 
 ```jinja2
@@ -149,7 +150,7 @@ Tera has many [built-in tests](./docs/templates.md#built-in-tests) that you can 
 Global functions are Rust code that return a `Result<Value>` from the given params.
 
 Quite often, global functions will need to capture some external variables, such as a `url_for` global function needing
-the list of URLs for example. 
+the list of URLs for example.
 To make that work, the type of `GlobalFn` is a boxed closure: `Box<Fn(HashMap<String, Value>) -> Result<Value> + Sync + Send>`.
 
 Here's an example on how to implement a very basic global function:
@@ -187,7 +188,7 @@ Currently global functions can be called in two places in templates:
 Tera comes with some [built-in global functions](./docs/templates.md#built-in-global-functions).
 
 ## Assignments
-You can assign values to variables during the rendering. 
+You can assign values to variables during the rendering.
 Assignments in for loops and macros are scoped to their context but
 assignments outside of those will be set in the global context.
 
@@ -197,6 +198,7 @@ assignments outside of those will be set in the global context.
 {% set my_var = some_var %}
 {% set my_var = macros::some_macro() %}
 {% set my_var = global_fn() %}
+{% set my_var = [1, true, some_var | round] %}
 ```
 
 If you want to assign a value in the global context while in a forloop, you can use `set_global`:
@@ -207,6 +209,7 @@ If you want to assign a value in the global context while in a forloop, you can 
 {% set_global my_var = some_var %}
 {% set_global my_var = macros::some_macro() %}
 {% set_global my_var = global_fn() %}
+{% set_global my_var = [1, true, some_var | round] %}
 ```
 
 ## Comments
@@ -275,6 +278,15 @@ If you are iterating on an array, you can also apply filters to the container:
 {% endfor %}
 ```
 
+Lastly, you can iterate on array literals:
+
+```jinja2
+{% for a in [1,2,3,] %}
+  {{a}}
+{% endfor %}
+```
+
+
 ### Loop Controls
 
 Within a loop, `break` and `continue` may be used to control iteration.
@@ -304,17 +316,17 @@ You can include a template to be rendered using the current context with the `in
 {% include "included.html" %}
 ```
 
-Tera doesn't offer passing a custom context to the `include` tag. 
+Tera doesn't offer passing a custom context to the `include` tag.
 If you want to do that, use [macros](./docs/templates.md#macros).
 
 ## Inheritance
 
-Tera uses the same kind of inheritance as Jinja2 and Django templates: 
+Tera uses the same kind of inheritance as Jinja2 and Django templates:
 you define a base template and extends it in child templates through blocks.
 There can be multiple levels of inheritance (i.e. A extends B that extends C).
 
 #### Base template
-A base template typically contains the basic document structure as well as 
+A base template typically contains the basic document structure as well as
 several `blocks` that can have content.
 
 For example, here's a `base.html` almost copied from the Jinja2 documentation:
@@ -340,7 +352,7 @@ For example, here's a `base.html` almost copied from the Jinja2 documentation:
 ```
 The only difference with Jinja2 being that the `endblock` tags have to be named.
 
-This `base.html` template defines 4 `block` tag that child templates can override. 
+This `base.html` template defines 4 `block` tag that child templates can override.
 The `head` and `footer` block have some content already which will be rendered if they are not overridden.
 
 #### Child template
@@ -386,7 +398,7 @@ The block `ending` is nested in the `hey` block. Rendering the `child` template 
 
 - Find the first base template: `grandparent`
 - See `hey` block in it and checks if it is in `child` and `parent` template
-- It is in `child` so we render it, it contains a `super()` call so we render the `hey` block from `parent`, 
+- It is in `child` so we render it, it contains a `super()` call so we render the `hey` block from `parent`,
 which also contains a `super()` so we render the `hey` block of the `grandparent` template as well
 - See `ending` block in `child`, render it and also renders the `ending` block of `parent` as there is a `super()`
 
@@ -488,7 +500,7 @@ Returns number of words in a string
 Returns the string with all its character lowercased apart from the first char which is uppercased.
 
 ### replace
-Takes 2 mandatory string named arguments: `from` and `to`. It will return a string with all instances of 
+Takes 2 mandatory string named arguments: `from` and `to`. It will return a string with all instances of
 the `from` string with the `to` string.
 
 Example: `{{ name | replace(from="Robert", to="Bob")}}`
@@ -496,12 +508,12 @@ Example: `{{ name | replace(from="Robert", to="Bob")}}`
 ### addslashes
 Adds slashes before quotes.
 
-Example: `{{ value | addslashes }}` 
+Example: `{{ value | addslashes }}`
 
 If value is "I'm using Tera", the output will be "I\'m using Tera".
 
 ### slugify
-Transform a string into ASCII, lowercase it, trim it, converts spaces to hyphens and 
+Transform a string into ASCII, lowercase it, trim it, converts spaces to hyphens and
 remove all characters that are not numbers, lowercase letters or hyphens.
 
 Example: `{{ value | slugify }}`
@@ -530,6 +542,9 @@ Tries to remove HTML tags from input. Does not guarantee well formed output if i
 Example: `{{ value | striptags}}`
 
 If value is "<b>Joel</b>", the output will be "Joel".
+
+Note that if the template you using it in is automatically escaped, you will need to call the `safe` filter
+before `striptags`.
 
 ### first
 Returns the first element of an array.
@@ -612,8 +627,8 @@ Example: `{{ value | urlencode }}`
 
 If value is `/foo?a=b&c=d`, the output will be `/foo%3Fa%3Db%26c%3Dd`.
 
-Takes an optional argument of characters that shouldn't be percent-encoded (`/` by default). 
-So, to encode slashes as well, you can do `{{ value | urlencode(safe="") }}`. 
+Takes an optional argument of characters that shouldn't be percent-encoded (`/` by default).
+So, to encode slashes as well, you can do `{{ value | urlencode(safe="") }}`.
 
 ### pluralize
 Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
@@ -638,7 +653,7 @@ Example: `{{ num | filesizeformat }}`
 
 ### date
 Parse a timestamp into a date(time) string. Defaults to `YYYY-MM-DD` format.
-Time formatting syntax is inspired from strftime and a full reference is available 
+Time formatting syntax is inspired from strftime and a full reference is available
 on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html).
 
 Example: `{{ ts | date }} {{ ts | date(format="%Y-%m-%d %H:%M") }}`
@@ -751,7 +766,7 @@ Tera comes with some built-in global functions.
 
 ### range
 
-Returns an array of integers created using the arguments given. 
+Returns an array of integers created using the arguments given.
 There are 3 arguments, all integers:
 
 - `end`: where to stop, mandatory
