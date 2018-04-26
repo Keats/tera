@@ -447,6 +447,23 @@ impl<'a> Renderer<'a> {
         filter_fn(value, args)
     }
 
+    fn eval_concat(&mut self, expr: &ExprVal) -> Result<String> {
+        let res = match *expr {
+            ExprVal::Concat(Concat { ref lhs, ref rhs }) => {
+                let l = self.eval_expression(lhs)?;
+                let r = self.eval_expression(rhs)?;
+
+                let mut lr = l.render();
+                lr.push_str(&r.render());
+
+                lr
+            },
+            _ => unreachable!("unimplemented"),
+        };
+
+        Ok(res)
+    }
+
     fn eval_expression(&mut self, expr: &Expr) -> Result<Value> {
         let mut needs_escape = false;
 
@@ -502,6 +519,10 @@ impl<'a> Renderer<'a> {
                     Some(x) => Value::Number(x),
                     None => Value::String("NaN".to_string()),
                 }
+            }
+            ExprVal::Concat(_) => {
+                let result = self.eval_concat(&expr.val)?;
+                Value::String(result)
             }
             _ => unreachable!("{:?}", expr),
         };

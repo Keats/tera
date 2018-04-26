@@ -112,7 +112,7 @@ pub struct LogicExpr {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct StringConcat {
+pub struct Concat {
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>
 }
@@ -121,7 +121,7 @@ pub struct StringConcat {
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExprVal {
     String(String),
-    StringConcat(StringConcat),
+    Concat(Concat),
     Int(i64),
     Float(f64),
     Bool(bool),

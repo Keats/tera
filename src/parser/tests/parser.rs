@@ -128,6 +128,67 @@ fn parse_variable_tag_lit_math_expression() {
 }
 
 #[test]
+fn parse_variable_tag_concat_strings() {
+    let ast = parse("{{ \"a\" ~ \"b\" }}").unwrap();
+
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::new(ExprVal::Concat(Concat {
+            lhs: Box::new(Expr::new(ExprVal::String("a".to_string()))),
+            rhs: Box::new(Expr::new(ExprVal::String("b".to_string()))),
+        }))),
+    );
+}
+
+#[test]
+fn parse_variable_tag_concat_ident_and_string() {
+    let ast = parse("{{ a ~ \"b\" }}").unwrap();
+
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::new(ExprVal::Concat(Concat {
+            lhs: Box::new(Expr::new(ExprVal::Ident("a".to_string()))),
+            rhs: Box::new(Expr::new(ExprVal::String("b".to_string()))),
+        }))),
+    );
+}
+
+#[test]
+fn parse_variable_tag_concat_ident_and_string_with_filter() {
+    let ast = parse("{{ a ~ \"b\" | trim }}").unwrap();
+
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::with_filters(
+            ExprVal::Concat(Concat {
+                lhs: Box::new(Expr::new(ExprVal::Ident("a".to_string()))),
+                rhs: Box::new(Expr::new(ExprVal::String("b".to_string()))),
+            }),
+            vec![
+                FunctionCall { name: "trim".to_string(), args: HashMap::new() },
+            ],
+        )),
+    );
+}
+
+#[test]
+fn parse_variable_tag_concat_string_and_math() {
+    let ast = parse("{{ \"a\" ~ 1 + 2 }}").unwrap();
+
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::new(ExprVal::Concat(Concat {
+            lhs: Box::new(Expr::new(ExprVal::String("a".to_string()))),
+            rhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                lhs: Box::new(Expr::new(ExprVal::Int(1))),
+                operator: MathOperator::Add,
+                rhs: Box::new(Expr::new(ExprVal::Int(2))),
+            }))),
+        }))),
+    );
+}
+
+#[test]
 fn parse_variable_tag_lit_math_expression_with_parentheses() {
     let ast = parse("{{ (count + 1) * 2.5 }}").unwrap();
     assert_eq!(
