@@ -511,7 +511,7 @@ impl<'a> Renderer<'a> {
             && needs_escape
             && res.is_string()
             && expr.filters.first().map_or(true, |f| f.name != "safe") {
-            res = to_value(escape_html(res.as_str().unwrap()))?;
+            res = to_value(self.tera.get_escape_fn()(res.as_str().unwrap()))?;
         }
 
         for filter in &expr.filters {
