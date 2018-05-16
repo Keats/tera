@@ -175,7 +175,9 @@ fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
         Rule::float => ExprVal::Float(pair.as_str().parse().unwrap()),
         Rule::boolean => match pair.as_str() {
             "true" => ExprVal::Bool(true),
+            "True" => ExprVal::Bool(true),
             "false" => ExprVal::Bool(false),
+            "False" => ExprVal::Bool(false),
             _ => unreachable!(),
         },
         Rule::test => ExprVal::Test(parse_test(pair)),

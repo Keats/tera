@@ -22,7 +22,7 @@ string = @{
     backquoted_quoted_string
 }
 
-boolean = { "true" | "false" }
+boolean = { "true" | "false" | "True" | "False" }
 
 // -----------------------------------------------
 
