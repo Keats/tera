@@ -675,22 +675,6 @@ mod tests {
     use context::Context;
     use serde_json::{Map as JsonObject, Value as JsonValue};
 
-    fn escape_c_string(input: &str) -> String {
-        let mut output = String::with_capacity(input.len() * 2);
-        for c in input.chars() {
-            match c {
-                '\'' => output.push_str("\\'"),
-                '\"' => output.push_str("\\\""),
-                '\\' => output.push_str("\\\\"),
-                '\n' => output.push_str("\\n"),
-                '\r' => output.push_str("\\r"),
-                '\t' => output.push_str("\\t"),
-                _ => output.push(c),
-            }
-        }
-        output
-    }
-
     #[test]
     fn test_get_inheritance_chain() {
         let mut tera = Tera::default();
@@ -822,6 +806,21 @@ mod tests {
 
     #[test]
     fn test_set_escape_function() {
+        let escape_c_string: super::EscapeFn = |input| {
+            let mut output = String::with_capacity(input.len() * 2);
+            for c in input.chars() {
+                match c {
+                    '\'' => output.push_str("\\'"),
+                    '\"' => output.push_str("\\\""),
+                    '\\' => output.push_str("\\\\"),
+                    '\n' => output.push_str("\\n"),
+                    '\r' => output.push_str("\\r"),
+                    '\t' => output.push_str("\\t"),
+                    _ => output.push(c),
+                }
+            }
+            output
+        };
         let mut tera = Tera::default();
         tera.add_raw_template("foo", "\"{{ content }}\"").unwrap();
         tera.autoescape_on(vec!["foo"]);
@@ -834,10 +833,11 @@ mod tests {
 
     #[test]
     fn test_reset_escape_function() {
+        let no_escape: super::EscapeFn = |input| { input.to_string() };
         let mut tera = Tera::default();
         tera.add_raw_template("foo", "{{ content }}").unwrap();
         tera.autoescape_on(vec!["foo"]);
-        tera.set_escape_fn(escape_c_string);
+        tera.set_escape_fn(no_escape);
         tera.reset_escape_fn();
         let mut context = Context::new();
         context.add("content", &"Hello\n\'world\"!");
