@@ -24,7 +24,11 @@ pub use self::whitespace::remove_whitespace;
 use self::ast::*;
 
 lazy_static! {
-    static ref MATH_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
+    static ref COMBINE_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
+        // Concat
+        // ~
+        Operator::new(Rule::op_tilde, Assoc::Left),
+        // Math
         // +, -
         Operator::new(Rule::op_plus, Assoc::Left) | Operator::new(Rule::op_minus, Assoc::Left),
         // *, /, %
@@ -156,18 +160,28 @@ fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
     let primary = |pair| parse_basic_expression(pair);
 
     let infix = |lhs: ExprVal, op: Pair<Rule>, rhs: ExprVal| {
-        ExprVal::Math(MathExpr {
-            lhs: Box::new(Expr::new(lhs)),
-            operator: match op.as_rule() {
-                Rule::op_plus => MathOperator::Add,
-                Rule::op_minus => MathOperator::Sub,
-                Rule::op_times => MathOperator::Mul,
-                Rule::op_slash => MathOperator::Div,
-                Rule::op_modulo => MathOperator::Modulo,
-                _ => unreachable!(),
+        match op.as_rule() {
+            Rule::op_tilde => {
+                ExprVal::Concat(Concat {
+                    lhs: Box::new(Expr::new(lhs)),
+                    rhs: Box::new(Expr::new(rhs)),
+                })
             },
-            rhs: Box::new(Expr::new(rhs)),
-        })
+            _ => {
+                ExprVal::Math(MathExpr {
+                    lhs: Box::new(Expr::new(lhs)),
+                    operator: match op.as_rule() {
+                        Rule::op_plus => MathOperator::Add,
+                        Rule::op_minus => MathOperator::Sub,
+                        Rule::op_times => MathOperator::Mul,
+                        Rule::op_slash => MathOperator::Div,
+                        Rule::op_modulo => MathOperator::Modulo,
+                        _ => unreachable!(),
+                    },
+                    rhs: Box::new(Expr::new(rhs)),
+                })
+            }
+        }
     };
 
     match pair.as_rule() {
@@ -183,7 +197,7 @@ fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
         Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)),
         Rule::string => ExprVal::String(replace_string_markers(pair.as_str())),
         Rule::dotted_square_bracket_ident => ExprVal::Ident(pair.as_str().to_string()),
-        Rule::basic_expr => MATH_CLIMBER.climb(pair.into_inner(), primary, infix),
+        Rule::basic_expr => COMBINE_CLIMBER.climb(pair.into_inner(), primary, infix),
         _ => unreachable!("Got {:?} in parse_basic_expression", pair.as_rule()),
     }
 }
@@ -225,7 +239,7 @@ fn parse_comparison_val(pair: Pair<Rule>) -> Expr {
 
     match pair.as_rule() {
         Rule::basic_expr_filter => parse_basic_expr_with_filters(pair),
-        Rule::comparison_val => MATH_CLIMBER.climb(pair.into_inner(), primary, infix),
+        Rule::comparison_val => COMBINE_CLIMBER.climb(pair.into_inner(), primary, infix),
         _ => unreachable!("Got {:?} in parse_comparison_val", pair.as_rule()),
     }
 }
@@ -826,6 +840,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::op_times => "`*`".to_string(),
                     Rule::op_slash => "`/`".to_string(),
                     Rule::op_modulo => "`%`".to_string(),
+                    Rule::op_tilde => "`~`".to_string(),
                     Rule::filter => "a filter".to_string(),
                     Rule::test => "a test".to_string(),
                     Rule::test_call => "a test call".to_string(),
