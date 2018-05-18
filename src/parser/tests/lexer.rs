@@ -17,6 +17,14 @@ macro_rules! assert_lex_rule {
 }
 
 #[test]
+fn lex_boolean() {
+    let inputs = vec!["true", "false", "True", "False"];
+    for i in inputs {
+        assert_lex_rule!(Rule::boolean, i);
+    }
+}
+
+#[test]
 fn lex_int() {
     let inputs = vec!["-10", "0", "100", "250000"];
     for i in inputs {
