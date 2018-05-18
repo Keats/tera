@@ -536,6 +536,10 @@ the `length` argument, the string is returned as is.
 
 Example: `{{ value | truncate(length=10) }}`
 
+By default, the filter will add an ellipsis at the end if the text was truncated. You can
+change the string appended by setting the `end` argument.
+For example, `{{ value | truncate(length=10, end="") }}` will not append anything.
+
 ### striptags
 Tries to remove HTML tags from input. Does not guarantee well formed output if input is not valid HTML.
 
