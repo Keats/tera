@@ -14,6 +14,10 @@ use builtins::testers::{self, TesterFn};
 use builtins::global_functions::{self, GlobalFn};
 use errors::{Result, ResultExt};
 use renderer::Renderer;
+use utils::escape_html;
+
+/// The escape function type definition
+pub type EscapeFn = fn(&str) -> String;
 
 /// The main point of interaction in this library.
 pub struct Tera {
@@ -32,6 +36,8 @@ pub struct Tera {
     // Defaults to [".html", ".htm", ".xml"]
     #[doc(hidden)]
     pub autoescape_suffixes: Vec<&'static str>,
+    #[doc(hidden)]
+    escape_fn: EscapeFn,
 }
 
 impl Tera {
@@ -47,6 +53,7 @@ impl Tera {
             global_functions: HashMap::new(),
             testers: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
+            escape_fn: escape_html,
         };
 
         tera.load_from_glob()?;
@@ -537,6 +544,35 @@ impl Tera {
         self.autoescape_suffixes = suffixes;
     }
 
+    #[doc(hidden)]
+    #[inline]
+    pub fn get_escape_fn(&self) -> &EscapeFn {
+        &self.escape_fn
+    }
+
+    /// Set user-defined function which applied to a rendered content.
+    ///
+    ///```rust,ignore
+    /// fn escape_c_string(input: &str) -> String { ... }
+    ///
+    /// // make valid C string literal
+    /// tera.set_escape_fn(escape_c_string);
+    /// tera.add_raw_template("foo", "\"{{ content }}\"").unwrap();
+    /// tera.autoescape_on(vec!["foo"]);
+    /// let mut context = Context::new();
+    /// context.add("content", &"Hello\n\'world\"!");
+    /// let result = tera.render("foo", &context).unwrap();
+    /// assert_eq!(result, r#""Hello\n\'world\"!""#);
+    ///```
+    pub fn set_escape_fn(&mut self, function: EscapeFn) {
+        self.escape_fn = function;
+    }
+
+    /// Reset escape function to default `tera::escape_html`.
+    pub fn reset_escape_fn(&mut self) {
+        self.escape_fn = escape_html;
+    }
+
     /// Re-parse all templates found in the glob given to Tera
     /// Use this when you are watching a directory and want to reload everything,
     /// for example when a file is added.
@@ -596,6 +632,7 @@ impl Default for Tera {
             testers: HashMap::new(),
             global_functions: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
+            escape_fn: escape_html,
         };
 
         tera.register_tera_filters();
@@ -765,6 +802,47 @@ mod tests {
         let result = Tera::one_off("{{ greeting }} world", &context, false).unwrap();
 
         assert_eq!(result, "<p> world");
+    }
+
+    #[test]
+    fn test_set_escape_function() {
+        let escape_c_string: super::EscapeFn = |input| {
+            let mut output = String::with_capacity(input.len() * 2);
+            for c in input.chars() {
+                match c {
+                    '\'' => output.push_str("\\'"),
+                    '\"' => output.push_str("\\\""),
+                    '\\' => output.push_str("\\\\"),
+                    '\n' => output.push_str("\\n"),
+                    '\r' => output.push_str("\\r"),
+                    '\t' => output.push_str("\\t"),
+                    _ => output.push(c),
+                }
+            }
+            output
+        };
+        let mut tera = Tera::default();
+        tera.add_raw_template("foo", "\"{{ content }}\"").unwrap();
+        tera.autoescape_on(vec!["foo"]);
+        tera.set_escape_fn(escape_c_string);
+        let mut context = Context::new();
+        context.add("content", &"Hello\n\'world\"!");
+        let result = tera.render("foo", &context).unwrap();
+        assert_eq!(result, r#""Hello\n\'world\"!""#);
+    }
+
+    #[test]
+    fn test_reset_escape_function() {
+        let no_escape: super::EscapeFn = |input| { input.to_string() };
+        let mut tera = Tera::default();
+        tera.add_raw_template("foo", "{{ content }}").unwrap();
+        tera.autoescape_on(vec!["foo"]);
+        tera.set_escape_fn(no_escape);
+        tera.reset_escape_fn();
+        let mut context = Context::new();
+        context.add("content", &"Hello\n\'world\"!");
+        let result = tera.render("foo", &context).unwrap();
+        assert_eq!(result, "Hello\n&#x27;world&quot;!");
     }
 
     #[test]
