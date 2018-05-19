@@ -5,6 +5,7 @@
 - Add `True` and `False` as boolean values to match Python
 - Allow user to define their own escape function, if you want to generate JSON for example
 - Add `end` argument to the `truncate` filter to override the default ellipsis
+- Add a `group_by` filter
 
 
 ## 0.11.7 (2018-04-24)

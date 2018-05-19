@@ -592,7 +592,7 @@ struct Name(String, String);
 
 struct Person {
     name: Name,
-    age: u32
+    age: u32,
 }
 ```
 
@@ -621,8 +621,39 @@ and `end` argument to define where to stop (exclusive, default to the length of 
 {% for i in my_arr | slice(start=1, end=5) %}
 ```
 
+### group_by
+Group an array using the required `attribute` argument. The filter takes an array and return
+a map where the keys are the values of the `attribute` stringified and the values are all elements of
+the initial array having that `attribute`. Values with missing `attribute` or where `attribute` is null
+will be discarded.
 
+Example:
 
+Given `posts` is an array of Post
+
+```rust
+struct Author {
+    name: String,
+};
+
+struct Person {
+    content: String,
+    year: u32,
+    author: Author,
+}
+```
+
+The `attribute` argument can be used to group posts by year:
+
+```jinja2
+{{ posts | sort(attribute="year") }}
+```
+
+or by author name:
+
+```jinja2
+{{ posts | sort(attribute="author.name") }}
+```
 
 ### urlencode
 Percent-encodes a string.
