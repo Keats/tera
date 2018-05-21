@@ -17,6 +17,14 @@ macro_rules! assert_lex_rule {
 }
 
 #[test]
+fn lex_boolean() {
+    let inputs = vec!["true", "false", "True", "False"];
+    for i in inputs {
+        assert_lex_rule!(Rule::boolean, i);
+    }
+}
+
+#[test]
 fn lex_int() {
     let inputs = vec!["-10", "0", "100", "250000"];
     for i in inputs {
@@ -100,6 +108,23 @@ fn lex_dotted_square_bracket_ident() {
     let invalid_inputs = vec![".", "9.w"];
     for i in invalid_inputs {
         assert!(TeraParser::parse(Rule::dotted_square_bracket_ident, i).is_err());
+    }
+}
+
+#[test]
+fn lex_string_concat() {
+    let inputs = vec![
+        "'hello' ~ `hey`",
+        "'hello' ~ ident",
+        "ident ~ 'hello'",
+        "'hello' ~ ident[0]",
+        r#"'hello' ~ "hey""#,
+        r#"a_string ~ " world""#,
+        "'hello' ~ ident ~ `ho`",
+    ];
+
+    for i in inputs {
+        assert_lex_rule!(Rule::string_concat, i);
     }
 }
 
@@ -514,6 +539,8 @@ fn lex_variable_tag() {
         "{{ loop.index + 1 }}",
         "{{ name is defined and name >= 42 }}",
         "{{ my_macros::macro1(hello=\"world\", foo=bar, hey=1+2) }}",
+        "{{ 'hello' ~ `ho` }}",
+        r#"{{ hello ~ `ho` }}"#,
     ];
 
     for i in inputs {

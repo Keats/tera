@@ -462,6 +462,23 @@ impl<'a> Renderer<'a> {
                 needs_escape = true;
                 Value::String(val.to_string())
             },
+            ExprVal::StringConcat(ref str_concat) => {
+                let mut res = String::new();
+                for s in &str_concat.values {
+                    match s {
+                        ExprVal::String(ref v) => res.push_str(&v),
+                        ExprVal::Ident(ref i) => {
+                            match self.lookup_ident(i)? {
+                                Value::String(v) => res.push_str(&v),
+                                _ => bail!("Tried to concat a value that is not a string from ident {}", i)
+                            }
+                        }
+                        _ => unreachable!()
+                    };
+                }
+
+                Value::String(res)
+            },
             ExprVal::Int(val) => Value::Number(val.into()),
             ExprVal::Float(val) => Value::Number(Number::from_f64(val).unwrap()),
             ExprVal::Bool(val) => Value::Bool(val),
@@ -511,7 +528,7 @@ impl<'a> Renderer<'a> {
             && needs_escape
             && res.is_string()
             && expr.filters.first().map_or(true, |f| f.name != "safe") {
-            res = to_value(escape_html(res.as_str().unwrap()))?;
+            res = to_value(self.tera.get_escape_fn()(res.as_str().unwrap()))?;
         }
 
         for filter in &expr.filters {

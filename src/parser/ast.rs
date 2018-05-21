@@ -111,6 +111,13 @@ pub struct LogicExpr {
     pub operator: LogicOperator,
 }
 
+
+/// Can only be a combination of string + ident or ident + ident
+#[derive(Clone, Debug, PartialEq)]
+pub struct StringConcat {
+    pub values: Vec<ExprVal>,
+}
+
 /// An expression is the node found in variable block, kwargs and conditions.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExprVal {
@@ -127,6 +134,7 @@ pub enum ExprVal {
     // A vec of Expr, not ExprVal since filters are allowed
     // on values inside arrays
     Array(Vec<Expr>),
+    StringConcat(StringConcat),
 }
 
 #[derive(Clone, Debug, PartialEq)]

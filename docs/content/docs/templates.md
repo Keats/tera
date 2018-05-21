@@ -83,6 +83,22 @@ The priority of operations is the following, from lowest to highest:
 - `or`: true if the left or right operands are true
 - `not`: negate a statement
 
+### String concatenation
+
+You can concatenate several strings/idents using the `~` operator
+
+```jinja2
+
+{{ "hello " ~ 'world' ~ `!` }}
+
+{{ an_ident ~ " and a string" ~ another_ident }}
+
+{{ an_ident ~ another_ident }}
+
+```
+
+An ident resolving to something other than a string will raise an error.
+
 ## Filters
 
 You can modify variables using **filters**.
@@ -536,6 +552,10 @@ the `length` argument, the string is returned as is.
 
 Example: `{{ value | truncate(length=10) }}`
 
+By default, the filter will add an ellipsis at the end if the text was truncated. You can
+change the string appended by setting the `end` argument.
+For example, `{{ value | truncate(length=10, end="") }}` will not append anything.
+
 ### striptags
 Tries to remove HTML tags from input. Does not guarantee well formed output if input is not valid HTML.
 
@@ -588,7 +608,7 @@ struct Name(String, String);
 
 struct Person {
     name: Name,
-    age: u32
+    age: u32,
 }
 ```
 
@@ -617,8 +637,39 @@ and `end` argument to define where to stop (exclusive, default to the length of 
 {% for i in my_arr | slice(start=1, end=5) %}
 ```
 
+### group_by
+Group an array using the required `attribute` argument. The filter takes an array and return
+a map where the keys are the values of the `attribute` stringified and the values are all elements of
+the initial array having that `attribute`. Values with missing `attribute` or where `attribute` is null
+will be discarded.
 
+Example:
 
+Given `posts` is an array of Post
+
+```rust
+struct Author {
+    name: String,
+};
+
+struct Person {
+    content: String,
+    year: u32,
+    author: Author,
+}
+```
+
+The `attribute` argument can be used to group posts by year:
+
+```jinja2
+{{ posts | sort(attribute="year") }}
+```
+
+or by author name:
+
+```jinja2
+{{ posts | sort(attribute="author.name") }}
+```
 
 ### urlencode
 Percent-encodes a string.
