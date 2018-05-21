@@ -447,3 +447,22 @@ fn default_filter_works() {
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
+
+#[test]
+fn can_concat_strings() {
+    let mut context = Context::new();
+    context.add("a_string", "hello");
+    context.add("another_string", "xXx");
+
+    let inputs = vec![
+        (r#"{{ "hello" ~ " world" }}"#, "hello world"),
+        (r#"{{ a_string ~ " world" }}"#, "hello world"),
+        (r#"{{ a_string ~ ' world ' ~ another_string }}"#, "hello world xXx"),
+        (r#"{{ a_string ~ another_string }}"#, "helloxXx"),
+    ];
+
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
+}
