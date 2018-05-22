@@ -465,7 +465,7 @@ impl<'a> Renderer<'a> {
             ExprVal::StringConcat(ref str_concat) => {
                 let mut res = String::new();
                 for s in &str_concat.values {
-                    match s {
+                    match *s {
                         ExprVal::String(ref v) => res.push_str(&v),
                         ExprVal::Ident(ref i) => {
                             match self.lookup_ident(i)? {
