@@ -112,6 +112,23 @@ fn lex_dotted_square_bracket_ident() {
 }
 
 #[test]
+fn lex_string_concat() {
+    let inputs = vec![
+        "'hello' ~ `hey`",
+        "'hello' ~ ident",
+        "ident ~ 'hello'",
+        "'hello' ~ ident[0]",
+        r#"'hello' ~ "hey""#,
+        r#"a_string ~ " world""#,
+        "'hello' ~ ident ~ `ho`",
+    ];
+
+    for i in inputs {
+        assert_lex_rule!(Rule::string_concat, i);
+    }
+}
+
+#[test]
 fn lex_array() {
     let inputs = vec![
         "[]",
@@ -522,6 +539,8 @@ fn lex_variable_tag() {
         "{{ loop.index + 1 }}",
         "{{ name is defined and name >= 42 }}",
         "{{ my_macros::macro1(hello=\"world\", foo=bar, hey=1+2) }}",
+        "{{ 'hello' ~ `ho` }}",
+        r#"{{ hello ~ `ho` }}"#,
     ];
 
     for i in inputs {

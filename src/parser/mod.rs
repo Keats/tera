@@ -152,6 +152,39 @@ fn parse_test(pair: Pair<Rule>) -> Test {
     Test { ident: ident.unwrap(), name: name.unwrap(), args }
 }
 
+fn parse_string_concat(pair: Pair<Rule>) -> ExprVal {
+    let mut values = vec![];
+    let mut current_str = String::new();
+
+    // Can we fold it into a simple string?
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::string => {
+                current_str.push_str(&replace_string_markers(p.as_str()));
+            },
+            Rule::dotted_square_bracket_ident => {
+                if !current_str.is_empty() {
+                    values.push(ExprVal::String(current_str));
+                    current_str = String::new();
+                }
+                values.push(ExprVal::Ident(p.as_str().to_string()))
+            },
+            _ => unreachable!("Got {:?} in parse_string_concat", p),
+        };
+    }
+
+    if values.is_empty() {
+        // we only got a string
+        return ExprVal::String(current_str);
+    }
+
+    if !current_str.is_empty() {
+        values.push(ExprVal::String(current_str));
+    }
+
+    ExprVal::StringConcat(StringConcat { values })
+}
+
 fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
     let primary = |pair| parse_basic_expression(pair);
 
@@ -185,6 +218,7 @@ fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
         Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)),
         Rule::string => ExprVal::String(replace_string_markers(pair.as_str())),
         Rule::dotted_square_bracket_ident => ExprVal::Ident(pair.as_str().to_string()),
+        Rule::string_concat => parse_string_concat(pair),
         Rule::basic_expr => MATH_CLIMBER.climb(pair.into_inner(), primary, infix),
         _ => unreachable!("Got {:?} in parse_basic_expression", pair.as_rule()),
     }
@@ -796,6 +830,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     | Rule::backquoted_quoted_string => {
                         "a string".to_string()
                     }
+                    Rule::string_concat => "a concatenation of strings".to_string(),
                     Rule::all_chars => "a character".to_string(),
                     Rule::array => "an array of values".to_string(),
                     Rule::basic_val => "a value".to_string(),

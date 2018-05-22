@@ -83,6 +83,22 @@ The priority of operations is the following, from lowest to highest:
 - `or`: true if the left or right operands are true
 - `not`: negate a statement
 
+### String concatenation
+
+You can concatenate several strings/idents using the `~` operator
+
+```jinja2
+
+{{ "hello " ~ 'world' ~ `!` }}
+
+{{ an_ident ~ " and a string" ~ another_ident }}
+
+{{ an_ident ~ another_ident }}
+
+```
+
+An ident resolving to something other than a string will raise an error.
+
 ## Filters
 
 You can modify variables using **filters**.
