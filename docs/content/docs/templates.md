@@ -823,3 +823,16 @@ There are 3 arguments, all integers:
 - `end`: where to stop, mandatory
 - `start`: where to start from, defaults to `0`
 - `step_by`: with what number do we increment, defaults to `1`
+
+
+### now
+
+Returns the local datetime as string or the timestamp as integer if requested.
+
+There are 2 arguments, both booleans:
+
+- `timestamp`: whether to return the timestamp instead of the datetime
+- `utc`: whether to return the UTC datetime instead of the local one
+
+Formatting is not built-in the global function but you can use the `date` filter like so `now() | date(format="%Y")` if you
+wanted to get the current year.
