@@ -87,7 +87,7 @@ pub fn group_by(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         None => bail!("The `group_by` filter has to have an `attribute` argument"),
     };
 
-    let mut grouped: HashMap<String, Vec<Value>> = HashMap::new();
+    let mut grouped = Map::new();
     let json_pointer = get_json_pointer(&key);
 
     for val in arr {
@@ -98,13 +98,13 @@ pub fn group_by(value: Value, args: HashMap<String, Value>) -> Result<Value> {
             let str_key = format!("{}", key_val);
             // Work around the borrow check to not have to clone `val`
             let mut insert_new = true;
-            if let Some(vals) = grouped.get_mut(&str_key) {
-                vals.push(val);
+            if let Some(vals) = grouped.get_mut(&str_key){
+                vals.as_array_mut().unwrap().push(val);
                 insert_new = false;
                 continue;
             }
             if insert_new {
-                grouped.insert(str_key, vec![val]);
+                grouped.insert(str_key, Value::Array(vec![val]));
             }
         }
     }
