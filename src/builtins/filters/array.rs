@@ -73,11 +73,11 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     Ok(sorted.into())
 }
 
-/// Group the array values by the `key` given
-/// Returns a hashmap of key => values, items without the `key` or where `key` is `null` are discarded.
+/// Group the array values by the `attribute` given
+/// Returns a hashmap of key => values, items without the `attribute` or where `attribute` is `null` are discarded.
 /// The returned keys are stringified
 pub fn group_by(value: Value, args: HashMap<String, Value>) -> Result<Value> {
-    let mut arr = try_get_value!("slice", "value", Vec<Value>, value);
+    let mut arr = try_get_value!("group_by", "value", Vec<Value>, value);
     if arr.is_empty() {
         return Ok(Map::new().into());
     }
@@ -110,6 +110,43 @@ pub fn group_by(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     }
 
     Ok(to_value(grouped).unwrap())
+}
+
+/// Filter the array values, returning only the values where the `attribute` is equal to the `value`
+/// Values without the `attribute` or with a null `attribute` are discarded
+pub fn filter(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+    let mut arr = try_get_value!("filter", "value", Vec<Value>, value);
+    if arr.is_empty() {
+        return Ok(Map::new().into());
+    }
+
+    let key = match args.get("attribute") {
+        Some(val) => try_get_value!("filter", "attribute", String, val),
+        None => bail!("The `filter` filter has to have an `attribute` argument"),
+    };
+    let value = match args.get("value") {
+        Some(val) => val,
+        None => bail!("The `filter` filter has to have a `value` argument"),
+    };
+
+    let json_pointer = get_json_pointer(&key);
+    arr = arr
+        .into_iter()
+        .filter(|v| {
+            if let Some(val) = v.pointer(&json_pointer) {
+                if val.is_null() {
+                    false
+                } else {
+                    val == value
+                }
+            } else {
+                false
+            }
+        })
+        .collect::<Vec<_>>();
+
+
+    Ok(to_value(arr).unwrap())
 }
 
 /// Slice the array
@@ -404,6 +441,33 @@ mod tests {
         });
 
         let res = group_by(input, args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_filter() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2017},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": 2018},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("value".to_string(), to_value(2015).unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+        ]);
+
+        let res = filter(input, args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }

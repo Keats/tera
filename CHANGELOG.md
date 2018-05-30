@@ -6,6 +6,7 @@
 - Allow user to define their own escape function, if you want to generate JSON for example
 - Add `end` argument to the `truncate` filter to override the default ellipsis
 - Add a `group_by` filter
+- Add a `filter` filter
 - Add the `~` operator to concatenate strings
 - Add a `now` and `utc_now` global functions to get local and UTC datetimes
 - Add feature to enable the `preserve_order` feature of serde_json

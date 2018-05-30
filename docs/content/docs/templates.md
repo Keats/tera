@@ -652,7 +652,7 @@ struct Author {
     name: String,
 };
 
-struct Person {
+struct Post {
     content: String,
     year: u32,
     author: Author,
@@ -669,6 +669,43 @@ or by author name:
 
 ```jinja2
 {{ posts | sort(attribute="author.name") }}
+```
+
+### filter
+
+Filter the array values, returning only the values where the `attribute` is equal to the `value`.
+Values with missing `attribute` or where `attribute` is null will be discarded.
+
+Both `attribute` and `value` are mandatory.
+
+
+Example:
+
+Given `posts` is an array of Post
+
+```rust
+struct Author {
+    name: String,
+};
+
+struct Post {
+    content: String,
+    year: u32,
+    author: Author,
+    draft: bool,
+}
+```
+
+The `attribute` argument can be used to filter posts by draft value:
+
+```jinja2
+{{ posts | filter(attribute="draft", value=true) }}
+```
+
+or by author name:
+
+```jinja2
+{{ posts | filter(attribute="author.name", value="Vincent") }}
 ```
 
 ### urlencode
