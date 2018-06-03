@@ -205,22 +205,94 @@ fn bench_huge_loop(b: &mut test::Bencher) {
         real: Vec<DataWrapper>,
         dummy: Vec<DataWrapper>,
     }
-    let real: Vec<DataWrapper> = (1..1000)
+    let real: Vec<DataWrapper> = (1..100)
         .into_iter()
         .map(|i| DataWrapper { v: format!("n={}", i) })
         .collect();
-    let dummy: Vec<DataWrapper> = (1..1000)
+    let dummy: Vec<DataWrapper> = (1..100)
         .into_iter()
         .map(|i| DataWrapper { v: format!("n={}", i) })
         .collect();
     let rows = RowWrapper { real, dummy };
 
     let mut tera = Tera::default();
+    let loop_control: Vec<i32> = (0..500).collect();
+
+
     tera.add_raw_templates(vec![
-        ("huge.html", "{% for v in rows %}{{v}}{% endfor %}"),
+        ("huge.html", "
+{% for i in loop %}      
+{% for j in rows.real %}  
+{{j.v}}
+{% endfor %}
+{% endfor %}
+"),
     ]).unwrap();
     let mut context = Context::new();
     context.add("rows", &rows);
+    context.add("loop", &loop_control);
 
     b.iter(|| tera.render("huge.html", &context));
 }
+
+#[bench]
+fn bench_huge_object(b: &mut test::Bencher) {
+    #[derive(Serialize, Clone)]
+    struct DataWrapper {
+        v: String,
+    }
+
+    #[derive(Serialize, Clone)]    
+    struct BigRow {
+        v: Vec<DataWrapper>,
+    }   
+
+    #[derive(Serialize, Clone)]    
+    struct BigObject {
+        a: BigRow,
+        b: BigRow,
+        c: BigRow,
+        d: BigRow,
+        e: BigRow,
+    }
+
+    #[derive(Serialize)]
+    struct RowWrapper {
+        real: Vec<BigObject>,
+    }
+
+    let v: Vec<DataWrapper> = (1..5000)
+        .into_iter()
+        .map(|i| DataWrapper { v: format!("n={}", i) })
+        .collect();
+
+    let big_row = BigRow { v };
+
+    let big_object = BigObject {
+        a: big_row.clone(),
+        b: big_row.clone(),
+        c: big_row.clone(),
+        d: big_row.clone(),
+        e: big_row.clone(),
+    };
+
+    let mut tera = Tera::default();
+
+    let loop_control: Vec<i32> = (0..10).collect();
+
+    tera.add_raw_templates(vec![
+        ("huge.html", "
+{% for i in loop %}
+    {% for v in big_object.c.v %}
+{{v.v}}
+    {% endfor %}
+{% endfor %}
+"),
+    ]).unwrap();
+    let mut context = Context::new();
+    context.add("big_object", &big_object);
+    context.add("loop", &loop_control);
+
+    b.iter(|| tera.render("huge.html", &context));
+}
+
