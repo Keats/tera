@@ -29,7 +29,10 @@ url = "1"
 humansize = "1"
 # used in date format filter
 chrono = "0.4"
+# used in instrument timing
+stopwatch = "^0.0.7"
+log = "^0.3.8"
+serde_derive = "1.0"
 
 [dev-dependencies]
-serde_derive = "1.0"
 pretty_assertions = "0.5"

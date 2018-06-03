@@ -235,7 +235,6 @@ fn add_set_values_in_context() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
@@ -377,7 +376,6 @@ fn render_for() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }

@@ -54,3 +54,25 @@ macro_rules! compile_templates {
         }
     }};
 }
+
+/// For either logging output (info) or printing output
+///
+/// Test does not support logging. To see output print is required
+/// By using `out` this macro can be modified to switch between info and print
+
+//#[cfg(not(test))]
+#[macro_export]
+macro_rules! out {
+    () => (info!("\n"));
+    ($fmt:expr) => (info!(concat!($fmt, "\n")));
+    ($fmt:expr, $($arg:tt)*) => (info!(concat!($fmt, "\n"), $($arg)*));
+}
+
+
+// #[cfg(test)]
+// #[macro_export]
+// macro_rules! out {
+//     () => (println!("\n"));
+//     ($fmt:expr) => (println!(concat!($fmt, "\n")));
+//     ($fmt:expr, $($arg:tt)*) => (println!(concat!($fmt, "\n"), $($arg)*));
+// }
