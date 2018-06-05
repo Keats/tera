@@ -88,6 +88,29 @@ fn test_simple_key_val_for_loop() {
 }
 
 #[test]
+fn test_nested_key_val_for_loop() {
+    assert_eq!(
+        dark_matter(
+            &render_tpl(
+                "
+{% for k1, val in product %}
+    {{ k1 }} -> {{ val }}^
+    {% for k2, val in product %}
+        {{ k2 }} -> {{ val }}@
+        {% break %}
+    {% endfor %}
+    {% if loop.index == 2 %}
+        {% break %}
+    {% endif %}
+{% endfor %}
+    ",
+            ).unwrap()
+        ),
+        "manufacturer->Motorala^manufacturer->Motorala@name->MotoG^manufacturer->Motorala@"
+    );
+}
+
+#[test]
 fn test_simple_assignment() {
     let result = render_tpl("
 {% set all_reviews = reviews %}
