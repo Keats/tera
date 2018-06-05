@@ -72,6 +72,22 @@ fn test_simple_nested_for_loop() {
 }
 
 #[test]
+fn test_simple_key_val_for_loop() {
+    assert_eq!(
+        dark_matter(
+            &render_tpl(
+                "
+{% for key, val in product %}
+{{ key }} -> {{ val }}:
+{% endfor %}
+    ",
+            ).unwrap()
+        ),
+        "manufacturer->Motorala:name->MotoG:price->100:summary->Aphone:"
+    );
+}
+
+#[test]
 fn test_simple_assignment() {
     let result = render_tpl("
 {% set all_reviews = reviews %}

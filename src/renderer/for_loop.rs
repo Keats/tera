@@ -3,43 +3,43 @@
 // --- module use statements ---
 
 use renderer::ref_or_owned::RefOrOwned;
-use serde_json::{Value, to_value};
+use serde_json::{to_value, Value};
 
 // --- module enum definitions ---
 
 /// Enumerates the two types of for loops
 #[derive(Debug, PartialEq)]
 enum ForLoopKind {
-    /// Loop over values, eg an `Array`
-    Value,
-    /// Loop over key value pairs, eg a `HashMap` or `Object` style iteration
-    KeyValue,
+  /// Loop over values, eg an `Array`
+  Value,
+  /// Loop over key value pairs, eg a `HashMap` or `Object` style iteration
+  KeyValue,
 }
 
 /// Enumerates the states of a for loop
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ForLoopState {
-    /// State during iteration
-    Normal,
-    /// State on encountering *break* statement
-    Break,
-    /// State on encountering *continue* statement
-    Continue,
+  /// State during iteration
+  Normal,
+  /// State on encountering *break* statement
+  Break,
+  /// State on encountering *continue* statement
+  Continue,
 }
 
 /// Enumerates on the two types of values to be iterated, scalars and pairs
 #[derive(Debug)]
 pub enum Values<'a> {
-    /// Values for an array style iteration
-    ArrayValues{
-      /// Array style values
-      values: RefOrOwned<'a, Value>,
-    },
-    /// Values for an object style iteration
-    ObjectValues{
-      /// Values for Object style iteration
-      values: Vec<(RefOrOwned<'a, Value>, RefOrOwned<'a, Value>)>,
-    },
+  /// Values for an array style iteration
+  ArrayValues {
+    /// Array style values
+    values: RefOrOwned<'a, Value>,
+  },
+  /// Values for an object style iteration
+  ObjectValues {
+    /// Values for Object style iteration
+    values: Vec<(RefOrOwned<'a, Value>, RefOrOwned<'a, Value>)>,
+  },
 }
 
 // --- module struct definitions ---
@@ -48,9 +48,9 @@ pub enum Values<'a> {
 #[derive(Debug)]
 pub struct ForLoop<'a> {
   /// The key name when iterate as a Key-Value, ie in `{% for i, person in people %}` it would be `i`
-  key_name: Option<& 'a str>,
+  key_name: Option<&'a str>,
   ///  The value name, ie in `{% for person in people %}` it would be `person`
-  value_name: & 'a str,
+  value_name: &'a str,
   /// What's the current loop index (0-indexed)
   current: usize,
   /// Kind of for loop
@@ -69,16 +69,15 @@ impl<'a> ForLoop<'a> {
   ///  * _return_ - Created `ForLoop`
   ///
   #[inline]
-  pub fn from_array(value_name : & 'a str,
-     array : RefOrOwned<'a, Value>) -> ForLoop<'a> {
+  pub fn from_array(value_name: &'a str, array: RefOrOwned<'a, Value>) -> ForLoop<'a> {
     ForLoop {
-        key_name: None,
-        value_name: value_name,
-        current: 0,
-        values: Values::ArrayValues { values: array },
-        for_loop_kind: ForLoopKind::Value,
-        for_loop_state: ForLoopState::Normal,
-    }                
+      key_name: None,
+      value_name: value_name,
+      current: 0,
+      values: Values::ArrayValues { values: array },
+      for_loop_kind: ForLoopKind::Value,
+      for_loop_state: ForLoopState::Normal,
+    }
   }
 
   /// Crate an array style `ForLoop`
@@ -88,12 +87,11 @@ impl<'a> ForLoop<'a> {
   ///  * `object` - The object with values to iterate on
   ///  * _return_ - Created `ForLoop`
   ///
-  pub fn from_object(key_name : & 'a str,
-     value_name : & 'a str,
-     object : & 'a Value) -> ForLoop<'a> {
+  pub fn from_object(key_name: &'a str, value_name: &'a str, object: &'a Value) -> ForLoop<'a> {
     let object_values = object.as_object().unwrap();
     let mut values = Vec::with_capacity(object_values.len());
     for (k, v) in object_values {
+      println!("PUSHING KEY {}, VAL {:?}", k, v);
       values.push((
         RefOrOwned::from_owned(to_value(k.clone()).expect("String to Value")),
         RefOrOwned::from_borrow(v),
@@ -101,19 +99,19 @@ impl<'a> ForLoop<'a> {
     }
 
     ForLoop {
-        key_name: Some(key_name),
-        value_name: value_name,
-        current: 0,
-        values: Values::ObjectValues { values },
-        for_loop_kind: ForLoopKind::KeyValue,
-        for_loop_state: ForLoopState::Normal,
+      key_name: Some(key_name),
+      value_name: value_name,
+      current: 0,
+      values: Values::ObjectValues { values },
+      for_loop_kind: ForLoopKind::KeyValue,
+      for_loop_state: ForLoopState::Normal,
     }
   }
 
   /// Increment the for loop
   ///
   #[inline]
-  pub fn increment(& mut self) -> () {
+  pub fn increment(&mut self) -> () {
     self.current += 1;
     self.for_loop_state = ForLoopState::Normal;
   }
@@ -121,14 +119,14 @@ impl<'a> ForLoop<'a> {
   /// Set state of loop to break
   ///
   #[inline]
-  pub fn break_loop(& mut self) -> () {
+  pub fn break_loop(&mut self) -> () {
     self.for_loop_state = ForLoopState::Break;
   }
 
   /// Set state of loop to continue
   ///
   #[inline]
-  pub fn continue_loop(& mut self) -> () {
+  pub fn continue_loop(&mut self) -> () {
     self.for_loop_state = ForLoopState::Continue;
   }
 
@@ -137,10 +135,10 @@ impl<'a> ForLoop<'a> {
   ///  * _return_ - Key for current iteration
   ///
   #[inline]
-  pub fn current_key(& self) -> RefOrOwned<'a, Value> {
+  pub fn current_key(&self) -> RefOrOwned<'a, Value> {
     // custom <fn for_loop_current_key>
 
-    self.values.current_value(self.current)
+    self.values.current_key(self.current)
 
     // end <fn for_loop_current_key>
   }
@@ -150,14 +148,9 @@ impl<'a> ForLoop<'a> {
   ///  * _return_ - Value for current iteration
   ///
   #[inline]
-  pub fn current_value(& self) -> RefOrOwned<'a, Value> {
+  pub fn current_value(&self) -> RefOrOwned<'a, Value> {
     // custom <fn for_loop_current_value>
 
-    info!(
-      "GETTING CURRENT VALUE {}, {:?}",
-      self.current,
-      self.values.current_value(self.current)
-    );
     self.values.current_value(self.current)
 
     // end <fn for_loop_current_value>
@@ -168,10 +161,10 @@ impl<'a> ForLoop<'a> {
   ///  * _return_ - Number of values
   ///
   #[inline]
-  pub fn len(& self) -> usize {
+  pub fn len(&self) -> usize {
     match &self.values {
       Values::ArrayValues { values } => values.as_array().expect("Value is array").len(),
-      Values::ObjectValues { values } => values.len(),  
+      Values::ObjectValues { values } => values.len(),
     }
   }
 
@@ -180,7 +173,7 @@ impl<'a> ForLoop<'a> {
   ///  * _return_ - Current state for `key_name`
   ///
   #[inline]
-  pub fn key_name(& self) -> Option<& 'a str> {
+  pub fn key_name(&self) -> Option<&'a str> {
     self.key_name
   }
 
@@ -189,7 +182,7 @@ impl<'a> ForLoop<'a> {
   ///  * _return_ - Current state for `value_name`
   ///
   #[inline]
-  pub fn value_name(& self) -> & 'a str {
+  pub fn value_name(&self) -> &'a str {
     self.value_name
   }
 
@@ -198,7 +191,7 @@ impl<'a> ForLoop<'a> {
   ///  * _return_ - Current state for `current`
   ///
   #[inline]
-  pub fn current(& self) -> usize {
+  pub fn current(&self) -> usize {
     self.current
   }
 
@@ -207,7 +200,7 @@ impl<'a> ForLoop<'a> {
   ///  * _return_ - Current state for `values`
   ///
   #[inline]
-  pub fn values(& self) -> & Values<'a> {
+  pub fn values(&self) -> &Values<'a> {
     &self.values
   }
 
@@ -216,7 +209,7 @@ impl<'a> ForLoop<'a> {
   ///  * _return_ - Current state for `for_loop_state`
   ///
   #[inline]
-  pub fn for_loop_state(& self) -> ForLoopState {
+  pub fn for_loop_state(&self) -> ForLoopState {
     self.for_loop_state
   }
 
@@ -234,8 +227,7 @@ impl<'a> Values<'a> {
   ///  * _return_ - Key for current iteration
   ///
   #[inline]
-  pub fn current_key(& self,
-     i : usize) -> RefOrOwned<'a, Value> {
+  pub fn current_key(&self, i: usize) -> RefOrOwned<'a, Value> {
     // custom <fn values_current_key>
 
     match self {
@@ -252,8 +244,7 @@ impl<'a> Values<'a> {
   ///  * _return_ - Value for current iteration
   ///
   #[inline]
-  pub fn current_value(& self,
-     i : usize) -> RefOrOwned<'a, Value> {
+  pub fn current_value(&self, i: usize) -> RefOrOwned<'a, Value> {
     // custom <fn values_current_value>
 
     match self {
@@ -279,4 +270,3 @@ impl<'a> Values<'a> {
   // custom <impl values>
   // end <impl values>
 }
-
