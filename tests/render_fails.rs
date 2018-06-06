@@ -146,9 +146,16 @@ fn test_error_in_parent_template_location() {
 
     assert_eq!(result.is_err(), true);
     let errs = result.unwrap_err();
+
     assert_eq!(
         errs.iter().nth(0).unwrap().description(),
-        "Failed to render 'error-location/error_in_parent.html' (error happened in a parent template)"
+        "Unable to render template - error location:
+|..in `error-location/base_error.html`\n"
+    );
+
+    assert_eq!(
+        errs.iter().nth(1).unwrap().description(),
+        "Variable `tite` not found in context while rendering \'error-location/base_error.html\'"
     );
 }
 
