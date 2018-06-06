@@ -60,8 +60,20 @@ impl<'a> StackFrame<'a> {
   ///
   #[inline]
   pub fn find_value(self: &Self, key: &'a str) -> Option<RefOrOwned<'a, Value>> {
-    // custom <fn stack_frame_find_value>
+    self
+      .find_value_in_frame_context(key)
+      .or(self.find_value_in_for_loop(key))
+  }
 
+  /// Finds a value in `frame_context`.
+  ///
+  /// Looks in frame_context, which contains the assignments
+  ///
+  ///  * `key` - Key to find
+  ///  * _return_ - Found value or `None`
+  ///
+  #[inline]
+  pub fn find_value_in_frame_context(self: &Self, key: &'a str) -> Option<RefOrOwned<'a, Value>> {
     if let Some(dot) = key.find('.') {
       if dot < key.len() + 1 {
         if let Some(found_value) = self
@@ -77,7 +89,18 @@ impl<'a> StackFrame<'a> {
     } else if let Some(found) = self.frame_context.get(key) {
       return Some(found.clone());
     }
+    None
+  }
 
+  /// Finds a value in the `for_loop` if available.
+  ///
+  /// Looks in special vars (loop.first, loop.index,...), current key, current value
+  ///
+  ///  * `key` - Key to find
+  ///  * _return_ - Found value or `None`
+  ///
+  #[inline]
+  pub fn find_value_in_for_loop(self: &Self, key: &'a str) -> Option<RefOrOwned<'a, Value>> {
     if let Some(for_loop) = &self.for_loop {
       match key {
         "loop.index" => {
@@ -103,37 +126,47 @@ impl<'a> StackFrame<'a> {
         _ => (),
       }
 
-      let value_name = for_loop.value_name();
-      if key.starts_with(value_name) {
-        let current_value = for_loop.current_value().clone();
-        if key.len() == value_name.len() {
-          return Some(current_value);
-        } else {
-          if key.as_bytes()[value_name.len()] == ".".as_bytes()[0] {
-            return value_by_pointer(key.split_at(value_name.len() + 1).1, &current_value);
+      return find_in_ref_or_owned(key, for_loop.value_name(), &for_loop.current_value()).or_else(
+        || {
+          if let Some(key_name) = for_loop.key_name() {
+            find_in_ref_or_owned(key, key_name, &for_loop.current_key())
+          } else {
+            None
           }
-        }
-      }
-
-      if let Some(for_loop_key) = for_loop.key_name() {
-        if key.starts_with(for_loop_key) {
-          let current_key = for_loop.current_key().clone();
-          if key.len() == for_loop_key.len() {
-            return Some(current_key);
-          } else if key.as_bytes()[for_loop_key.len()] == ".".as_bytes()[0] {
-            return value_by_pointer(key.split_at(value_name.len() + 1).1, &current_key);
-          }
-        }
-      }
+        },
+      );
     }
-
     None
-
-    // end <fn stack_frame_find_value>
   }
 
-  // custom <impl stack_frame>
-  // end <impl stack_frame>
+  /// One-line String identifying the frame.
+  ///
+  pub fn template_location(&self) -> String {
+    match self.frame_type {
+      FrameType::ForLoopFrame => {
+        let for_loop = self.for_loop.as_ref().expect("For loop");
+        return if let Some(key_name) = for_loop.key_name() {
+          format!(
+            "`for {}, {} in ...` in `{}`",
+            key_name,
+            for_loop.value_name(),
+            self.active_template.name
+          )
+        } else {
+          format!(
+            "`for {} in ...` in `{}`",
+            for_loop.value_name(),
+            self.active_template.name
+          )
+        };
+      }
+      FrameType::MacroFrame => format!(
+        "macro `{}(...)` in `{}`",
+        self.frame_name, self.active_template.name
+      ),
+      FrameType::TopFrame => format!("in `{}`", self.active_template.name),
+    }
+  }
 }
 
 /// Contains the stack of frames
@@ -266,8 +299,26 @@ impl<'a> CallStack<'a> {
   ///  * `value` - Value of assignment
   ///
   #[inline]
-  pub fn add_assignment(self: &mut Self, key: &'a str, value: RefOrOwned<'a, Value>) -> () {
-    self.current_frame_mut().frame_context.insert(key, value);
+  pub fn add_assignment(
+    self: &mut Self,
+    key: &'a str,
+    is_global: bool,
+    value: RefOrOwned<'a, Value>,
+  ) -> () {
+    if is_global {
+      self.top_frame_mut().frame_context.insert(key, value);
+    } else {
+      self.current_frame_mut().frame_context.insert(key, value);
+    }
+  }
+
+  /// Returns mutable reference to current `StackFrame`
+  ///
+  ///  * _return_ - Current stack frame
+  ///
+  #[inline]
+  pub fn top_frame_mut(self: &mut Self) -> &mut StackFrame<'a> {
+    self.stack.first_mut().expect("Top frame")
   }
 
   /// Returns mutable reference to current `StackFrame`
@@ -368,6 +419,25 @@ impl<'a> CallStack<'a> {
     }
   }
 
+  /// Provide location information
+  ///
+  ///  * _return_ - String representation of location
+  ///
+  pub fn error_location(&self) -> String {
+    let mut result = String::new();
+    let mut indent = "|..".to_string();
+    for stack_frame in self.stack.iter() {
+      result.push_str(&format!(
+        "{}{}\n",
+        &indent,
+        &stack_frame.template_location()
+      ));
+      indent.push_str("..");
+    }
+
+    result
+  }
+
   /// Gets text display of all context data
   ///
   ///  * _return_ - Display formatted context
@@ -401,6 +471,44 @@ impl<'a> CallStack<'a> {
 
 // --- module function definitions ---
 
+#[inline]
+pub fn should_use_pointer(key: &str) -> Option<usize> {
+  key.find(|c: char| c == '.' || c == '[')
+}
+
+/// Gets a value associated with `extended_key` from value named `root_key`.
+/// `extended_key` may be an exact match or an extended match, matching the
+/// `root_key` followed by `.` or `[`, indicating lookup by pointer.
+///
+///  * `extended_key` - Ident to match against `root_key`
+///  * `root_key` - Ident for `ref_or_owned`
+///  * `ref_or_owned` - Value associated with `root_key`
+///  * _return_ - Referred to object or None
+///
+#[inline]
+pub fn find_in_ref_or_owned<'a>(
+  extended_key: &str,
+  root_key: &str,
+  ref_or_owned: &RefOrOwned<'a, Value>,
+) -> Option<RefOrOwned<'a, Value>> {
+  if extended_key.starts_with(root_key) {
+    if extended_key.len() == root_key.len() {
+      // perfect match - return the value
+      return Some(ref_or_owned.clone());
+    } else {
+      let next_char = extended_key.as_bytes()[root_key.len()];
+      let next_is_dot = next_char == ".".as_bytes()[0];
+      let next_is_bracket = next_char == "[".as_bytes()[0];
+
+      if next_is_dot || next_is_bracket {
+        // Looks like indirect access - use pointer
+        return value_by_pointer(extended_key.split_at(root_key.len() + 1).1, ref_or_owned);
+      }
+    }
+  }
+  None
+}
+
 /// Gets a value within a value by pointer, keeping lifetime
 ///
 ///  * `pointer_path` - Pointer path to find value in object
@@ -412,8 +520,6 @@ pub fn value_by_pointer<'a>(
   pointer_path: &str,
   ref_or_owned: &RefOrOwned<'a, Value>,
 ) -> Option<RefOrOwned<'a, Value>> {
-  // custom <fn value_by_pointer>
-
   if let Some(borrow) = ref_or_owned.get_ref() {
     borrow
       .pointer(&get_json_pointer(pointer_path))
@@ -423,6 +529,4 @@ pub fn value_by_pointer<'a>(
       .pointer(&get_json_pointer(pointer_path))
       .map(|found| RefOrOwned::from_owned(found.clone()))
   }
-
-  // end <fn value_by_pointer>
 }
