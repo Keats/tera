@@ -91,7 +91,6 @@ impl<'a> ForLoop<'a> {
     let object_values = object.as_object().unwrap();
     let mut values = Vec::with_capacity(object_values.len());
     for (k, v) in object_values {
-      println!("PUSHING KEY {}, VAL {:?}", k, v);
       values.push((
         RefOrOwned::from_owned(to_value(k.clone()).expect("String to Value")),
         RefOrOwned::from_borrow(v),
@@ -136,24 +135,16 @@ impl<'a> ForLoop<'a> {
   ///
   #[inline]
   pub fn current_key(&self) -> RefOrOwned<'a, Value> {
-    // custom <fn for_loop_current_key>
-
     self.values.current_key(self.current)
-
-    // end <fn for_loop_current_key>
   }
 
-  /// Get value of Object style loop for current iteration
+  /// Get value of Object or Array style loop for current iteration
   ///
   ///  * _return_ - Value for current iteration
   ///
   #[inline]
   pub fn current_value(&self) -> RefOrOwned<'a, Value> {
-    // custom <fn for_loop_current_value>
-
     self.values.current_value(self.current)
-
-    // end <fn for_loop_current_value>
   }
 
   /// Returns number of values in for loop

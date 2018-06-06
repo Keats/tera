@@ -144,8 +144,12 @@ impl<'a> AstProcessor<'a> {
         let mut output = String::new();
 
         for node in ast {
-            output.push_str(&self.render_node(node)
-                .chain_err(|| "TODO: error location".to_string())?);
+            output.push_str(&self.render_node(node).chain_err(|| {
+                format!(
+                    "Unable to render template - error location:\n{}",
+                    self.call_stack.error_location()
+                )
+            })?)
         }
 
         Ok(output)
@@ -324,14 +328,7 @@ impl<'a> AstProcessor<'a> {
                 // TODO: self.do_super()?,
             }
             Node::Include(_, ref tpl_name) => {
-                "Include".into()
-                // TODO
-                // let has_macro = self.import_template_macros(tpl_name)?;
-                // let res = self.render_body(&self.tera.get_template(tpl_name)?.ast);
-                // if has_macro {
-                //     self.macros.pop();
-                // }
-                // return res;
+                self.render_body(&self.tera.get_template(tpl_name)?.ast)?
             }
             _ => unreachable!("render_node -> unexpected node: {:?}", node),
         };
@@ -360,7 +357,8 @@ impl<'a> AstProcessor<'a> {
         let blocks_definitions = match level {
             0 => &self.call_stack.active_template().blocks_definitions,
             _ => {
-                &self.tera
+                &self
+                    .tera
                     .get_template(&self.call_stack.active_template().parents[level - 1])
                     .unwrap()
                     .blocks_definitions
@@ -475,7 +473,9 @@ impl<'a> AstProcessor<'a> {
         );
 
         // Checks if it's a string and we need to escape it (if the first filter is `safe` we don't)
-        if self.should_escape && needs_escape && res.is_string()
+        if self.should_escape
+            && needs_escape
+            && res.is_string()
             && expr.filters.first().map_or(true, |f| f.name != "safe")
         {
             res = RefOrOwned::from_owned(to_value(escape_html(res.as_str().unwrap()))?);
@@ -648,7 +648,9 @@ impl<'a> AstProcessor<'a> {
         // custom <fn ast_processor_eval_set>
 
         let assigned_value = self.eval_expression_safe(&set.value)?;
-        self.call_stack.add_assignment(&set.key[..], assigned_value);
+
+        self.call_stack
+            .add_assignment(&set.key[..], set.global, assigned_value);
 
         Ok(())
 
@@ -672,7 +674,8 @@ impl<'a> AstProcessor<'a> {
             tester_args.push(self.eval_expression_safe(arg)?.get().clone());
         }
 
-        let found = self.lookup_ident(&test.ident)
+        let found = self
+            .lookup_ident(&test.ident)
             .map(|found| found.get().clone())
             .ok();
 
@@ -772,12 +775,13 @@ impl<'a> AstProcessor<'a> {
                     }
                 }
             }
-            ExprVal::Ident(ref ident) => self.lookup_ident(ident)
+            ExprVal::Ident(ref ident) => self
+                .lookup_ident(ident)
                 .map(|v| v.is_truthy())
                 .unwrap_or(false),
-            ExprVal::Math(_) | ExprVal::Int(_) | ExprVal::Float(_) => self.eval_as_number(
-                &bool_expr.val,
-            ).map(|v| v != 0.0 && !v.is_nan())?,
+            ExprVal::Math(_) | ExprVal::Int(_) | ExprVal::Float(_) => self
+                .eval_as_number(&bool_expr.val)
+                .map(|v| v != 0.0 && !v.is_nan())?,
             ExprVal::Test(ref test) => self.eval_test(test).unwrap_or(false),
             ExprVal::Bool(val) => val,
             ExprVal::String(ref string) => !string.is_empty(),
@@ -856,8 +860,41 @@ impl<'a> AstProcessor<'a> {
         // end <fn ast_processor_eval_as_number>
     }
 
-    // custom <impl ast_processor>
-    // end <impl ast_processor>
+    /// Only called while rendering a block.
+    /// This will look up the block we are currently rendering and its level and try to render
+    /// the block at level + n, where would be the next template in the hierarchy the block is present
+    fn do_super(&mut self) -> Result<String> {
+        /*
+        let (block_name, level) = self.blocks.pop().unwrap();
+        let mut next_level = level + 1;
+
+        while next_level <= self.template.parents.len() {
+            let blocks_definitions = &self.tera
+                .get_template(&self.template.parents[next_level - 1])
+                .unwrap()
+                .blocks_definitions;
+
+            if let Some(block_def) = blocks_definitions.get(&block_name) {
+                let (ref tpl_name, Block { ref body, .. }) = block_def[0];
+                self.blocks.push((block_name.to_string(), next_level));
+                let has_macro = self.import_template_macros(tpl_name)?;
+                let res = self.render_body(body);
+                if has_macro {
+                    self.macros.pop();
+                }
+                // Can't go any higher for that block anymore?
+                if next_level >= self.template.parents.len() {
+                    // then remove it from the stack, we're done with it
+                    self.blocks.pop();
+                }
+                return res;
+            } else {
+                next_level += 1;
+            }
+        }
+*/
+        bail!("Tried to use super() in the top level block")
+    }
 }
 
 // --- module trait definitions ---

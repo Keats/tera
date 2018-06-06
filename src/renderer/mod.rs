@@ -10,3 +10,6 @@ mod for_loop;
 mod ref_or_owned;
 mod renderer;
 mod tera_macro;
+
+#[cfg(test)]
+mod tests;
