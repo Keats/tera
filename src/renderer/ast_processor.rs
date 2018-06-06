@@ -409,9 +409,9 @@ impl<'a> AstProcessor<'a> {
             ExprVal::Array(ref arr) => {
                 let mut vals = vec![];
                 for v in arr {
-                    vals.push(self.eval_expression(v)?);
+                    vals.push(self.eval_expression(v)?.take());
                 }
-                RefOrOwned::from_owned(to_value(vals)?)
+                RefOrOwned::from_owned(Value::Array(vals))
             }
             ExprVal::String(ref val) => {
                 needs_escape = true;
