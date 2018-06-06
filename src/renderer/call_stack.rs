@@ -404,7 +404,7 @@ impl<'a> CallStack<'a> {
     // end <fn call_stack_continue_for_loop>
   }
 
-  /// True if should break body
+  /// True if should break body, applicable to `break` and `continue`
   ///
   ///  * _return_ - If for loop and and in continue or break state
   ///
@@ -414,6 +414,21 @@ impl<'a> CallStack<'a> {
       Some(for_loop) => {
         for_loop.for_loop_state() == ForLoopState::Break
           || for_loop.for_loop_state() == ForLoopState::Continue
+      }
+      None => false,
+    }
+  }
+
+
+  /// True if should break for loop
+  ///
+  ///  * _return_ - If for loop and and in continue or break state
+  ///
+  #[inline]
+  pub fn should_break_for_loop(&self) -> bool {
+    match &self.current_frame().for_loop {
+      Some(for_loop) => {
+        for_loop.for_loop_state() == ForLoopState::Break
       }
       None => false,
     }
