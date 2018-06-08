@@ -49,7 +49,7 @@ impl<'a> Context<'a> {
     ///  * _return_ - Current state for `context_value`
     ///
     #[inline]
-    pub fn context_value(&self) -> &Value {
+    pub fn context_value(& self) -> & 'a Value {
         self.context_value
     }
 }
