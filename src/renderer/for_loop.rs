@@ -203,9 +203,6 @@ impl<'a> ForLoop<'a> {
   pub fn for_loop_state(&self) -> ForLoopState {
     self.for_loop_state
   }
-
-  // custom <impl for_loop>
-  // end <impl for_loop>
 }
 
 // --- module impl definitions ---
@@ -219,14 +216,10 @@ impl<'a> Values<'a> {
   ///
   #[inline]
   pub fn current_key(&self, i: usize) -> RefOrOwned<'a, Value> {
-    // custom <fn values_current_key>
-
     match self {
       Values::ArrayValues { values } => panic!("No key in array list"),
       Values::ObjectValues { values } => values.get(i).expect("Value").0.clone(),
     }
-
-    // end <fn values_current_key>
   }
 
   /// Get value of Object style loop for current iteration
@@ -236,8 +229,6 @@ impl<'a> Values<'a> {
   ///
   #[inline]
   pub fn current_value(&self, i: usize) -> RefOrOwned<'a, Value> {
-    // custom <fn values_current_value>
-
     match self {
       Values::ArrayValues { values } => {
         if let Some(array) = values.get_ref() {
@@ -255,9 +246,5 @@ impl<'a> Values<'a> {
       }
       Values::ObjectValues { values } => values.get(i).expect("Value").1.clone(),
     }
-    // end <fn values_current_value>
   }
-
-  // custom <impl values>
-  // end <impl values>
 }

@@ -3,15 +3,15 @@
 // --- module use statements ---
 
 use errors::{Result, ResultExt};
-use parser::ast::{MacroDefinition};
+use parser::ast::MacroDefinition;
 use std::collections::HashMap;
 use template::Template;
 use tera::Tera;
 
 // --- module type aliases ---
 
-type MacroDefinitionMap<'a> = HashMap<& 'a str, & 'a MacroDefinition>;
-type MacroFileMap<'a> = HashMap<& 'a str, MacroFile<'a>>;
+type MacroDefinitionMap<'a> = HashMap<&'a str, &'a MacroDefinition>;
+type MacroFileMap<'a> = HashMap<&'a str, MacroFile<'a>>;
 
 // --- module struct definitions ---
 
@@ -29,10 +29,7 @@ impl<'a> MacroCollection<'a> {
   ///  * `tera` - Houses other templates, filters, global functions, etc
   ///  * _return_ - Macro definitions from a template file
   ///
-  pub fn from_template_root(template_name: & 'a str,
-      tera: & 'a Tera) -> Result<MacroCollection<'a>> {
-    // custom <fn macro_collection_from_template_root>
-
+  pub fn from_template_root(template_name: &'a str, tera: &'a Tera) -> Result<MacroCollection<'a>> {
     let mut macro_collection = MacroCollection {
       macro_files: MacroFileMap::new(),
     };
@@ -40,8 +37,6 @@ impl<'a> MacroCollection<'a> {
     macro_collection.add_macros_from_template(tera, tera.get_template(template_name)?)?;
 
     Ok(macro_collection)
-
-    // end <fn macro_collection_from_template_root>
   }
 
   /// Add macros from parsed template to `MacroCollection`
@@ -55,12 +50,12 @@ impl<'a> MacroCollection<'a> {
   ///  * `template` - Template to add macros from
   ///  * _return_ - Errors if template not found
   ///
-  pub fn add_macros_from_template(self: & mut Self,
-      tera: & 'a Tera,
-      template: & 'a Template) -> Result<()> {
-    // custom <fn macro_collection_add_macros_from_template>
-
-    info!(
+  pub fn add_macros_from_template(
+    self: &mut Self,
+    tera: &'a Tera,
+    template: &'a Template,
+  ) -> Result<()> {
+    out!(
       "Loading macros for {} at path {:?} with {} top level macros",
       template.name,
       template.path,
@@ -68,9 +63,10 @@ impl<'a> MacroCollection<'a> {
     );
 
     for &(ref filename, ref namespace) in &template.imported_macro_files {
-      info!(
+      out!(
         "\tLoading macros filename {}, namespace {}",
-        filename, namespace
+        filename,
+        namespace
       );
 
       let macro_tpl = tera.get_template(filename)?;
@@ -94,7 +90,6 @@ impl<'a> MacroCollection<'a> {
     }
 
     Ok(())
-    // end <fn macro_collection_add_macros_from_template>
   }
 
   /// Takes the MacroCollection.
@@ -106,24 +101,17 @@ impl<'a> MacroCollection<'a> {
   ///  * _return_ - The macro collection
   ///
   #[inline]
-  pub fn take_macro_collection(self: & mut Self) -> MacroCollection<'a> {
-    // custom <fn macro_collection_take_macro_collection>
-
+  pub fn take_macro_collection(self: &mut Self) -> MacroCollection<'a> {
     let macro_files = ::std::mem::replace(&mut self.macro_files, MacroFileMap::default());
     MacroCollection { macro_files }
-
-    // end <fn macro_collection_take_macro_collection>
   }
-
-  // custom <impl macro_collection>
-  // end <impl macro_collection>
 }
 
 /// The parsed macro definition and name of macro
 #[derive(Clone, Debug)]
 pub struct MacroFile<'a> {
   /// Name of macro
-  file_name: & 'a str,
+  file_name: &'a str,
   /// Mapping of macro name to its definition
   macro_definitions: MacroDefinitionMap<'a>,
 }
@@ -135,15 +123,13 @@ impl<'a> MacroFile<'a> {
   ///  * `macro_definitions` - Macros contained in file>
   ///  * _return_ - Macro definitions from a template file
   ///
-  pub fn from_definitions(file_name: & 'a str,
-      macro_definitions: MacroDefinitionMap<'a>) -> MacroFile<'a> {
+  pub fn from_definitions(
+    file_name: &'a str,
+    macro_definitions: MacroDefinitionMap<'a>,
+  ) -> MacroFile<'a> {
     MacroFile {
-        file_name,
-        macro_definitions
+      file_name,
+      macro_definitions,
     }
   }
-
-  // custom <impl macro_file>
-  // end <impl macro_file>
 }
-

@@ -14,7 +14,7 @@ use renderer::for_loop::{ForLoop, ForLoopState};
 use renderer::ref_or_owned::RefOrOwned;
 use renderer::tera_macro::MacroCollection;
 use serde_json::map::Map as JsonMap;
-use serde_json::{to_value, Number, Value};
+use serde_json::{to_string_pretty, to_value, Number, Value};
 use std::collections::HashMap;
 use template::Template;
 use tera::Tera;
@@ -35,6 +35,10 @@ static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
 
 /// Processes the ast and renders the output
 pub struct AstProcessor<'a> {
+    /// The template to render
+    template: &'a Template,
+    /// Root template of template to render - contains ast to render
+    template_root: &'a Template,
     /// The tera object with template details
     tera: &'a Tera,
     /// The call stack for processing
@@ -43,38 +47,39 @@ pub struct AstProcessor<'a> {
     macro_collection: MacroCollection<'a>,
     /// If set rendering should be escaped
     should_escape: bool,
-    /// Tracks current active template
-    template_stack: Vec<&'a Template>,
     /// Used when super() is used in a block, to know where we are in our stack of
     /// definitions and for which block
-    /// Vec<(block name, level)>
+    /// Vec<(block name, tpl_name, level)>
     ///
-    blocks: Vec<(String, usize)>,
+    blocks: Vec<(&'a str, &'a str, usize)>,
 }
 /// Implementation for type `AstProcessor`.
 impl<'a> AstProcessor<'a> {
     /// Create a new `AstProcessor`
     ///
+    ///  * `template` - The template to render
     ///  * `tera` - The tera object with template details
-    ///  * `template` - The template being processed
     ///  * `call_stack` - The call stack
     ///  * `macro_collection` - The macro details
     ///  * `should_escape` - If template should be escaped
     ///  * _return_ - Created `AstProcessor`
     ///
     pub fn new(
-        tera: &'a Tera,
         template: &'a Template,
+        tera: &'a Tera,
         call_stack: CallStack<'a>,
         macro_collection: MacroCollection<'a>,
         should_escape: bool,
     ) -> AstProcessor<'a> {
+        let template_root = last_parent(tera, template).unwrap_or(template);
+
         AstProcessor {
+            template,
+            template_root,
             tera,
             call_stack,
             macro_collection,
             should_escape,
-            template_stack: vec![template],
             blocks: Vec::new(),
         }
     }
@@ -88,7 +93,7 @@ impl<'a> AstProcessor<'a> {
     ///  * _return_ - The macro collection
     ///
     #[inline]
-    pub fn take_macro_collection(self: &mut Self) -> MacroCollection<'a> {
+    fn take_macro_collection(self: &mut Self) -> MacroCollection<'a> {
         self.macro_collection.take_macro_collection()
     }
 
@@ -97,39 +102,51 @@ impl<'a> AstProcessor<'a> {
     ///  * `key` - Key to look up
     ///  * _return_ - Value if found
     ///
-    pub fn lookup_ident(&self, key: &'a str) -> LookupResult<'a> {
-        // custom <fn ast_processor_lookup_ident>
+    fn lookup_ident(&self, key: &'a str) -> LookupResult<'a> {
+        out!("lookup_ident: {}", key);
 
-        info!("LOOKUP {}", key);
+        // Magical variable that just dumps the context
+        if key == MAGICAL_DUMP_VAR {
+            // Unwraps are safe since we are dealing with things that are already Value
+            return Ok(RefOrOwned::from_owned(
+                to_value(
+                    to_string_pretty(&self.call_stack.current_context_cloned().take()).unwrap(),
+                ).unwrap(),
+            ));
+        }
 
         let found = self.call_stack.find_value(key);
-        info!(
-            "Looking up `{}` in {:#?} -> {:?}",
-            key, self.call_stack, found
-        );
 
         match found {
-            Some(v) => {
-                info!("Found value for {}", key);
-                Ok(v)
-            }
+            Some(v) => Ok(v),
             None => {
-                warn!(
-                    "Variable `{}` not found in context while rendering `{}`\n{}",
-                    key,
-                    self.template_stack.last().expect("Last template").name,
+                let active_template = self.call_stack.current_frame().active_template;
+
+                let mut error_msg = format!(
+                    "Variable `{}` not found in context while rendering `{}`",
+                    key, self.template.name
+                );
+
+                error_msg.push_str(&format!(
+                    " with parent chain: [{}]",
+                    active_template
+                        .parents
+                        .clone()
+                        .iter()
+                        .map(|p| format!("`{}`", p))
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                ));
+
+                out!(
+                    "{} -> --- Debug Context ---\n{}",
+                    error_msg,
                     self.call_stack.debug_context()
                 );
 
-                bail!(
-                    "Variable `{}` not found in context while rendering '{}'",
-                    key,
-                    self.template_stack.last().expect("Last template").name
-                )
+                bail!(error_msg)
             }
         }
-
-        // end <fn ast_processor_lookup_ident>
     }
 
     /// Walk the ast and render
@@ -137,24 +154,45 @@ impl<'a> AstProcessor<'a> {
     ///  * `ast` - `ast` to render
     ///  * _return_ - Resulting `ast` rendering
     ///
-    pub fn render_ast(self: &mut Self, ast: &'a Vec<Node>) -> RenderResult {
-        ast.announce_render();
-        // custom <fn ast_processor_render_ast>
+    pub fn render_ast(self: &mut Self) -> RenderResult {
+        self.template_root.ast.announce_render();
 
         let mut output = String::new();
 
-        for node in ast {
+        for node in self.template_root.ast.iter() {
             output.push_str(&self.render_node(node).chain_err(|| {
                 format!(
-                    "Unable to render template - error location:\n{}",
-                    self.call_stack.error_location()
+                    "Failed to render `{}` - error location:\n{}{}",
+                    self.call_stack.top_frame().active_template.name,
+                    self.call_stack.error_location(),
+                    self.block_location()
                 )
             })?)
         }
 
         Ok(output)
+    }
 
-        // end <fn ast_processor_render_ast>
+    /// If rendering a `block` determines location
+    ///
+    fn block_location(&self) -> String {
+        if let Some(block_location) = self.blocks.last() {
+            let parents = &self.call_stack.top_frame().active_template.parents;
+            let num_parents = parents.len();
+            let super_index = block_location.2;
+            let offending_template = if let Some(parent) = parents.get(super_index) {
+                parent
+            } else {
+                block_location.1
+            };
+
+            format!(
+                "Rendering block `{}` in template `{}` with parent chain: {:?}",
+                block_location.0, offending_template, parents
+            )
+        } else {
+            String::new()
+        }
     }
 
     /// Render for body
@@ -162,10 +200,8 @@ impl<'a> AstProcessor<'a> {
     ///  * `body` - `body` to render
     ///  * _return_ - Resulting `body` rendering
     ///
-    pub fn render_body(self: &mut Self, body: &'a [Node]) -> RenderResult {
+    fn render_body(self: &mut Self, body: &'a [Node]) -> RenderResult {
         body.announce_render();
-        // custom <fn ast_processor_render_body>
-
         let mut result = String::with_capacity(body.len() * 16);
 
         for node in body {
@@ -176,8 +212,6 @@ impl<'a> AstProcessor<'a> {
         }
 
         Ok(result)
-
-        // end <fn ast_processor_render_body>
     }
 
     /// Render for for_loop
@@ -185,10 +219,8 @@ impl<'a> AstProcessor<'a> {
     ///  * `for_loop` - `for_loop` to render
     ///  * _return_ - Resulting `for_loop` rendering
     ///
-    pub fn render_for_loop(self: &mut Self, for_loop: &'a Forloop) -> RenderResult {
+    fn render_for_loop(self: &mut Self, for_loop: &'a Forloop) -> RenderResult {
         for_loop.announce_render();
-        // custom <fn ast_processor_render_for_loop>
-
         let container_name = match for_loop.container.val {
             ExprVal::Ident(ref ident) => ident,
             ExprVal::FunctionCall(FunctionCall { ref name, .. }) => name,
@@ -247,7 +279,7 @@ impl<'a> AstProcessor<'a> {
         for _ in 0..len {
             output.push_str(&self.render_body(&for_loop_body)?);
 
-            if self.call_stack.should_break_body() {
+            if self.call_stack.should_break_for_loop() {
                 break;
             }
 
@@ -257,8 +289,6 @@ impl<'a> AstProcessor<'a> {
         self.call_stack.pop_frame();
 
         Ok(output)
-
-        // end <fn ast_processor_render_for_loop>
     }
 
     /// Render for if_node
@@ -266,10 +296,8 @@ impl<'a> AstProcessor<'a> {
     ///  * `if_node` - `if_node` to render
     ///  * _return_ - Resulting `if_node` rendering
     ///
-    pub fn render_if_node(self: &mut Self, if_node: &'a If) -> RenderResult {
+    fn render_if_node(self: &mut Self, if_node: &'a If) -> RenderResult {
         if_node.announce_render();
-        // custom <fn ast_processor_render_if_node>
-
         for &(_, ref expr, ref body) in &if_node.conditions {
             if self.eval_as_bool(expr)? {
                 return self.render_body(body);
@@ -281,8 +309,6 @@ impl<'a> AstProcessor<'a> {
         }
 
         Ok(String::new())
-
-        // end <fn ast_processor_render_if_node>
     }
 
     /// Render for node
@@ -290,10 +316,8 @@ impl<'a> AstProcessor<'a> {
     ///  * `node` - `node` to render
     ///  * _return_ - Resulting `node` rendering
     ///
-    pub fn render_node(self: &mut Self, node: &'a Node) -> RenderResult {
+    fn render_node(self: &mut Self, node: &'a Node) -> RenderResult {
         node.announce_render();
-        // custom <fn ast_processor_render_node>
-
         let output = match *node {
             Node::Text(ref s) | Node::Raw(_, ref s, _) => s.to_string(),
             Node::VariableBlock(ref expr) => self.eval_expression(expr)?.render(),
@@ -323,19 +347,20 @@ impl<'a> AstProcessor<'a> {
                 String::new()
             }
             Node::Block(_, ref block, _) => self.render_block(block, 0)?,
-            Node::Super => {
-                "Super".into()
-                // TODO: self.do_super()?,
-            }
+            Node::Super => self.do_super()?,
             Node::Include(_, ref tpl_name) => {
-                self.render_body(&self.tera.get_template(tpl_name)?.ast)?
+                let template = self.tera.get_template(tpl_name)?;
+                self.macro_collection
+                    .add_macros_from_template(self.tera, template);
+                self.call_stack.push_include_frame(tpl_name, template);
+                let result = self.render_body(&template.ast)?;
+                self.call_stack.pop_frame();
+                result
             }
             _ => unreachable!("render_node -> unexpected node: {:?}", node),
         };
 
         Ok(output)
-
-        // end <fn ast_processor_render_node>
     }
 
     /// Render for block.
@@ -349,38 +374,27 @@ impl<'a> AstProcessor<'a> {
     ///  * `level` - Level of inheritance
     ///  * _return_ - Resulting rendering
     ///
-    pub fn render_block(self: &mut Self, block: &'a Block, level: usize) -> RenderResult {
-        // custom <fn ast_processor_render_block>
-
+    fn render_block(self: &mut Self, block: &'a Block, level: usize) -> RenderResult {
         block.announce_render();
 
-        let blocks_definitions = match level {
-            0 => &self.call_stack.active_template().blocks_definitions,
-            _ => {
-                &self
-                    .tera
-                    .get_template(&self.call_stack.active_template().parents[level - 1])
-                    .unwrap()
-                    .blocks_definitions
-            }
+        let level_template = match level {
+            0 => self.call_stack.active_template(),
+            _ => self
+                .tera
+                .get_template(&self.call_stack.active_template().parents[level - 1])
+                .unwrap(),
         };
+
+        let blocks_definitions = &level_template.blocks_definitions;
 
         // Can we find this one block in these definitions? If so render it
         if let Some(block_def) = blocks_definitions.get(&block.name) {
-            info!("Found block {} -> {:#?}", block.name, block_def);
             let (ref tpl_name, Block { ref body, .. }) = block_def[0];
-            self.blocks.push((block.name.to_string(), level));
+            self.blocks
+                .push((&block.name[..], &level_template.name[..], level));
             return self.render_body(body);
-        /* TODO
-            let has_macro = self.macro_collection. import_template_macros(tpl_name)?;
-            let res = self.render_body(body);
-            if has_macro {
-                self.macros.pop();
-            }
-            return res;
-            */
         } else {
-            info!("Missing block {} in level {}", block.name, level);
+            warn!("Missing block {} in level {}", block.name, level);
         }
 
         // Do we have more parents to look through?
@@ -390,8 +404,6 @@ impl<'a> AstProcessor<'a> {
 
         // Nope, just render the body we got
         self.render_body(&block.body)
-
-        // end <fn ast_processor_render_block>
     }
 
     /// Render for expression
@@ -399,19 +411,18 @@ impl<'a> AstProcessor<'a> {
     ///  * `expr` - Render for expression
     ///  * _return_ - Resulting evaluation
     ///
-    pub fn eval_expression(self: &mut Self, expr: &'a Expr) -> EvalResult<'a> {
+    fn eval_expression(self: &mut Self, expr: &'a Expr) -> EvalResult<'a> {
         expr.announce_eval();
-        // custom <fn ast_processor_eval_expression>
 
         let mut needs_escape = false;
 
         let mut res = match expr.val {
             ExprVal::Array(ref arr) => {
-                let mut vals = vec![];
+                let mut values = vec![];
                 for v in arr {
-                    vals.push(self.eval_expression(v)?.take());
+                    values.push(self.eval_expression(v)?.take());
                 }
-                RefOrOwned::from_owned(Value::Array(vals))
+                RefOrOwned::from_owned(Value::Array(values))
             }
             ExprVal::String(ref val) => {
                 needs_escape = true;
@@ -465,13 +476,6 @@ impl<'a> AstProcessor<'a> {
             _ => unreachable!("{:?}", expr),
         };
 
-        info!(
-            "Evaluated is: {:?}, should_escape({}) is_string({})",
-            res,
-            self.should_escape,
-            res.is_string()
-        );
-
         // Checks if it's a string and we need to escape it (if the first filter is `safe` we don't)
         if self.should_escape
             && needs_escape
@@ -494,8 +498,6 @@ impl<'a> AstProcessor<'a> {
         }
 
         Ok(res)
-
-        // end <fn ast_processor_eval_expression>
     }
 
     /// Render for expression_safe
@@ -503,17 +505,13 @@ impl<'a> AstProcessor<'a> {
     ///  * `expr` - Render for expression_safe
     ///  * _return_ - Resulting evaluation
     ///
-    pub fn eval_expression_safe(self: &mut Self, expr: &'a Expr) -> EvalResult<'a> {
+    fn eval_expression_safe(self: &mut Self, expr: &'a Expr) -> EvalResult<'a> {
         expr.announce_eval();
-        // custom <fn ast_processor_eval_expression_safe>
-
         let should_escape = self.should_escape;
         self.should_escape = false;
         let res = self.eval_expression(expr);
         self.should_escape = should_escape;
         res
-
-        // end <fn ast_processor_eval_expression_safe>
     }
 
     /// Render for global_fn_call
@@ -521,10 +519,8 @@ impl<'a> AstProcessor<'a> {
     ///  * `function_call` - Render for global_fn_call
     ///  * _return_ - Resulting evaluation
     ///
-    pub fn eval_global_fn_call(self: &mut Self, function_call: &'a FunctionCall) -> EvalResult<'a> {
+    fn eval_global_fn_call(self: &mut Self, function_call: &'a FunctionCall) -> EvalResult<'a> {
         function_call.announce_eval();
-        // custom <fn ast_processor_eval_global_fn_call>
-
         let global_fn = self.tera.get_global_function(&function_call.name)?;
 
         let mut args = HashMap::new();
@@ -536,8 +532,6 @@ impl<'a> AstProcessor<'a> {
         }
 
         Ok(RefOrOwned::from_owned(global_fn(args)?.take()))
-
-        // end <fn ast_processor_eval_global_fn_call>
     }
 
     /// Render for macro_call
@@ -545,18 +539,12 @@ impl<'a> AstProcessor<'a> {
     ///  * `macro_call` - Render for macro_call
     ///  * _return_ - Resulting evaluation
     ///
-    pub fn eval_macro_call(self: &mut Self, macro_call: &'a MacroCall) -> Result<String> {
+    fn eval_macro_call(self: &mut Self, macro_call: &'a MacroCall) -> Result<String> {
         macro_call.announce_eval();
-        // custom <fn ast_processor_eval_macro_call>
-
         let mut active_template = self.call_stack.active_template();
 
         if macro_call.namespace != "self" {
             let mut found = false;
-            info!(
-                "Looking for namespace {} in [{:?}]",
-                macro_call.namespace, &active_template.imported_macro_files
-            );
             let imported_macro_files = &active_template.imported_macro_files;
             for (filename, namespace) in imported_macro_files {
                 if macro_call.namespace == *namespace {
@@ -574,15 +562,6 @@ impl<'a> AstProcessor<'a> {
                 );
             }
         }
-
-        info!(
-            "Pushing new template {} to {:?}",
-            active_template.name,
-            self.template_stack
-                .iter()
-                .map(|t| &t.name[..])
-                .collect::<Vec<&str>>()
-        );
 
         let macro_definition = active_template
             .macros
@@ -609,21 +588,15 @@ impl<'a> AstProcessor<'a> {
                     ),
                 },
             };
-            info!(
-                "Adding macro arg {} for macro {}::{}",
-                arg_name, macro_call.namespace, macro_call.name
-            );
-
             frame_context.insert(&arg_name[..], value);
         }
 
-        info!("In call {} => args {:#?}", macro_call.name, frame_context);
-
-        info!(
+        out!(
             "Pushing macro {} with context {:?}",
             macro_call.name,
             frame_context.keys()
         );
+
         self.call_stack
             .push_macro_frame(&macro_call.name[..], frame_context, active_template);
 
@@ -631,11 +604,9 @@ impl<'a> AstProcessor<'a> {
 
         self.call_stack.pop_frame();
 
-        info!("Popped macro frame {}", &macro_call.name[..],);
+        out!("Popped macro frame {}", &macro_call.name[..],);
 
         Ok(output)
-
-        // end <fn ast_processor_eval_macro_call>
     }
 
     /// Render for set
@@ -643,18 +614,14 @@ impl<'a> AstProcessor<'a> {
     ///  * `set` - Render for set
     ///  * _return_ - Resulting evaluation
     ///
-    pub fn eval_set(self: &mut Self, set: &'a Set) -> Result<()> {
+    fn eval_set(self: &mut Self, set: &'a Set) -> Result<()> {
         set.announce_eval();
-        // custom <fn ast_processor_eval_set>
-
         let assigned_value = self.eval_expression_safe(&set.value)?;
 
         self.call_stack
             .add_assignment(&set.key[..], set.global, assigned_value);
 
         Ok(())
-
-        // end <fn ast_processor_eval_set>
     }
 
     /// Render for test
@@ -662,15 +629,12 @@ impl<'a> AstProcessor<'a> {
     ///  * `test` - Render for test
     ///  * _return_ - Resulting evaluation
     ///
-    pub fn eval_test(self: &mut Self, test: &'a Test) -> Result<bool> {
+    fn eval_test(self: &mut Self, test: &'a Test) -> Result<bool> {
         test.announce_eval();
-        // custom <fn ast_processor_eval_test>
-
         let tester_fn = self.tera.get_tester(&test.name)?;
 
         let mut tester_args = vec![];
         for arg in &test.args {
-            println!("Pushing test arg {:?}", arg);
             tester_args.push(self.eval_expression_safe(arg)?.get().clone());
         }
 
@@ -680,8 +644,6 @@ impl<'a> AstProcessor<'a> {
             .ok();
 
         Ok(tester_fn(found, tester_args)?)
-
-        // end <fn ast_processor_eval_test>
     }
 
     /// Evaluate filter on value
@@ -690,12 +652,11 @@ impl<'a> AstProcessor<'a> {
     ///  * `function_call` - Filter function
     ///  * _return_ - Resulting evaluation
     ///
-    pub fn eval_filter(
+    fn eval_filter(
         &mut self,
         value: &RefOrOwned<'a, Value>,
         function_call: &'a FunctionCall,
     ) -> EvalResult<'a> {
-        // custom <fn ast_processor_eval_filter>
         function_call.announce_eval();
 
         let filter_fn = self.tera.get_filter(&function_call.name)?;
@@ -712,8 +673,6 @@ impl<'a> AstProcessor<'a> {
             value.get().clone(),
             args,
         )?))
-
-        // end <fn ast_processor_eval_filter>
     }
 
     /// Evaluate expression as bool
@@ -721,9 +680,7 @@ impl<'a> AstProcessor<'a> {
     ///  * `bool_expr` - Boolean expression
     ///  * _return_ - Resulting evaluation
     ///
-    pub fn eval_as_bool(&mut self, bool_expr: &'a Expr) -> Result<bool> {
-        // custom <fn ast_processor_eval_as_bool>
-
+    fn eval_as_bool(&mut self, bool_expr: &'a Expr) -> Result<bool> {
         let res = match bool_expr.val {
             ExprVal::Logic(LogicExpr {
                 ref lhs,
@@ -793,8 +750,6 @@ impl<'a> AstProcessor<'a> {
         }
 
         Ok(res)
-
-        // end <fn ast_processor_eval_as_bool>
     }
 
     /// Evaluate expression value as number, monomorphing to f64
@@ -802,9 +757,7 @@ impl<'a> AstProcessor<'a> {
     ///  * `bool_expr` - Expression to evaluate as number normalized to f64
     ///  * _return_ - Resulting evaluation
     ///
-    pub fn eval_expr_as_number(&mut self, bool_expr: &'a Expr) -> Result<f64> {
-        // custom <fn ast_processor_eval_expr_as_number>
-
+    fn eval_expr_as_number(&mut self, bool_expr: &'a Expr) -> Result<f64> {
         if !bool_expr.filters.is_empty() {
             match self.eval_expression(bool_expr)?.get() {
                 Value::Number(s) => Ok(s.as_f64().unwrap()),
@@ -813,8 +766,6 @@ impl<'a> AstProcessor<'a> {
         } else {
             self.eval_as_number(&bool_expr.val)
         }
-
-        // end <fn ast_processor_eval_expr_as_number>
     }
 
     /// Evaluate expression as number, monomorphing to f64
@@ -822,9 +773,7 @@ impl<'a> AstProcessor<'a> {
     ///  * `expr_val` - Expression to evaluate as number normalized to f64
     ///  * _return_ - Resulting evaluation
     ///
-    pub fn eval_as_number(&mut self, expr_val: &'a ExprVal) -> Result<f64> {
-        // custom <fn ast_processor_eval_as_number>
-
+    fn eval_as_number(&mut self, expr_val: &'a ExprVal) -> Result<f64> {
         let res = match *expr_val {
             ExprVal::Ident(ref ident) => match self.lookup_ident(ident)?.as_f64() {
                 Some(v) => v,
@@ -856,43 +805,40 @@ impl<'a> AstProcessor<'a> {
         };
 
         Ok(res)
-
-        // end <fn ast_processor_eval_as_number>
     }
 
     /// Only called while rendering a block.
     /// This will look up the block we are currently rendering and its level and try to render
     /// the block at level + n, where would be the next template in the hierarchy the block is present
     fn do_super(&mut self) -> Result<String> {
-        /*
-        let (block_name, level) = self.blocks.pop().unwrap();
+        let &(block_name, tpl_name, level) = self.blocks.last().unwrap();
         let mut next_level = level + 1;
 
         while next_level <= self.template.parents.len() {
-            let blocks_definitions = &self.tera
+            let blocks_definitions = &self
+                .tera
                 .get_template(&self.template.parents[next_level - 1])
                 .unwrap()
                 .blocks_definitions;
 
-            if let Some(block_def) = blocks_definitions.get(&block_name) {
+            if let Some(block_def) = blocks_definitions.get(block_name) {
                 let (ref tpl_name, Block { ref body, .. }) = block_def[0];
-                self.blocks.push((block_name.to_string(), next_level));
-                let has_macro = self.import_template_macros(tpl_name)?;
-                let res = self.render_body(body);
-                if has_macro {
-                    self.macros.pop();
-                }
+                self.blocks.push((block_name, tpl_name, next_level));
+
+                let res = self.render_body(body)?;
+                self.blocks.pop();
+
                 // Can't go any higher for that block anymore?
                 if next_level >= self.template.parents.len() {
                     // then remove it from the stack, we're done with it
                     self.blocks.pop();
                 }
-                return res;
+                return Ok(res);
             } else {
                 next_level += 1;
             }
         }
-*/
+
         bail!("Tried to use super() in the top level block")
     }
 }
@@ -904,9 +850,6 @@ trait AnnounceRender {
     /// Announce render of arg
     ///
     fn announce_render(&self) -> ();
-
-    // custom <trait_announce_render>
-    // end <trait_announce_render>
 }
 
 /// Trait to announce for logging/debug
@@ -914,9 +857,6 @@ trait AnnounceEval {
     /// Announce eval of arg
     ///
     fn announce_eval(&self) -> ();
-
-    // custom <trait_announce_eval>
-    // end <trait_announce_eval>
 }
 
 // --- module impl definitions ---
@@ -927,11 +867,7 @@ impl AnnounceRender for Vec<Node> {
     ///
     #[inline]
     fn announce_render(&self) -> () {
-        // custom <fn announce_render_vec_announce_render>
-
-        info!("Render Vec<Node> ({})", self.len());
-
-        // end <fn announce_render_vec_announce_render>
+        out!("Render Vec<Node> ({:?})", self);
     }
 }
 
@@ -941,11 +877,7 @@ impl AnnounceRender for Forloop {
     ///
     #[inline]
     fn announce_render(&self) -> () {
-        // custom <fn announce_render_forloop_announce_render>
-
-        info!("Render for_loop ({:?}, {}):", self.key, self.value);
-
-        // end <fn announce_render_forloop_announce_render>
+        out!("Render for_loop ({:?}, {}):", self.key, self.value);
     }
 }
 
@@ -955,13 +887,11 @@ impl AnnounceRender for If {
     ///
     #[inline]
     fn announce_render(&self) -> () {
-        // custom <fn announce_render_if_announce_render>
-        info!(
+        out!(
             "Render if_node conditions({}), otherwise({}):",
             self.conditions.len(),
             self.otherwise.is_some()
         );
-        // end <fn announce_render_if_announce_render>
     }
 }
 
@@ -971,11 +901,7 @@ impl AnnounceRender for Node {
     ///
     #[inline]
     fn announce_render(&self) -> () {
-        // custom <fn announce_render_node_announce_render>
-
-        info!("Render node: {}", node_type(self));
-
-        // end <fn announce_render_node_announce_render>
+        out!("Render node: {} -> {:?}", node_type(self), self);
     }
 }
 
@@ -985,11 +911,12 @@ impl AnnounceRender for Block {
     ///
     #[inline]
     fn announce_render(&self) -> () {
-        // custom <fn announce_render_block_announce_render>
-
-        info!("Render Block ({}) len({})", self.name, self.body.len());
-
-        // end <fn announce_render_block_announce_render>
+        out!(
+            "Render Block (`{}`) len({}) -> {:?}",
+            self.name,
+            self.body.len(),
+            self
+        );
     }
 }
 
@@ -999,11 +926,7 @@ impl AnnounceEval for Expr {
     ///
     #[inline]
     fn announce_eval(&self) -> () {
-        // custom <fn announce_eval_expr_announce_eval>
-
-        info!("Render Expr ({})", expr_val_type(&self.val));
-
-        // end <fn announce_eval_expr_announce_eval>
+        out!("Render Expr ({})", expr_val_type(&self.val));
     }
 }
 
@@ -1013,9 +936,7 @@ impl AnnounceEval for FunctionCall {
     ///
     #[inline]
     fn announce_eval(&self) -> () {
-        // custom <fn announce_eval_function_call_announce_eval>
-
-        info!(
+        out!(
             "Render FnCall `{}({:?})`",
             self.name,
             self.args
@@ -1024,8 +945,6 @@ impl AnnounceEval for FunctionCall {
                 .collect::<Vec<String>>()
                 .join(", ")
         );
-
-        // end <fn announce_eval_function_call_announce_eval>
     }
 }
 
@@ -1035,9 +954,7 @@ impl AnnounceEval for MacroCall {
     ///
     #[inline]
     fn announce_eval(&self) -> () {
-        // custom <fn announce_eval_macro_call_announce_eval>
-
-        info!(
+        out!(
             "Render Macro `{}::{}({})`",
             self.namespace,
             self.name,
@@ -1047,8 +964,6 @@ impl AnnounceEval for MacroCall {
                 .collect::<Vec<String>>()
                 .join(", ")
         );
-
-        // end <fn announce_eval_macro_call_announce_eval>
     }
 }
 
@@ -1058,15 +973,11 @@ impl AnnounceEval for Set {
     ///
     #[inline]
     fn announce_eval(&self) -> () {
-        // custom <fn announce_eval_set_announce_eval>
-
-        info!(
+        out!(
             "Render Set `{} = Expr({})`",
             self.key,
             expr_val_type(&self.value.val)
         );
-
-        // end <fn announce_eval_set_announce_eval>
     }
 }
 
@@ -1076,11 +987,7 @@ impl AnnounceEval for Test {
     ///
     #[inline]
     fn announce_eval(&self) -> () {
-        // custom <fn announce_eval_test_announce_eval>
-
-        info!("Render Test `{} is Expr({})`", self.ident, self.name);
-
-        // end <fn announce_eval_test_announce_eval>
+        out!("Render Test `{} is Expr({})`", self.ident, self.name);
     }
 }
 
@@ -1092,16 +999,14 @@ impl AnnounceEval for Test {
 ///  * _return_ - Text representation of node
 ///
 fn node_type(node: &Node) -> String {
-    // custom <fn node_type>
-
     match node {
         Node::Super => "Super".into(),
 
         /// Some actual text
-        Node::Text(s) => format!("Text of len({})", s.len()),
+        Node::Text(s) => format!("Text of len({}) -> `{}`", s.len(), s),
 
         /// A `{{ }}` block
-        Node::VariableBlock(e) => format!("Variable Block"),
+        Node::VariableBlock(e) => format!("Variable Block `{:?}`", e),
 
         /// A `{% macro hello() %}...{% endmacro %}`
         Node::MacroDefinition(_, macro_definition, _) => format!("Macro Definition"),
@@ -1139,7 +1044,6 @@ fn node_type(node: &Node) -> String {
         /// The `{% continue %}` tag
         Node::Continue(_) => "continue".into(),
     }
-    // end <fn node_type>
 }
 
 /// Returns text representation of type
@@ -1148,8 +1052,6 @@ fn node_type(node: &Node) -> String {
 ///  * _return_ - Text representation of node
 ///
 fn expr_val_type(expr_val: &ExprVal) -> String {
-    // custom <fn expr_val_type>
-
     match expr_val {
         ExprVal::String(s) => format!("Str({})", s.len()),
         ExprVal::Int(i) => format!("Int({})", i),
@@ -1167,11 +1069,7 @@ fn expr_val_type(expr_val: &ExprVal) -> String {
         // on values inside arrays
         ExprVal::Array(vec) => format!("Arr({})", vec.len()),
     }
-
-    // end <fn expr_val_type>
 }
-
-// custom <module ast_processor ModuleBottom>
 
 /// Implementation of trait `AnnounceRender` for type `[Node]`
 impl AnnounceRender for [Node] {
@@ -1179,12 +1077,20 @@ impl AnnounceRender for [Node] {
     ///
     #[inline]
     fn announce_render(&self) -> () {
-        // custom <fn announce_render_node_announce_render>
-
-        info!("Render [Node] ({})", self.len());
-
-        // end <fn announce_render_node_announce_render>
+        out!("Render [Node] ({:?})", self);
     }
 }
 
-// end <module ast_processor ModuleBottom>
+/// Get last parent template
+///
+///  * `tera` - Tera that contains templates
+///  * `template` - Template to find last template of
+///  * _return_ - Last parent of template or `None`
+///
+#[inline]
+pub fn last_parent<'a>(tera: &'a Tera, template: &'a Template) -> Option<&'a Template> {
+    template
+        .parents
+        .last()
+        .map(|parent| tera.get_template(parent).unwrap())
+}

@@ -26,6 +26,8 @@ pub enum FrameType {
   MacroFrame,
   /// New frame for for loop
   ForLoopFrame,
+  /// Include template
+  IncludeFrame,
 }
 
 // --- module struct definitions ---
@@ -34,9 +36,9 @@ pub enum FrameType {
 #[derive(Debug)]
 pub struct StackFrame<'a> {
   /// Type of stack frame
-  frame_type: FrameType,
+  pub frame_type: FrameType,
   /// Frame name for context/debugging
-  frame_name: &'a str,
+  pub frame_name: &'a str,
   /// Assigned value (via {% set ... %}, {% for ... %}, {% namespace::macro(a=a, b=b) %})
   ///
   /// - {% set ... %} adds to current frame_context
@@ -45,7 +47,7 @@ pub struct StackFrame<'a> {
   ///
   frame_context: FrameContext<'a>,
   /// Active template for frame
-  active_template: &'a Template,
+  pub active_template: &'a Template,
   /// `ForLoop` if frame is for a for loop
   for_loop: Option<ForLoop<'a>>,
 }
@@ -164,6 +166,7 @@ impl<'a> StackFrame<'a> {
         "macro `{}(...)` in `{}`",
         self.frame_name, self.active_template.name
       ),
+      FrameType::IncludeFrame => format!("include `{}`", self.active_template.name),
       FrameType::TopFrame => format!("in `{}`", self.active_template.name),
     }
   }
@@ -199,6 +202,19 @@ impl<'a> CallStack<'a> {
     }
   }
 
+  /// Returns the names of all frames in stack - for error/debug
+  #[inline]
+  fn frame_names(&self) -> String {
+    let mut result = String::new();
+    for (i, stack_frame) in self.stack.iter().enumerate() {
+      result.push_str(&format!(
+        "{} -> `{}` in template `{}`\n",
+        i, stack_frame.frame_name, stack_frame.active_template.name
+      ));
+    }
+    result
+  }
+
   /// Pushes a new `StackFrame` to the stack
   ///
   ///  * `frame_name` - Name for context for logging
@@ -206,6 +222,11 @@ impl<'a> CallStack<'a> {
   ///
   #[inline]
   pub fn push_for_loop_frame(&mut self, frame_name: &'a str, for_loop: ForLoop<'a>) -> () {
+    out!(
+      "Pushing for loop frame `{}`\n--Frames--\n{}",
+      frame_name,
+      self.frame_names()
+    );
     let active_template = self.stack.last().expect("Stack frame").active_template;
     self.stack.push(StackFrame {
       frame_type: FrameType::ForLoopFrame,
@@ -216,7 +237,7 @@ impl<'a> CallStack<'a> {
     })
   }
 
-  /// Pushes a new `StackFrame` to the stack
+  /// Pushes a new macro invocation `StackFrame` to the stack
   ///
   ///  * `frame_name` - Name for context for logging
   ///  * `frame_context` - Context for the frame
@@ -229,10 +250,39 @@ impl<'a> CallStack<'a> {
     frame_context: FrameContext<'a>,
     active_template: &'a Template,
   ) -> () {
+    out!(
+      "Pushing macro frame `{}`\n--Frames--\n{}",
+      frame_name,
+      self.frame_names()
+    );
+
     self.stack.push(StackFrame {
       frame_type: FrameType::MacroFrame,
       frame_name,
       frame_context,
+      active_template,
+      for_loop: None,
+    })
+  }
+
+  /// Pushes a new Include `StackFrame` to the stack
+  ///
+  ///  * `frame_name` - Name for context for logging
+  ///  * `frame_context` - Context for the frame
+  ///  * `active_template` - Template with macro definition and the new *active* template
+  ///
+  #[inline]
+  pub fn push_include_frame(&mut self, frame_name: &'a str, active_template: &'a Template) -> () {
+    out!(
+      "Pushing include frame `{}`\n--Frames--\n{}",
+      frame_name,
+      self.frame_names()
+    );
+
+    self.stack.push(StackFrame {
+      frame_type: FrameType::MacroFrame,
+      frame_name,
+      frame_context: FrameContext::new(),
       active_template,
       for_loop: None,
     })
@@ -243,6 +293,11 @@ impl<'a> CallStack<'a> {
   #[inline]
   pub fn pop_frame(&mut self) -> () {
     debug_assert!(self.stack.last().expect("Last Frame").frame_type != FrameType::TopFrame);
+    out!(
+      "Popping frame `{}`",
+      self.stack.last().expect("Frame").frame_name
+    );
+
     self.stack.pop().expect("Last Frame");
   }
 
@@ -256,8 +311,6 @@ impl<'a> CallStack<'a> {
   ///
   #[inline]
   pub fn find_value(self: &Self, key: &'a str) -> Option<RefOrOwned<'a, Value>> {
-    // custom <fn call_stack_find_value>
-
     let first_frame_type = self.stack.last().as_ref().expect("Frame exists").frame_type;
 
     // When searching up stack, if current frame type is `TopFrame`
@@ -289,8 +342,6 @@ impl<'a> CallStack<'a> {
     }
 
     None
-
-    // end <fn call_stack_find_value>
   }
 
   /// Add an assignment value (via {% set ... %})
@@ -321,6 +372,15 @@ impl<'a> CallStack<'a> {
     self.stack.first_mut().expect("Top frame")
   }
 
+  /// Returns immutable reference to current `StackFrame`
+  ///
+  ///  * _return_ - Current stack frame
+  ///
+  #[inline]
+  pub fn top_frame(self: & Self) -> &StackFrame<'a> {
+    self.stack.first().expect("Top frame")
+  }
+
   /// Returns mutable reference to current `StackFrame`
   ///
   ///  * _return_ - Current stack frame
@@ -330,13 +390,27 @@ impl<'a> CallStack<'a> {
     self.stack.last_mut().expect("Current frame")
   }
 
-  /// Returns mutable reference to current `StackFrame`
+  /// Returns immutable reference to current `StackFrame`
   ///
   ///  * _return_ - Current stack frame
   ///
   #[inline]
   pub fn current_frame(self: &Self) -> &StackFrame<'a> {
     self.stack.last().expect("Current frame")
+  }
+
+  /// Returns clone of current context
+  ///
+  ///  * _return_ - Current stack frame
+  ///
+  #[inline]
+  pub fn current_context_cloned(self: &Self) -> RefOrOwned<'a, Value> {
+    let current_frame = self.current_frame();
+    if current_frame.frame_type == FrameType::TopFrame {
+      RefOrOwned::from_owned(self.context.context_value().clone())
+    } else {
+      RefOrOwned::from_owned(to_value(current_frame.frame_context.clone()).unwrap())
+    }
   }
 
   /// Gets reference to current template
@@ -354,8 +428,6 @@ impl<'a> CallStack<'a> {
   ///
   #[inline]
   pub fn break_for_loop(self: &mut Self) -> Result<()> {
-    // custom <fn call_stack_break_for_loop>
-
     match &mut self.current_frame_mut().for_loop {
       Some(for_loop) => {
         for_loop.break_loop();
@@ -363,8 +435,6 @@ impl<'a> CallStack<'a> {
       }
       None => bail!("Attempted `break` while not in `for loop`"),
     }
-
-    // end <fn call_stack_break_for_loop>
   }
 
   /// Continues current for loop
@@ -373,8 +443,6 @@ impl<'a> CallStack<'a> {
   ///
   #[inline]
   pub fn increment_for_loop(self: &mut Self) -> Result<()> {
-    // custom <fn call_stack_increment_for_loop>
-
     match &mut self.current_frame_mut().for_loop {
       Some(for_loop) => {
         for_loop.increment();
@@ -382,7 +450,6 @@ impl<'a> CallStack<'a> {
       }
       None => bail!("Attempted `increment` while not in `for loop`"),
     }
-    // end <fn call_stack_increment_for_loop>
   }
 
   /// Continues current for loop
@@ -391,8 +458,6 @@ impl<'a> CallStack<'a> {
   ///
   #[inline]
   pub fn continue_for_loop(self: &mut Self) -> Result<()> {
-    // custom <fn call_stack_continue_for_loop>
-
     match &mut self.current_frame_mut().for_loop {
       Some(for_loop) => {
         for_loop.continue_loop();
@@ -400,8 +465,6 @@ impl<'a> CallStack<'a> {
       }
       None => bail!("Attempted `continue` while not in `for loop`"),
     }
-
-    // end <fn call_stack_continue_for_loop>
   }
 
   /// True if should break body, applicable to `break` and `continue`
@@ -419,7 +482,6 @@ impl<'a> CallStack<'a> {
     }
   }
 
-
   /// True if should break for loop
   ///
   ///  * _return_ - If for loop and and in continue or break state
@@ -427,9 +489,7 @@ impl<'a> CallStack<'a> {
   #[inline]
   pub fn should_break_for_loop(&self) -> bool {
     match &self.current_frame().for_loop {
-      Some(for_loop) => {
-        for_loop.for_loop_state() == ForLoopState::Break
-      }
+      Some(for_loop) => for_loop.for_loop_state() == ForLoopState::Break,
       None => false,
     }
   }
@@ -439,18 +499,7 @@ impl<'a> CallStack<'a> {
   ///  * _return_ - String representation of location
   ///
   pub fn error_location(&self) -> String {
-    let mut result = String::new();
-    let mut indent = "|..".to_string();
-    for stack_frame in self.stack.iter() {
-      result.push_str(&format!(
-        "{}{}\n",
-        &indent,
-        &stack_frame.template_location()
-      ));
-      indent.push_str("..");
-    }
-
-    result
+    self.frame_names()
   }
 
   /// Gets text display of all context data
@@ -458,8 +507,6 @@ impl<'a> CallStack<'a> {
   ///  * _return_ - Display formatted context
   ///
   pub fn debug_context(&self) -> String {
-    // custom <fn call_stack_debug_context>
-
     let mut result = String::new();
 
     for stack_frame in self.stack.iter().rev() {
@@ -476,12 +523,7 @@ impl<'a> CallStack<'a> {
     }
 
     result
-
-    // end <fn call_stack_debug_context>
   }
-
-  // custom <impl call_stack>
-  // end <impl call_stack>
 }
 
 // --- module function definitions ---
