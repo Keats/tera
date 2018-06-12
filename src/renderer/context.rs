@@ -2,6 +2,7 @@
 
 // --- module use statements ---
 
+use context::get_json_pointer;
 use serde_json::value::Value;
 
 // --- module struct definitions ---
@@ -24,7 +25,18 @@ impl<'a> Context<'a> {
         Context { context_value }
     }
 
-    /// Finds a value within the value.
+    /// Finds a value within the `context_value`.
+    ///
+    ///  * `path` - Path of desired value - may (or may not) contain dots
+    ///             May *not* contain `[`
+    ///  * _return_ - Found value or `None`
+    ///
+    #[inline]
+    pub fn find_value_by_path(self: &Self, path: &str) -> Option<&'a Value> {
+        find_value_by_path(self.context_value, path)
+    }
+
+    /// Finds a value within the `context_value`.
     ///
     ///  * `key` - Key to find
     ///  * _return_ - Found value or `None`
@@ -34,7 +46,7 @@ impl<'a> Context<'a> {
         self.context_value.get(key)
     }
 
-    /// Finds a value within the value.
+    /// Finds a value within the `context_value`.
     ///
     ///  * `pointer` - Key to find
     ///  * _return_ - Found value or `None`
@@ -49,8 +61,23 @@ impl<'a> Context<'a> {
     ///  * _return_ - Current state for `context_value`
     ///
     #[inline]
-    pub fn context_value(& self) -> & 'a Value {
+    pub fn context_value(&self) -> &'a Value {
         self.context_value
+    }
+}
+
+    /// Finds a value within the `value`.
+    ///
+    ///  * `path` - Path of desired value - may (or may not) contain dots
+    ///             May *not* contain `[`
+    ///  * _return_ - Found value or `None`
+    ///
+#[inline]
+pub fn find_value_by_path<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
+    if let Some(dot) = path.find('.') {
+        value.pointer(&get_json_pointer(path))
+    } else {
+        value.get(path)
     }
 }
 
@@ -104,6 +131,23 @@ mod tests {
             assert_eq!(
                 context.find_value_by_pointer("/b/a/s").unwrap(),
                 &to_value("an a".to_string()).unwrap()
+            );
+        }
+
+        #[test]
+        fn find_value_by_path() -> () {
+            let c = sample_c();
+            let value = to_value(&c).unwrap();
+            let context = Context::from_value(&value);
+
+            assert_eq!(
+                context.find_value_by_path("b.a.s").unwrap(),
+                &to_value("an a".to_string()).unwrap()
+            );
+
+            assert_eq!(
+                context.find_value_by_path("b").unwrap(),
+                &to_value(c.b.clone()).unwrap()
             );
         }
     }
