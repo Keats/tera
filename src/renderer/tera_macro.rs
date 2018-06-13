@@ -10,16 +10,21 @@ use tera::Tera;
 
 // --- module type aliases ---
 
+/// Maps { macro => macro_definition }
 type MacroDefinitionMap<'a> = HashMap<&'a str, &'a MacroDefinition>;
-type MacroFileMap<'a> = HashMap<&'a str, MacroFile<'a>>;
+
+/// Maps { namespace => ( macro_template, { macro => macro_definition })}
+type MacroNamespaceMap<'a> = HashMap<&'a str, (&'a str, MacroDefinitionMap<'a>)>;
+
+/// Maps { template => { namespace { macro => macro_definition }}}
+type MacroTemplateMap<'a> = HashMap<&'a str, MacroNamespaceMap<'a>>;
 
 // --- module struct definitions ---
 
 /// Collection of all macro templates by file
 #[derive(Clone, Debug, Default)]
 pub struct MacroCollection<'a> {
-  /// `MacroFiles` indexed by file name
-  macro_files: MacroFileMap<'a>,
+  macro_template_map: MacroTemplateMap<'a>,
 }
 /// Implementation for type `MacroCollection`.
 impl<'a> MacroCollection<'a> {
@@ -29,9 +34,12 @@ impl<'a> MacroCollection<'a> {
   ///  * `tera` - Houses other templates, filters, global functions, etc
   ///  * _return_ - Macro definitions from a template file
   ///
-  pub fn from_template_root(template_name: &'a str, tera: &'a Tera) -> Result<MacroCollection<'a>> {
+  pub fn from_template_original(
+    template_name: &'a str,
+    tera: &'a Tera,
+  ) -> Result<MacroCollection<'a>> {
     let mut macro_collection = MacroCollection {
-      macro_files: MacroFileMap::new(),
+      macro_template_map: MacroTemplateMap::new(),
     };
 
     macro_collection.add_macros_from_template(tera, tera.get_template(template_name)?)?;
@@ -55,41 +63,66 @@ impl<'a> MacroCollection<'a> {
     tera: &'a Tera,
     template: &'a Template,
   ) -> Result<()> {
-    out!(
-      "Loading macros for {} at path {:?} with {} top level macros",
-      template.name,
-      template.path,
-      template.macros.len()
-    );
+    let template_name = &template.name[..];
+    if self.macro_template_map.contains_key(template_name) {
+      return Ok(());
+    }
+
+    let mut macro_namespace_map = MacroNamespaceMap::new();
+
+    if !template.macros.is_empty() {
+      macro_namespace_map.insert(
+        "self",
+        (template_name, get_template_macro_definitions(template)),
+      );
+    }
 
     for &(ref filename, ref namespace) in &template.imported_macro_files {
-      out!(
-        "\tLoading macros filename {}, namespace {}",
-        filename,
-        namespace
-      );
-
       let macro_tpl = tera.get_template(filename)?;
-      let mut macro_definitions = MacroDefinitionMap::new();
-      for (macro_name, macro_definition) in macro_tpl.macros.iter() {
-        macro_definitions.insert(&macro_name[..], macro_definition);
-      }
+      macro_namespace_map.insert(
+        namespace,
+        (filename, get_template_macro_definitions(macro_tpl)),
+      );
+      self.add_macros_from_template(tera, macro_tpl)?;
+    }
 
-      let filename_str = &filename[..];
+    self
+      .macro_template_map
+      .insert(template_name, macro_namespace_map);
 
-      if !self.macro_files.contains_key(filename_str) {
-        self.macro_files.insert(
-          filename_str,
-          MacroFile::from_definitions(filename_str, macro_definitions),
-        );
-      }
-
-      if !macro_tpl.imported_macro_files.is_empty() {
-        self.add_macros_from_template(tera, macro_tpl)?;
-      }
+    for parent in &template.parents {
+      let parent = &parent[..];
+      let parent_template = tera.get_template(parent)?;
+      self.add_macros_from_template(tera, parent_template);
     }
 
     Ok(())
+  }
+
+  #[inline]
+  pub fn lookup_macro(
+    &self,
+    template_name: &'a str,
+    macro_namespace: &'a str,
+    macro_name: &'a str,
+  ) -> Result<(&'a str, &'a MacroDefinition)> {
+    match self
+      .macro_template_map
+      .get(template_name)
+      .and_then(|namespace_map| namespace_map.get(macro_namespace))
+      .and_then(|macro_definition_map| {
+        let &(macro_template, ref macro_definition_map) = macro_definition_map;
+
+        macro_definition_map
+          .get(macro_name)
+          .map(|md| (macro_template, *md))
+      }) {
+      Some(macro_definition) => Ok(macro_definition),
+      None => bail!(format!(
+        "Macro `({}:{})` not found in template `{}`",
+        macro_namespace, macro_name, template_name
+      )),
+    }
   }
 
   /// Takes the MacroCollection.
@@ -102,34 +135,18 @@ impl<'a> MacroCollection<'a> {
   ///
   #[inline]
   pub fn take_macro_collection(self: &mut Self) -> MacroCollection<'a> {
-    let macro_files = ::std::mem::replace(&mut self.macro_files, MacroFileMap::default());
-    MacroCollection { macro_files }
+    let macro_template_map =
+      ::std::mem::replace(&mut self.macro_template_map, MacroTemplateMap::default());
+
+    MacroCollection { macro_template_map }
   }
 }
 
-/// The parsed macro definition and name of macro
-#[derive(Clone, Debug)]
-pub struct MacroFile<'a> {
-  /// Name of macro
-  file_name: &'a str,
-  /// Mapping of macro name to its definition
-  macro_definitions: MacroDefinitionMap<'a>,
-}
-/// Implementation for type `MacroFile`.
-impl<'a> MacroFile<'a> {
-  /// Read macros from template file recursively
-  ///
-  ///  * `file_name` - Name of macro file
-  ///  * `macro_definitions` - Macros contained in file>
-  ///  * _return_ - Macro definitions from a template file
-  ///
-  pub fn from_definitions(
-    file_name: &'a str,
-    macro_definitions: MacroDefinitionMap<'a>,
-  ) -> MacroFile<'a> {
-    MacroFile {
-      file_name,
-      macro_definitions,
-    }
+#[inline]
+fn get_template_macro_definitions<'a>(template: &'a Template) -> MacroDefinitionMap<'a> {
+  let mut macro_definitions = MacroDefinitionMap::new();
+  for (macro_name, macro_definition) in template.macros.iter() {
+    macro_definitions.insert(&macro_name[..], macro_definition);
   }
+  macro_definitions
 }

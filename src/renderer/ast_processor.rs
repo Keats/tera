@@ -117,9 +117,7 @@ impl<'a> AstProcessor<'a> {
             ));
         }
 
-        let z = &self.call_stack;
-
-        process_path(key, z)
+        process_path(key, &self.call_stack)
     }
 
     /// Walk the ast and render
@@ -133,14 +131,17 @@ impl<'a> AstProcessor<'a> {
         let mut output = String::new();
 
         for node in self.template_root.ast.iter() {
-            output.push_str(&self.render_node(node).chain_err(|| {
-                format!(
+            match self.render_node(node) {
+                Ok(rendered) => {
+                    output.push_str(&rendered);
+                }
+                Err(e) => bail!(format!(
                     "Failed to render `{}` - error location:\n{}{}",
-                    self.call_stack.top_frame().active_template.name,
+                    self.call_stack.active_template().name,
                     self.call_stack.error_location(),
                     self.block_location()
-                )
-            })?)
+                )),
+            }
         }
 
         Ok(output)
@@ -349,7 +350,6 @@ impl<'a> AstProcessor<'a> {
     ///
     fn render_block(self: &mut Self, block: &'a Block, level: usize) -> RenderResult {
         block.announce_render();
-
         let level_template = match level {
             0 => self.call_stack.active_template(),
             _ => self
@@ -366,8 +366,6 @@ impl<'a> AstProcessor<'a> {
             self.blocks
                 .push((&block.name[..], &level_template.name[..], level));
             return self.render_body(body);
-        } else {
-            warn!("Missing block {} in level {}", block.name, level);
         }
 
         // Do we have more parents to look through?
@@ -515,36 +513,17 @@ impl<'a> AstProcessor<'a> {
     fn eval_macro_call(self: &mut Self, macro_call: &'a MacroCall) -> Result<String> {
         macro_call.announce_eval();
         let mut active_template = self.call_stack.active_template();
+        let active_template_name = if let Some(block) = self.blocks.last() {
+            block.1
+        } else {
+            &active_template.name[..]
+        };
 
-        if macro_call.namespace != "self" {
-            let mut found = false;
-            let imported_macro_files = &active_template.imported_macro_files;
-            for (filename, namespace) in imported_macro_files {
-                if macro_call.namespace == *namespace {
-                    active_template = self.tera.get_template(&filename).expect("Expect template");
-                    found = true;
-                    break;
-                }
-            }
-
-            if !found {
-                bail!(
-                    "Namespace `{}` not found in template `{}`",
-                    macro_call.namespace,
-                    active_template.name
-                );
-            }
-        }
-
-        let macro_definition = active_template
-            .macros
-            .get(&macro_call.name)
-            .ok_or_else(|| {
-                format!(
-                    "Macro `{}` was not found in the namespace `{}` of template `{}`",
-                    macro_call.name, macro_call.namespace, active_template.name,
-                )
-            })?;
+        let (macro_template_name, macro_definition) = self.macro_collection.lookup_macro(
+            active_template_name,
+            &macro_call.namespace[..],
+            &macro_call.name[..],
+        )?;
 
         let mut frame_context = FrameContext::with_capacity(macro_definition.args.len());
 
@@ -570,8 +549,11 @@ impl<'a> AstProcessor<'a> {
             frame_context.keys()
         );
 
-        self.call_stack
-            .push_macro_frame(&macro_call.name[..], frame_context, active_template);
+        self.call_stack.push_macro_frame(
+            &macro_call.name[..],
+            frame_context,
+            self.tera.get_template(macro_template_name)?,
+        );
 
         let output = self.render_body(&macro_definition.body)?;
 

@@ -11,7 +11,7 @@ use renderer::ast_processor::{last_parent, AstProcessor};
 use renderer::call_stack::CallStack;
 use renderer::context::Context;
 use renderer::ref_or_owned::RefOrOwned;
-use renderer::tera_macro::{MacroCollection, MacroFile};
+use renderer::tera_macro::MacroCollection;
 use serde_json::value::{to_value, Number, Value};
 use std::collections::HashMap;
 use template::Template;
@@ -51,6 +51,12 @@ impl<'a> Renderer<'a> {
     ) -> Result<Renderer<'a>> {
         let template_root = last_parent(tera, template).unwrap_or(template);
 
+        out!(
+            "ORIGINAL TEMPLATE\n{:#?}\nROOT TEMPLATE {:#?}",
+            template,
+            template_root
+        );
+
         let should_escape = tera.autoescape_suffixes.iter().any(|ext| {
             // We prefer a `path` if set, otherwise use the `name`
             if let Some(ref p) = template.path {
@@ -62,7 +68,7 @@ impl<'a> Renderer<'a> {
         Ok(Renderer {
             template,
             tera,
-            macro_collection: MacroCollection::from_template_root(&template_root.name[..], tera)?,
+            macro_collection: MacroCollection::from_template_original(&template.name[..], tera)?,
             context_value,
             should_escape,
         })
