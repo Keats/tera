@@ -97,7 +97,7 @@ impl<'a> Renderer<'a> {
 
         let duration = stopwatch.elapsed_ms();
 
-        println!(
+        info!(
             "Render (less_clone) for template took {}: For template ({}) with parents ({:?})",
             duration, self.template.name, self.template.parents
         );

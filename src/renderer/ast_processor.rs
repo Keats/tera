@@ -11,6 +11,7 @@ use parser::ast::{
 use renderer::call_stack::{CallStack, FrameContext, FrameType};
 use renderer::context::Context;
 use renderer::for_loop::{ForLoop, ForLoopState};
+use renderer::path_processor::{process_path, Accessor};
 use renderer::ref_or_owned::RefOrOwned;
 use renderer::tera_macro::MacroCollection;
 use serde_json::map::Map as JsonMap;
@@ -23,8 +24,9 @@ use utils::escape_html;
 // --- module type aliases ---
 
 type RenderResult = Result<String>;
-type EvalResult<'a> = Result<RefOrOwned<'a, Value>>;
-type LookupResult<'a> = Result<RefOrOwned<'a, Value>>;
+type RefValue<'a> = RefOrOwned<'a, Value>;
+type EvalResult<'a> = Result<RefValue<'a>>;
+type LookupResult<'a> = Result<RefValue<'a>>;
 
 // --- module statics ---
 
@@ -102,7 +104,7 @@ impl<'a> AstProcessor<'a> {
     ///  * `key` - Key to look up
     ///  * _return_ - Value if found
     ///
-    fn lookup_ident(&self, key: &'a str) -> LookupResult<'a> {
+    fn lookup_ident(&self, key: &str) -> LookupResult<'a> {
         out!("lookup_ident: {}", key);
 
         // Magical variable that just dumps the context
@@ -115,38 +117,9 @@ impl<'a> AstProcessor<'a> {
             ));
         }
 
-        let found = self.call_stack.find_value(key);
+        let z = &self.call_stack;
 
-        match found {
-            Some(v) => Ok(v),
-            None => {
-                let active_template = self.call_stack.current_frame().active_template;
-
-                let mut error_msg = format!(
-                    "Variable `{}` not found in context while rendering `{}`",
-                    key, self.template.name
-                );
-
-                error_msg.push_str(&format!(
-                    " with parent chain: [{}]",
-                    active_template
-                        .parents
-                        .clone()
-                        .iter()
-                        .map(|p| format!("`{}`", p))
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                ));
-
-                out!(
-                    "{} -> --- Debug Context ---\n{}",
-                    error_msg,
-                    self.call_stack.debug_context()
-                );
-
-                bail!(error_msg)
-            }
-        }
+        process_path(key, z)
     }
 
     /// Walk the ast and render
@@ -654,7 +627,7 @@ impl<'a> AstProcessor<'a> {
     ///
     fn eval_filter(
         &mut self,
-        value: &RefOrOwned<'a, Value>,
+        value: &RefValue<'a>,
         function_call: &'a FunctionCall,
     ) -> EvalResult<'a> {
         function_call.announce_eval();

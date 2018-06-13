@@ -6,14 +6,17 @@ use context::get_json_pointer;
 use errors::{Result, ResultExt};
 use renderer::context::Context;
 use renderer::for_loop::{ForLoop, ForLoopState, Values};
+use renderer::path_processor::{process_path, Accessor};
 use renderer::ref_or_owned::RefOrOwned;
 use serde_json::{to_value, Value};
 use std::collections::HashMap;
 use template::Template;
 
+type RefValue<'a> = RefOrOwned<'a, Value>;
+
 // --- module type aliases ---
 
-pub type FrameContext<'a> = HashMap<&'a str, RefOrOwned<'a, Value>>;
+pub type FrameContext<'a> = HashMap<&'a str, RefValue<'a>>;
 
 // --- module enum definitions ---
 
@@ -61,7 +64,7 @@ impl<'a> StackFrame<'a> {
   ///  * _return_ - Found value or `None`
   ///
   #[inline]
-  pub fn find_value(self: &Self, key: &'a str) -> Option<RefOrOwned<'a, Value>> {
+  pub fn find_value(self: &Self, key: &str) -> Option<RefValue<'a>> {
     self
       .find_value_in_frame_context(key)
       .or(self.find_value_in_for_loop(key))
@@ -75,7 +78,7 @@ impl<'a> StackFrame<'a> {
   ///  * _return_ - Found value or `None`
   ///
   #[inline]
-  pub fn find_value_in_frame_context(self: &Self, key: &'a str) -> Option<RefOrOwned<'a, Value>> {
+  pub fn find_value_in_frame_context(self: &Self, key: &str) -> Option<RefValue<'a>> {
     if let Some(dot) = key.find('.') {
       if dot < key.len() + 1 {
         if let Some(found_value) = self
@@ -102,7 +105,7 @@ impl<'a> StackFrame<'a> {
   ///  * _return_ - Found value or `None`
   ///
   #[inline]
-  pub fn find_value_in_for_loop(self: &Self, key: &'a str) -> Option<RefOrOwned<'a, Value>> {
+  pub fn find_value_in_for_loop(self: &Self, key: &str) -> Option<RefValue<'a>> {
     if let Some(for_loop) = &self.for_loop {
       match key {
         "loop.index" => {
@@ -310,7 +313,7 @@ impl<'a> CallStack<'a> {
   ///  * _return_ - Found value or `None`
   ///
   #[inline]
-  pub fn find_value(self: &Self, key: &'a str) -> Option<RefOrOwned<'a, Value>> {
+  pub fn find_value(self: &Self, key: &str) -> Option<RefValue<'a>> {
     let first_frame_type = self.stack.last().as_ref().expect("Frame exists").frame_type;
 
     // When searching up stack, if current frame type is `TopFrame`
@@ -354,7 +357,7 @@ impl<'a> CallStack<'a> {
     self: &mut Self,
     key: &'a str,
     is_global: bool,
-    value: RefOrOwned<'a, Value>,
+    value: RefValue<'a>,
   ) -> () {
     if is_global {
       self.top_frame_mut().frame_context.insert(key, value);
@@ -377,7 +380,7 @@ impl<'a> CallStack<'a> {
   ///  * _return_ - Current stack frame
   ///
   #[inline]
-  pub fn top_frame(self: & Self) -> &StackFrame<'a> {
+  pub fn top_frame(self: &Self) -> &StackFrame<'a> {
     self.stack.first().expect("Top frame")
   }
 
@@ -404,7 +407,7 @@ impl<'a> CallStack<'a> {
   ///  * _return_ - Current stack frame
   ///
   #[inline]
-  pub fn current_context_cloned(self: &Self) -> RefOrOwned<'a, Value> {
+  pub fn current_context_cloned(self: &Self) -> RefValue<'a> {
     let current_frame = self.current_frame();
     if current_frame.frame_type == FrameType::TopFrame {
       RefOrOwned::from_owned(self.context.context_value().clone())
@@ -527,6 +530,43 @@ impl<'a> CallStack<'a> {
 }
 
 // --- module function definitions ---
+
+impl<'a> Accessor<'a, RefValue<'a>> for CallStack<'a> {
+  fn lookup(&self, key: &str) -> Result<RefValue<'a>> {
+    //debug_assert!(!key.contains('.') && !key.contains('['));
+
+    self
+      .find_value(key)
+      .chain_err(|| format!("Unable to find `{}`", key))
+  }
+
+  fn index_pointer(&self, node: RefValue<'a>, pointer: &str) -> Result<RefValue<'a>> {
+    let sub_node = match node {
+      RefOrOwned::Borrowed { borrow } => borrow
+        .pointer(&get_json_pointer(pointer))
+        .map(|v| RefOrOwned::from_borrow(v)),
+      RefOrOwned::Owned { owned } => owned
+        .get(pointer)
+        .map(|v| RefOrOwned::from_owned(v.clone())),
+    };
+
+    if let Some(value) = sub_node {
+      Ok(value)
+    } else {
+      bail!("Unable to get pointer index `{}`", pointer)
+    }
+  }
+
+  fn index_by_node(&self, node: RefValue<'a>, index_node: RefValue<'a>) -> Result<RefValue<'a>> {
+    let post_var_as_str = match *index_node {
+      Value::String(ref s) => s.to_string(),
+      Value::Number(ref n) => n.to_string(),
+      _ => bail!("Only variables evaluating to String or Number can be used as index"),
+    };
+
+    self.index_pointer(node, &post_var_as_str)
+  }
+}
 
 #[inline]
 pub fn should_use_pointer(key: &str) -> Option<usize> {

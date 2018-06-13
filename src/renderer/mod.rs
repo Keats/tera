@@ -7,6 +7,7 @@ mod ast_processor;
 mod call_stack;
 mod context;
 mod for_loop;
+mod path_processor;
 mod ref_or_owned;
 mod renderer;
 mod tera_macro;

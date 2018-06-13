@@ -205,32 +205,22 @@ fn bench_huge_loop(b: &mut test::Bencher) {
         real: Vec<DataWrapper>,
         dummy: Vec<DataWrapper>,
     }
-    let real: Vec<DataWrapper> = (1..100)
+    let real: Vec<DataWrapper> = (1..1000)
         .into_iter()
         .map(|i| DataWrapper { v: format!("n={}", i) })
         .collect();
-    let dummy: Vec<DataWrapper> = (1..100)
+    let dummy: Vec<DataWrapper> = (1..1000)
         .into_iter()
         .map(|i| DataWrapper { v: format!("n={}", i) })
         .collect();
     let rows = RowWrapper { real, dummy };
 
     let mut tera = Tera::default();
-    let loop_control: Vec<i32> = (0..500).collect();
-
-
     tera.add_raw_templates(vec![
-        ("huge.html", "
-{% for i in loop %}      
-{% for j in rows.real %}  
-{{j.v}}
-{% endfor %}
-{% endfor %}
-"),
+        ("huge.html", "{% for v in rows.real %}{{v}}{% endfor %}"),
     ]).unwrap();
     let mut context = Context::new();
     context.add("rows", &rows);
-    context.add("loop", &loop_control);
 
     b.iter(|| tera.render("huge.html", &context));
 }
