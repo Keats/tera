@@ -1,11 +1,12 @@
 #![feature(test)]
-extern crate test;
 extern crate tera;
+extern crate test;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
 
-use tera::{Tera, Template, Context, escape_html};
-
+use serde_json::{Error, Value};
+use tera::{escape_html, Context, Template, Tera};
 
 static VARIABLE_ONLY: &'static str = "{{product.name}}";
 
@@ -65,13 +66,12 @@ static USE_MACRO_TEMPLATE: &'static str = r#"
 {{ macros::render_product(product=product) }}
 "#;
 
-
 #[derive(Debug, Serialize)]
 struct Product {
     name: String,
     manufacturer: String,
     price: i32,
-    summary: String
+    summary: String,
 }
 impl Product {
     pub fn new() -> Product {
@@ -79,7 +79,7 @@ impl Product {
             name: "Moto G".to_owned(),
             manufacturer: "Motorala".to_owned(),
             summary: "A phone".to_owned(),
-            price: 100
+            price: 100,
         }
     }
 }
@@ -92,11 +92,13 @@ fn bench_parsing_basic_template(b: &mut test::Bencher) {
 #[bench]
 fn bench_parsing_with_inheritance_and_macros(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    b.iter(|| tera.add_raw_templates(vec![
-        ("parent.html", PARENT_TEMPLATE),
-        ("child.html", CHILD_TEMPLATE),
-        ("macros.html", MACRO_TEMPLATE),
-    ]));
+    b.iter(|| {
+        tera.add_raw_templates(vec![
+            ("parent.html", PARENT_TEMPLATE),
+            ("child.html", CHILD_TEMPLATE),
+            ("macros.html", MACRO_TEMPLATE),
+        ])
+    });
 }
 
 #[bench]
@@ -113,7 +115,8 @@ fn bench_rendering_only_variable(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_basic_template(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_template("bench.html", SIMPLE_TEMPLATE).unwrap();
+    tera.add_raw_template("bench.html", SIMPLE_TEMPLATE)
+        .unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -124,9 +127,8 @@ fn bench_rendering_basic_template(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_parent(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("parent.html", PARENT_TEMPLATE),
-    ]).unwrap();
+    tera.add_raw_templates(vec![("parent.html", PARENT_TEMPLATE)])
+        .unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -137,9 +139,8 @@ fn bench_rendering_only_parent(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_macro_call(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("hey.html", USE_MACRO_TEMPLATE),
-    ]).unwrap();
+    tera.add_raw_templates(vec![("hey.html", USE_MACRO_TEMPLATE)])
+        .unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -187,7 +188,6 @@ fn bench_build_inheritance_chains(b: &mut test::Bencher) {
     b.iter(|| tera.build_inheritance_chains());
 }
 
-
 #[bench]
 fn bench_escape_html(b: &mut test::Bencher) {
     b.iter(|| escape_html(r#"Hello word <script></script>"#));
@@ -207,20 +207,88 @@ fn bench_huge_loop(b: &mut test::Bencher) {
     }
     let real: Vec<DataWrapper> = (1..1000)
         .into_iter()
-        .map(|i| DataWrapper { v: format!("n={}", i) })
+        .map(|i| DataWrapper {
+            v: format!("n={}", i),
+        })
         .collect();
     let dummy: Vec<DataWrapper> = (1..1000)
         .into_iter()
-        .map(|i| DataWrapper { v: format!("n={}", i) })
+        .map(|i| DataWrapper {
+            v: format!("n={}", i),
+        })
         .collect();
     let rows = RowWrapper { real, dummy };
 
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("huge.html", "{% for v in rows.real %}{{v}}{% endfor %}"),
-    ]).unwrap();
+    tera.add_raw_templates(vec![(
+        "huge.html",
+        "{% for v in rows.real %}{{v}}{% endfor %}",
+    )]).unwrap();
     let mut context = Context::new();
     context.add("rows", &rows);
 
     b.iter(|| tera.render("huge.html", &context));
+}
+
+fn deep_object() -> Value {
+    let data = r#"{
+                    "foo": {
+                        "bar": {
+                            "goo": {
+                                "moo": {
+                                    "cows": [
+                                        { 
+                                            "name": "betsy", 
+                                            "age" : 2,
+                                            "temperament": "calm"
+                                        },
+                                        {
+                                            "name": "elsie",
+                                            "age": 3,
+                                            "temperament": "calm"
+                                        },
+                                        {
+                                            "name": "veal",
+                                            "age": 1,
+                                            "temperament": "ornery"
+                                        }          
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                  }"#;
+
+    serde_json::from_str(data).unwrap()
+}
+
+#[bench]
+fn access_deep_object(b: &mut test::Bencher) {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![(
+        "deep_object.html",
+        "{% for cow in deep_object.foo.bar.goo.moo.cows %}{{cow.temperament}}{% endfor %}",
+    )]).unwrap();
+    let mut context = Context::new();
+    context.add("deep_object", &deep_object());
+    assert!(tera.render("deep_object.html", &context).unwrap().contains("ornery"));
+
+    b.iter(|| tera.render("deep_object.html", &context));
+}
+
+#[bench]
+fn access_deep_object_with_literal(b: &mut test::Bencher) {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![(
+        "deep_object.html",
+        "
+{% set goo = deep_object.foo['bar'][\"goo\"] %}
+{% for cow in goo.moo.cows %}{{cow.temperament}}
+{% endfor %}",
+    )]).unwrap();
+    let mut context = Context::new();
+    context.add("deep_object", &deep_object());
+    assert!(tera.render("deep_object.html", &context).unwrap().contains("ornery"));
+
+    b.iter(|| tera.render("deep_object.html", &context));
 }

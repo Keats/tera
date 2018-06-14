@@ -3,7 +3,6 @@ extern crate tera;
 extern crate serde_derive;
 
 use tera::{Context, Result, Tera};
-
 mod common;
 use common::{Product, Review};
 
@@ -35,12 +34,14 @@ fn test_error_render_field_unknown() {
 fn test_error_render_field_unknown_in_forloop() {
     let result = render_tpl("field_unknown_forloop.html");
 
-    assert_eq!(result.is_err(), true);
-    let err = result.unwrap_err();
-    assert_eq!(
-        err.iter().nth(1).unwrap().description(),
-        "Variable `r.random` not found in context while rendering \'field_unknown_forloop.html\'"
-    );
+    println!("ERR ->> {}", result.unwrap_err());
+    assert!(false);
+    // assert_eq!(result.is_err(), true);
+    // let err = result.unwrap_err();
+    // assert_eq!(
+    //     err.iter().nth(1).unwrap().description(),
+    //     "Variable `r.random` not found in context while rendering \'field_unknown_forloop.html\'"
+    // );
 }
 
 #[test]
@@ -112,7 +113,7 @@ fn test_error_macros_self_inexisting() {
     assert_eq!(result.is_err(), true);
     assert_eq!(
         result.unwrap_err().iter().nth(1).unwrap().description(),
-        "Macro `inexisting` was not found in the namespace `self` of template `macros.html`"
+        "Macro `(self:inexisting)` not found in template `macros.html`"
     );
 }
 
@@ -146,16 +147,9 @@ fn test_error_in_parent_template_location() {
 
     assert_eq!(result.is_err(), true);
     let errs = result.unwrap_err();
-
     assert_eq!(
         errs.iter().nth(0).unwrap().description(),
-        "Unable to render template - error location:
-|..in `error-location/base_error.html`\n"
-    );
-
-    assert_eq!(
-        errs.iter().nth(1).unwrap().description(),
-        "Variable `tite` not found in context while rendering \'error-location/base_error.html\'"
+        "Failed to render 'error-location/error_in_parent.html' (error happened in a parent template)"
     );
 }
 
@@ -165,17 +159,8 @@ fn test_error_in_macro_location() {
 
     assert_eq!(result.is_err(), true);
     let errs = result.unwrap_err();
-
     assert_eq!(
         errs.iter().nth(0).unwrap().description(),
-        "Unable to render template - error location:
-|..in `error-location/error_in_macro.html`
-|....macro `cause_error(...)` in `error-location/macros.html`
-"
-    );
-
-    assert_eq!(
-        errs.iter().nth(1).unwrap().description(),
-        "Variable `hey` not found in context while rendering \'error-location/error_in_macro.html\'"
+        "Failed to render \'error-location/error_in_macro.html\': error while rendering macro `macros::cause_error`"
     );
 }

@@ -130,43 +130,52 @@ impl<'a> AstProcessor<'a> {
 
         let mut output = String::new();
 
-        for node in self.template_root.ast.iter() {
-            match self.render_node(node) {
-                Ok(rendered) => {
-                    output.push_str(&rendered);
-                }
-                Err(e) => bail!(format!(
-                    "Failed to render `{}` - error location:\n{}{}",
-                    self.call_stack.active_template().name,
-                    self.call_stack.error_location(),
-                    self.block_location()
-                )),
-            }
+        for node in &self.template_root.ast {
+            let rendering = self
+                .render_node(node)
+                .chain_err(|| self.get_error_location())?;
+            output.push_str(&rendering)
         }
 
         Ok(output)
     }
 
-    /// If rendering a `block` determines location
-    ///
-    fn block_location(&self) -> String {
-        if let Some(block_location) = self.blocks.last() {
-            let parents = &self.call_stack.top_frame().active_template.parents;
-            let num_parents = parents.len();
-            let super_index = block_location.2;
-            let offending_template = if let Some(parent) = parents.get(super_index) {
-                parent
-            } else {
-                block_location.1
-            };
+    // Helper fn that tries to find the current context: are we in a macro? in a parent template?
+    // in order to give the best possible error when getting an error when rendering a tpl
+    fn get_error_location(&self) -> String {
+        let mut error_location = format!("Failed to render '{}'", self.template.name);
 
-            format!(
-                "Rendering block `{}` in template `{}` with parent chain: {:?}",
-                block_location.0, offending_template, parents
-            )
-        } else {
-            String::new()
+        // in a macro?
+        if self.call_stack.current_frame().frame_type == FrameType::MacroFrame {
+            let frame = self.call_stack.current_frame();
+            error_location += &format!(
+                ": error while rendering macro `{}::{}`",
+                frame.macro_namespace.expect("Macro namespace"),
+                frame.frame_name,
+            );
         }
+
+        // which template are we in?
+        if let Some(&(ref name, ref _template, ref level)) = self.blocks.last() {
+            let block_def = self
+                .template
+                .blocks_definitions
+                .get(&name.to_string())
+                .and_then(|b| b.get(*level));
+
+            if let Some(&(ref tpl_name, _)) = block_def {
+                if tpl_name != &self.template.name {
+                    error_location += &format!(" (error happened in '{}').", tpl_name);
+                }
+            } else {
+                error_location += " (error happened in a parent template)";
+            }
+        } else if let Some(parent) = self.template.parents.last() {
+            // Error happened in the base template, outside of blocks
+            error_location += &format!(" (error happened in '{}').", parent);
+        }
+
+        error_location
     }
 
     /// Render for body
@@ -369,7 +378,7 @@ impl<'a> AstProcessor<'a> {
         }
 
         // Do we have more parents to look through?
-        if level + 1 <= self.call_stack.active_template().parents.len() {
+        if level < self.call_stack.active_template().parents.len() {
             return self.render_block(block, level + 1);
         }
 
@@ -550,6 +559,7 @@ impl<'a> AstProcessor<'a> {
         );
 
         self.call_stack.push_macro_frame(
+            &macro_call.namespace[..],
             &macro_call.name[..],
             frame_context,
             self.tera.get_template(macro_template_name)?,
@@ -896,7 +906,7 @@ impl AnnounceEval for FunctionCall {
             self.name,
             self.args
                 .keys()
-                .map(|k| k.clone())
+                .cloned()
                 .collect::<Vec<String>>()
                 .join(", ")
         );
@@ -915,7 +925,7 @@ impl AnnounceEval for MacroCall {
             self.name,
             self.args
                 .keys()
-                .map(|k| k.clone())
+                .cloned()
                 .collect::<Vec<String>>()
                 .join(", ")
         );
@@ -964,7 +974,7 @@ fn node_type(node: &Node) -> String {
         Node::VariableBlock(e) => format!("Variable Block `{:?}`", e),
 
         /// A `{% macro hello() %}...{% endmacro %}`
-        Node::MacroDefinition(_, macro_definition, _) => format!("Macro Definition"),
+        Node::MacroDefinition(_, macro_definition, _) => "Macro Definition".to_string(),
 
         /// The `{% extends "blabla.html" %}` node, contains the template name
         Node::Extends(_, s) => format!("Extends {}", s),
@@ -976,28 +986,28 @@ fn node_type(node: &Node) -> String {
         Node::ImportMacro(_, file, namespace) => format!("Import ({}) as ({})", file, namespace),
 
         /// The `{% set val = something %}` tag
-        Node::Set(_, set) => format!("Set"),
+        Node::Set(_, set) => "Set".to_string(),
 
         /// The text between `{% raw %}` and `{% endraw %}`
         Node::Raw(_, s, _) => format!("Raw len({})", s.len()),
 
         /// A filter section node `{{ filter name(param="value") }} content {{ endfilter }}`
-        Node::FilterSection(_, filter_section, _) => format!("Filter"),
+        Node::FilterSection(_, filter_section, _) => "Filter".to_string(),
 
         /// A `{% block name %}...{% endblock %}`
-        Node::Block(_, block, _) => format!("Block"),
+        Node::Block(_, block, _) => "Block".to_string(),
 
         /// A `{% for i in items %}...{% endfor %}`
-        Node::Forloop(_, for_loop, _) => format!("Forloop"),
+        Node::Forloop(_, for_loop, _) => "Forloop".to_string(),
 
         /// A if/elif/else block, WS for the if/elif/else is directly in the struct
-        Node::If(if_node, _) => format!("If"),
+        Node::If(if_node, _) => "If".to_string(),
 
         /// The `{% break %}` tag
-        Node::Break(_) => "break".into(),
+        Node::Break(_) => "break".to_string(),
 
         /// The `{% continue %}` tag
-        Node::Continue(_) => "continue".into(),
+        Node::Continue(_) => "continue".to_string(),
     }
 }
 
@@ -1014,12 +1024,15 @@ fn expr_val_type(expr_val: &ExprVal) -> String {
         ExprVal::Bool(b) => format!("Bool({})", b),
         ExprVal::Ident(i) => format!("Ident({})", i),
         ExprVal::Math(me) => format!("Math(lhs {:?} rhs)", me.operator),
-        ExprVal::Logic(logic_expr) => format!("Logic({})", "TODO"),
-        ExprVal::Test(test) => format!("Test({})", "TODO"),
+        ExprVal::Logic(logic_expr) => format!(
+            "Logic(`{:?} {:?} {:?}`)",
+            logic_expr.lhs, logic_expr.operator, logic_expr.rhs
+        ),
+        ExprVal::Test(test) => format!("Test({})", test.name),
         ExprVal::MacroCall(macro_call) => {
             format!("MacroCall({}:{})", macro_call.namespace, macro_call.name)
         }
-        ExprVal::FunctionCall(function_call) => format!("Fn(TODO)"),
+        ExprVal::FunctionCall(function_call) => format!("Fn({})", function_call.name),
         // A vec of Expr, not ExprVal since filters are allowed
         // on values inside arrays
         ExprVal::Array(vec) => format!("Arr({})", vec.len()),

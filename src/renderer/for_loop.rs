@@ -72,7 +72,7 @@ impl<'a> ForLoop<'a> {
   pub fn from_array(value_name: &'a str, array: RefOrOwned<'a, Value>) -> ForLoop<'a> {
     ForLoop {
       key_name: None,
-      value_name: value_name,
+      value_name,
       current: 0,
       values: Values::ArrayValues { values: array },
       for_loop_kind: ForLoopKind::Value,
@@ -99,7 +99,7 @@ impl<'a> ForLoop<'a> {
 
     ForLoop {
       key_name: Some(key_name),
-      value_name: value_name,
+      value_name,
       current: 0,
       values: Values::ObjectValues { values },
       for_loop_kind: ForLoopKind::KeyValue,
@@ -232,8 +232,10 @@ impl<'a> Values<'a> {
     match self {
       Values::ArrayValues { values } => {
         if let Some(array) = values.get_ref() {
+          out!("Value by *ref* {:?}", array.as_array().unwrap().get(i));
           RefOrOwned::from_borrow(array.as_array().expect("Is array").get(i).expect("Value"))
         } else {
+          out!("Value by *clone* {:?}", values.as_array().unwrap().get(i));
           RefOrOwned::from_owned(
             values
               .as_array()

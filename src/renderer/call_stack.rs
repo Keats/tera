@@ -53,6 +53,8 @@ pub struct StackFrame<'a> {
   pub active_template: &'a Template,
   /// `ForLoop` if frame is for a for loop
   for_loop: Option<ForLoop<'a>>,
+  /// Macro namespace if MacroFrame
+  pub macro_namespace: Option<&'a str>,
 }
 /// Implementation for type `StackFrame`.
 impl<'a> StackFrame<'a> {
@@ -67,7 +69,7 @@ impl<'a> StackFrame<'a> {
   pub fn find_value(self: &Self, key: &str) -> Option<RefValue<'a>> {
     self
       .find_value_in_frame_context(key)
-      .or(self.find_value_in_for_loop(key))
+      .or_else(|| self.find_value_in_for_loop(key))
   }
 
   /// Finds a value in `frame_context`.
@@ -150,7 +152,7 @@ impl<'a> StackFrame<'a> {
     match self.frame_type {
       FrameType::ForLoopFrame => {
         let for_loop = self.for_loop.as_ref().expect("For loop");
-        return if let Some(key_name) = for_loop.key_name() {
+        if let Some(key_name) = for_loop.key_name() {
           format!(
             "`for {}, {} in ...` in `{}`",
             key_name,
@@ -163,14 +165,14 @@ impl<'a> StackFrame<'a> {
             for_loop.value_name(),
             self.active_template.name
           )
-        };
+        }
       }
       FrameType::MacroFrame => format!(
         "macro `{}(...)` in `{}`",
         self.frame_name, self.active_template.name
       ),
       FrameType::IncludeFrame => format!("include `{}`", self.active_template.name),
-      FrameType::TopFrame => format!("in `{}`", self.active_template.name),
+      FrameType::TopFrame => format!("Top Frame: `{}`", self.active_template.name),
     }
   }
 }
@@ -200,6 +202,7 @@ impl<'a> CallStack<'a> {
         frame_context: FrameContext::new(),
         active_template,
         for_loop: None,
+        macro_namespace: None,
       }],
       context,
     }
@@ -237,6 +240,7 @@ impl<'a> CallStack<'a> {
       frame_context: HashMap::new(),
       active_template,
       for_loop: Some(for_loop),
+      macro_namespace: None,
     })
   }
 
@@ -249,22 +253,24 @@ impl<'a> CallStack<'a> {
   #[inline]
   pub fn push_macro_frame(
     &mut self,
-    frame_name: &'a str,
+    macro_namespace: &'a str,
+    macro_name: &'a str,
     frame_context: FrameContext<'a>,
     active_template: &'a Template,
   ) -> () {
     out!(
       "Pushing macro frame `{}`\n--Frames--\n{}",
-      frame_name,
+      macro_name,
       self.frame_names()
     );
 
     self.stack.push(StackFrame {
       frame_type: FrameType::MacroFrame,
-      frame_name,
+      frame_name: macro_name,
       frame_context,
       active_template,
       for_loop: None,
+      macro_namespace: Some(macro_namespace),
     })
   }
 
@@ -288,6 +294,7 @@ impl<'a> CallStack<'a> {
       frame_context: FrameContext::new(),
       active_template,
       for_loop: None,
+      macro_namespace: None,
     })
   }
 
@@ -353,12 +360,7 @@ impl<'a> CallStack<'a> {
   ///  * `value` - Value of assignment
   ///
   #[inline]
-  pub fn add_assignment(
-    self: &mut Self,
-    key: &'a str,
-    is_global: bool,
-    value: RefValue<'a>,
-  ) -> () {
+  pub fn add_assignment(self: &mut Self, key: &'a str, is_global: bool, value: RefValue<'a>) -> () {
     if is_global {
       self.top_frame_mut().frame_context.insert(key, value);
     } else {
@@ -527,19 +529,31 @@ impl<'a> CallStack<'a> {
 
     result
   }
+
+  /// One-line String identifying the frame.
+  ///
+  pub fn template_location(&self) -> String {
+    let mut message = String::new();
+    for stack_frame in &self.stack {
+      message.push_str(&format!("\n  {}", stack_frame.template_location()));
+    }
+    message
+  }
 }
 
 // --- module function definitions ---
 
 impl<'a> Accessor<'a, RefValue<'a>> for CallStack<'a> {
-  fn lookup(&self, key: &str) -> Result<RefValue<'a>> {
-    //debug_assert!(!key.contains('.') && !key.contains('['));
 
+  #[inline]
+  fn lookup(&self, key: &str) -> Result<RefValue<'a>> {
+    // TODO debug_assert!(!key.contains('.') && !key.contains('['));
     self
       .find_value(key)
-      .chain_err(|| format!("Unable to find `{}`", key))
+      .chain_err(|| format!("Unable to find variable `{}`", key))
   }
 
+  #[inline]
   fn index_pointer(&self, node: RefValue<'a>, pointer: &str) -> Result<RefValue<'a>> {
     let sub_node = match node {
       RefOrOwned::Borrowed { borrow } => borrow
@@ -550,18 +564,30 @@ impl<'a> Accessor<'a, RefValue<'a>> for CallStack<'a> {
         .map(|v| RefOrOwned::from_owned(v.clone())),
     };
 
-    if let Some(value) = sub_node {
-      Ok(value)
-    } else {
-      bail!("Unable to get pointer index `{}`", pointer)
-    }
+    sub_node.chain_err(|| format!("Unable to get pointer index `{}`", pointer))
   }
 
-  fn index_by_node(&self, node: RefValue<'a>, index_node: RefValue<'a>) -> Result<RefValue<'a>> {
+  #[inline]
+  fn index_by_node(
+    &self,
+    node: RefValue<'a>,
+    index_node: RefValue<'a>,
+    index_text: &str,
+  ) -> Result<RefValue<'a>> {
     let post_var_as_str = match *index_node {
       Value::String(ref s) => s.to_string(),
       Value::Number(ref n) => n.to_string(),
-      _ => bail!("Only variables evaluating to String or Number can be used as index"),
+      _ => bail!(
+        "Only variables evaluating to String or Number can be used as index -> {} which is {}",
+        index_text,
+        match *index_node {
+          Value::Null => "Null",
+          Value::Bool(_) => "Bool",
+          Value::Array(_) => "Array",
+          Value::Object(_) => "Object",
+          _ => "",
+        }
+      ),
     };
 
     self.index_pointer(node, &post_var_as_str)
@@ -594,8 +620,8 @@ pub fn find_in_ref_or_owned<'a>(
       return Some(ref_or_owned.clone());
     } else {
       let next_char = extended_key.as_bytes()[root_key.len()];
-      let next_is_dot = next_char == ".".as_bytes()[0];
-      let next_is_bracket = next_char == "[".as_bytes()[0];
+      let next_is_dot = next_char == b"."[0];
+      let next_is_bracket = next_char == b"["[0];
 
       if next_is_dot || next_is_bracket {
         // Looks like indirect access - use pointer

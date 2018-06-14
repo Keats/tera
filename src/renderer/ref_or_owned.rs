@@ -67,7 +67,7 @@ where
     #[inline]
     pub fn is_borrowed(&self) -> bool {
         match self {
-            RefOrOwned::Borrowed { borrow: _ } => true,
+            RefOrOwned::Borrowed { .. } => true,
             _ => false,
         }
     }
@@ -79,7 +79,7 @@ where
     #[inline]
     pub fn is_owned(&self) -> bool {
         match self {
-            RefOrOwned::Owned { owned: _ } => true,
+            RefOrOwned::Owned { .. } => true,
             _ => false,
         }
     }

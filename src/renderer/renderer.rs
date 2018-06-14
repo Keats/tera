@@ -49,13 +49,6 @@ impl<'a> Renderer<'a> {
         tera: &'a Tera,
         context_value: Value,
     ) -> Result<Renderer<'a>> {
-        let template_root = last_parent(tera, template).unwrap_or(template);
-
-        out!(
-            "ORIGINAL TEMPLATE\n{:#?}\nROOT TEMPLATE {:#?}",
-            template,
-            template_root
-        );
 
         let should_escape = tera.autoescape_suffixes.iter().any(|ext| {
             // We prefer a `path` if set, otherwise use the `name`
@@ -79,7 +72,7 @@ impl<'a> Renderer<'a> {
     ///  * _return_ - Generated text
     ///
     pub fn render(&mut self) -> Result<String> {
-        let stopwatch = Stopwatch::start_new();
+        //let stopwatch = Stopwatch::start_new();
 
         let context_value = &self.context_value;
         let context = Context::from_value(context_value);
@@ -101,12 +94,12 @@ impl<'a> Renderer<'a> {
             //self.macro_collection = ast_processor.take_macro_collection();
         }
 
-        let duration = stopwatch.elapsed_ms();
+        // let duration = stopwatch.elapsed_ms();
 
-        info!(
-            "Render (less_clone) for template took {}: For template ({}) with parents ({:?})",
-            duration, self.template.name, self.template.parents
-        );
+        // out!(
+        //     "Render (less_clone) for template took {}: For template ({}) with parents ({:?})",
+        //     duration, self.template.name, self.template.parents
+        // );
 
         Ok(rendering)
     }
