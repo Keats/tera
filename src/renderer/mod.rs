@@ -259,6 +259,8 @@ impl<'a> Renderer<'a> {
                 let v = self.lookup_ident(ident)?;
                 if v.is_i64() {
                     Number::from(v.as_i64().unwrap())
+                } else if v.is_u64() {
+                    Number::from(v.as_u64().unwrap())
                 } else if v.is_f64() {
                     Number::from_f64(v.as_f64().unwrap()).unwrap()
                 } else {
@@ -280,6 +282,10 @@ impl<'a> Renderer<'a> {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
                             Number::from(ll * rr)
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+                            Number::from(ll * rr)
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
@@ -289,12 +295,21 @@ impl<'a> Renderer<'a> {
                     MathOperator::Div => {
                         let ll = l.as_f64().unwrap();
                         let rr = r.as_f64().unwrap();
-                        Number::from_f64(ll / rr).unwrap()
+                        let result = ll / rr;
+                        if result.is_nan() {
+                            bail!("Math Operation is NaN");
+                        } else {
+                            Number::from_f64(ll / rr).unwrap()
+                        }
                     },
                     MathOperator::Add => { 
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
+                            Number::from(ll + rr)
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
                             Number::from(ll + rr)
                         } else {
                             let ll = l.as_f64().unwrap();
@@ -307,6 +322,10 @@ impl<'a> Renderer<'a> {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
                             Number::from(ll - rr)
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+                            Number::from(ll - rr)
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
@@ -317,6 +336,10 @@ impl<'a> Renderer<'a> {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
+                            Number::from(ll % rr)
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
                             Number::from(ll % rr)
                         } else {
                             let ll = l.as_f64().unwrap();
