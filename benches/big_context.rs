@@ -1,10 +1,12 @@
 #![feature(test)]
-extern crate test;
+extern crate serde_json;
 extern crate tera;
+extern crate test;
 #[macro_use]
 extern crate serde_derive;
 
-use tera::{Tera, Template, Context, escape_html};
+use serde_json::to_value;
+use tera::{escape_html, Context, Template, Tera};
 
 #[derive(Serialize)]
 struct DataWrapper {
@@ -13,7 +15,7 @@ struct DataWrapper {
 }
 
 impl DataWrapper {
-    fn new(i: usize) ->  DataWrapper {
+    fn new(i: usize) -> DataWrapper {
         DataWrapper { i, v: "Meta
 Before we get to the details, two important notes about the ownership system.
 
@@ -30,9 +32,9 @@ struct BigObject {
     field_a: DataWrapper,
     field_b: DataWrapper,
     field_c: DataWrapper,
-    field_d: DataWrapper,    
+    field_d: DataWrapper,
     field_e: DataWrapper,
-    field_f: DataWrapper,    
+    field_f: DataWrapper,
 }
 
 impl BigObject {
@@ -41,9 +43,9 @@ impl BigObject {
             field_a: DataWrapper::new(i),
             field_b: DataWrapper::new(i),
             field_c: DataWrapper::new(i),
-            field_d: DataWrapper::new(i),    
+            field_d: DataWrapper::new(i),
             field_e: DataWrapper::new(i),
-            field_f: DataWrapper::new(i),    
+            field_f: DataWrapper::new(i),
         }
     }
 }
@@ -57,16 +59,17 @@ fn bench_big_loop_big_object(b: &mut test::Bencher) {
     }
 
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("big_loop.html", "
+    tera.add_raw_templates(vec![(
+        "big_loop.html",
+        "
 {%- for object in objects -%}
 {{ object.field_a.i }}
 {%- if object.field_a.i > 2 -%}
 {%- break -%}
 {%- endif -%}
 {%- endfor -%}
-"),
-    ]).unwrap();
+",
+    )]).unwrap();
     let mut context = Context::new();
     context.add("objects", &objects);
     let rendering = tera.render("big_loop.html", &context).expect("Good render");
@@ -74,16 +77,21 @@ fn bench_big_loop_big_object(b: &mut test::Bencher) {
     b.iter(|| tera.render("big_loop.html", &context));
 }
 
-
 #[bench]
 fn bench_macro_big_object(b: &mut test::Bencher) {
     let big_object = BigObject::new(1);
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![
-        ("big_loop.html", "
+        (
+            "big_loop.html",
+            "
 {%- import \"macros.html\" as macros -%}
-{%- for i in iterations -%}{{ macros::get_first(bo=big_object) }}{% endfor %}"),
-        ("macros.html", "{%- macro get_first(bo) -%}{{ bo.field_a.i }}{% endmacro get_first %}"),
+{%- for i in iterations -%}{{ macros::get_first(bo=big_object) }}{% endfor %}",
+        ),
+        (
+            "macros.html",
+            "{%- macro get_first(bo) -%}{{ bo.field_a.i }}{% endmacro get_first %}",
+        ),
     ]).unwrap();
     let mut context = Context::new();
     context.add("big_object", &big_object);
@@ -94,3 +102,93 @@ fn bench_macro_big_object(b: &mut test::Bencher) {
     b.iter(|| tera.render("big_loop.html", &context));
 }
 
+#[bench]
+fn bench_macro_big_object_no_loop_with_set(b: &mut test::Bencher) {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![(
+        "no_loop.html",
+        "
+{% set many_fields=two_fields.a -%}
+{{ many_fields.a }}
+{{ many_fields.b }}
+{{ many_fields.c }}
+",
+    )]).unwrap();
+    let mut context = Context::new();
+    context.add("two_fields", &TwoFields::new());
+    let context = to_value(context).unwrap();
+    let rendering = tera.render("no_loop.html", &context).expect("Good render");
+    assert_eq!(&rendering[..], "\nA\nB\nC\n");
+    b.iter(|| tera.render("no_loop.html", &context));
+}
+
+#[bench]
+fn bench_macro_big_object_no_loop_macro_call(b: &mut test::Bencher) {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        (
+            "macros.html",
+            "
+{%- macro show_a(many_fields) -%}
+{{ many_fields.a }}
+{%- endmacro show_a -%}       
+        ",
+        ),
+        (
+            "no_loop.html",
+            "{%- import \"macros.html\" as macros -%}
+{{ macros::show_a(many_fields=two_fields.a) }}",
+        ),
+    ]).unwrap();
+    let mut context = Context::new();
+    context.add("two_fields", &TwoFields::new());
+    let context = to_value(context).unwrap();
+    let rendering = tera.render("no_loop.html", &context).expect("Good render");
+    assert_eq!(&rendering[..], "A");
+    b.iter(|| tera.render("no_loop.html", &context));
+}
+
+#[derive(Serialize)]
+struct ManyFields {
+    a: String,
+    b: String,
+    c: String,
+    d: Vec<BigObject>,
+    e: Vec<String>,
+}
+
+impl ManyFields {
+    fn new() -> ManyFields {
+        let mut d = Vec::new();
+        for i in 0..500 {
+            d.push(BigObject::new(i));
+        }
+        let mut e = Vec::new();
+        for i in 0..100 {
+            e.push(format!("This is String({})", i));
+        }
+
+        ManyFields {
+            a: "A".into(),
+            b: "B".into(),
+            c: "C".into(),
+            d,
+            e,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct TwoFields {
+    a: ManyFields,
+    b: String,
+}
+
+impl TwoFields {
+    fn new() -> TwoFields {
+        TwoFields {
+            a: ManyFields::new(),
+            b: "B".into(),
+        }
+    }
+}
