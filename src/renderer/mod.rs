@@ -291,18 +291,18 @@ impl<'a> Renderer<'a> {
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
-			    Some(Number::from_f64(ll * rr).unwrap())
+                            Some(Number::from_f64(ll * rr).unwrap())
                         }
                     },
                     MathOperator::Div => {
                         let ll = l.as_f64().unwrap();
                         let rr = r.as_f64().unwrap();
-			let res = ll / rr;
-			if res.is_nan() {
-			    None
-			} else {
+            			let res = ll / rr;
+            			if res.is_nan() {
+            			    None
+            			} else {
                             Some(Number::from_f64(res).unwrap())
-			}
+            			}
                     },
                     MathOperator::Add => { 
                         if l.is_i64() && r.is_i64() {
@@ -356,7 +356,7 @@ impl<'a> Renderer<'a> {
             _ => unreachable!("unimplemented"),
         };
 
-	Ok(result)
+        Ok(result)
     }
 
     /// Return the value of an expression as a bool
@@ -374,9 +374,9 @@ impl<'a> Renderer<'a> {
                         let r = self.eval_expr_as_number(rhs)?;
 
                         let (ll, rr) = match (l, r) {
-			    (Some(nl), Some(nr)) => (nl, nr),
+                            (Some(nl), Some(nr)) => (nl, nr),
                             _ => bail!("Comparison to NaN")
-			};
+                        };
 
                         match *operator {
                             LogicOperator::Gte => ll.as_f64().unwrap() >= rr.as_f64().unwrap(),
@@ -418,11 +418,11 @@ impl<'a> Renderer<'a> {
             }
             ExprVal::Math(_) | ExprVal::Int(_) | ExprVal::Float(_) => {
                 match self.eval_as_number(&expr.val) {
-		    Ok(Some(n)) => n.as_f64().unwrap() != 0.0,
-		    Ok(None) => false,
-		    Err(_) => false,
+                    Ok(Some(n)) => n.as_f64().unwrap() != 0.0,
+                    Ok(None) => false,
+                    Err(_) => false,
             	}
-	    }
+            }
             ExprVal::Test(ref test) => self.eval_test(test).unwrap_or(false),
             ExprVal::Bool(val) => val,
             ExprVal::String(ref string) => !string.is_empty(),
