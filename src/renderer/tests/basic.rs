@@ -374,6 +374,11 @@ fn render_for() {
             "{% for a in [1, true, 1.1, 'hello'] %}{{a}}{% endfor %}",
             "1true1.1hello"
         ),
+        // https://github.com/Keats/tera/issues/301
+        (
+            "{% set start = 0 %}{% set end = start + 3 %}{% for i in range(start=start, end=end) %}{{ i }}{% endfor%}",
+            "012"
+        )
     ];
 
     for (input, expected) in inputs {
