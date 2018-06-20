@@ -10,6 +10,7 @@
 - Add the `~` operator to concatenate strings
 - Add a `now` and `utc_now` global functions to get local and UTC datetimes
 - Add feature to enable the `preserve_order` feature of serde_json
+- Less confusing behaviour with math arithmetics
 
 ## 0.11.7 (2018-04-24)
 
