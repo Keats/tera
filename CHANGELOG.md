@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.11.8 (unreleased)
+## 0.11.8 (2018-06-20)
 
 - Add `True` and `False` as boolean values to match Python
 - Allow user to define their own escape function, if you want to generate JSON for example
