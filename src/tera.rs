@@ -14,6 +14,10 @@ use builtins::testers::{self, TesterFn};
 use builtins::global_functions::{self, GlobalFn};
 use errors::{Result, ResultExt};
 use renderer::Renderer;
+use utils::escape_html;
+
+/// The escape function type definition
+pub type EscapeFn = fn(&str) -> String;
 
 /// The main point of interaction in this library.
 pub struct Tera {
@@ -32,6 +36,8 @@ pub struct Tera {
     // Defaults to [".html", ".htm", ".xml"]
     #[doc(hidden)]
     pub autoescape_suffixes: Vec<&'static str>,
+    #[doc(hidden)]
+    escape_fn: EscapeFn,
 }
 
 impl Tera {
@@ -47,6 +53,7 @@ impl Tera {
             global_functions: HashMap::new(),
             testers: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
+            escape_fn: escape_html,
         };
 
         tera.load_from_glob()?;
@@ -490,6 +497,7 @@ impl Tera {
         self.register_filter("join", array::join);
         self.register_filter("sort", array::sort);
         self.register_filter("slice", array::slice);
+        self.register_filter("group_by", array::group_by);
 
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
@@ -535,6 +543,35 @@ impl Tera {
     ///```
     pub fn autoescape_on(&mut self, suffixes: Vec<&'static str>) {
         self.autoescape_suffixes = suffixes;
+    }
+
+    #[doc(hidden)]
+    #[inline]
+    pub fn get_escape_fn(&self) -> &EscapeFn {
+        &self.escape_fn
+    }
+
+    /// Set user-defined function which applied to a rendered content.
+    ///
+    ///```rust,ignore
+    /// fn escape_c_string(input: &str) -> String { ... }
+    ///
+    /// // make valid C string literal
+    /// tera.set_escape_fn(escape_c_string);
+    /// tera.add_raw_template("foo", "\"{{ content }}\"").unwrap();
+    /// tera.autoescape_on(vec!["foo"]);
+    /// let mut context = Context::new();
+    /// context.add("content", &"Hello\n\'world\"!");
+    /// let result = tera.render("foo", &context).unwrap();
+    /// assert_eq!(result, r#""Hello\n\'world\"!""#);
+    ///```
+    pub fn set_escape_fn(&mut self, function: EscapeFn) {
+        self.escape_fn = function;
+    }
+
+    /// Reset escape function to default `tera::escape_html`.
+    pub fn reset_escape_fn(&mut self) {
+        self.escape_fn = escape_html;
     }
 
     /// Re-parse all templates found in the glob given to Tera
@@ -596,6 +633,7 @@ impl Default for Tera {
             testers: HashMap::new(),
             global_functions: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
+            escape_fn: escape_html,
         };
 
         tera.register_tera_filters();
@@ -608,27 +646,27 @@ impl Default for Tera {
 // Needs a manual implementation since borrows in Fn's don't implement Debug.
 impl fmt::Debug for Tera {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Tera {}", "{")?;
-        write!(f, "\n\ttemplates: [\n")?;
+        write!(f, "Tera {{")?;
+        writeln!(f, "\n\ttemplates: [")?;
 
         for template in self.templates.keys() {
             writeln!(f, "\t\t{},", template)?;
         }
         write!(f, "\t]")?;
-        write!(f, "\n\tfilters: [\n")?;
+        writeln!(f, "\n\tfilters: [")?;
 
         for filter in self.filters.keys() {
             writeln!(f, "\t\t{},", filter)?;
         }
         write!(f, "\t]")?;
-        write!(f, "\n\ttesters: [\n")?;
+        writeln!(f, "\n\ttesters: [")?;
 
         for tester in self.testers.keys() {
             writeln!(f, "\t\t{},", tester)?;
         }
-        write!(f, "\t]\n")?;
+        writeln!(f, "\t]")?;
 
-        writeln!(f, "{}", "}")
+        writeln!(f, "}}")
     }
 }
 
@@ -765,6 +803,47 @@ mod tests {
         let result = Tera::one_off("{{ greeting }} world", &context, false).unwrap();
 
         assert_eq!(result, "<p> world");
+    }
+
+    #[test]
+    fn test_set_escape_function() {
+        let escape_c_string: super::EscapeFn = |input| {
+            let mut output = String::with_capacity(input.len() * 2);
+            for c in input.chars() {
+                match c {
+                    '\'' => output.push_str("\\'"),
+                    '\"' => output.push_str("\\\""),
+                    '\\' => output.push_str("\\\\"),
+                    '\n' => output.push_str("\\n"),
+                    '\r' => output.push_str("\\r"),
+                    '\t' => output.push_str("\\t"),
+                    _ => output.push(c),
+                }
+            }
+            output
+        };
+        let mut tera = Tera::default();
+        tera.add_raw_template("foo", "\"{{ content }}\"").unwrap();
+        tera.autoescape_on(vec!["foo"]);
+        tera.set_escape_fn(escape_c_string);
+        let mut context = Context::new();
+        context.add("content", &"Hello\n\'world\"!");
+        let result = tera.render("foo", &context).unwrap();
+        assert_eq!(result, r#""Hello\n\'world\"!""#);
+    }
+
+    #[test]
+    fn test_reset_escape_function() {
+        let no_escape: super::EscapeFn = |input| { input.to_string() };
+        let mut tera = Tera::default();
+        tera.add_raw_template("foo", "{{ content }}").unwrap();
+        tera.autoescape_on(vec!["foo"]);
+        tera.set_escape_fn(no_escape);
+        tera.reset_escape_fn();
+        let mut context = Context::new();
+        context.add("content", &"Hello\n\'world\"!");
+        let result = tera.render("foo", &context).unwrap();
+        assert_eq!(result, "Hello\n&#x27;world&quot;!");
     }
 
     #[test]

@@ -761,3 +761,40 @@ fn parse_continue() {
         )
     );
 }
+
+#[test]
+fn parse_string_concat_can_merge() {
+    let ast = parse("{{ `hello` ~ 'hey' }}").unwrap();
+    let for_ws = WS::default();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::new(ExprVal::String("hellohey".to_string()))),
+    );
+}
+#[test]
+fn parse_string_concat() {
+    let ast = parse("{{ `hello` ~ ident }}").unwrap();
+    let for_ws = WS::default();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::new(ExprVal::StringConcat(StringConcat { values: vec![
+            ExprVal::String("hello".to_string()),
+            ExprVal::Ident("ident".to_string()),
+        ]}))),
+    );
+}
+
+
+#[test]
+fn parse_string_concat_multiple() {
+    let ast = parse("{{ `hello` ~ ident ~ 'ho' }}").unwrap();
+    let for_ws = WS::default();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::new(ExprVal::StringConcat(StringConcat { values: vec![
+            ExprVal::String("hello".to_string()),
+            ExprVal::Ident("ident".to_string()),
+            ExprVal::String("ho".to_string()),
+        ]}))),
+    );
+}

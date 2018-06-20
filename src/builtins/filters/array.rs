@@ -1,7 +1,7 @@
 /// Filters operating on array
 use std::collections::HashMap;
 
-use serde_json::value::{to_value, Value};
+use serde_json::value::{to_value, Value, Map};
 use context::{get_json_pointer, ValueRender};
 use errors::Result;
 use sort_utils::get_sort_strategy_for_type;
@@ -71,6 +71,82 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let sorted = strategy.sort();
 
     Ok(sorted.into())
+}
+
+/// Group the array values by the `attribute` given
+/// Returns a hashmap of key => values, items without the `attribute` or where `attribute` is `null` are discarded.
+/// The returned keys are stringified
+pub fn group_by(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+    let mut arr = try_get_value!("group_by", "value", Vec<Value>, value);
+    if arr.is_empty() {
+        return Ok(Map::new().into());
+    }
+
+    let key = match args.get("attribute") {
+        Some(val) => try_get_value!("group_by", "attribute", String, val),
+        None => bail!("The `group_by` filter has to have an `attribute` argument"),
+    };
+
+    let mut grouped = Map::new();
+    let json_pointer = get_json_pointer(&key);
+
+    for val in arr {
+        if let Some(key_val) = val.pointer(&json_pointer).cloned() {
+            if key_val.is_null() {
+                continue;
+            }
+            let str_key = format!("{}", key_val);
+            // Work around the borrow check to not have to clone `val`
+            let mut insert_new = true;
+            if let Some(vals) = grouped.get_mut(&str_key){
+                vals.as_array_mut().unwrap().push(val);
+                insert_new = false;
+                continue;
+            }
+            if insert_new {
+                grouped.insert(str_key, Value::Array(vec![val]));
+            }
+        }
+    }
+
+    Ok(to_value(grouped).unwrap())
+}
+
+/// Filter the array values, returning only the values where the `attribute` is equal to the `value`
+/// Values without the `attribute` or with a null `attribute` are discarded
+pub fn filter(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+    let mut arr = try_get_value!("filter", "value", Vec<Value>, value);
+    if arr.is_empty() {
+        return Ok(Map::new().into());
+    }
+
+    let key = match args.get("attribute") {
+        Some(val) => try_get_value!("filter", "attribute", String, val),
+        None => bail!("The `filter` filter has to have an `attribute` argument"),
+    };
+    let value = match args.get("value") {
+        Some(val) => val,
+        None => bail!("The `filter` filter has to have a `value` argument"),
+    };
+
+    let json_pointer = get_json_pointer(&key);
+    arr = arr
+        .into_iter()
+        .filter(|v| {
+            if let Some(val) = v.pointer(&json_pointer) {
+                if val.is_null() {
+                    false
+                } else {
+                    val == value
+                }
+            } else {
+                false
+            }
+        })
+        .collect::<Vec<_>>();
+
+
+    Ok(to_value(arr).unwrap())
 }
 
 /// Slice the array
@@ -310,5 +386,89 @@ mod tests {
             assert!(res.is_ok());
             assert_eq!(res.unwrap(), to_value(expected).unwrap());
         }
+    }
+
+    #[test]
+    fn test_group_by() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2017},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": 2018},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+
+        let expected = json!({
+            "2015": [{"id": 1, "year": 2015}, {"id": 2, "year": 2015}],
+            "2016": [{"id": 3, "year": 2016}],
+            "2017": [{"id": 4, "year": 2017}, {"id": 5, "year": 2017}, {"id": 6, "year": 2017}],
+            "2018": [{"id": 7, "year": 2018}],
+        });
+
+        let res = group_by(input, args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_group_by_nested_key() {
+        let input = json!([
+            {"id": 1, "company": {"id": 1}},
+            {"id": 2, "company": {"id": 2}},
+            {"id": 3, "company": {"id": 3}},
+            {"id": 4, "company": {"id": 4}},
+            {"id": 5, "company": {"id": 4}},
+            {"id": 6, "company": {"id": 5}},
+            {"id": 7, "company": {"id": 5}},
+            {"id": 8},
+            {"id": 9, "company": null},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("company.id").unwrap());
+
+        let expected = json!({
+            "1": [{"id": 1, "company": {"id": 1}}],
+            "2": [{"id": 2, "company": {"id": 2}}],
+            "3": [{"id": 3, "company": {"id": 3}}],
+            "4": [{"id": 4, "company": {"id": 4}}, {"id": 5, "company": {"id": 4}}],
+            "5": [{"id": 6, "company": {"id": 5}}, {"id": 7, "company": {"id": 5}}],
+        });
+
+        let res = group_by(input, args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_filter() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2017},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": 2018},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("value".to_string(), to_value(2015).unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+        ]);
+
+        let res = filter(input, args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }
 }

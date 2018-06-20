@@ -374,6 +374,11 @@ fn render_for() {
             "{% for a in [1, true, 1.1, 'hello'] %}{{a}}{% endfor %}",
             "1true1.1hello"
         ),
+        // https://github.com/Keats/tera/issues/301
+        (
+            "{% set start = 0 %}{% set end = start + 3 %}{% for i in range(start=start, end=end) %}{{ i }}{% endfor%}",
+            "012"
+        )
     ];
 
     for (input, expected) in inputs {
@@ -440,6 +445,25 @@ fn default_filter_works() {
         (r#"{{ obj.val | default(value="hey") | capitalize }}"#, "Hey"),
         (r#"{{ not admin | default(value=false) }}"#, "true"),
         (r#"{{ not admin | default(value=true) }}"#, "false"),
+    ];
+
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
+}
+
+#[test]
+fn can_concat_strings() {
+    let mut context = Context::new();
+    context.add("a_string", "hello");
+    context.add("another_string", "xXx");
+
+    let inputs = vec![
+        (r#"{{ "hello" ~ " world" }}"#, "hello world"),
+        (r#"{{ a_string ~ " world" }}"#, "hello world"),
+        (r#"{{ a_string ~ ' world ' ~ another_string }}"#, "hello world xXx"),
+        (r#"{{ a_string ~ another_string }}"#, "helloxXx"),
     ];
 
     for (input, expected) in inputs {

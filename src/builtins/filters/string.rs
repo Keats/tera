@@ -42,13 +42,17 @@ pub fn truncate(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         Some(l) => try_get_value!("truncate", "length", usize, l),
         None => 255,
     };
+    let end = match args.get("end") {
+        Some(l) => try_get_value!("truncate", "end", String, l),
+        None => "…".to_string(),
+    };
 
     // Nothing to truncate?
     if length >= s.len() {
         return Ok(to_value(&s).unwrap());
     }
 
-    let result = s[..s.char_indices().nth(length).unwrap().0].to_string() + "…";
+    let result = s[..s.char_indices().nth(length).unwrap().0].to_string() + &end;
     Ok(to_value(&result).unwrap())
 }
 
@@ -233,6 +237,16 @@ mod tests {
         let result = truncate(to_value("日本語").unwrap(), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("日本…").unwrap());
+    }
+
+    #[test]
+    fn test_truncate_custom_end() {
+        let mut args = HashMap::new();
+        args.insert("length".to_string(), to_value(&2).unwrap());
+        args.insert("end".to_string(), to_value(&"").unwrap());
+        let result = truncate(to_value("日本語").unwrap(), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("日本").unwrap());
     }
 
     #[test]
