@@ -78,13 +78,13 @@ pub fn make_now_fn() -> GlobalFn {
             if timestamp {
                 return Ok(to_value(datetime.timestamp()).unwrap());
             }
-            return Ok(to_value(datetime.to_rfc3339()).unwrap());
+            Ok(to_value(datetime.to_rfc3339()).unwrap())
         } else {
             let datetime = Local::now();
             if timestamp {
                 return Ok(to_value(datetime.timestamp()).unwrap());
             }
-            return Ok(to_value(datetime.to_rfc3339()).unwrap());
+            Ok(to_value(datetime.to_rfc3339()).unwrap())
         }
     })
 }

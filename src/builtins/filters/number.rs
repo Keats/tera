@@ -15,7 +15,7 @@ pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     };
 
     // English uses plural when it isn't one
-    if num.abs() != 1. {
+    if (num.abs() - 1.).abs() > ::std::f64::EPSILON {
         Ok(to_value(&suffix).unwrap())
     } else {
         Ok(to_value(&"").unwrap())

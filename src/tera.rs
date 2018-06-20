@@ -646,27 +646,27 @@ impl Default for Tera {
 // Needs a manual implementation since borrows in Fn's don't implement Debug.
 impl fmt::Debug for Tera {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Tera {}", "{")?;
-        write!(f, "\n\ttemplates: [\n")?;
+        write!(f, "Tera {{")?;
+        writeln!(f, "\n\ttemplates: [")?;
 
         for template in self.templates.keys() {
             writeln!(f, "\t\t{},", template)?;
         }
         write!(f, "\t]")?;
-        write!(f, "\n\tfilters: [\n")?;
+        writeln!(f, "\n\tfilters: [")?;
 
         for filter in self.filters.keys() {
             writeln!(f, "\t\t{},", filter)?;
         }
         write!(f, "\t]")?;
-        write!(f, "\n\ttesters: [\n")?;
+        writeln!(f, "\n\ttesters: [")?;
 
         for tester in self.testers.keys() {
             writeln!(f, "\t\t{},", tester)?;
         }
-        write!(f, "\t]\n")?;
+        writeln!(f, "\t]")?;
 
-        writeln!(f, "{}", "}")
+        writeln!(f, "}}")
     }
 }
 

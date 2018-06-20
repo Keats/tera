@@ -265,8 +265,8 @@ impl<'a> Renderer<'a> {
                     Some(Number::from_f64(v.as_f64().unwrap()).unwrap())
                 } else {
                     bail!(
-                    "Variable `{}` was used in a math operation but is not a number",
-                    ident,
+                        "Variable `{}` was used in a math operation but is not a number",
+                        ident,
                     )
                 }
             },
@@ -297,14 +297,14 @@ impl<'a> Renderer<'a> {
                     MathOperator::Div => {
                         let ll = l.as_f64().unwrap();
                         let rr = r.as_f64().unwrap();
-            			let res = ll / rr;
-            			if res.is_nan() {
-            			    None
-            			} else {
+                        let res = ll / rr;
+                        if res.is_nan() {
+                            None
+                        } else {
                             Some(Number::from_f64(res).unwrap())
-            			}
+                        }
                     },
-                    MathOperator::Add => { 
+                    MathOperator::Add => {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
@@ -602,7 +602,7 @@ impl<'a> Renderer<'a> {
 		    Ok(Some(n)) => Value::Number(n),
 		    Ok(None) => Value::String("NaN".to_owned()),
 		    Err(e) => bail!(e.to_string()),
-		} 
+		}
             }
             _ => unreachable!("{:?}", expr),
         };
@@ -794,7 +794,7 @@ impl<'a> Renderer<'a> {
         }
 
         // Do we have more parents to look through?
-        if level + 1 <= self.template.parents.len() {
+        if level < self.template.parents.len() {
             return self.render_block(block, level + 1);
         }
 
