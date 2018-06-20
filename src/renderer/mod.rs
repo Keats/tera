@@ -241,10 +241,10 @@ impl<'a> Renderer<'a> {
 
     /// In some cases, we will have filters in lhs/rhs of a math expression
     /// `eval_as_number` only works on ExprVal rather than Expr
-    fn eval_expr_as_number(&mut self, expr: &Expr) -> Result<f64> {
+    fn eval_expr_as_number(&mut self, expr: &Expr) -> Result<Option<Number>> {
         if !expr.filters.is_empty() {
             match self.eval_expression(expr)? {
-                Value::Number(s) => Ok(s.as_f64().unwrap()),
+                Value::Number(s) => Ok(Some(s)),
                 _ => bail!("Tried to do math with an expression not resulting in a number"),
             }
         } else {
@@ -253,26 +253,102 @@ impl<'a> Renderer<'a> {
     }
 
     /// Return the value of an expression as a number
-    fn eval_as_number(&mut self, expr: &ExprVal) -> Result<f64> {
-        let res = match *expr {
-            ExprVal::Ident(ref ident) => match self.lookup_ident(ident)?.as_f64() {
-                Some(v) => v,
-                None => bail!(
+    fn eval_as_number(&mut self, expr: &ExprVal) -> Result<Option<Number>> {
+        let result = match *expr {
+            ExprVal::Ident(ref ident) => {
+                let v = self.lookup_ident(ident)?;
+                if v.is_i64() {
+                    Some(Number::from(v.as_i64().unwrap()))
+                } else if v.is_u64() {
+                    Some(Number::from(v.as_u64().unwrap()))
+                } else if v.is_f64() {
+                    Some(Number::from_f64(v.as_f64().unwrap()).unwrap())
+                } else {
+                    bail!(
                     "Variable `{}` was used in a math operation but is not a number",
                     ident,
-                ),
+                    )
+                }
             },
-            ExprVal::Int(val) => val as f64,
-            ExprVal::Float(val) => val,
+            ExprVal::Int(val) => Some(Number::from(val)),
+            ExprVal::Float(val) => Some(Number::from_f64(val).unwrap()),
             ExprVal::Math(MathExpr { ref lhs, ref rhs, ref operator }) => {
-                let l = self.eval_expr_as_number(lhs)?;
-                let r = self.eval_expr_as_number(rhs)?;
+                let (l, r) = match (self.eval_expr_as_number(lhs)?, self.eval_expr_as_number(rhs)?) {
+                    (Some(l), Some(r)) => (l, r),
+                    _ => return Ok(None),
+                };
+
                 match *operator {
-                    MathOperator::Mul => l * r,
-                    MathOperator::Div => l / r,
-                    MathOperator::Add => l + r,
-                    MathOperator::Sub => l - r,
-                    MathOperator::Modulo => l % r,
+                    MathOperator::Mul => {
+                        if l.is_i64() && r.is_i64() {
+                            let ll = l.as_i64().unwrap();
+                            let rr = r.as_i64().unwrap();
+                            Some(Number::from(ll * rr))
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+                            Some(Number::from(ll * rr))
+                        } else {
+                            let ll = l.as_f64().unwrap();
+                            let rr = r.as_f64().unwrap();
+                            Some(Number::from_f64(ll * rr).unwrap())
+                        }
+                    },
+                    MathOperator::Div => {
+                        let ll = l.as_f64().unwrap();
+                        let rr = r.as_f64().unwrap();
+            			let res = ll / rr;
+            			if res.is_nan() {
+            			    None
+            			} else {
+                            Some(Number::from_f64(res).unwrap())
+            			}
+                    },
+                    MathOperator::Add => { 
+                        if l.is_i64() && r.is_i64() {
+                            let ll = l.as_i64().unwrap();
+                            let rr = r.as_i64().unwrap();
+                            Some(Number::from(ll + rr))
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+                            Some(Number::from(ll + rr))
+                        } else {
+                            let ll = l.as_f64().unwrap();
+                            let rr = r.as_f64().unwrap();
+                            Some(Number::from_f64(ll + rr).unwrap())
+                        }
+                    },
+                    MathOperator::Sub => {
+                        if l.is_i64() && r.is_i64() {
+                            let ll = l.as_i64().unwrap();
+                            let rr = r.as_i64().unwrap();
+                            Some(Number::from(ll - rr))
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+                            Some(Number::from(ll - rr))
+                        } else {
+                            let ll = l.as_f64().unwrap();
+                            let rr = r.as_f64().unwrap();
+                            Some(Number::from_f64(ll - rr).unwrap())
+                        }
+                    },
+                    MathOperator::Modulo => {
+                        if l.is_i64() && r.is_i64() {
+                            let ll = l.as_i64().unwrap();
+                            let rr = r.as_i64().unwrap();
+                            Some(Number::from(ll % rr))
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+                            Some(Number::from(ll % rr))
+                        } else {
+                            let ll = l.as_f64().unwrap();
+                            let rr = r.as_f64().unwrap();
+                            Some(Number::from_f64(ll % rr).unwrap())
+                        }
+                    }
                 }
             }
             ExprVal::String(ref val) => bail!("Tried to do math with a string: `{}`", val),
@@ -280,7 +356,7 @@ impl<'a> Renderer<'a> {
             _ => unreachable!("unimplemented"),
         };
 
-        Ok(res)
+        Ok(result)
     }
 
     /// Return the value of an expression as a bool
@@ -297,11 +373,16 @@ impl<'a> Renderer<'a> {
                         let l = self.eval_expr_as_number(lhs)?;
                         let r = self.eval_expr_as_number(rhs)?;
 
+                        let (ll, rr) = match (l, r) {
+                            (Some(nl), Some(nr)) => (nl, nr),
+                            _ => bail!("Comparison to NaN")
+                        };
+
                         match *operator {
-                            LogicOperator::Gte => l >= r,
-                            LogicOperator::Gt => l > r,
-                            LogicOperator::Lte => l <= r,
-                            LogicOperator::Lt => l < r,
+                            LogicOperator::Gte => ll.as_f64().unwrap() >= rr.as_f64().unwrap(),
+                            LogicOperator::Gt => ll.as_f64().unwrap() > rr.as_f64().unwrap(),
+                            LogicOperator::Lte => ll.as_f64().unwrap() <= rr.as_f64().unwrap(),
+                            LogicOperator::Lt => ll.as_f64().unwrap() < rr.as_f64().unwrap(),
                             _ => unreachable!(),
                         }
                     }
@@ -336,7 +417,11 @@ impl<'a> Renderer<'a> {
                 self.lookup_ident(ident).map(|v| v.is_truthy()).unwrap_or(false)
             }
             ExprVal::Math(_) | ExprVal::Int(_) | ExprVal::Float(_) => {
-                self.eval_as_number(&expr.val).map(|v| v != 0.0 && !v.is_nan())?
+                match self.eval_as_number(&expr.val) {
+                    Ok(Some(n)) => n.as_f64().unwrap() != 0.0,
+                    Ok(None) => false,
+                    Err(_) => false,
+            	}
             }
             ExprVal::Test(ref test) => self.eval_test(test).unwrap_or(false),
             ExprVal::Bool(val) => val,
@@ -513,12 +598,11 @@ impl<'a> Renderer<'a> {
             ExprVal::Test(ref test) => Value::Bool(self.eval_test(test)?),
             ExprVal::Logic(_) => Value::Bool(self.eval_as_bool(expr)?),
             ExprVal::Math(_) => {
-                let result = self.eval_as_number(&expr.val)?;
-
-                match Number::from_f64(result) {
-                    Some(x) => Value::Number(x),
-                    None => Value::String("NaN".to_string()),
-                }
+                match self.eval_as_number(&expr.val) {
+		    Ok(Some(n)) => Value::Number(n),
+		    Ok(None) => Value::String("NaN".to_owned()),
+		    Err(e) => bail!(e.to_string()),
+		} 
             }
             _ => unreachable!("{:?}", expr),
         };
