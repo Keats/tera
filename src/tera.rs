@@ -523,6 +523,7 @@ impl Tera {
         self.register_tester("starting_with", testers::starting_with);
         self.register_tester("ending_with", testers::ending_with);
         self.register_tester("containing", testers::containing);
+        self.register_tester("matching", testers::matching);
     }
 
     fn register_tera_global_functions(&mut self) {
