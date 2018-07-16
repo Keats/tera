@@ -849,6 +849,22 @@ Example:
 {% endif %}
 ```
 
+### matching
+Returns true if the given variable is a string and matches the regex in the argument.
+
+Example:
+```jinja2
+{% if name is matching("^[Qq]ueen") %}
+    Her Royal Highness, {{ name }}
+{% elif name is matching("^[Kk]ing") %}
+    His Royal Highness, {{ name }}
+{% else %}
+    {{ name }}
+{% endif %}
+```
+
+A comprehensive syntax description can be found in the [regex crate documentation](https://docs.rs/regex/).
+
 ## Built-in global functions
 Tera comes with some built-in global functions.
 

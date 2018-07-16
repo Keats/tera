@@ -1,6 +1,7 @@
 use errors::Result;
 use serde_json::value::Value;
 use context::ValueNumber;
+use regex::Regex;
 
 /// The tester function type definition
 pub type TesterFn = fn(Option<Value>, Vec<Value>) -> Result<bool>;
@@ -169,11 +170,27 @@ pub fn containing(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     }
 }
 
+/// Returns true if `value` is a string and matches the regex in the argument. Otherwise, returns false.
+pub fn matching(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
+    number_args_allowed("matching", 1, params.len())?;
+    value_defined("matching", &value)?;
+
+    let value = extract_string("matching", "on a variable", value.as_ref())?;
+    let regex = extract_string("matching", "with a parameter", params.first())?;
+
+    let regex = match Regex::new(regex) {
+        Ok(regex) => regex,
+        Err(err) => bail!("Tester `matching`: Invalid regular expression: {}", err),
+    };
+
+    Ok(regex.is_match(value))
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
-    use super::{containing, defined, divisible_by, ending_with, iterable, starting_with, string};
+    use super::{containing, defined, divisible_by, ending_with, iterable, starting_with, string, matching};
 
     use serde_json::value::to_value;
 
@@ -293,5 +310,39 @@ mod tests {
         for (container, needle, expected) in tests {
             assert_eq!(containing(Some(container), vec![needle]).unwrap(), expected);
         }
+    }
+
+    #[test]
+    fn test_matching() {
+        let tests = vec![
+            (
+                to_value("abc").unwrap(),
+                to_value("b").unwrap(),
+                true,
+            ),
+            (
+                to_value("abc").unwrap(),
+                to_value("^b$").unwrap(),
+                false,
+            ),
+            (
+                to_value("Hello, World!").unwrap(),
+                to_value(r"(?i)(hello\W\sworld\W)").unwrap(),
+                true,
+            ),
+            (
+                to_value("The date was 2018-06-28").unwrap(),
+                to_value(r"\d{4}-\d{2}-\d{2}$").unwrap(),
+                true,
+            ),
+        ];
+
+        for (container, needle, expected) in tests {
+            assert_eq!(matching(Some(container), vec![needle]).unwrap(), expected);
+        }
+
+        assert!(
+            matching(Some(to_value("").unwrap()), vec![to_value("(Invalid regex").unwrap()]).is_err()
+        );
     }
 }
