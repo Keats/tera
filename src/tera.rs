@@ -528,6 +528,7 @@ impl Tera {
 
     fn register_tera_global_functions(&mut self) {
         self.register_global_function("range", global_functions::make_range_fn());
+        self.register_global_function("now", global_functions::make_now_fn());
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on,

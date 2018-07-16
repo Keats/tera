@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.9 (2018-07-16)
+
+- Add a `matching` tester
+- Register `now` global function so it is available
+- Update `error-chain`
+
 ## 0.11.8 (2018-06-20)
 
 - Add `True` and `False` as boolean values to match Python
@@ -8,7 +14,7 @@
 - Add a `group_by` filter
 - Add a `filter` filter
 - Add the `~` operator to concatenate strings
-- Add a `now` and `utc_now` global functions to get local and UTC datetimes
+- Add a `now` global function to get local and UTC datetimes
 - Add feature to enable the `preserve_order` feature of serde_json
 - Less confusing behaviour with math arithmetics
 
