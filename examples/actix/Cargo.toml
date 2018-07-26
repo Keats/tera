@@ -1,0 +1,9 @@
+[package]
+name = "actix-server"
+version = "0.1.0"
+authors = ["Firstname Lastname <email@example.com>"]
+
+[dependencies]
+actix-web = "0.6"
+env_logger = "0.5"
+tera = "*"

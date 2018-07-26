@@ -9,3 +9,4 @@ node_modules
 yarn.lock
 public/
 *.css
+!examples/**/*.css
