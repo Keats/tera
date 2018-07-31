@@ -89,6 +89,20 @@ pub fn make_now_fn() -> GlobalFn {
     })
 }
 
+pub fn make_throw_fn() -> GlobalFn {
+    Box::new(move |args| -> Result<Value> {
+        match args.get("message") {
+            Some(val) => match from_value::<String>(val.clone()) {
+                Ok(v) => bail!("{}", v),
+                Err(_) => bail!(
+                    "Global function `throw` received message={} but `message` can only be a string", val
+                ),
+            },
+            None => bail!("Global function `throw` was called without a `message` argument"),
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -164,5 +178,16 @@ mod tests {
 
         let res = make_now_fn()(args).unwrap();
         assert!(res.is_number());
+    }
+
+    #[test]
+    fn throw_errors_with_message() {
+        let mut args = HashMap::new();
+        args.insert("message".to_string(), to_value("Hello").unwrap());
+
+        let res = make_throw_fn()(args);
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        assert_eq!(err.description(), "Hello");
     }
 }

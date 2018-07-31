@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.10 (2018-07-31)
+
+- Add a `throw` global function to fail rendering from inside a template
+
 ## 0.11.9 (2018-07-16)
 
 - Add a `matching` tester
