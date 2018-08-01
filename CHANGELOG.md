@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.11 (2018-08-01)
+
+- `truncate` filter now works correctly on multichar graphemes
+
 ## 0.11.10 (2018-08-01)
 
 - Add a `throw` global function to fail rendering from inside a template
