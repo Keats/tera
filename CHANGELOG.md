@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.11.10 (2018-07-31)
+## 0.11.10 (2018-08-01)
 
 - Add a `throw` global function to fail rendering from inside a template
 
