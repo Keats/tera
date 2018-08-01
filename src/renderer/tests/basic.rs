@@ -471,3 +471,17 @@ fn can_concat_strings() {
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
+
+
+#[test]
+fn can_fail_rendering_from_template() {
+    let mut context = Context::new();
+    context.add("title", "hello");
+    let res = render_template(
+        r#"{{ throw(message="Error: " ~ title ~ " did not include a summary") }}"#,
+        &context,
+    );
+    assert!(res.is_err());
+    let err = res.unwrap_err();
+    assert_eq!(err.iter().nth(1).unwrap().description(), "Error: hello did not include a summary");
+}

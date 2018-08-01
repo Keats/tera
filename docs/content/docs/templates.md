@@ -889,3 +889,11 @@ There are 2 arguments, both booleans:
 
 Formatting is not built-in the global function but you can use the `date` filter like so `now() | date(format="%Y")` if you
 wanted to get the current year.
+
+### throw
+
+The template rendering will error with the given message when encountered.
+
+There is only one string argument:
+
+- `message`: the message to display as the error
