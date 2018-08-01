@@ -30,6 +30,7 @@ extern crate pretty_assertions;
 #[cfg(test)]
 #[macro_use]
 extern crate serde_derive;
+extern crate unic_segment;
 
 #[macro_use]
 mod macros;

@@ -6,6 +6,8 @@ use slug;
 use url::percent_encoding::{EncodeSet, utf8_percent_encode};
 use regex::{Captures, Regex};
 
+use unic_segment::GraphemeIndices;
+
 use errors::Result;
 use utils;
 
@@ -35,7 +37,24 @@ pub fn trim(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(&s.trim()).unwrap())
 }
 
-/// Truncates a string to the indicated length
+/// Truncates a string to the indicated length.
+///
+/// # Arguments
+///
+/// * `value`   - The string that needs to be truncated.
+/// * `args`    - A set of key/value arguments that can take the following
+///   keys.
+/// * `length`  - The length at which the string needs to be truncated. If
+///   the length is larger than the length of the string, the string is 
+///   returned untouched. The default value is 255.
+/// * `end`     - The ellipsis string to be used if the given string is
+///   truncated. The default value is "…".
+///
+/// # Remarks
+///
+/// The return value of this function might be longer than `length`: the `end`
+/// string is *added* after the truncation occurs.
+///
 pub fn truncate(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("truncate", "value", String, value);
     let length = match args.get("length") {
@@ -47,12 +66,14 @@ pub fn truncate(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         None => "…".to_string(),
     };
 
+    let graphemes = GraphemeIndices::new(&s).collect::<Vec<(usize, &str)>>();
+
     // Nothing to truncate?
-    if length >= s.len() {
+    if length >= graphemes.len() {
         return Ok(to_value(&s).unwrap());
     }
 
-    let result = s[..s.char_indices().nth(length).unwrap().0].to_string() + &end;
+    let result = s[..graphemes[length].0].to_string() + &end;
     Ok(to_value(&result).unwrap())
 }
 
@@ -247,6 +268,16 @@ mod tests {
         let result = truncate(to_value("日本語").unwrap(), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("日本").unwrap());
+    }
+
+    #[test]
+    fn test_truncate_multichar_grapheme() {
+        let mut args = HashMap::new();
+        args.insert("length".to_string(), to_value(&5).unwrap());
+        args.insert("end".to_string(), to_value(&"…").unwrap());
+        let result = truncate(to_value("👨‍👩‍👧‍👦 family").unwrap(), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("👨‍👩‍👧‍👦 fam…").unwrap());
     }
 
     #[test]
