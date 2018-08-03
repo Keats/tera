@@ -1,6 +1,6 @@
 +++
 template = "docs.html"
-sort_by = "order"
-insert_anchor = "right"
+sort_by = "weight"
+insert_anchor_links = "right"
 redirect_to = "docs/installation"
 +++

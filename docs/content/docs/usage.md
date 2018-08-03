@@ -1,5 +1,5 @@
 +++
-order = 5
+weight = 5
 +++
 
 # Usage
@@ -27,10 +27,10 @@ let tera = compile_templates!("templates/**/*");
 ```
 
 The `compile_templates!` macro will parse all files found in the glob and, if errors are encountered, exit the process after
-printing the errors. 
+printing the errors.
 If you don't want to exit the process on errors, you can call the `Tera::new` method and handle errors directly.
 
-Compiling templates is a step that is meant to only happen once: use something like [lazy_static](https://crates.io/crates/lazy_static) 
+Compiling templates is a step that is meant to only happen once: use something like [lazy_static](https://crates.io/crates/lazy_static)
 to define a constant instance.
 
 ```rs
@@ -68,7 +68,7 @@ tera.render("products/product.html", &product)?;
 ```
 
 ## Auto-escaping
-By default, Tera will auto-escape all content in files ending with `".html"`, `".htm"` and `".xml"`. 
+By default, Tera will auto-escape all content in files ending with `".html"`, `".htm"` and `".xml"`.
 Escaping follows the recommendations from [OWASP](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet).
 
 You can override that or completely disable auto-escaping by calling the `autoescape_on` method:
@@ -84,7 +84,7 @@ tera.autoescape_on(vec![]);
 
 ### Extending another instance
 If you are using a framework or a library using Tera, chances are they provide their own Tera instance with some
-built-in templates, filters, global functions or testers. Tera offers a `extend` method that will extend your own 
+built-in templates, filters, global functions or testers. Tera offers a `extend` method that will extend your own
 instance with everything mentioned before:
 
 ```rs
@@ -105,7 +105,7 @@ tera.full_reload()?;
 Note that reloading is only available if you are loading templates with a glob.
 
 ### Loading templates from strings
-Tera allows you load templates not only from files but also from plain strings. 
+Tera allows you load templates not only from files but also from plain strings.
 
 ```rs
 // one template only

@@ -1,5 +1,5 @@
 +++
-order = 10
+weight = 10
 +++
 
 # Templates
@@ -193,12 +193,12 @@ tera.register_global_function("url_for", make_url_for(urls));
 And you can now call it from a template:
 
 ```jinja2
-{{ url_for(name="home") }}
+{{/* url_for(name="home") */}}
 ```
 
 Currently global functions can be called in two places in templates:
 
-- variable block: `{{ url_for(name="home") }}`
+- variable block: `{{/* url_for(name="home") */}}`
 - for loop container: `{% for i in range(end=5) %}`
 
 Tera comes with some [built-in global functions](./docs/templates.md#built-in-global-functions).
@@ -378,7 +378,7 @@ Again, straight from Jinja2 docs:
 {% extends "base.html" %}
 {% block title %}Index{% endblock title %}
 {% block head %}
-    {{ super() }}
+    {{/* super() */}}
     <style type="text/css">
         .important { color: #336699; }
     </style>
@@ -393,7 +393,7 @@ Again, straight from Jinja2 docs:
 
 To indicate inheritance, you have use the `extends` tag as the first thing in the file followed by the name of the template you want
 to extend.
-The `{{ super() }}` variable call tells Tera to render the parent block there.
+The `{{/* super() */}}` variable call tells Tera to render the parent block there.
 
 Nested blocks also work in Tera. Consider the following templates:
 
@@ -403,12 +403,12 @@ Nested blocks also work in Tera. Consider the following templates:
 
 // parent
 {% extends "grandparent" %}
-{% block hey %}hi and grandma says {{ super() }} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}
+{% block hey %}hi and grandma says {{/* super() */}} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}
 
 // child
 {% extends "parent" %}
-{% block hey %}dad says {{ super() }}{% endblock hey %}
-{% block ending %}{{ super() }} with love{% endblock ending %}
+{% block hey %}dad says {{/* super() */}}{% endblock hey %}
+{% block ending %}{{/* super() */}} with love{% endblock ending %}
 ```
 The block `ending` is nested in the `hey` block. Rendering the `child` template will do the following:
 

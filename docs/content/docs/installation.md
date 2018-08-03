@@ -1,5 +1,5 @@
 +++
-order = 1
+weight = 1
 +++
 
 # Getting started
