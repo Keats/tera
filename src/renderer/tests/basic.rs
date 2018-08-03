@@ -454,6 +454,26 @@ fn default_filter_works() {
 }
 
 #[test]
+fn filter_filter_works() {
+    #[derive(Debug, Serialize)]
+    struct Author {
+        id: u8,
+    };
+
+    let mut context = Context::new();
+    context.add("authors", &vec![Author {id: 1}, Author {id: 2}, Author {id: 3}]);
+
+    let inputs = vec![
+        (r#"{{ authors | filter(attribute="id", value=1) | first | get(key="id") }}"#, "1"),
+    ];
+
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
+}
+
+#[test]
 fn can_concat_strings() {
     let mut context = Context::new();
     context.add("a_string", "hello");

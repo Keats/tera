@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.12 (2018-08-04)
+
+- `filter` filter was not properly registered (╯°□°）╯︵ ┻━┻
+
 ## 0.11.11 (2018-08-01)
 
 - `truncate` filter now works correctly on multichar graphemes
