@@ -8,6 +8,8 @@ use errors::Result;
 
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc};
 
+use context::ValueRender;
+
 // Returns the number of items in an array or the number of characters in a string.
 // Returns 0 if not an array or string.
 pub fn length(value: Value, _: HashMap<String, Value>) -> Result<Value> {
@@ -98,6 +100,11 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(&formatted.to_string())?)
 }
 
+// Returns the given value as a string.
+pub fn as_str(value: Value, _: HashMap<String, Value>) -> Result<Value> {
+    Ok(to_value(&value.render())?)
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -105,6 +112,21 @@ mod tests {
     use serde_json::value::to_value;
     use super::*;
     use chrono::{DateTime, Local};
+
+    #[test]
+    fn as_str_object() {
+        let map: HashMap<String, String> = HashMap::new();
+        let result = as_str(to_value(&map).unwrap(), HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(&"[object]").unwrap());
+    }
+
+    #[test]
+    fn as_str_vec() {
+        let result = as_str(to_value(&vec![1, 2, 3, 4]).unwrap(), HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(&"[1, 2, 3, 4]").unwrap());
+    }
 
     #[test]
     fn length_vec() {
