@@ -1,3 +1,5 @@
+#![doc(html_root_url = "https://docs.rs/tera/0.11")]
+
 //! # Tera
 //! Tera is a template engine based on [Jinja2](http://jinja.pocoo.org/)
 //! and the [Django template language](https://docs.djangoproject.com/en/1.9/topics/templates/).
