@@ -779,6 +779,11 @@ It accepts a parameter `pretty` (boolean) to print a formatted JSON instead of a
 
 Example: `{{ value | safe | json_encode(pretty=true) }}`
 
+### as_str
+Returns a string representation of the given value.
+
+Example: `{{ value | as_str }}`
+
 ### default
 Returns the default value given if the variable evaluated is not present in the context.
 
