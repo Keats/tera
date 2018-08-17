@@ -1,10 +1,13 @@
 extern crate tera;
 #[macro_use]
 extern crate serde_derive;
+extern crate error_chain;
 
 use tera::{Context, Result, Tera};
 mod common;
 use common::{Product, Review};
+use error_chain::ChainedError;
+
 
 fn render_tpl(tpl_name: &str) -> Result<String> {
     let tera = Tera::new("tests/render-failures/**/*").unwrap();
@@ -21,27 +24,18 @@ fn render_tpl(tpl_name: &str) -> Result<String> {
 
 #[test]
 fn test_error_render_field_unknown() {
-    let result = render_tpl("field_unknown.html");
-
-    assert_eq!(result.is_err(), true);
-    assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
-        "Variable `hey` not found in context while rendering \'field_unknown.html\'"
-    );
+    let err = render_tpl("field_unknown.html").unwrap_err();
+    let msg = err.display_chain().to_string();
+    assert!(msg.contains("Failed to render 'field_unknown.html'"));
+    assert!(msg.contains("Caused by: Unable to find variable `hey`"));
 }
 
 #[test]
 fn test_error_render_field_unknown_in_forloop() {
-    let result = render_tpl("field_unknown_forloop.html");
-
-    println!("ERR ->> {}", result.unwrap_err());
-    assert!(false);
-    // assert_eq!(result.is_err(), true);
-    // let err = result.unwrap_err();
-    // assert_eq!(
-    //     err.iter().nth(1).unwrap().description(),
-    //     "Variable `r.random` not found in context while rendering \'field_unknown_forloop.html\'"
-    // );
+    let err = render_tpl("field_unknown_forloop.html").unwrap_err();
+    let msg = err.display_chain().to_string();
+    assert!(msg.contains("Failed to render 'field_unknown_forloop.html'"));
+    assert!(msg.contains("Caused by: Unable to find variable `r.random`"));
 }
 
 #[test]
