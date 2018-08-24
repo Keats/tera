@@ -1,7 +1,3 @@
-//! Models a value that contains either a reference or an owned instance
-
-// --- module use statements ---
-
 use std::ops::Deref;
 
 // --- module enum definitions ---

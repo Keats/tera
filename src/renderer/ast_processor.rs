@@ -1,7 +1,3 @@
-//! Responsible for walking ast and render implementation
-
-// --- module use statements ---
-
 use context::{ValueRender, ValueTruthy};
 use errors::{Result, ResultExt};
 use parser::ast::{

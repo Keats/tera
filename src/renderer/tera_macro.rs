@@ -1,7 +1,3 @@
-//! For processing macro invocations
-
-// --- module use statements ---
-
 use errors::{Result, ResultExt};
 use parser::ast::MacroDefinition;
 use std::collections::HashMap;

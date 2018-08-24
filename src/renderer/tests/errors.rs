@@ -103,11 +103,8 @@ fn error_unknown_index_variable() {
     context.add("arr", &[1, 2, 3]);
 
     let result_text = result_text(tera.render("tpl", &Context::new()));
-println!("ERROR: {}", result_text); // TODO
-    // assert_eq!(
-    //     result.unwrap_err().iter().nth(1).unwrap().description(),
-    //     "Variable arr[a] can not be evaluated because: Variable `a` not found in context while rendering \'tpl\'"
-    // );
+    assert!(result_text.contains("Error: Failed to render 'tpl'"));
+    assert!(result_text.contains("Unable to find variable `arr`"));
 }
 
 #[test]

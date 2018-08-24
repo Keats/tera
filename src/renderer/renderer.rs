@@ -1,10 +1,3 @@
-// --- module imports ---
-
-extern crate stopwatch;
-
-// --- module use statements ---
-
-use self::stopwatch::Stopwatch;
 use errors::{Result, ResultExt};
 use parser::ast::{FilterSection, MacroDefinition, Node};
 use renderer::ast_processor::{last_parent, AstProcessor};
@@ -72,8 +65,6 @@ impl<'a> Renderer<'a> {
     ///  * _return_ - Generated text
     ///
     pub fn render(&mut self) -> Result<String> {
-        //let stopwatch = Stopwatch::start_new();
-
         let context_value = &self.context_value;
         let context = Context::from_value(context_value);
         let call_stack = CallStack::from_context(context, self.template);
@@ -89,17 +80,7 @@ impl<'a> Renderer<'a> {
             );
 
             rendering = ast_processor.render_ast()?
-
-            //.chain_err(|| format!("Failed to read template '{:?}'", path))?;
-            //self.macro_collection = ast_processor.take_macro_collection();
         }
-
-        // let duration = stopwatch.elapsed_ms();
-
-        // out!(
-        //     "Render (less_clone) for template took {}: For template ({}) with parents ({:?})",
-        //     duration, self.template.name, self.template.parents
-        // );
 
         Ok(rendering)
     }

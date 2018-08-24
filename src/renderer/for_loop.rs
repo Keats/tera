@@ -1,7 +1,3 @@
-//! Provides implementation for rendering for loops
-
-// --- module use statements ---
-
 use renderer::ref_or_owned::RefOrOwned;
 use serde_json::{to_value, Value};
 

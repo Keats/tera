@@ -1,7 +1,3 @@
-//! The immutable context
-
-// --- module use statements ---
-
 use context::get_json_pointer;
 use serde_json::value::Value;
 

@@ -1,7 +1,3 @@
-//! Defines entries in the macro call stack
-
-// --- module use statements ---
-
 use context::get_json_pointer;
 use errors::{Result, ResultExt};
 use renderer::context::Context;
