@@ -1,8 +1,6 @@
 use context::get_json_pointer;
 use serde_json::value::Value;
 
-// --- module struct definitions ---
-
 /// Contains the data and allows no mutation
 #[derive(Debug)]
 pub struct Context<'a> {

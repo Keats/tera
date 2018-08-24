@@ -11,8 +11,6 @@ use template::Template;
 use tera::Tera;
 use utils::escape_html;
 
-// --- module struct definitions ---
-
 /// Given a `Tera` and reference to `Template` and a `Context`, renders text
 #[derive(Debug)]
 pub struct Renderer<'a> {

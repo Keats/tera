@@ -29,8 +29,6 @@ type LookupResult<'a> = Result<RefValue<'a>>;
 /// Special string indicating request to dump context
 static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
 
-// --- module struct definitions ---
-
 /// Processes the ast and renders the output
 pub struct AstProcessor<'a> {
     /// The template to render

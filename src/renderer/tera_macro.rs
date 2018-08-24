@@ -15,8 +15,6 @@ type MacroNamespaceMap<'a> = HashMap<&'a str, (&'a str, &'a MacroDefinitionMap)>
 /// Maps { template => { namespace { macro => macro_definition }}}
 type MacroTemplateMap<'a> = HashMap<&'a str, MacroNamespaceMap<'a>>;
 
-// --- module struct definitions ---
-
 /// Collection of all macro templates by file
 #[derive(Clone, Debug, Default)]
 pub struct MacroCollection<'a> {

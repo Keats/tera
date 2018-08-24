@@ -29,8 +29,6 @@ pub enum FrameType {
   IncludeFrame,
 }
 
-// --- module struct definitions ---
-
 /// Entry in the stack frame
 #[derive(Debug)]
 pub struct StackFrame<'a> {

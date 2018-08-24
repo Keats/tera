@@ -38,8 +38,6 @@ pub enum Values<'a> {
   },
 }
 
-// --- module struct definitions ---
-
 /// Provides support for rendering of for loops by tracking loop state
 #[derive(Debug)]
 pub struct ForLoop<'a> {
