@@ -39,10 +39,7 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 // Encodes a value of any type into json, optionally `pretty`-printing it
 // `pretty` can be true to enable pretty-print, or omitted for compact printing
 pub fn json_encode(value: Value, args: HashMap<String, Value>) -> Result<Value> {
-    let pretty = args
-        .get("pretty")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
+    let pretty = args.get("pretty").and_then(|v| v.as_bool()).unwrap_or(false);
 
     if pretty {
         Ok(Value::String(to_string_pretty(&value)?))
@@ -201,10 +198,7 @@ mod tests {
         let dt: DateTime<Local> = Local::now();
         let result = date(to_value(dt.to_rfc3339()).unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            to_value(dt.format("%Y-%m-%d").to_string()).unwrap()
-        );
+        assert_eq!(result.unwrap(), to_value(dt.format("%Y-%m-%d").to_string()).unwrap());
     }
 
     #[test]
@@ -219,56 +213,37 @@ mod tests {
     #[test]
     fn date_yyyy_mm_dd() {
         let mut args = HashMap::new();
-        args.insert(
-            "format".to_string(),
-            to_value("%a, %d %b %Y %H:%M:%S %z").unwrap(),
-        );
+        args.insert("format".to_string(), to_value("%a, %d %b %Y %H:%M:%S %z").unwrap());
         let result = date(to_value("2017-03-05").unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            to_value("Sun, 05 Mar 2017 00:00:00 +0000").unwrap()
-        );
+        assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00 +0000").unwrap());
     }
 
     #[test]
     fn date_from_naive_datetime() {
         let mut args = HashMap::new();
-        args.insert(
-            "format".to_string(),
-            to_value("%a, %d %b %Y %H:%M:%S").unwrap(),
-        );
+        args.insert("format".to_string(), to_value("%a, %d %b %Y %H:%M:%S").unwrap());
         let result = date(to_value("2017-03-05T00:00:00.602").unwrap(), args);
         println!("{:?}", result);
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            to_value("Sun, 05 Mar 2017 00:00:00").unwrap()
-        );
+        assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00").unwrap());
     }
 
     #[test]
     fn test_json_encode() {
         let args = HashMap::new();
-        let result = json_encode(
-            serde_json::from_str("{\"key\": [\"value1\", 2, true]}").unwrap(),
-            args,
-        );
+        let result =
+            json_encode(serde_json::from_str("{\"key\": [\"value1\", 2, true]}").unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            to_value("{\"key\":[\"value1\",2,true]}").unwrap()
-        );
+        assert_eq!(result.unwrap(), to_value("{\"key\":[\"value1\",2,true]}").unwrap());
     }
 
     #[test]
     fn test_json_encode_pretty() {
         let mut args = HashMap::new();
         args.insert("pretty".to_string(), to_value(true).unwrap());
-        let result = json_encode(
-            serde_json::from_str("{\"key\": [\"value1\", 2, true]}").unwrap(),
-            args,
-        );
+        let result =
+            json_encode(serde_json::from_str("{\"key\": [\"value1\", 2, true]}").unwrap(), args);
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),

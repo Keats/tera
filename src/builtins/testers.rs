@@ -9,10 +9,7 @@ pub type TesterFn = fn(Option<Value>, Vec<Value>) -> Result<bool>;
 // Some helper functions to remove boilerplate with tester error handling
 fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result<()> {
     if max == 0 && args_len > max {
-        bail!(
-            "Tester `{}` was called with some args but this test doesn't take args",
-            tester_name
-        );
+        bail!("Tester `{}` was called with some args but this test doesn't take args", tester_name);
     }
 
     if args_len > max {
@@ -30,10 +27,7 @@ fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result
 // Called to check if the Value is defined and return an Err if not
 fn value_defined(tester_name: &str, value: &Option<Value>) -> Result<()> {
     if value.is_none() {
-        bail!(
-            "Tester `{}` was called on an undefined variable",
-            tester_name
-        );
+        bail!("Tester `{}` was called on an undefined variable", tester_name);
     }
 
     Ok(())
@@ -123,11 +117,7 @@ pub fn iterable(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
 fn extract_string<'a>(tester_name: &str, part: &str, value: Option<&'a Value>) -> Result<&'a str> {
     match value.and_then(|v| v.as_str()) {
         Some(s) => Ok(s),
-        None => bail!(
-            "Tester `{}` was called {} that isn't a string",
-            tester_name,
-            part
-        ),
+        None => bail!("Tester `{}` was called {} that isn't a string", tester_name, part),
     }
 }
 
@@ -223,10 +213,8 @@ mod tests {
 
         for (val, divisor, expected) in tests {
             assert_eq!(
-                divisible_by(
-                    Some(to_value(val).unwrap()),
-                    vec![to_value(divisor).unwrap()],
-                ).unwrap(),
+                divisible_by(Some(to_value(val).unwrap()), vec![to_value(divisor).unwrap()],)
+                    .unwrap(),
                 expected
             );
         }
@@ -234,46 +222,31 @@ mod tests {
 
     #[test]
     fn test_iterable() {
-        assert_eq!(
-            iterable(Some(to_value(vec!["1"]).unwrap()), vec![]).unwrap(),
-            true
-        );
+        assert_eq!(iterable(Some(to_value(vec!["1"]).unwrap()), vec![]).unwrap(), true);
         assert_eq!(iterable(Some(to_value(1).unwrap()), vec![]).unwrap(), false);
-        assert_eq!(
-            iterable(Some(to_value("hello").unwrap()), vec![]).unwrap(),
-            false
-        );
+        assert_eq!(iterable(Some(to_value("hello").unwrap()), vec![]).unwrap(), false);
     }
 
     #[test]
     fn test_starting_with() {
         assert!(
-            starting_with(
-                Some(to_value("helloworld").unwrap()),
-                vec![to_value("hello").unwrap()],
-            ).unwrap()
+            starting_with(Some(to_value("helloworld").unwrap()), vec![to_value("hello").unwrap()],)
+                .unwrap()
         );
         assert!(
-            !starting_with(
-                Some(to_value("hello").unwrap()),
-                vec![to_value("hi").unwrap()],
-            ).unwrap()
+            !starting_with(Some(to_value("hello").unwrap()), vec![to_value("hi").unwrap()],)
+                .unwrap()
         );
     }
 
     #[test]
     fn test_ending_with() {
         assert!(
-            ending_with(
-                Some(to_value("helloworld").unwrap()),
-                vec![to_value("world").unwrap()],
-            ).unwrap()
+            ending_with(Some(to_value("helloworld").unwrap()), vec![to_value("world").unwrap()],)
+                .unwrap()
         );
         assert!(
-            !ending_with(
-                Some(to_value("hello").unwrap()),
-                vec![to_value("hi").unwrap()],
-            ).unwrap()
+            !ending_with(Some(to_value("hello").unwrap()), vec![to_value("hi").unwrap()],).unwrap()
         );
     }
 
@@ -283,32 +256,12 @@ mod tests {
         map.insert("hey", 1);
 
         let tests = vec![
-            (
-                to_value("hello world").unwrap(),
-                to_value("hel").unwrap(),
-                true,
-            ),
-            (
-                to_value("hello world").unwrap(),
-                to_value("hol").unwrap(),
-                false,
-            ),
+            (to_value("hello world").unwrap(), to_value("hel").unwrap(), true),
+            (to_value("hello world").unwrap(), to_value("hol").unwrap(), false),
             (to_value(vec![1, 2, 3]).unwrap(), to_value(3).unwrap(), true),
-            (
-                to_value(vec![1, 2, 3]).unwrap(),
-                to_value(4).unwrap(),
-                false,
-            ),
-            (
-                to_value(map.clone()).unwrap(),
-                to_value("hey").unwrap(),
-                true,
-            ),
-            (
-                to_value(map.clone()).unwrap(),
-                to_value("ho").unwrap(),
-                false,
-            ),
+            (to_value(vec![1, 2, 3]).unwrap(), to_value(4).unwrap(), false),
+            (to_value(map.clone()).unwrap(), to_value("hey").unwrap(), true),
+            (to_value(map.clone()).unwrap(), to_value("ho").unwrap(), false),
         ];
 
         for (container, needle, expected) in tests {
@@ -338,10 +291,8 @@ mod tests {
         }
 
         assert!(
-            matching(
-                Some(to_value("").unwrap()),
-                vec![to_value("(Invalid regex").unwrap()]
-            ).is_err()
+            matching(Some(to_value("").unwrap()), vec![to_value("(Invalid regex").unwrap()])
+                .is_err()
         );
     }
 }

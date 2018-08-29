@@ -159,11 +159,7 @@ pub fn urlencode(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 /// Escapes quote characters
 pub fn addslashes(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("addslashes", "value", String, value);
-    Ok(to_value(
-        &s.replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\'", "\\\'"),
-    ).unwrap())
+    Ok(to_value(&s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\'", "\\\'")).unwrap())
 }
 
 /// Transform a string into a slug
@@ -275,10 +271,7 @@ mod tests {
         args.insert("end".to_string(), to_value(&"…").unwrap());
         let result = truncate(to_value("👨‍👩‍👧‍👦 family").unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            to_value("👨‍👩‍👧‍👦 fam…").unwrap()
-        );
+        assert_eq!(result.unwrap(), to_value("👨‍👩‍👧‍👦 fam…").unwrap());
     }
 
     #[test]
@@ -319,10 +312,7 @@ mod tests {
 
     #[test]
     fn test_capitalize() {
-        let tests = vec![
-            ("CAPITAL IZE", "Capital ize"),
-            ("capital ize", "Capital ize"),
-        ];
+        let tests = vec![("CAPITAL IZE", "Capital ize"), ("capital ize", "Capital ize")];
         for (input, expected) in tests {
             let result = capitalize(to_value(input).unwrap(), HashMap::new());
             assert!(result.is_ok());
@@ -353,10 +343,8 @@ mod tests {
     fn test_slugify() {
         // slug crate already has tests for general slugification so we just
         // check our function works
-        let tests = vec![
-            (r#"Hello world"#, r#"hello-world"#),
-            (r#"Hello 世界"#, r#"hello-shi-jie"#),
-        ];
+        let tests =
+            vec![(r#"Hello world"#, r#"hello-world"#), (r#"Hello 世界"#, r#"hello-shi-jie"#)];
         for (input, expected) in tests {
             let result = slugify(to_value(input).unwrap(), HashMap::new());
             assert!(result.is_ok());
@@ -372,11 +360,7 @@ mod tests {
                 None,
                 r#"https%3A//www.example.org/foo%3Fa%3Db%26c%3Dd"#,
             ),
-            (
-                r#"https://www.example.org/"#,
-                Some(""),
-                r#"https%3A%2F%2Fwww.example.org%2F"#,
-            ),
+            (r#"https://www.example.org/"#, Some(""), r#"https%3A%2F%2Fwww.example.org%2F"#),
             (r#"/test&"/me?/"#, None, r#"/test%26%22/me%3F/"#),
             (r#"escape/slash"#, Some(""), r#"escape%2Fslash"#),
         ];
@@ -446,10 +430,8 @@ mod tests {
 
     #[test]
     fn test_split() {
-        let tests: Vec<(_, _, &[&str])> = vec![
-            ("a/b/cde", "/", &["a", "b", "cde"]),
-            ("hello, world", ", ", &["hello", "world"]),
-        ];
+        let tests: Vec<(_, _, &[&str])> =
+            vec![("a/b/cde", "/", &["a", "b", "cde"]), ("hello, world", ", ", &["hello", "world"])];
         for (input, pat, expected) in tests {
             let mut args = HashMap::new();
             args.insert("pat".to_string(), to_value(pat).unwrap());

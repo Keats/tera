@@ -19,9 +19,7 @@ pub struct Context {
 impl Context {
     /// Initializes an empty context
     pub fn new() -> Context {
-        Context {
-            data: BTreeMap::new(),
-        }
+        Context { data: BTreeMap::new() }
     }
 
     /// Converts the `val` parameter to `Value` and insert it into the context

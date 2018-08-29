@@ -90,10 +90,7 @@ impl<'a> Renderer<'a> {
                 // Translate from variable name to variable value
                 match find_variable(context, sub_var.as_ref(), tpl_name) {
                     Err(e) => {
-                        bail!(format!(
-                            "Variable {} can not be evaluated because: {}",
-                            key, e
-                        ));
+                        bail!(format!("Variable {} can not be evaluated because: {}", key, e));
                     }
                     Ok(post_var) => {
                         let post_var_as_str = match post_var {
@@ -138,11 +135,9 @@ impl<'a> Renderer<'a> {
 
             match context.pointer(&get_json_pointer(key_s.as_ref())) {
                 Some(v) => Ok(v.clone()),
-                None => bail!(
-                    "Variable `{}` not found in context while rendering '{}'",
-                    key,
-                    tpl_name
-                ),
+                None => {
+                    bail!("Variable `{}` not found in context while rendering '{}'", key, tpl_name)
+                }
             }
         }
 
@@ -264,23 +259,14 @@ impl<'a> Renderer<'a> {
                 } else if v.is_f64() {
                     Some(Number::from_f64(v.as_f64().unwrap()).unwrap())
                 } else {
-                    bail!(
-                        "Variable `{}` was used in a math operation but is not a number",
-                        ident,
-                    )
+                    bail!("Variable `{}` was used in a math operation but is not a number", ident,)
                 }
             }
             ExprVal::Int(val) => Some(Number::from(val)),
             ExprVal::Float(val) => Some(Number::from_f64(val).unwrap()),
-            ExprVal::Math(MathExpr {
-                ref lhs,
-                ref rhs,
-                ref operator,
-            }) => {
-                let (l, r) = match (
-                    self.eval_expr_as_number(lhs)?,
-                    self.eval_expr_as_number(rhs)?,
-                ) {
+            ExprVal::Math(MathExpr { ref lhs, ref rhs, ref operator }) => {
+                let (l, r) = match (self.eval_expr_as_number(lhs)?, self.eval_expr_as_number(rhs)?)
+                {
                     (Some(l), Some(r)) => (l, r),
                     _ => return Ok(None),
                 };
@@ -369,11 +355,7 @@ impl<'a> Renderer<'a> {
     /// Return the value of an expression as a bool
     fn eval_as_bool(&mut self, expr: &Expr) -> Result<bool> {
         let res = match expr.val {
-            ExprVal::Logic(LogicExpr {
-                ref lhs,
-                ref rhs,
-                ref operator,
-            }) => {
+            ExprVal::Logic(LogicExpr { ref lhs, ref rhs, ref operator }) => {
                 match *operator {
                     LogicOperator::Or => self.eval_as_bool(lhs)? || self.eval_as_bool(rhs)?,
                     LogicOperator::And => self.eval_as_bool(lhs)? && self.eval_as_bool(rhs)?,
@@ -422,10 +404,9 @@ impl<'a> Renderer<'a> {
                     }
                 }
             }
-            ExprVal::Ident(ref ident) => self
-                .lookup_ident(ident)
-                .map(|v| v.is_truthy())
-                .unwrap_or(false),
+            ExprVal::Ident(ref ident) => {
+                self.lookup_ident(ident).map(|v| v.is_truthy()).unwrap_or(false)
+            }
             ExprVal::Math(_) | ExprVal::Int(_) | ExprVal::Float(_) => {
                 match self.eval_as_number(&expr.val) {
                     Ok(Some(n)) => n.as_f64().unwrap() != 0.0,
@@ -508,11 +489,9 @@ impl<'a> Renderer<'a> {
                 Some(val) => self.safe_eval_expression(val)?,
                 None => match *default_value {
                     Some(ref val) => self.safe_eval_expression(val)?,
-                    None => bail!(
-                        "Macro `{}` is missing the argument `{}`",
-                        macro_call.name,
-                        arg_name,
-                    ),
+                    None => {
+                        bail!("Macro `{}` is missing the argument `{}`", macro_call.name, arg_name,)
+                    }
                 },
             };
             macro_context.insert(arg_name.to_string(), value);
@@ -850,14 +829,7 @@ impl<'a> Renderer<'a> {
             Node::Text(ref s) | Node::Raw(_, ref s, _) => s.to_string(),
             Node::VariableBlock(ref expr) => self.eval_expression(expr)?.render(),
             Node::Set(_, ref set) => self.eval_set(set).and(Ok(String::new()))?,
-            Node::FilterSection(
-                _,
-                FilterSection {
-                    ref filter,
-                    ref body,
-                },
-                _,
-            ) => {
+            Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
                 let output = self.render_body(body)?;
 
                 self.eval_filter(Value::String(output), filter)?.render()
@@ -921,11 +893,7 @@ impl<'a> Renderer<'a> {
 
         // which template are we in?
         if let Some(&(ref name, ref level)) = self.blocks.last() {
-            let block_def = self
-                .template
-                .blocks_definitions
-                .get(name)
-                .and_then(|b| b.get(*level));
+            let block_def = self.template.blocks_definitions.get(name).and_then(|b| b.get(*level));
 
             if let Some(&(ref tpl_name, _)) = block_def {
                 if tpl_name != &self.template.name {
@@ -958,11 +926,7 @@ impl<'a> Renderer<'a> {
 
         let mut output = String::new();
         for node in ast {
-            output.push_str(
-                &self
-                    .render_node(node)
-                    .chain_err(|| self.get_error_location())?,
-            );
+            output.push_str(&self.render_node(node).chain_err(|| self.get_error_location())?);
         }
 
         Ok(output)

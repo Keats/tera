@@ -321,10 +321,7 @@ mod tests {
 
         let result = sort(v, args);
         assert!(result.is_err());
-        assert_eq!(
-            result.unwrap_err().description(),
-            "Null is not a sortable value"
-        );
+        assert_eq!(result.unwrap_err().description(), "Null is not a sortable value");
     }
 
     #[derive(Serialize)]

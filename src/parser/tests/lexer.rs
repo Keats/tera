@@ -382,10 +382,8 @@ fn lex_include_tag() {
 #[test]
 fn lex_import_macro_tag() {
     assert!(
-        TeraParser::parse(
-            Rule::import_macro_tag,
-            "{% import \"macros.html\" as macros %}",
-        ).is_ok()
+        TeraParser::parse(Rule::import_macro_tag, "{% import \"macros.html\" as macros %}",)
+            .is_ok()
     );
 }
 
@@ -409,11 +407,8 @@ fn lex_block_tag() {
 
 #[test]
 fn lex_macro_tag() {
-    let inputs = vec![
-        "{%- macro tag() %}",
-        "{% macro my_block(name) -%}",
-        "{% macro my_block(name=42) %}",
-    ];
+    let inputs =
+        vec!["{%- macro tag() %}", "{% macro my_block(name) -%}", "{% macro my_block(name=42) %}"];
     for i in inputs {
         assert_lex_rule!(Rule::macro_tag, i);
     }

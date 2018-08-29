@@ -113,8 +113,7 @@ fn bench_rendering_only_variable(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_basic_template(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_template("bench.html", SIMPLE_TEMPLATE)
-        .unwrap();
+    tera.add_raw_template("bench.html", SIMPLE_TEMPLATE).unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -125,8 +124,7 @@ fn bench_rendering_basic_template(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_parent(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("parent.html", PARENT_TEMPLATE)])
-        .unwrap();
+    tera.add_raw_templates(vec![("parent.html", PARENT_TEMPLATE)]).unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -137,8 +135,7 @@ fn bench_rendering_only_parent(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_macro_call(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("hey.html", USE_MACRO_TEMPLATE)])
-        .unwrap();
+    tera.add_raw_templates(vec![("hey.html", USE_MACRO_TEMPLATE)]).unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -149,10 +146,8 @@ fn bench_rendering_only_macro_call(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_inheritance(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("parent.html", PARENT_TEMPLATE),
-        ("child.html", CHILD_TEMPLATE),
-    ]).unwrap();
+    tera.add_raw_templates(vec![("parent.html", PARENT_TEMPLATE), ("child.html", CHILD_TEMPLATE)])
+        .unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -203,21 +198,14 @@ fn bench_huge_loop(b: &mut test::Bencher) {
         real: Vec<DataWrapper>,
         dummy: Vec<DataWrapper>,
     }
-    let real: Vec<DataWrapper> = (1..1000)
-        .into_iter()
-        .map(|i| DataWrapper {
-            v: format!("n={}", i),
-        }).collect();
-    let dummy: Vec<DataWrapper> = (1..1000)
-        .into_iter()
-        .map(|i| DataWrapper {
-            v: format!("n={}", i),
-        }).collect();
+    let real: Vec<DataWrapper> =
+        (1..1000).into_iter().map(|i| DataWrapper { v: format!("n={}", i) }).collect();
+    let dummy: Vec<DataWrapper> =
+        (1..1000).into_iter().map(|i| DataWrapper { v: format!("n={}", i) }).collect();
     let rows = RowWrapper { real, dummy };
 
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("huge.html", "{% for v in rows %}{{v}}{% endfor %}")])
-        .unwrap();
+    tera.add_raw_templates(vec![("huge.html", "{% for v in rows %}{{v}}{% endfor %}")]).unwrap();
     let mut context = Context::new();
     context.add("rows", &rows);
 

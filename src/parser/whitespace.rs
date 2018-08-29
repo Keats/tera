@@ -90,10 +90,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 trim_left_next = end_ws.right;
 
                 // let's remove ws from the bodies now and append the cleaned up node
-                let body_ws = WS {
-                    left: start_ws.right,
-                    right: end_ws.left,
-                };
+                let body_ws = WS { left: start_ws.right, right: end_ws.left };
                 match n {
                     Node::Forloop(_, mut forloop, _) => {
                         forloop.body = remove_whitespace(forloop.body, Some(body_ws));
@@ -116,13 +113,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 continue;
             }
             // The ugly one
-            Node::If(
-                If {
-                    conditions,
-                    otherwise,
-                },
-                end_ws,
-            ) => {
+            Node::If(If { conditions, otherwise }, end_ws) => {
                 trim_left_next = end_ws.right;
                 let mut new_conditions: Vec<(_, _, Vec<_>)> = Vec::with_capacity(conditions.len());
 
@@ -140,10 +131,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                     // are consuming conditions. We'll find out at the next iteration.
                     condition.2 = remove_whitespace(
                         condition.2,
-                        Some(WS {
-                            left: condition.0.right,
-                            right: false,
-                        }),
+                        Some(WS { left: condition.0.right, right: false }),
                     );
                     new_conditions.push(condition);
                 }
@@ -159,22 +147,14 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                             trim_right_previous!(body);
                         }
                     }
-                    let mut else_body = remove_whitespace(
-                        body,
-                        Some(WS {
-                            left: else_ws.right,
-                            right: false,
-                        }),
-                    );
+                    let mut else_body =
+                        remove_whitespace(body, Some(WS { left: else_ws.right, right: false }));
                     // if we have an `else`, the `endif` will affect the else node so we need to check
                     if end_ws.left {
                         trim_right_previous!(else_body);
                     }
                     res.push(Node::If(
-                        If {
-                            conditions: new_conditions,
-                            otherwise: Some((else_ws, else_body)),
-                        },
+                        If { conditions: new_conditions, otherwise: Some((else_ws, else_body)) },
                         end_ws,
                     ));
                     continue;
@@ -187,13 +167,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                     }
                 }
 
-                res.push(Node::If(
-                    If {
-                        conditions: new_conditions,
-                        otherwise,
-                    },
-                    end_ws,
-                ));
+                res.push(Node::If(If { conditions: new_conditions, otherwise }, end_ws));
                 continue;
             }
             Node::Super | Node::VariableBlock(_) => (),

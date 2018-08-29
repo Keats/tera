@@ -88,10 +88,7 @@ fn bench_macro_big_object(b: &mut test::Bencher) {
 {%- import \"macros.html\" as macros -%}
 {%- for i in iterations -%}{{ macros::get_first(bo=big_object) }}{% endfor %}",
         ),
-        (
-            "macros.html",
-            "{%- macro get_first(bo) -%}{{ bo.field_a.i }}{% endmacro get_first %}",
-        ),
+        ("macros.html", "{%- macro get_first(bo) -%}{{ bo.field_a.i }}{% endmacro get_first %}"),
     ]).unwrap();
     let mut context = Context::new();
     context.add("big_object", &big_object);
@@ -168,13 +165,7 @@ impl ManyFields {
             e.push(format!("This is String({})", i));
         }
 
-        ManyFields {
-            a: "A".into(),
-            b: "B".into(),
-            c: "C".into(),
-            d,
-            e,
-        }
+        ManyFields { a: "A".into(), b: "B".into(), c: "C".into(), d, e }
     }
 }
 
@@ -186,9 +177,6 @@ struct TwoFields {
 
 impl TwoFields {
     fn new() -> TwoFields {
-        TwoFields {
-            a: ManyFields::new(),
-            b: "B".into(),
-        }
+        TwoFields { a: ManyFields::new(), b: "B".into() }
     }
 }

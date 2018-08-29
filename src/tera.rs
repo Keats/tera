@@ -693,15 +693,9 @@ mod tests {
             vec!["b".to_string(), "c".to_string(), "d".to_string()]
         );
 
-        assert_eq!(
-            tera.get_template("b").unwrap().parents,
-            vec!["c".to_string(), "d".to_string()]
-        );
+        assert_eq!(tera.get_template("b").unwrap().parents, vec!["c".to_string(), "d".to_string()]);
 
-        assert_eq!(
-            tera.get_template("c").unwrap().parents,
-            vec!["d".to_string()]
-        );
+        assert_eq!(tera.get_template("c").unwrap().parents, vec!["d".to_string()]);
 
         assert_eq!(tera.get_template("d").unwrap().parents.len(), 0);
     }
@@ -710,9 +704,7 @@ mod tests {
     fn test_missing_parent_template() {
         let mut tera = Tera::default();
         assert_eq!(
-            tera.add_raw_template("a", "{% extends \"b\" %}")
-                .unwrap_err()
-                .description(),
+            tera.add_raw_template("a", "{% extends \"b\" %}").unwrap_err().description(),
             "Template \'a\' is inheriting from \'b\', which doesn\'t exist or isn\'t loaded."
         );
     }
@@ -721,15 +713,10 @@ mod tests {
     fn test_circular_extends() {
         let mut tera = Tera::default();
         let err = tera
-            .add_raw_templates(vec![
-                ("a", "{% extends \"b\" %}"),
-                ("b", "{% extends \"a\" %}"),
-            ]).unwrap_err();
+            .add_raw_templates(vec![("a", "{% extends \"b\" %}"), ("b", "{% extends \"a\" %}")])
+            .unwrap_err();
 
-        assert!(
-            err.description()
-                .contains("Circular extend detected for template")
-        );
+        assert!(err.description().contains("Circular extend detected for template"));
     }
 
     #[test]
@@ -750,20 +737,12 @@ mod tests {
             ),
         ]).unwrap();
 
-        let hey_definitions = tera
-            .get_template("child")
-            .unwrap()
-            .blocks_definitions
-            .get("hey")
-            .unwrap();
+        let hey_definitions =
+            tera.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
         assert_eq!(hey_definitions.len(), 3);
 
-        let ending_definitions = tera
-            .get_template("child")
-            .unwrap()
-            .blocks_definitions
-            .get("ending")
-            .unwrap();
+        let ending_definitions =
+            tera.get_template("child").unwrap().blocks_definitions.get("ending").unwrap();
         assert_eq!(ending_definitions.len(), 2);
     }
 
@@ -782,20 +761,12 @@ mod tests {
             ),
         ]).unwrap();
 
-        let hey_definitions = tera
-            .get_template("child")
-            .unwrap()
-            .blocks_definitions
-            .get("hey")
-            .unwrap();
+        let hey_definitions =
+            tera.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
         assert_eq!(hey_definitions.len(), 3);
 
-        let ending_definitions = tera
-            .get_template("parent")
-            .unwrap()
-            .blocks_definitions
-            .get("ending")
-            .unwrap();
+        let ending_definitions =
+            tera.get_template("parent").unwrap().blocks_definitions.get("ending").unwrap();
         assert_eq!(ending_definitions.len(), 1);
     }
 
@@ -861,10 +832,7 @@ mod tests {
     #[test]
     fn test_value_one_off_template() {
         let mut context = JsonObject::new();
-        context.insert(
-            "greeting".to_string(),
-            JsonValue::String("Good morning".to_string()),
-        );
+        context.insert("greeting".to_string(), JsonValue::String("Good morning".to_string()));
         let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "Good morning world");
@@ -881,9 +849,7 @@ mod tests {
             ]).unwrap();
 
         let mut framework_tera = Tera::default();
-        framework_tera
-            .add_raw_templates(vec![("four", "Framework X")])
-            .unwrap();
+        framework_tera.add_raw_templates(vec![("four", "Framework X")]).unwrap();
 
         my_tera.extend(&framework_tera).unwrap();
         assert_eq!(my_tera.templates.len(), 4);
