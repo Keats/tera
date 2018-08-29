@@ -141,7 +141,6 @@ fn handle_ws_both_sides_for_forloop_tag_and_remove_empty_node() {
 
 #[test]
 fn handle_ws_for_if_nodes() {
-    let start_ws = WS { left: true, right: true };
     let end_ws = WS { left: false, right: true };
     let ast = vec![
         Node::Text("C ".to_string()),
@@ -205,7 +204,6 @@ fn handle_ws_for_if_nodes() {
 
 #[test]
 fn handle_ws_for_if_nodes_with_else() {
-    let start_ws = WS { left: true, right: true };
     let end_ws = WS { left: true, right: true };
     let ast = vec![
         Node::Text("C ".to_string()),

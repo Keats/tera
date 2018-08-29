@@ -1,6 +1,4 @@
-use std::collections::BTreeMap;
 use context::Context;
-use errors::Result;
 use tera::Tera;
 
 #[test]

@@ -1,5 +1,3 @@
-use pest::Parser;
-
 use parser::parse;
 
 fn assert_err_msg(input: &str, needles: &[&str]) {
@@ -143,7 +141,7 @@ fn invalid_elif() {
     "#,
         &[
             "4:1",
-            "unexpected tag; expected a `endif` tag` or some content",
+            "unexpected tag; expected an endif tag (`{% endif %}`) or some content",
         ],
     );
 }
@@ -159,7 +157,7 @@ fn invalid_else() {
     "#,
         &[
             "4:1",
-            "unexpected tag; expected a `endif` tag` or some content",
+            "unexpected tag; expected an endif tag (`{% endif %}`) or some content",
         ],
     );
 }

@@ -921,7 +921,7 @@ mod tests {
 
     #[test]
     fn can_load_from_glob() {
-        let mut tera = Tera::new("examples/basic/templates/**/*").unwrap();
+        let tera = Tera::new("examples/basic/templates/**/*").unwrap();
         assert!(tera.get_template("base.html").is_ok());
     }
 

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use pest::{Error as PestError, Parser};
+use pest::{Parser};
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::iterators::Pair;
 
-use errors::{Result as TeraResult, ResultExt};
+use errors::{Result as TeraResult};
 
 // This include forces recompiling this source file if the grammar file changes.
 // Uncomment it when doing changes to the .pest file
@@ -881,7 +881,6 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::filter_section_content => "the filter section content".to_string(),
                     Rule::set_tag => "a `set` tag`".to_string(),
                     Rule::set_global_tag => "a `set_global` tag`".to_string(),
-                    Rule::endif_tag => "a `endif` tag`".to_string(),
                     Rule::block_content | Rule::content | Rule::for_content => {
                         "some content".to_string()
                     },

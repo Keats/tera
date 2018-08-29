@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use context::Context;
-use errors::Result;
 use tera::Tera;
+
 
 #[derive(Serialize)]
 struct Test {

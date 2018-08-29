@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap};
 
 use errors::Result;
 use parser::{parse, remove_whitespace};

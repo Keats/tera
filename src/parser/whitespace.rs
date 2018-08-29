@@ -60,7 +60,6 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
             | Node::Break(ws)
             | Node::Continue(ws) => {
                 trim_right_previous!(previous_was_text && ws.left, res);
-                previous_was_text = false;
                 trim_left_next = ws.right;
             }
             Node::Raw(start_ws, ref s, end_ws) => {
@@ -116,16 +115,9 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
             // The ugly one
             Node::If(If { conditions, otherwise }, end_ws) => {
                 trim_left_next = end_ws.right;
-                // Whether we are past the initial if
-                let mut if_done = false;
                 let mut new_conditions: Vec<(_, _, Vec<_>)> = Vec::with_capacity(conditions.len());
-                // We need to keep track of the last elif or else to know whether we need
-                // to right trim the last text as we can't peek
-                let mut last_trim_right = false;
 
                 for mut condition in conditions {
-                    last_trim_right = condition.0.right;
-
                     if condition.0.left {
                         // We need to trim the text node before the if tag
                         if new_conditions.is_empty() && previous_was_text {

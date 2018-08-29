@@ -251,7 +251,7 @@ mod tests {
 
     #[test]
     fn test_json_encode() {
-        let mut args = HashMap::new();
+        let args = HashMap::new();
         let result = json_encode(
             serde_json::from_str("{\"key\": [\"value1\", 2, true]}").unwrap(),
             args,

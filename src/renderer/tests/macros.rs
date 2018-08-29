@@ -1,5 +1,4 @@
 use context::Context;
-use errors::Result;
 use tera::Tera;
 
 use super::NestedObject;

@@ -15,8 +15,7 @@ use parser::ast::*;
 use template::Template;
 use tera::Tera;
 use errors::{Result, ResultExt};
-use context::{get_json_pointer, ValueNumber, ValueRender, ValueTruthy};
-use utils::escape_html;
+use context::{get_json_pointer, ValueRender, ValueTruthy};
 
 static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
 
@@ -599,12 +598,11 @@ impl<'a> Renderer<'a> {
             ExprVal::Logic(_) => Value::Bool(self.eval_as_bool(expr)?),
             ExprVal::Math(_) => {
                 match self.eval_as_number(&expr.val) {
-		    Ok(Some(n)) => Value::Number(n),
-		    Ok(None) => Value::String("NaN".to_owned()),
-		    Err(e) => bail!(e.to_string()),
-		}
+                    Ok(Some(n)) => Value::Number(n),
+                    Ok(None) => Value::String("NaN".to_owned()),
+                    Err(e) => bail!(e.to_string()),
+                }
             }
-            _ => unreachable!("{:?}", expr),
         };
 
         // Checks if it's a string and we need to escape it (if the first filter is `safe` we don't)

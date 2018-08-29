@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.13 (unreleased)
+
+- Add `as_str` filter
+
 ## 0.11.12 (2018-08-04)
 
 - `filter` filter was not properly registered (╯°□°）╯︵ ┻━┻

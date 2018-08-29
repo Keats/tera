@@ -406,11 +406,11 @@ fn ok_many_variable_blocks() {
     context.add("username", &"bob");
 
     let mut tpl = String::new();
-    for i in 0..200 {
+    for _ in 0..200 {
         tpl.push_str("{{ username }}")
     }
     let mut expected = String::new();
-    for i in 0..200 {
+    for _ in 0..200 {
         expected.push_str("bob")
     }
     assert_eq!(render_template(&tpl, &context).unwrap(), expected);

@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn now_default() {
-        let mut args = HashMap::new();
+        let args = HashMap::new();
 
         let res = make_now_fn()(args).unwrap();
         assert!(res.is_string());
