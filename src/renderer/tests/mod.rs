@@ -1,9 +1,9 @@
 mod basic;
+mod errors;
 mod inheritance;
 mod macros;
-mod whitespace;
-mod errors;
 mod square_brackets;
+mod whitespace;
 
 #[allow(dead_code)]
 #[derive(Debug, Serialize)]

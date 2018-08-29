@@ -1,10 +1,10 @@
 /// Filters operating on string
 use std::collections::HashMap;
 
+use regex::{Captures, Regex};
 use serde_json::value::{to_value, Value};
 use slug;
-use url::percent_encoding::{EncodeSet, utf8_percent_encode};
-use regex::{Captures, Regex};
+use url::percent_encoding::{utf8_percent_encode, EncodeSet};
 
 use unic_segment::GraphemeIndices;
 
@@ -45,7 +45,7 @@ pub fn trim(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 /// * `args`    - A set of key/value arguments that can take the following
 ///   keys.
 /// * `length`  - The length at which the string needs to be truncated. If
-///   the length is larger than the length of the string, the string is 
+///   the length is larger than the length of the string, the string is
 ///   returned untouched. The default value is 255.
 /// * `end`     - The ellipsis string to be used if the given string is
 ///   truncated. The default value is "…".
@@ -162,7 +162,7 @@ pub fn addslashes(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(
         &s.replace("\\", "\\\\")
             .replace("\"", "\\\"")
-            .replace("\'", "\\\'")
+            .replace("\'", "\\\'"),
     ).unwrap())
 }
 
@@ -176,13 +176,11 @@ pub fn slugify(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 pub fn title(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("title", "value", String, value);
 
-    Ok(to_value(
-        &WORDS_RE.replace_all(&s, |caps: &Captures| {
-            let first = caps["first"].to_uppercase();
-            let rest = caps["rest"].to_lowercase();
-            format!("{}{}", first, rest)
-        })
-    ).unwrap())
+    Ok(to_value(&WORDS_RE.replace_all(&s, |caps: &Captures| {
+        let first = caps["first"].to_uppercase();
+        let rest = caps["rest"].to_lowercase();
+        format!("{}{}", first, rest)
+    })).unwrap())
 }
 
 /// Removes html tags from string
@@ -277,7 +275,10 @@ mod tests {
         args.insert("end".to_string(), to_value(&"…").unwrap());
         let result = truncate(to_value("👨‍👩‍👧‍👦 family").unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("👨‍👩‍👧‍👦 fam…").unwrap());
+        assert_eq!(
+            result.unwrap(),
+            to_value("👨‍👩‍👧‍👦 fam…").unwrap()
+        );
     }
 
     #[test]

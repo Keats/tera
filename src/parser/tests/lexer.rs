@@ -143,7 +143,6 @@ fn lex_array() {
     }
 }
 
-
 #[test]
 fn lex_basic_expr() {
     let inputs = vec![
@@ -473,22 +472,12 @@ fn lex_for_tag() {
 
 #[test]
 fn lex_break_tag() {
-    assert!(
-        TeraParser::parse(
-            Rule::break_tag,
-            "{% break %}"
-        ).is_ok()
-    );
+    assert!(TeraParser::parse(Rule::break_tag, "{% break %}").is_ok());
 }
 
 #[test]
 fn lex_continue_tag() {
-    assert!(
-        TeraParser::parse(
-            Rule::continue_tag,
-            "{% continue %}"
-        ).is_ok()
-    );
+    assert!(TeraParser::parse(Rule::continue_tag, "{% continue %}").is_ok());
 }
 
 #[test]

@@ -14,7 +14,8 @@ pub fn make_range_fn() -> GlobalFn {
             Some(val) => match from_value::<usize>(val.clone()) {
                 Ok(v) => v,
                 Err(_) => bail!(
-                    "Global function `range` received start={} but `start` can only be a number", val
+                    "Global function `range` received start={} but `start` can only be a number",
+                    val
                 ),
             },
             None => 0,
@@ -23,7 +24,8 @@ pub fn make_range_fn() -> GlobalFn {
             Some(val) => match from_value::<usize>(val.clone()) {
                 Ok(v) => v,
                 Err(_) => bail!(
-                    "Global function `range` received step_by={} but `step` can only be a number", val
+                    "Global function `range` received step_by={} but `step` can only be a number",
+                    val
                 ),
             },
             None => 1,
@@ -31,9 +33,10 @@ pub fn make_range_fn() -> GlobalFn {
         let end = match args.get("end") {
             Some(val) => match from_value::<usize>(val.clone()) {
                 Ok(v) => v,
-                Err(_) => {
-                    bail!("Global function `range` received end={} but `end` can only be a number", val)
-                }
+                Err(_) => bail!(
+                    "Global function `range` received end={} but `end` can only be a number",
+                    val
+                ),
             },
             None => bail!("Global function `range` was called without a `end` argument"),
         };
@@ -58,7 +61,8 @@ pub fn make_now_fn() -> GlobalFn {
             Some(val) => match from_value::<bool>(val.clone()) {
                 Ok(v) => v,
                 Err(_) => bail!(
-                    "Global function `now` received utc={} but `utc` can only be a boolean", val
+                    "Global function `now` received utc={} but `utc` can only be a boolean",
+                    val
                 ),
             },
             None => false,

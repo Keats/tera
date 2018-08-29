@@ -25,9 +25,9 @@ pub fn get(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use serde_json::value::to_value;
     use super::get;
+    use serde_json::value::to_value;
+    use std::collections::HashMap;
 
     #[test]
     fn test_get_filter_exists() {

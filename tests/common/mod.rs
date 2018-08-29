@@ -2,18 +2,17 @@ extern crate serde;
 extern crate serde_json;
 extern crate tera;
 
-use std::io::prelude::*;
 use std::fs::File;
+use std::io::prelude::*;
 
 use self::tera::Template;
-
 
 #[derive(Debug, Serialize)]
 pub struct Product {
     name: String,
     manufacturer: String,
     price: i32,
-    summary: String
+    summary: String,
 }
 impl Product {
     #[allow(dead_code)]
@@ -22,7 +21,7 @@ impl Product {
             name: "Moto G".to_owned(),
             manufacturer: "Motorala".to_owned(),
             summary: "A phone".to_owned(),
-            price: 100
+            price: 100,
         }
     }
 }
@@ -30,16 +29,14 @@ impl Product {
 #[derive(Debug, Serialize)]
 pub struct Review {
     title: String,
-    paragraphs: Vec<String>
+    paragraphs: Vec<String>,
 }
 impl Review {
     #[allow(dead_code)]
     pub fn new() -> Review {
         Review {
             title: "My review".to_owned(),
-            paragraphs: vec![
-                "A".to_owned(), "B".to_owned(), "C".to_owned()
-            ]
+            paragraphs: vec!["A".to_owned(), "B".to_owned(), "C".to_owned()],
         }
     }
 }
@@ -57,7 +54,6 @@ pub fn read_file(path: &str) -> String {
 
     input
 }
-
 
 #[allow(dead_code)]
 #[derive(Debug, Serialize)]

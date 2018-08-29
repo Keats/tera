@@ -121,7 +121,6 @@ pub struct LogicExpr {
     pub operator: LogicOperator,
 }
 
-
 /// Can only be a combination of string + ident or ident + ident
 #[derive(Clone, Debug, PartialEq)]
 pub struct StringConcat {

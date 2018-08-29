@@ -1,8 +1,8 @@
 /// Filters operating on numbers
 use std::collections::HashMap;
 
-use serde_json::value::{to_value, Value};
 use humansize::{file_size_opts, FileSize};
+use serde_json::value::{to_value, Value};
 
 use errors::Result;
 
@@ -63,16 +63,15 @@ pub fn filesizeformat(value: Value, _: HashMap<String, Value>) -> Result<Value> 
                 "Filter `filesizeformat` was called on a negative number: {}",
                 num
             ).into())
-        })
-        .map(to_value)
+        }).map(to_value)
         .map(|x| x.unwrap())
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use serde_json::value::to_value;
     use super::*;
+    use serde_json::value::to_value;
+    use std::collections::HashMap;
 
     #[test]
     fn test_pluralize_single() {

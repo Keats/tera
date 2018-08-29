@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
-use serde_json::value::{to_value, Value};
-use serde::Serializer;
 use serde::ser::SerializeMap;
+use serde::Serializer;
+use serde_json::value::{to_value, Value};
 
 use errors::{Result as TeraResult, ResultExt};
 

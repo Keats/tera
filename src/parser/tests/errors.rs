@@ -328,11 +328,7 @@ fn unterminated_raw_tag() {
 fn invalid_break_outside_loop() {
     assert_err_msg(
         r#"{% break %}"#,
-        &[
-            "1:1",
-            "{% break %}",
-            "expected a template"
-        ],
+        &["1:1", "{% break %}", "expected a template"],
     );
 }
 
@@ -340,10 +336,6 @@ fn invalid_break_outside_loop() {
 fn invalid_continue_outside_loop() {
     assert_err_msg(
         r#"{% continue %}"#,
-        &[
-            "1:1",
-            "{% continue %}",
-            "expected a template"
-        ],
+        &["1:1", "{% continue %}", "expected a template"],
     );
 }

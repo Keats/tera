@@ -1,12 +1,12 @@
 #![feature(test)]
-extern crate test;
 extern crate tera;
+extern crate test;
 #[macro_use]
 extern crate serde_derive;
 
 // Benches from https://github.com/djc/template-benchmarks-rs
 
-use tera::{Tera, Context};
+use tera::{Context, Tera};
 
 #[bench]
 pub fn big_table(b: &mut test::Bencher) {

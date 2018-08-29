@@ -2,9 +2,9 @@
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
+use errors::Result;
 use serde_json::value::{to_value, Value};
 use serde_json::{to_string, to_string_pretty};
-use errors::Result;
 
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc};
 
@@ -39,7 +39,8 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 // Encodes a value of any type into json, optionally `pretty`-printing it
 // `pretty` can be true to enable pretty-print, or omitted for compact printing
 pub fn json_encode(value: Value, args: HashMap<String, Value>) -> Result<Value> {
-    let pretty = args.get("pretty")
+    let pretty = args
+        .get("pretty")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
 
@@ -77,15 +78,12 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
                         Ok(val) => val.format(&format),
                         Err(_) => {
                             bail!("Error parsing `{:?}` as rfc3339 date or naive datetime", s)
-                        },
+                        }
                     },
                 }
             } else {
                 match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
-                    Ok(val) => {
-                        DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc)
-                            .format(&format)
-                    },
+                    Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format),
                     Err(_) => bail!("Error parsing `{:?}` as YYYY-MM-DD date", s),
                 }
             }
@@ -107,11 +105,11 @@ pub fn as_str(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use serde_json;
-    use serde_json::value::to_value;
     use super::*;
     use chrono::{DateTime, Local};
+    use serde_json;
+    use serde_json::value::to_value;
+    use std::collections::HashMap;
 
     #[test]
     fn as_str_object() {

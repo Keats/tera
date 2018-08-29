@@ -1,7 +1,7 @@
-use errors::Result;
-use serde_json::value::Value;
 use context::ValueNumber;
+use errors::Result;
 use regex::Regex;
+use serde_json::value::Value;
 
 /// The tester function type definition
 pub type TesterFn = fn(Option<Value>, Vec<Value>) -> Result<bool>;
@@ -190,7 +190,9 @@ pub fn matching(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
 mod tests {
     use std::collections::HashMap;
 
-    use super::{containing, defined, divisible_by, ending_with, iterable, starting_with, string, matching};
+    use super::{
+        containing, defined, divisible_by, ending_with, iterable, matching, starting_with, string,
+    };
 
     use serde_json::value::to_value;
 
@@ -251,10 +253,12 @@ mod tests {
                 vec![to_value("hello").unwrap()],
             ).unwrap()
         );
-        assert!(!starting_with(
-            Some(to_value("hello").unwrap()),
-            vec![to_value("hi").unwrap()],
-        ).unwrap());
+        assert!(
+            !starting_with(
+                Some(to_value("hello").unwrap()),
+                vec![to_value("hi").unwrap()],
+            ).unwrap()
+        );
     }
 
     #[test]
@@ -315,16 +319,8 @@ mod tests {
     #[test]
     fn test_matching() {
         let tests = vec![
-            (
-                to_value("abc").unwrap(),
-                to_value("b").unwrap(),
-                true,
-            ),
-            (
-                to_value("abc").unwrap(),
-                to_value("^b$").unwrap(),
-                false,
-            ),
+            (to_value("abc").unwrap(), to_value("b").unwrap(), true),
+            (to_value("abc").unwrap(), to_value("^b$").unwrap(), false),
             (
                 to_value("Hello, World!").unwrap(),
                 to_value(r"(?i)(hello\W\sworld\W)").unwrap(),
@@ -342,7 +338,10 @@ mod tests {
         }
 
         assert!(
-            matching(Some(to_value("").unwrap()), vec![to_value("(Invalid regex").unwrap()]).is_err()
+            matching(
+                Some(to_value("").unwrap()),
+                vec![to_value("(Invalid regex").unwrap()]
+            ).is_err()
         );
     }
 }

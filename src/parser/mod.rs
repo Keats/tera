@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use pest::{Parser};
-use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::iterators::Pair;
+use pest::prec_climber::{Assoc, Operator, PrecClimber};
+use pest::Parser;
 
-use errors::{Result as TeraResult};
+use errors::Result as TeraResult;
 
 // This include forces recompiling this source file if the grammar file changes.
 // Uncomment it when doing changes to the .pest file
@@ -21,8 +21,8 @@ mod whitespace;
 #[cfg(test)]
 mod tests;
 
-pub use self::whitespace::remove_whitespace;
 use self::ast::*;
+pub use self::whitespace::remove_whitespace;
 
 lazy_static! {
     static ref MATH_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
@@ -83,11 +83,17 @@ fn parse_fn_call(pair: Pair<Rule>) -> FunctionCall {
                 let (name, val) = parse_kwarg(p);
                 args.insert(name, val);
             }
-            _ => unreachable!("{:?} not supposed to get there (parse_fn_call)!", p.as_rule()),
+            _ => unreachable!(
+                "{:?} not supposed to get there (parse_fn_call)!",
+                p.as_rule()
+            ),
         };
     }
 
-    FunctionCall { name: name.unwrap(), args }
+    FunctionCall {
+        name: name.unwrap(),
+        args,
+    }
 }
 
 fn parse_filter(pair: Pair<Rule>) -> FunctionCall {
@@ -103,11 +109,17 @@ fn parse_filter(pair: Pair<Rule>) -> FunctionCall {
             Rule::fn_call => {
                 return parse_fn_call(p);
             }
-            _ => unreachable!("{:?} not supposed to get there (parse_filter)!", p.as_rule()),
+            _ => unreachable!(
+                "{:?} not supposed to get there (parse_filter)!",
+                p.as_rule()
+            ),
         };
     }
 
-    FunctionCall { name: name.unwrap(), args }
+    FunctionCall {
+        name: name.unwrap(),
+        args,
+    }
 }
 
 fn parse_test_call(pair: Pair<Rule>) -> (String, Vec<Expr>) {
@@ -118,15 +130,20 @@ fn parse_test_call(pair: Pair<Rule>) -> (String, Vec<Expr>) {
         match p.as_rule() {
             Rule::ident => name = Some(p.into_span().as_str().to_string()),
             Rule::test_args =>
-                // iterate on the test_arg rule
+            // iterate on the test_arg rule
+            {
                 for p2 in p.into_inner() {
                     // only expressions allowed in the grammar so we skip the
                     // matching
                     for p3 in p2.into_inner() {
                         args.push(parse_logic_expr(p3));
                     }
-                },
-            _ => unreachable!("{:?} not supposed to get there (parse_test_call)!", p.as_rule()),
+                }
+            }
+            _ => unreachable!(
+                "{:?} not supposed to get there (parse_test_call)!",
+                p.as_rule()
+            ),
         };
     }
 
@@ -150,7 +167,11 @@ fn parse_test(pair: Pair<Rule>) -> Test {
         };
     }
 
-    Test { ident: ident.unwrap(), name: name.unwrap(), args }
+    Test {
+        ident: ident.unwrap(),
+        name: name.unwrap(),
+        args,
+    }
 }
 
 fn parse_string_concat(pair: Pair<Rule>) -> ExprVal {
@@ -162,14 +183,14 @@ fn parse_string_concat(pair: Pair<Rule>) -> ExprVal {
         match p.as_rule() {
             Rule::string => {
                 current_str.push_str(&replace_string_markers(p.as_str()));
-            },
+            }
             Rule::dotted_square_bracket_ident => {
                 if !current_str.is_empty() {
                     values.push(ExprVal::String(current_str));
                     current_str = String::new();
                 }
                 values.push(ExprVal::Ident(p.as_str().to_string()))
-            },
+            }
             _ => unreachable!("Got {:?} in parse_string_concat", p),
         };
     }
@@ -238,7 +259,11 @@ fn parse_basic_expr_with_filters(pair: Pair<Rule>) -> Expr {
         };
     }
 
-    Expr { val: expr.unwrap(), negated: false, filters }
+    Expr {
+        val: expr.unwrap(),
+        negated: false,
+        filters,
+    }
 }
 
 /// A basic expression with optional filters
@@ -345,7 +370,7 @@ fn parse_array(pair: Pair<Rule>) -> ExprVal {
         match p.as_rule() {
             Rule::basic_expr_filter => {
                 vals.push(parse_basic_expr_with_filters(p));
-            },
+            }
             _ => unreachable!("Got {:?} in parse_array", p.as_rule()),
         }
     }
@@ -376,7 +401,11 @@ fn parse_macro_call(pair: Pair<Rule>) -> MacroCall {
         }
     }
 
-    MacroCall { namespace: namespace.unwrap(), name: name.unwrap(), args }
+    MacroCall {
+        namespace: namespace.unwrap(),
+        name: name.unwrap(),
+        args,
+    }
 }
 
 fn parse_variable_tag(pair: Pair<Rule>) -> Node {
@@ -447,7 +476,14 @@ fn parse_set_tag(pair: Pair<Rule>, global: bool) -> Node {
         }
     }
 
-    Node::Set(ws, Set { key: key.unwrap(), value: expr.unwrap(), global })
+    Node::Set(
+        ws,
+        Set {
+            key: key.unwrap(),
+            value: expr.unwrap(),
+            global,
+        },
+    )
 }
 
 fn parse_raw_tag(pair: Pair<Rule>) -> Node {
@@ -519,7 +555,14 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
         };
     }
 
-    Node::FilterSection(start_ws, FilterSection { filter: filter.unwrap(), body }, end_ws)
+    Node::FilterSection(
+        start_ws,
+        FilterSection {
+            filter: filter.unwrap(),
+            body,
+        },
+        end_ws,
+    )
 }
 
 fn parse_block(pair: Pair<Rule>) -> Node {
@@ -551,7 +594,14 @@ fn parse_block(pair: Pair<Rule>) -> Node {
         };
     }
 
-    Node::Block(start_ws, Block { name: name.unwrap(), body }, end_ws)
+    Node::Block(
+        start_ws,
+        Block {
+            name: name.unwrap(),
+            body,
+        },
+        end_ws,
+    )
 }
 
 fn parse_macro_definition(pair: Pair<Rule>) -> Node {
@@ -592,11 +642,22 @@ fn parse_macro_definition(pair: Pair<Rule>) -> Node {
                     _ => unreachable!(),
                 };
             },
-            _ => unreachable!("unexpected {:?} rule in parse_macro_definition", p.as_rule()),
+            _ => unreachable!(
+                "unexpected {:?} rule in parse_macro_definition",
+                p.as_rule()
+            ),
         }
     }
 
-    Node::MacroDefinition(start_ws, MacroDefinition { name: name.unwrap(), args, body }, end_ws)
+    Node::MacroDefinition(
+        start_ws,
+        MacroDefinition {
+            name: name.unwrap(),
+            args,
+            body,
+        },
+        end_ws,
+    )
 }
 
 fn parse_forloop(pair: Pair<Rule>) -> Node {
@@ -619,7 +680,7 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
                         Rule::ident => idents.push(p2.as_str().to_string()),
                         Rule::basic_expr_filter => {
                             container = Some(parse_basic_expr_with_filters(p2));
-                        },
+                        }
                         Rule::array => container = Some(Expr::new(parse_array(p2))),
                         _ => unreachable!(),
                     };
@@ -670,13 +731,13 @@ fn parse_break_tag(pair: Pair<Rule>) -> Node {
         match p.as_rule() {
             Rule::tag_start => {
                 ws.left = p.into_span().as_str() == "{%-";
-            },
+            }
             Rule::tag_end => {
                 ws.right = p.into_span().as_str() == "-%}";
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         };
-    };
+    }
 
     Node::Break(ws)
 }
@@ -688,13 +749,13 @@ fn parse_continue_tag(pair: Pair<Rule>) -> Node {
         match p.as_rule() {
             Rule::tag_start => {
                 ws.left = p.into_span().as_str() == "{%-";
-            },
+            }
             Rule::tag_end => {
                 ws.right = p.into_span().as_str() == "-%}";
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         };
-    };
+    }
 
     Node::Continue(ws)
 }
@@ -735,9 +796,7 @@ fn parse_if(pair: Pair<Rule>) -> Node {
             | Rule::macro_content
             | Rule::block_content
             | Rule::for_content
-            | Rule::filter_section_content => {
-                current_body.extend(parse_content(p))
-            }
+            | Rule::filter_section_content => current_body.extend(parse_content(p)),
             Rule::else_tag => {
                 // had an elif before the else
                 if expr.is_some() {
@@ -776,7 +835,13 @@ fn parse_if(pair: Pair<Rule>) -> Node {
         }
     }
 
-    Node::If(If { conditions, otherwise }, end_ws)
+    Node::If(
+        If {
+            conditions,
+            otherwise,
+        },
+        end_ws,
+    )
 }
 
 fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
@@ -804,9 +869,7 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             | Rule::macro_if
             | Rule::block_if
             | Rule::for_if
-            | Rule::filter_section_if => {
-                nodes.push(parse_if(p))
-            },
+            | Rule::filter_section_if => nodes.push(parse_if(p)),
             Rule::filter_section => nodes.push(parse_filter_section(p)),
             Rule::text => nodes.push(Node::Text(p.into_span().as_str().to_string())),
             Rule::block => nodes.push(parse_block(p)),
