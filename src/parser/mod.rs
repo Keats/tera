@@ -14,6 +14,7 @@ const _GRAMMAR: &str = include_str!("tera.pest");
 #[grammar = "parser/tera.pest"]
 pub struct TeraParser;
 
+/// The AST of Tera
 pub mod ast;
 mod whitespace;
 

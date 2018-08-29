@@ -6,8 +6,7 @@
 //!
 //! See the [site](https://tera.netlify.com) for features and to get started.
 
-#![allow(missing_docs)]
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 
 extern crate glob;
 extern crate pest;
@@ -57,8 +56,8 @@ pub use utils::escape_html;
 pub use builtins::global_functions::GlobalFn;
 pub use builtins::filters::FilterFn;
 pub use builtins::testers::TesterFn;
-//// Re-export Value so apps/tools can encode data in Tera types
-//// for now it's just an alias to serde_json::Value
+/// Re-export Value and other useful things from serde
+/// so apps/tools can encode data in Tera types
 pub use serde_json::value::{from_value, to_value, Map, Number, Value};
 
 // Exposes the AST if one needs it but changing the AST is not considered
