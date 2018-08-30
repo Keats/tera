@@ -19,7 +19,6 @@ use tera::Tera;
 
 static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
 
-
 #[derive(Debug)]
 pub struct Renderer<'a> {
     template: &'a Template,
@@ -695,7 +694,7 @@ impl<'a> Renderer<'a> {
             None => self.for_loops.push(for_loop),
         };
 
-        let mut output = String::with_capacity(100*length);
+        let mut output = String::with_capacity(100 * length);
 
         for _ in 0..length {
             output.push_str(&self.render_body(&node.body)?);

@@ -43,8 +43,8 @@ impl ForLoop {
                 for v in arr {
                     for_values.push((None, v));
                 }
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         };
 
         ForLoop {
@@ -65,8 +65,8 @@ impl ForLoop {
                 for (key, value) in m {
                     for_values.push((Some(key), value));
                 }
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         };
 
         ForLoop {
