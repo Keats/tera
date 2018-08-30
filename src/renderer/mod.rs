@@ -19,6 +19,7 @@ use tera::Tera;
 
 static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
 
+
 #[derive(Debug)]
 pub struct Renderer<'a> {
     template: &'a Template,
@@ -65,13 +66,18 @@ impl<'a> Renderer<'a> {
         }
     }
 
+    /// Which context do we need to look into? macro or global one?
+    fn get_lookup_context(&self) -> (&Value, &Vec<ForLoop>) {
+        match self.macro_context.last() {
+            Some(c) => (&c.0, &c.1),
+            None => (&self.context, &self.for_loops),
+        }
+    }
+
     /// Lookup a key in the context, taking into account macros and loops
     fn lookup_ident(&mut self, key: &str) -> Result<Value> {
         // Differentiate between macros and general context
-        let (context, for_loops) = match self.macro_context.last() {
-            Some(c) => (&c.0, &c.1),
-            None => (&self.context, &self.for_loops),
-        };
+        let (context, for_loops) = self.get_lookup_context();
 
         // Magical variable that just dumps the context
         if key == MAGICAL_DUMP_VAR {
@@ -159,16 +165,16 @@ impl<'a> Renderer<'a> {
             if real_key == "loop" {
                 match tail {
                     "index" => {
-                        return Ok(to_value(&(for_loop.current + 1))?);
+                        return Ok(Value::Number((for_loop.current + 1).into()));
                     }
                     "index0" => {
-                        return Ok(to_value(&for_loop.current)?);
+                        return Ok(Value::Number(for_loop.current.into()));
                     }
                     "first" => {
-                        return Ok(to_value(&(for_loop.current == 0))?);
+                        return Ok(Value::Bool(for_loop.current == 0));
                     }
                     "last" => {
-                        return Ok(to_value(&(for_loop.current == for_loop.len() - 1))?);
+                        return Ok(Value::Bool(for_loop.current == for_loop.len() - 1));
                     }
                     _ => bail!("Unknown loop built-in variable: {:?}", key),
                 }
@@ -176,7 +182,7 @@ impl<'a> Renderer<'a> {
 
             // 2rd case: the variable is the key of a KeyValue for loop
             if for_loop.is_key(key) {
-                return Ok(to_value(&for_loop.get_current_key())?);
+                return Ok(Value::String(for_loop.get_current_key().to_string()));
             }
 
             // Last case: the variable starts with the value name of the for loop or has been {% set %}
