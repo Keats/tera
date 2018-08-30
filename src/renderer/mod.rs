@@ -689,7 +689,7 @@ impl<'a> Renderer<'a> {
             None => self.for_loops.push(for_loop),
         };
 
-        let mut output = String::new();
+        let mut output = String::with_capacity(100*length);
 
         for _ in 0..length {
             output.push_str(&self.render_body(&node.body)?);
@@ -863,7 +863,7 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_body(&mut self, body: &[Node]) -> Result<String> {
-        let mut output = String::new();
+        let mut output = String::with_capacity(1000);
 
         for n in body {
             output.push_str(&self.render_node(n)?);
@@ -924,7 +924,8 @@ impl<'a> Renderer<'a> {
 
         self.import_template_macros(tpl_name)?;
 
-        let mut output = String::new();
+        // 10000 is a random value
+        let mut output = String::with_capacity(10000);
         for node in ast {
             output.push_str(&self.render_node(node).chain_err(|| self.get_error_location())?);
         }

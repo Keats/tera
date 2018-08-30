@@ -106,10 +106,10 @@ impl ForLoop {
 
     /// Only called in `ForLoopKind::KeyValue`
     #[inline]
-    pub fn get_current_key(&self) -> String {
+    pub fn get_current_key(&self) -> &str {
         if let Some(v) = self.values.get(self.current) {
             if let Some(ref k) = v.0 {
-                return k.clone();
+                return k;
             }
         }
 

@@ -10,7 +10,8 @@ use tera::{Context, Tera};
 
 #[bench]
 pub fn big_table(b: &mut test::Bencher) {
-    let size = 50;
+    // 100 instead of 50 in the original benchmark to make the time bigger
+    let size = 100;
     let mut table = Vec::with_capacity(size);
     for _ in 0..size {
         let mut inner = Vec::with_capacity(size);
@@ -25,22 +26,20 @@ pub fn big_table(b: &mut test::Bencher) {
     let mut ctx = Context::new();
     ctx.add("table", &table);
 
-    let _ = tera.render("big-table.html", &ctx).unwrap();
     b.iter(|| tera.render("big-table.html", &ctx));
 }
+
+static BIG_TABLE_TEMPLATE: &'static str = "<table>
+{% for row in table %}
+<tr>{% for col in row %}<td>{{ col }}</td>{% endfor %}</tr>
+{% endfor %}
+</table>";
 
 #[derive(Serialize)]
 struct Team {
     name: String,
     score: u8,
 }
-
-// Tera doesn't allow `escape` on number values
-static BIG_TABLE_TEMPLATE: &'static str = "<table>
-{% for row in table %}
-<tr>{% for col in row %}<td>{{ col }}</td>{% endfor %}</tr>
-{% endfor %}
-</table>";
 
 #[bench]
 pub fn teams(b: &mut test::Bencher) {
@@ -58,7 +57,6 @@ pub fn teams(b: &mut test::Bencher) {
         ],
     );
 
-    let _ = tera.render("teams.html", &ctx).unwrap();
     b.iter(|| tera.render("teams.html", &ctx));
 }
 
