@@ -34,31 +34,31 @@ extern crate unic_segment;
 
 #[macro_use]
 mod macros;
-mod errors;
-mod context;
-mod parser;
-mod template;
-mod utils;
-mod sort_utils;
 mod builtins;
+mod context;
+mod errors;
+mod parser;
 mod renderer;
+mod sort_utils;
+mod template;
 mod tera;
+mod utils;
 
 // Library exports.
 
 // Template is meant to be used internally only but is exported for test/bench.
-#[doc(hidden)]
-pub use template::Template;
-pub use context::Context;
-pub use tera::Tera;
-pub use errors::{Error, ErrorKind, Result};
-pub use utils::escape_html;
-pub use builtins::global_functions::GlobalFn;
 pub use builtins::filters::FilterFn;
+pub use builtins::global_functions::GlobalFn;
 pub use builtins::testers::TesterFn;
+pub use context::Context;
+pub use errors::{Error, ErrorKind, Result};
 /// Re-export Value and other useful things from serde
 /// so apps/tools can encode data in Tera types
 pub use serde_json::value::{from_value, to_value, Map, Number, Value};
+#[doc(hidden)]
+pub use template::Template;
+pub use tera::Tera;
+pub use utils::escape_html;
 
 // Exposes the AST if one needs it but changing the AST is not considered
 // a breaking change so it isn't public

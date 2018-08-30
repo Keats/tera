@@ -93,10 +93,7 @@ fn unterminated_filter_section() {
 fn invalid_filter_section_missing_name() {
     assert_err_msg(
         r#"{% filter %}sd{% endfilter %}"#,
-        &[
-            "1:11",
-            "expected an identifier (must start with a-z) or a function call",
-        ],
+        &["1:11", "expected an identifier (must start with a-z) or a function call"],
     );
 }
 
@@ -109,10 +106,7 @@ fn invalid_macro_content() {
     {% endmacro nested %}
 {% endmacro input %}
     "#,
-        &[
-            "3:5",
-            "unexpected tag; expected `{% endmacro %}` or the macro content",
-        ],
+        &["3:5", "unexpected tag; expected `{% endmacro %}` or the macro content"],
     );
 }
 
@@ -123,10 +117,7 @@ fn invalid_macro_default_arg_value() {
 {% macro input(label=something) %}
 {% endmacro input %}
     "#,
-        &[
-            "2:22",
-            "expected an integer, a float, a string, or `true` or `false`",
-        ],
+        &["2:22", "expected an integer, a float, a string, or `true` or `false`"],
     );
 }
 
@@ -139,10 +130,7 @@ fn invalid_elif() {
 {% elif false %}
 {% endif %}
     "#,
-        &[
-            "4:1",
-            "unexpected tag; expected an endif tag (`{% endif %}`) or some content",
-        ],
+        &["4:1", "unexpected tag; expected an endif tag (`{% endif %}`) or some content"],
     );
 }
 
@@ -155,10 +143,7 @@ fn invalid_else() {
 {% else %}
 {% endif %}
     "#,
-        &[
-            "4:1",
-            "unexpected tag; expected an endif tag (`{% endif %}`) or some content",
-        ],
+        &["4:1", "unexpected tag; expected an endif tag (`{% endif %}`) or some content"],
     );
 }
 
@@ -196,18 +181,12 @@ fn missing_expression_in_if() {
 
 #[test]
 fn missing_container_name_in_forloop() {
-    assert_err_msg(
-        "{% for i in %}",
-        &["1:13", "expected an expression with an optional filter"],
-    );
+    assert_err_msg("{% for i in %}", &["1:13", "expected an expression with an optional filter"]);
 }
 
 #[test]
 fn missing_variable_name_in_set() {
-    assert_err_msg(
-        "{% set = 1 %}",
-        &["1:8", "expected an identifier (must start with a-z)"],
-    );
+    assert_err_msg("{% set = 1 %}", &["1:8", "expected an identifier (must start with a-z)"]);
 }
 
 #[test]
@@ -219,29 +198,20 @@ fn missing_value_in_set() {
 fn unterminated_fn_call() {
     assert_err_msg(
         "{{ a | slice( }}",
-        &[
-            "1:15",
-            "expected a keyword argument: `key=value` where `value` can be any expression",
-        ],
+        &["1:15", "expected a keyword argument: `key=value` where `value` can be any expression"],
     );
 }
 
 #[test]
 fn invalid_fn_call_missing_value() {
-    assert_err_msg(
-        "{{ a | slice(start=) }}",
-        &["1:20", "expected any expressions"],
-    );
+    assert_err_msg("{{ a | slice(start=) }}", &["1:20", "expected any expressions"]);
 }
 
 #[test]
 fn unterminated_macro_call() {
     assert_err_msg(
         "{{ my::macro( }}",
-        &[
-            "1:15",
-            "expected a keyword argument: `key=value` where `value` can be any expression",
-        ],
+        &["1:15", "expected a keyword argument: `key=value` where `value` can be any expression"],
     );
 }
 
@@ -291,20 +261,14 @@ fn invalid_import_macros_missing_namespace() {
 
 #[test]
 fn invalid_block_missing_name() {
-    assert_err_msg(
-        r#"{% block %}"#,
-        &["1:10", "expected an identifier (must start with a-z)"],
-    );
+    assert_err_msg(r#"{% block %}"#, &["1:10", "expected an identifier (must start with a-z)"]);
 }
 
 #[test]
 fn unterminated_test() {
     assert_err_msg(
         r#"{% if a is odd( %}"#,
-        &[
-            "1:17",
-            "expected a list of test arguments (any expressions)",
-        ],
+        &["1:17", "expected a list of test arguments (any expressions)"],
     );
 }
 
@@ -326,24 +290,10 @@ fn unterminated_raw_tag() {
 
 #[test]
 fn invalid_break_outside_loop() {
-    assert_err_msg(
-        r#"{% break %}"#,
-        &[
-            "1:1",
-            "{% break %}",
-            "expected a template"
-        ],
-    );
+    assert_err_msg(r#"{% break %}"#, &["1:1", "{% break %}", "expected a template"]);
 }
 
 #[test]
 fn invalid_continue_outside_loop() {
-    assert_err_msg(
-        r#"{% continue %}"#,
-        &[
-            "1:1",
-            "{% continue %}",
-            "expected a template"
-        ],
-    );
+    assert_err_msg(r#"{% continue %}"#, &["1:1", "{% continue %}", "expected a template"]);
 }

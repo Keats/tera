@@ -5,17 +5,17 @@ mod tests;
 
 use std::collections::HashMap;
 
+use serde_json::map::Map as JsonMap;
 use serde_json::to_string_pretty;
 use serde_json::value::{to_value, Number, Value};
-use serde_json::map::Map as JsonMap;
 
 use self::forloop::{ForLoop, ForLoopState};
 use self::square_brackets::pull_out_square_bracket;
+use context::{get_json_pointer, ValueRender, ValueTruthy};
+use errors::{Result, ResultExt};
 use parser::ast::*;
 use template::Template;
 use tera::Tera;
-use errors::{Result, ResultExt};
-use context::{get_json_pointer, ValueRender, ValueTruthy};
 
 static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
 
@@ -98,7 +98,7 @@ impl<'a> Renderer<'a> {
                             Value::Number(ref n) => n.to_string(),
                             _ => bail!(
                                 "Only variables evaluating to String or Number can be used as \
-                                index (`{}` of `{}`)",
+                                 index (`{}` of `{}`)",
                                 sub_var,
                                 key,
                             ),
@@ -116,15 +116,13 @@ impl<'a> Renderer<'a> {
                     }
                 }
             }
-            Ok(
-                new_key
-                    .replace("['", ".")
-                    .replace("[\"", ".")
-                    .replace("[", ".")
-                    .replace("']", "")
-                    .replace("\"]", "")
-                    .replace("]", "")
-            )
+            Ok(new_key
+                .replace("['", ".")
+                .replace("[\"", ".")
+                .replace("[", ".")
+                .replace("']", "")
+                .replace("\"]", "")
+                .replace("]", ""))
         }
 
         #[inline]
@@ -137,11 +135,9 @@ impl<'a> Renderer<'a> {
 
             match context.pointer(&get_json_pointer(key_s.as_ref())) {
                 Some(v) => Ok(v.clone()),
-                None => bail!(
-                    "Variable `{}` not found in context while rendering '{}'",
-                    key,
-                    tpl_name
-                ),
+                None => {
+                    bail!("Variable `{}` not found in context while rendering '{}'", key, tpl_name)
+                }
             }
         }
 
@@ -263,16 +259,14 @@ impl<'a> Renderer<'a> {
                 } else if v.is_f64() {
                     Some(Number::from_f64(v.as_f64().unwrap()).unwrap())
                 } else {
-                    bail!(
-                        "Variable `{}` was used in a math operation but is not a number",
-                        ident,
-                    )
+                    bail!("Variable `{}` was used in a math operation but is not a number", ident,)
                 }
-            },
+            }
             ExprVal::Int(val) => Some(Number::from(val)),
             ExprVal::Float(val) => Some(Number::from_f64(val).unwrap()),
             ExprVal::Math(MathExpr { ref lhs, ref rhs, ref operator }) => {
-                let (l, r) = match (self.eval_expr_as_number(lhs)?, self.eval_expr_as_number(rhs)?) {
+                let (l, r) = match (self.eval_expr_as_number(lhs)?, self.eval_expr_as_number(rhs)?)
+                {
                     (Some(l), Some(r)) => (l, r),
                     _ => return Ok(None),
                 };
@@ -292,7 +286,7 @@ impl<'a> Renderer<'a> {
                             let rr = r.as_f64().unwrap();
                             Some(Number::from_f64(ll * rr).unwrap())
                         }
-                    },
+                    }
                     MathOperator::Div => {
                         let ll = l.as_f64().unwrap();
                         let rr = r.as_f64().unwrap();
@@ -302,7 +296,7 @@ impl<'a> Renderer<'a> {
                         } else {
                             Some(Number::from_f64(res).unwrap())
                         }
-                    },
+                    }
                     MathOperator::Add => {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
@@ -317,7 +311,7 @@ impl<'a> Renderer<'a> {
                             let rr = r.as_f64().unwrap();
                             Some(Number::from_f64(ll + rr).unwrap())
                         }
-                    },
+                    }
                     MathOperator::Sub => {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
@@ -332,7 +326,7 @@ impl<'a> Renderer<'a> {
                             let rr = r.as_f64().unwrap();
                             Some(Number::from_f64(ll - rr).unwrap())
                         }
-                    },
+                    }
                     MathOperator::Modulo => {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
@@ -374,7 +368,7 @@ impl<'a> Renderer<'a> {
 
                         let (ll, rr) = match (l, r) {
                             (Some(nl), Some(nr)) => (nl, nr),
-                            _ => bail!("Comparison to NaN")
+                            _ => bail!("Comparison to NaN"),
                         };
 
                         match *operator {
@@ -396,12 +390,10 @@ impl<'a> Renderer<'a> {
                                 return Ok(false);
                             }
 
-                            lhs_val = Value::Number(
-                                Number::from_f64(lhs_val.as_f64().unwrap()).unwrap()
-                            );
-                            rhs_val = Value::Number(
-                                Number::from_f64(rhs_val.as_f64().unwrap()).unwrap()
-                            );
+                            lhs_val =
+                                Value::Number(Number::from_f64(lhs_val.as_f64().unwrap()).unwrap());
+                            rhs_val =
+                                Value::Number(Number::from_f64(rhs_val.as_f64().unwrap()).unwrap());
                         }
 
                         match *operator {
@@ -420,7 +412,7 @@ impl<'a> Renderer<'a> {
                     Ok(Some(n)) => n.as_f64().unwrap() != 0.0,
                     Ok(None) => false,
                     Err(_) => false,
-            	}
+                }
             }
             ExprVal::Test(ref test) => self.eval_test(test).unwrap_or(false),
             ExprVal::Bool(val) => val,
@@ -477,7 +469,8 @@ impl<'a> Renderer<'a> {
         };
 
         // We get our macro definition using the namespace name we just got
-        let macro_definition = self.macros
+        let macro_definition = self
+            .macros
             .last()
             .and_then(|m| m.get(&active_namespace))
             .and_then(|m| m.get(&macro_call.name))
@@ -496,12 +489,10 @@ impl<'a> Renderer<'a> {
                 Some(val) => self.safe_eval_expression(val)?,
                 None => match *default_value {
                     Some(ref val) => self.safe_eval_expression(val)?,
-                    None => bail!(
-                        "Macro `{}` is missing the argument `{}`",
-                        macro_call.name,
-                        arg_name,
-                    ),
-                }
+                    None => {
+                        bail!("Macro `{}` is missing the argument `{}`", macro_call.name, arg_name,)
+                    }
+                },
             };
             macro_context.insert(arg_name.to_string(), value);
         }
@@ -541,28 +532,29 @@ impl<'a> Renderer<'a> {
                     vals.push(self.eval_expression(v)?);
                 }
                 Value::Array(vals)
-            },
+            }
             ExprVal::String(ref val) => {
                 needs_escape = true;
                 Value::String(val.to_string())
-            },
+            }
             ExprVal::StringConcat(ref str_concat) => {
                 let mut res = String::new();
                 for s in &str_concat.values {
                     match *s {
                         ExprVal::String(ref v) => res.push_str(&v),
-                        ExprVal::Ident(ref i) => {
-                            match self.lookup_ident(i)? {
-                                Value::String(v) => res.push_str(&v),
-                                _ => bail!("Tried to concat a value that is not a string from ident {}", i)
-                            }
-                        }
-                        _ => unreachable!()
+                        ExprVal::Ident(ref i) => match self.lookup_ident(i)? {
+                            Value::String(v) => res.push_str(&v),
+                            _ => bail!(
+                                "Tried to concat a value that is not a string from ident {}",
+                                i
+                            ),
+                        },
+                        _ => unreachable!(),
                     };
                 }
 
                 Value::String(res)
-            },
+            }
             ExprVal::Int(val) => Value::Number(val.into()),
             ExprVal::Float(val) => Value::Number(Number::from_f64(val).unwrap()),
             ExprVal::Bool(val) => Value::Bool(val),
@@ -596,20 +588,19 @@ impl<'a> Renderer<'a> {
             ExprVal::MacroCall(ref macro_call) => Value::String(self.eval_macro_call(macro_call)?),
             ExprVal::Test(ref test) => Value::Bool(self.eval_test(test)?),
             ExprVal::Logic(_) => Value::Bool(self.eval_as_bool(expr)?),
-            ExprVal::Math(_) => {
-                match self.eval_as_number(&expr.val) {
-                    Ok(Some(n)) => Value::Number(n),
-                    Ok(None) => Value::String("NaN".to_owned()),
-                    Err(e) => bail!(e.to_string()),
-                }
-            }
+            ExprVal::Math(_) => match self.eval_as_number(&expr.val) {
+                Ok(Some(n)) => Value::Number(n),
+                Ok(None) => Value::String("NaN".to_owned()),
+                Err(e) => bail!(e.to_string()),
+            },
         };
 
         // Checks if it's a string and we need to escape it (if the first filter is `safe` we don't)
         if self.should_escape
             && needs_escape
             && res.is_string()
-            && expr.filters.first().map_or(true, |f| f.name != "safe") {
+            && expr.filters.first().map_or(true, |f| f.name != "safe")
+        {
             res = to_value(self.tera.get_escape_fn()(res.as_str().unwrap()))?;
         }
 
@@ -683,11 +674,7 @@ impl<'a> Renderer<'a> {
                         container_name,
                     );
                 }
-                ForLoop::new_key_value(
-                    &node.key.clone().unwrap(),
-                    &node.value,
-                    container_val,
-                )
+                ForLoop::new_key_value(&node.key.clone().unwrap(), &node.value, container_val)
             }
             _ => bail!(
                 "Tried to iterate on a container (`{}`) that has a unsupported type",
@@ -708,7 +695,7 @@ impl<'a> Renderer<'a> {
             output.push_str(&self.render_body(&node.body)?);
 
             if self.current_for_loop_mut().unwrap().state == ForLoopState::Break {
-                break
+                break;
             }
 
             // Safe unwrap
@@ -772,11 +759,12 @@ impl<'a> Renderer<'a> {
             0 => &self.template.blocks_definitions,
             // or look at its parents
             _ => {
-                &self.tera
+                &self
+                    .tera
                     .get_template(&self.template.parents[level - 1])
                     .unwrap()
                     .blocks_definitions
-            },
+            }
         };
 
         // Can we find this one block in these definitions? If so render it
@@ -808,7 +796,8 @@ impl<'a> Renderer<'a> {
         let mut next_level = level + 1;
 
         while next_level <= self.template.parents.len() {
-            let blocks_definitions = &self.tera
+            let blocks_definitions = &self
+                .tera
                 .get_template(&self.template.parents[next_level - 1])
                 .unwrap()
                 .blocks_definitions;
@@ -852,11 +841,11 @@ impl<'a> Renderer<'a> {
             Node::Break(_) => {
                 self.current_for_loop_mut().unwrap().break_loop();
                 String::new()
-            },
+            }
             Node::Continue(_) => {
                 self.current_for_loop_mut().unwrap().continue_loop();
                 String::new()
-            },
+            }
             Node::Block(_, ref block, _) => self.render_block(block, 0)?,
             Node::Super => self.do_super()?,
             Node::Include(_, ref tpl_name) => {
@@ -880,9 +869,8 @@ impl<'a> Renderer<'a> {
             output.push_str(&self.render_node(n)?);
             if let Some(for_loop) = self.current_for_loop() {
                 match for_loop.state {
-                    ForLoopState::Continue
-                    | ForLoopState::Break => break,
-                    ForLoopState::Normal => {},
+                    ForLoopState::Continue | ForLoopState::Break => break,
+                    ForLoopState::Normal => {}
                 }
             }
         }
@@ -905,10 +893,7 @@ impl<'a> Renderer<'a> {
 
         // which template are we in?
         if let Some(&(ref name, ref level)) = self.blocks.last() {
-            let block_def = self.template
-                .blocks_definitions
-                .get(name)
-                .and_then(|b| b.get(*level));
+            let block_def = self.template.blocks_definitions.get(name).and_then(|b| b.get(*level));
 
             if let Some(&(ref tpl_name, _)) = block_def {
                 if tpl_name != &self.template.name {
@@ -941,9 +926,7 @@ impl<'a> Renderer<'a> {
 
         let mut output = String::new();
         for node in ast {
-            output.push_str(
-                &self.render_node(node).chain_err(|| self.get_error_location())?
-            );
+            output.push_str(&self.render_node(node).chain_err(|| self.get_error_location())?);
         }
 
         Ok(output)

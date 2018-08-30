@@ -41,10 +41,7 @@ fn can_remove_whitespace_include() {
 
     for (input, expected) in inputs {
         let mut tera = Tera::default();
-        tera.add_raw_templates(vec![
-            ("include", "Included"),
-            ("tpl", input),
-        ]).unwrap();
+        tera.add_raw_templates(vec![("include", "Included"), ("tpl", input)]).unwrap();
         assert_eq!(tera.render("tpl", &context).unwrap(), expected);
     }
 }

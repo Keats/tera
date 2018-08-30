@@ -1,6 +1,6 @@
-use std::collections::BTreeMap;
 use context::Context;
 use errors::Result;
+use std::collections::BTreeMap;
 use tera::Tera;
 
 use super::Review;
@@ -74,7 +74,7 @@ fn render_variable_block_ident() {
         // https://github.com/Keats/tera/issues/273
         (
             r#"{{ 'hangar new "Will Smoth <will_s@example.com>"' | safe }}"#,
-            r#"hangar new "Will Smoth <will_s@example.com>""#
+            r#"hangar new "Will Smoth <will_s@example.com>""#,
         ),
         ("{{ malicious | safe }}", "<html>"),
         ("{{ malicious | upper }}", "&LT;HTML&GT;"), // everything upper eh
@@ -394,9 +394,12 @@ fn render_magic_variable_isnt_escaped() {
 
     let result = render_template("{{ __tera_context }}", &context);
 
-    assert_eq!(result.unwrap(), r#"{
+    assert_eq!(
+        result.unwrap(),
+        r#"{
   "html": "<html>"
-}"#.to_owned());
+}"#.to_owned()
+    );
 }
 
 // https://github.com/Keats/tera/issues/185
@@ -422,12 +425,15 @@ fn can_set_variable_in_global_context_in_forloop() {
     context.add("tags", &vec![1, 2, 3]);
     context.add("default", &"default");
 
-    let result = render_template(r#"
+    let result = render_template(
+        r#"
 {%- for i in tags -%}
 {%- set default = 1 -%}
 {%- set_global global_val = i -%}
 {%- endfor -%}
-{{ default }}{{ global_val }}"#, &context);
+{{ default }}{{ global_val }}"#,
+        &context,
+    );
 
     assert_eq!(result.unwrap(), "default3");
 }
@@ -461,11 +467,10 @@ fn filter_filter_works() {
     };
 
     let mut context = Context::new();
-    context.add("authors", &vec![Author {id: 1}, Author {id: 2}, Author {id: 3}]);
+    context.add("authors", &vec![Author { id: 1 }, Author { id: 2 }, Author { id: 3 }]);
 
-    let inputs = vec![
-        (r#"{{ authors | filter(attribute="id", value=1) | first | get(key="id") }}"#, "1"),
-    ];
+    let inputs =
+        vec![(r#"{{ authors | filter(attribute="id", value=1) | first | get(key="id") }}"#, "1")];
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
@@ -491,7 +496,6 @@ fn can_concat_strings() {
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
-
 
 #[test]
 fn can_fail_rendering_from_template() {

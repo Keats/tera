@@ -1,7 +1,6 @@
-use std::collections::HashMap;
 use parser::ast::*;
 use parser::remove_whitespace;
-
+use std::collections::HashMap;
 
 #[test]
 fn do_nothing_if_unneeded() {
@@ -47,10 +46,8 @@ fn remove_next_ws_if_single_opening_tag_requires_it() {
 fn handle_ws_both_sides_for_raw_tag() {
     let start_ws = WS { left: true, right: false };
     let end_ws = WS { left: true, right: true };
-    let ast = vec![
-        Node::Raw(start_ws, "  hey ".to_string(), end_ws),
-        Node::Text("  hey".to_string()),
-    ];
+    let ast =
+        vec![Node::Raw(start_ws, "  hey ".to_string(), end_ws), Node::Text("  hey".to_string())];
 
     assert_eq!(
         remove_whitespace(ast.clone(), None),
@@ -66,35 +63,31 @@ fn handle_ws_both_sides_for_raw_tag() {
 fn handle_ws_both_sides_for_macro_definitions() {
     let start_ws = WS { left: true, right: true };
     let end_ws = WS { left: true, right: true };
-    let ast = vec![
-        Node::MacroDefinition(
+    let ast = vec![Node::MacroDefinition(
+        start_ws,
+        MacroDefinition {
+            name: "something".to_string(),
+            args: HashMap::new(),
+            body: vec![
+                Node::Text("\n  ".to_string()),
+                Node::Text("hey".to_string()),
+                Node::Text("  ".to_string()),
+            ],
+        },
+        end_ws,
+    )];
+
+    assert_eq!(
+        remove_whitespace(ast.clone(), None),
+        vec![Node::MacroDefinition(
             start_ws,
             MacroDefinition {
                 name: "something".to_string(),
                 args: HashMap::new(),
-                body: vec![
-                    Node::Text("\n  ".to_string()),
-                    Node::Text("hey".to_string()),
-                    Node::Text("  ".to_string()),
-                ],
+                body: vec![Node::Text("hey".to_string())],
             },
             end_ws,
-        ),
-    ];
-
-    assert_eq!(
-        remove_whitespace(ast.clone(), None),
-        vec![
-            Node::MacroDefinition(
-                start_ws,
-                MacroDefinition {
-                    name: "something".to_string(),
-                    args: HashMap::new(),
-                    body: vec![Node::Text("hey".to_string())],
-                },
-                end_ws,
-            ),
-        ]
+        ),]
     );
 }
 
@@ -110,10 +103,7 @@ fn handle_ws_both_sides_for_forloop_tag_and_remove_empty_node() {
                 value: "item".to_string(),
                 container: Expr::new(ExprVal::Int(1)),
                 // not valid but we don't care about it here
-                body: vec![
-                    Node::Text("   ".to_string()),
-                    Node::Text("hey   ".to_string()),
-                ],
+                body: vec![Node::Text("   ".to_string()), Node::Text("hey   ".to_string())],
             },
             end_ws,
         ),
@@ -226,9 +216,10 @@ fn handle_ws_for_if_nodes_with_else() {
                         vec![Node::Text(" a ".to_string())],
                     ),
                 ],
-                otherwise: Some(
-                    (WS { left: true, right: true }, vec![Node::Text(" a ".to_string())])
-                ),
+                otherwise: Some((
+                    WS { left: true, right: true },
+                    vec![Node::Text(" a ".to_string())],
+                )),
             },
             end_ws,
         ),
@@ -258,9 +249,10 @@ fn handle_ws_for_if_nodes_with_else() {
                             vec![Node::Text("a".to_string())],
                         ),
                     ],
-                    otherwise: Some(
-                        (WS { left: true, right: true }, vec![Node::Text("a".to_string())])
-                    ),
+                    otherwise: Some((
+                        WS { left: true, right: true },
+                        vec![Node::Text("a".to_string())],
+                    )),
                 },
                 end_ws,
             ),

@@ -147,19 +147,14 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                             trim_right_previous!(body);
                         }
                     }
-                    let mut else_body = remove_whitespace(
-                        body,
-                        Some(WS { left: else_ws.right, right: false }),
-                    );
+                    let mut else_body =
+                        remove_whitespace(body, Some(WS { left: else_ws.right, right: false }));
                     // if we have an `else`, the `endif` will affect the else node so we need to check
                     if end_ws.left {
                         trim_right_previous!(else_body);
                     }
                     res.push(Node::If(
-                        If {
-                            conditions: new_conditions,
-                            otherwise: Some((else_ws, else_body)),
-                        },
+                        If { conditions: new_conditions, otherwise: Some((else_ws, else_body)) },
                         end_ws,
                     ));
                     continue;
