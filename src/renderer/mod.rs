@@ -1,4 +1,4 @@
-mod forloop;
+mod for_loop;
 mod square_brackets;
 #[cfg(test)]
 mod tests;
@@ -9,7 +9,7 @@ use serde_json::map::Map as JsonMap;
 use serde_json::to_string_pretty;
 use serde_json::value::{to_value, Number, Value};
 
-use self::forloop::{ForLoop, ForLoopState};
+use self::for_loop::{ForLoop, ForLoopState};
 use self::square_brackets::pull_out_square_bracket;
 use context::{get_json_pointer, ValueRender, ValueTruthy};
 use errors::{Result, ResultExt};

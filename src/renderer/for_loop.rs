@@ -36,11 +36,17 @@ pub struct ForLoop {
 }
 
 impl ForLoop {
-    pub fn new(value_name: &str, values: Value) -> ForLoop {
+    pub fn new(value_name: &str, values: Value) -> Self {
         let mut for_values = vec![];
-        for val in values.as_array().unwrap() {
-            for_values.push((None, val.clone()));
-        }
+        match values {
+            Value::Array(arr) => {
+                for v in arr {
+                    for_values.push((None, v));
+                }
+            },
+            _ => unreachable!()
+        };
+
         ForLoop {
             key_name: None,
             value_name: value_name.to_string(),
@@ -52,11 +58,16 @@ impl ForLoop {
         }
     }
 
-    pub fn new_key_value(key_name: &str, value_name: &str, values: Value) -> ForLoop {
+    pub fn new_key_value(key_name: &str, value_name: &str, values: Value) -> Self {
         let mut for_values = vec![];
-        for (key, val) in values.as_object().unwrap() {
-            for_values.push((Some(key.clone()), val.clone()));
-        }
+        match values {
+            Value::Object(m) => {
+                for (key, value) in m {
+                    for_values.push((Some(key), value));
+                }
+            },
+            _ => unreachable!()
+        };
 
         ForLoop {
             key_name: Some(key_name.to_string()),
