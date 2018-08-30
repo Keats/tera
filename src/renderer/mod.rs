@@ -824,49 +824,47 @@ impl<'a> Renderer<'a> {
         bail!("Tried to use super() in the top level block")
     }
 
-    fn render_node(&mut self, node: &Node) -> Result<String> {
-        let output = match *node {
-            Node::Text(ref s) | Node::Raw(_, ref s, _) => s.to_string(),
-            Node::VariableBlock(ref expr) => self.eval_expression(expr)?.render(),
-            Node::Set(_, ref set) => self.eval_set(set).and(Ok(String::new()))?,
+    fn render_node(&mut self, node: &Node, buffer: &mut String) -> Result<()> {
+        match *node {
+            Node::Text(ref s) | Node::Raw(_, ref s, _) => buffer.push_str(s),
+            Node::VariableBlock(ref expr) => buffer.push_str(&self.eval_expression(expr)?.render()),
+            Node::Set(_, ref set) => self.eval_set(set)?,
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
-                let output = self.render_body(body)?;
-
-                self.eval_filter(Value::String(output), filter)?.render()
+                let body = self.render_body(body)?;
+                buffer.push_str(&self.eval_filter(Value::String(body), filter)?.render());
             }
             // Macros have been imported at the beginning
-            Node::ImportMacro(_, _, _) => String::new(),
-            Node::If(ref if_node, _) => self.render_if(if_node)?,
-            Node::Forloop(_, ref forloop, _) => self.render_for(forloop)?,
+            Node::ImportMacro(_, _, _) => (),
+            Node::If(ref if_node, _) => buffer.push_str(&self.render_if(if_node)?),
+            Node::Forloop(_, ref forloop, _) => buffer.push_str(&self.render_for(forloop)?),
             Node::Break(_) => {
                 self.current_for_loop_mut().unwrap().break_loop();
-                String::new()
             }
             Node::Continue(_) => {
                 self.current_for_loop_mut().unwrap().continue_loop();
-                String::new()
             }
-            Node::Block(_, ref block, _) => self.render_block(block, 0)?,
-            Node::Super => self.do_super()?,
+            Node::Block(_, ref block, _) => buffer.push_str(&self.render_block(block, 0)?),
+            Node::Super => buffer.push_str(&self.do_super()?),
             Node::Include(_, ref tpl_name) => {
                 let has_macro = self.import_template_macros(tpl_name)?;
                 let res = self.render_body(&self.tera.get_template(tpl_name)?.ast);
                 if has_macro {
                     self.macros.pop();
                 }
-                return res;
+                buffer.push_str(&res?);
             }
             _ => unreachable!("render_node -> unexpected node: {:?}", node),
         };
 
-        Ok(output)
+        Ok(())
     }
 
     fn render_body(&mut self, body: &[Node]) -> Result<String> {
         let mut output = String::with_capacity(1000);
 
         for n in body {
-            output.push_str(&self.render_node(n)?);
+            self.render_node(n, &mut output)?;
+
             if let Some(for_loop) = self.current_for_loop() {
                 match for_loop.state {
                     ForLoopState::Continue | ForLoopState::Break => break,
@@ -927,7 +925,7 @@ impl<'a> Renderer<'a> {
         // 10000 is a random value
         let mut output = String::with_capacity(10000);
         for node in ast {
-            output.push_str(&self.render_node(node).chain_err(|| self.get_error_location())?);
+            self.render_node(node, &mut output).chain_err(|| self.get_error_location())?;
         }
 
         Ok(output)
