@@ -136,7 +136,8 @@ fn bench_rendering_only_parent(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_macro_call(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("hey.html", USE_MACRO_TEMPLATE)]).unwrap();
+    tera.add_raw_templates(vec![("hey.html", USE_MACRO_TEMPLATE), ("macros.html", MACRO_TEMPLATE)])
+        .unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");

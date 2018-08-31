@@ -1,24 +1,67 @@
-use serde_json::map::Map;
-use serde_json::value::Value;
+use std::borrow::Cow;
 
-#[derive(PartialEq, Debug)]
+use serde_json::Value;
+
+use renderer::stack_frame::Val;
+
+/// Enumerates the two types of for loops
+#[derive(Debug, PartialEq)]
 pub enum ForLoopKind {
+    /// Loop over values, eg an `Array`
     Value,
+    /// Loop over key value pairs, eg a `HashMap` or `Object` style iteration
     KeyValue,
 }
 
-#[derive(PartialEq, Debug)]
+/// Enumerates the states of a for loop
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ForLoopState {
+    /// State during iteration
     Normal,
+    /// State on encountering *break* statement
     Break,
+    /// State on encountering *continue* statement
     Continue,
+}
+
+/// Enumerates on the two types of values to be iterated, scalars and pairs
+#[derive(Debug)]
+pub enum ForLoopValues<'a> {
+    /// Values for an array style iteration
+    Array(Val<'a>),
+    /// Values for an object style iteration
+    Object(Vec<(String, Val<'a>)>),
+}
+
+impl<'a> ForLoopValues<'a> {
+    pub fn current_key(&self, i: usize) -> String {
+        match self {
+            ForLoopValues::Array(_) => unreachable!("No key in array list"),
+            ForLoopValues::Object(values) => {
+                values.get(i).expect("Failed getting current key").0.clone()
+            }
+        }
+    }
+    pub fn current_value(&self, i: usize) -> Val<'a> {
+        match self {
+            ForLoopValues::Array(values) => match values {
+                Cow::Borrowed(v) => {
+                    Cow::Borrowed(v.as_array().expect("Is array").get(i).expect("Value"))
+                }
+                Cow::Owned(_) => {
+                    Cow::Owned(values.as_array().expect("Is array").get(i).expect("Value").clone())
+                }
+            },
+            ForLoopValues::Object(values) => values.get(i).expect("Value").1.clone(),
+        }
+    }
 }
 
 // We need to have some data in the renderer for when we are in a ForLoop
 // For example, accessing the local variable would fail when
 // looking it up in the global context
 #[derive(Debug)]
-pub struct ForLoop {
+pub struct ForLoop<'a> {
     /// The key name when iterate as a Key-Value, ie in `{% for i, person in people %}` it would be `i`
     pub key_name: Option<String>,
     /// The value name, ie in `{% for person in people %}` it would be `person`
@@ -26,56 +69,38 @@ pub struct ForLoop {
     /// What's the current loop index (0-indexed)
     pub current: usize,
     /// A list of (key, value) for the forloop. The key is `None` for `ForLoopKind::Value`
-    pub values: Vec<(Option<String>, Value)>,
+    pub values: ForLoopValues<'a>,
     /// Value or KeyValue?
     pub kind: ForLoopKind,
-    /// Values set using the {% set %} tag in forloops
-    pub extra_values: Map<String, Value>,
     /// Has the for loop encountered break or continue?
     pub state: ForLoopState,
 }
 
-impl ForLoop {
-    pub fn new(value_name: &str, values: Value) -> Self {
-        let mut for_values = vec![];
-        match values {
-            Value::Array(arr) => {
-                for v in arr {
-                    for_values.push((None, v));
-                }
-            }
-            _ => unreachable!(),
-        };
-
+impl<'a> ForLoop<'a> {
+    pub fn from_array(value_name: &str, values: Val<'a>) -> Self {
         ForLoop {
             key_name: None,
             value_name: value_name.to_string(),
             current: 0,
-            values: for_values,
+            values: ForLoopValues::Array(values),
             kind: ForLoopKind::Value,
-            extra_values: Map::new(),
             state: ForLoopState::Normal,
         }
     }
 
-    pub fn new_key_value(key_name: &str, value_name: &str, values: Value) -> Self {
-        let mut for_values = vec![];
-        match values {
-            Value::Object(m) => {
-                for (key, value) in m {
-                    for_values.push((Some(key), value));
-                }
-            }
-            _ => unreachable!(),
-        };
+    pub fn from_object(key_name: &str, value_name: &str, object: &'a Value) -> Self {
+        let object_values = object.as_object().unwrap();
+        let mut values = Vec::with_capacity(object_values.len());
+        for (k, v) in object_values {
+            values.push((k.to_string(), Cow::Borrowed(v)));
+        }
 
         ForLoop {
             key_name: Some(key_name.to_string()),
             value_name: value_name.to_string(),
             current: 0,
-            values: for_values,
+            values: ForLoopValues::Object(values),
             kind: ForLoopKind::KeyValue,
-            extra_values: Map::new(),
             state: ForLoopState::Normal,
         }
     }
@@ -97,23 +122,14 @@ impl ForLoop {
     }
 
     #[inline]
-    pub fn get_current_value(&self) -> Option<&Value> {
-        if let Some(v) = self.values.get(self.current) {
-            return Some(&v.1);
-        }
-        None
+    pub fn get_current_value(&self) -> Val<'a> {
+        self.values.current_value(self.current)
     }
 
     /// Only called in `ForLoopKind::KeyValue`
     #[inline]
-    pub fn get_current_key(&self) -> &str {
-        if let Some(v) = self.values.get(self.current) {
-            if let Some(ref k) = v.0 {
-                return k;
-            }
-        }
-
-        unreachable!();
+    pub fn get_current_key(&self) -> String {
+        self.values.current_key(self.current)
     }
 
     /// Checks whether the key string given is the variable used as key for
@@ -130,8 +146,10 @@ impl ForLoop {
         false
     }
 
-    #[inline]
     pub fn len(&self) -> usize {
-        self.values.len()
+        match &self.values {
+            ForLoopValues::Array(values) => values.as_array().expect("Value is array").len(),
+            ForLoopValues::Object(values) => values.len(),
+        }
     }
 }
