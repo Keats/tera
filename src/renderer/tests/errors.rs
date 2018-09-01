@@ -19,14 +19,30 @@ fn error_location_inside_macro() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![
         ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
-        ("tpl", "{% import \"macros\" as macros %}{{ macro::hello() }}"),
+        ("tpl", "{% import \"macros\" as macros %}{{ macros::hello() }}"),
     ]).unwrap();
 
     let result = tera.render("tpl", &Context::new());
 
     assert_eq!(
         result.unwrap_err().iter().nth(0).unwrap().description(),
-        "Failed to render \'tpl\': error while rendering a macro from the `macro` namespace"
+        "Failed to render \'tpl\': error while rendering macro `macros::hello`"
+    );
+}
+
+#[test]
+fn error_loading_macro_from_unloaded_namespace() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
+        ("tpl", "{% import \"macros\" as macros %}{{ macro::hello() }}"),
+    ]).unwrap();
+
+    let result = tera.render("tpl", &Context::new());
+    println!("{:#?}", result);
+    assert_eq!(
+        result.unwrap_err().iter().nth(1).unwrap().description(),
+        "Macro namespace `macro` was not found in template `tpl`. Have you maybe forgotten to import it, or misspelled it?"
     );
 }
 
@@ -67,15 +83,16 @@ fn error_location_in_parent_in_macro() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![
         ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
-        ("parent", "{% import \"macros\" as macros %}{{ macro::hello() }}{% block bob %}{% endblock bob %}"),
+        ("parent", "{% import \"macros\" as macros %}{{ macros::hello() }}{% block bob %}{% endblock bob %}"),
         ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}"),
     ]).unwrap();
 
     let result = tera.render("child", &Context::new());
+    println!("{:?}", result);
 
     assert_eq!(
         result.unwrap_err().iter().nth(0).unwrap().description(),
-        "Failed to render \'child\': error while rendering a macro from the `macro` namespace (error happened in \'parent\')."
+        "Failed to render \'child\': error while rendering macro `macros::hello` (error happened in \'parent\')."
     );
 }
 

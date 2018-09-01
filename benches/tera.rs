@@ -3,8 +3,9 @@ extern crate tera;
 extern crate test;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
 
-use tera::{escape_html, Context, Template, Tera};
+use tera::{escape_html, Context, Template, Tera, Value};
 
 static VARIABLE_ONLY: &'static str = "{{product.name}}";
 
@@ -135,7 +136,8 @@ fn bench_rendering_only_parent(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_macro_call(b: &mut test::Bencher) {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("hey.html", USE_MACRO_TEMPLATE)]).unwrap();
+    tera.add_raw_templates(vec![("hey.html", USE_MACRO_TEMPLATE), ("macros.html", MACRO_TEMPLATE)])
+        .unwrap();
     let mut context = Context::new();
     context.add("product", &Product::new());
     context.add("username", &"bob");
@@ -210,4 +212,68 @@ fn bench_huge_loop(b: &mut test::Bencher) {
     context.add("rows", &rows);
 
     b.iter(|| tera.render("huge.html", &context));
+}
+
+fn deep_object() -> Value {
+    let data = r#"{
+                    "foo": {
+                        "bar": {
+                            "goo": {
+                                "moo": {
+                                    "cows": [
+                                        {
+                                            "name": "betsy",
+                                            "age" : 2,
+                                            "temperament": "calm"
+                                        },
+                                        {
+                                            "name": "elsie",
+                                            "age": 3,
+                                            "temperament": "calm"
+                                        },
+                                        {
+                                            "name": "veal",
+                                            "age": 1,
+                                            "temperament": "ornery"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                  }"#;
+
+    serde_json::from_str(data).unwrap()
+}
+
+#[bench]
+fn access_deep_object(b: &mut test::Bencher) {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![(
+        "deep_object.html",
+        "{% for cow in deep_object.foo.bar.goo.moo.cows %}{{cow.temperament}}{% endfor %}",
+    )]).unwrap();
+    let mut context = Context::new();
+    println!("{:?}", deep_object());
+    context.add("deep_object", &deep_object());
+    assert!(tera.render("deep_object.html", &context).unwrap().contains("ornery"));
+
+    b.iter(|| tera.render("deep_object.html", &context));
+}
+
+#[bench]
+fn access_deep_object_with_literal(b: &mut test::Bencher) {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![(
+        "deep_object.html",
+        "
+{% set goo = deep_object.foo['bar'][\"goo\"] %}
+{% for cow in goo.moo.cows %}{{cow.temperament}}
+{% endfor %}",
+    )]).unwrap();
+    let mut context = Context::new();
+    context.add("deep_object", &deep_object());
+    assert!(tera.render("deep_object.html", &context).unwrap().contains("ornery"));
+
+    b.iter(|| tera.render("deep_object.html", &context));
 }
