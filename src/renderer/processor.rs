@@ -252,7 +252,7 @@ impl<'a> Processor<'a> {
         self.render_body(&block.body)
     }
 
-    fn eval_expression(self: &mut Self, expr: &'a Expr) -> Result<Cow<'a, Value>> {
+    fn eval_expression(self: &mut Self, expr: &'a Expr) -> Result<Val<'a>> {
         let mut needs_escape = false;
 
         let mut res = match expr.val {
@@ -293,7 +293,7 @@ impl<'a> Processor<'a> {
                 // Negated idents are special cased as `not undefined_ident` should not
                 // error but instead be falsy values
                 match self.lookup_ident(ident) {
-                    Ok(val) => val.clone(),
+                    Ok(val) => val,
                     Err(e) => {
                         if expr.has_default_filter() {
                             if let Some(default_expr) = expr.filters[0].args.get("value") {
@@ -532,8 +532,8 @@ impl<'a> Processor<'a> {
     /// `eval_as_number` only works on ExprVal rather than Expr
     fn eval_expr_as_number(&mut self, expr: &'a Expr) -> Result<Option<Number>> {
         if !expr.filters.is_empty() {
-            match self.eval_expression(expr)?.clone().into_owned() {
-                Value::Number(s) => Ok(Some(s)),
+            match *self.eval_expression(expr)? {
+                Value::Number(ref s) => Ok(Some(s.clone())),
                 _ => bail!("Tried to do math with an expression not resulting in a number"),
             }
         } else {
@@ -545,7 +545,7 @@ impl<'a> Processor<'a> {
     fn eval_as_number(&mut self, expr: &'a ExprVal) -> Result<Option<Number>> {
         let result = match *expr {
             ExprVal::Ident(ref ident) => {
-                let v = self.lookup_ident(ident)?.clone().into_owned();
+                let v = &*self.lookup_ident(ident)?;
                 if v.is_i64() {
                     Some(Number::from(v.as_i64().unwrap()))
                 } else if v.is_u64() {

@@ -108,10 +108,6 @@ impl<'a> StackFrame<'a> {
     /// Finds a value in the stack frame.
     /// Looks first in `frame_context`, then compares to for_loop key_name and value_name.
     pub fn find_value(self: &Self, key: &str) -> Option<Val<'a>> {
-        // TODO: do like currently?
-        // Ie
-        // if not forloop -> only check self.find_value_in_frame(key)
-        // if forloop -> check forloop first and context last
         self.find_value_in_frame(key).or_else(|| self.find_value_in_for_loop(key))
     }
 
