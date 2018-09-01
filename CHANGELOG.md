@@ -3,6 +3,8 @@
 ## 0.11.13 (unreleased)
 
 - Add `as_str` filter
+- Way fewer allocations and significant speedup (2-5x) for templates with large objects/loops
+- Now requires at least Rust 1.26 instead of Rust 1.23
 
 ## 0.11.12 (2018-08-04)
 
