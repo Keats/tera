@@ -35,16 +35,16 @@ pub enum ForLoopValues<'a> {
 
 impl<'a> ForLoopValues<'a> {
     pub fn current_key(&self, i: usize) -> String {
-        match self {
+        match *self {
             ForLoopValues::Array(_) => unreachable!("No key in array list"),
-            ForLoopValues::Object(values) => {
+            ForLoopValues::Object(ref values) => {
                 values.get(i).expect("Failed getting current key").0.clone()
             }
         }
     }
     pub fn current_value(&self, i: usize) -> Val<'a> {
-        match self {
-            ForLoopValues::Array(values) => match values {
+        match *self {
+            ForLoopValues::Array(ref values) => match *values {
                 Cow::Borrowed(v) => {
                     Cow::Borrowed(v.as_array().expect("Is array").get(i).expect("Value"))
                 }
@@ -52,7 +52,7 @@ impl<'a> ForLoopValues<'a> {
                     Cow::Owned(values.as_array().expect("Is array").get(i).expect("Value").clone())
                 }
             },
-            ForLoopValues::Object(values) => values.get(i).expect("Value").1.clone(),
+            ForLoopValues::Object(ref values) => values.get(i).expect("Value").1.clone(),
         }
     }
 }
@@ -147,9 +147,9 @@ impl<'a> ForLoop<'a> {
     }
 
     pub fn len(&self) -> usize {
-        match &self.values {
-            ForLoopValues::Array(values) => values.as_array().expect("Value is array").len(),
-            ForLoopValues::Object(values) => values.len(),
+        match self.values {
+            ForLoopValues::Array(ref values) => values.as_array().expect("Value is array").len(),
+            ForLoopValues::Object(ref values) => values.len(),
         }
     }
 }

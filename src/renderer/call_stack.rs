@@ -125,8 +125,8 @@ impl<'a> CallStack<'a> {
 
     /// Breaks current for loop
     pub fn break_for_loop(self: &mut Self) -> Result<()> {
-        match &mut self.current_frame_mut().for_loop {
-            Some(for_loop) => {
+        match self.current_frame_mut().for_loop {
+            Some(ref mut for_loop) => {
                 for_loop.break_loop();
                 Ok(())
             }
@@ -136,8 +136,8 @@ impl<'a> CallStack<'a> {
 
     /// Continues current for loop
     pub fn increment_for_loop(self: &mut Self) -> Result<()> {
-        match &mut self.current_frame_mut().for_loop {
-            Some(for_loop) => {
+        match self.current_frame_mut().for_loop {
+            Some(ref mut for_loop) => {
                 for_loop.increment();
                 Ok(())
             }
@@ -147,8 +147,8 @@ impl<'a> CallStack<'a> {
 
     /// Continues current for loop
     pub fn continue_for_loop(self: &mut Self) -> Result<()> {
-        match &mut self.current_frame_mut().for_loop {
-            Some(for_loop) => {
+        match self.current_frame_mut().for_loop {
+            Some(ref mut for_loop) => {
                 for_loop.continue_loop();
                 Ok(())
             }
@@ -158,8 +158,8 @@ impl<'a> CallStack<'a> {
 
     /// True if should break body, applicable to `break` and `continue`
     pub fn should_break_body(&self) -> bool {
-        match &self.current_frame().for_loop {
-            Some(for_loop) => {
+        match self.current_frame().for_loop {
+            Some(ref for_loop) => {
                 for_loop.state == ForLoopState::Break || for_loop.state == ForLoopState::Continue
             }
             None => false,
@@ -168,8 +168,8 @@ impl<'a> CallStack<'a> {
 
     /// True if should break loop, applicable to `break` only
     pub fn should_break_for_loop(&self) -> bool {
-        match &self.current_frame().for_loop {
-            Some(for_loop) => for_loop.state == ForLoopState::Break,
+        match self.current_frame().for_loop {
+            Some(ref for_loop) => for_loop.state == ForLoopState::Break,
             None => false,
         }
     }

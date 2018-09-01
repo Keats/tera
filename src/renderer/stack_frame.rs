@@ -14,8 +14,8 @@ pub type FrameContext<'a> = HashMap<&'a str, Val<'a>>;
 #[inline]
 pub fn value_by_pointer<'a>(pointer: &str, val: &Val<'a>) -> Option<Val<'a>> {
     match val {
-        Cow::Borrowed(r) => r.pointer(&get_json_pointer(pointer)).map(|found| Cow::Borrowed(found)),
-        Cow::Owned(ref r) => {
+        &Cow::Borrowed(r) => r.pointer(&get_json_pointer(pointer)).map(|found| Cow::Borrowed(found)),
+        &Cow::Owned(ref r) => {
             r.pointer(&get_json_pointer(pointer)).map(|found| Cow::Owned(found.clone()))
         }
     }
@@ -129,7 +129,7 @@ impl<'a> StackFrame<'a> {
     }
     /// Finds a value in the `for_loop` if there is one
     pub fn find_value_in_for_loop(self: &Self, key: &str) -> Option<Val<'a>> {
-        if let Some(for_loop) = &self.for_loop {
+        if let Some(ref for_loop) = self.for_loop {
             // 1st case: the variable is the key of a KeyValue for loop
             if for_loop.is_key(key) {
                 return Some(Cow::Owned(Value::String(for_loop.get_current_key().to_string())));
