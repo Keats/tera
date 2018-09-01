@@ -295,7 +295,7 @@ impl Tera {
         }
 
         let template = self.get_template(template_name)?;
-        let mut renderer = Renderer::new(template, self, value);
+        let renderer = Renderer::new(template, self, value);
         renderer.render()
     }
 
