@@ -59,6 +59,7 @@ impl Tera {
         tera.load_from_glob()?;
         if !parse_only {
             tera.build_inheritance_chains()?;
+            tera.check_macro_files()?;
         }
         tera.register_tera_filters();
         tera.register_tera_testers();
@@ -268,6 +269,23 @@ impl Tera {
         Ok(())
     }
 
+    /// We keep track of macro files loaded in each Template so we can know whether one or them
+    /// is missing and error accordingly before the user tries to render a template.
+    ///
+    /// As with `self::build_inheritance_chains`, you don't usually need to call that yourself.
+    pub fn check_macro_files(&self) -> Result<()> {
+        for template in self.templates.values() {
+            println!("{:?}", template);
+            for &(ref tpl_name, _) in &template.imported_macro_files {
+                if !self.templates.contains_key(tpl_name) {
+                    bail!("Template `{}` loads macros from `{}` which isn't present in Tera", template.name, tpl_name);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Renders a Tera template given an object that implements `Serialize`.
     ///
     /// To render a template with an empty context, simply pass a new `Context` object
@@ -347,6 +365,7 @@ impl Tera {
             .chain_err(|| format!("Failed to parse '{}'", name))?;
         self.templates.insert(name.to_string(), tpl);
         self.build_inheritance_chains()?;
+        self.check_macro_files()?;
         Ok(())
     }
 
@@ -368,6 +387,7 @@ impl Tera {
             self.templates.insert(name.to_string(), tpl);
         }
         self.build_inheritance_chains()?;
+        self.check_macro_files()?;
         Ok(())
     }
 
@@ -387,6 +407,7 @@ impl Tera {
     pub fn add_template_file<P: AsRef<Path>>(&mut self, path: P, name: Option<&str>) -> Result<()> {
         self.add_file(name, path)?;
         self.build_inheritance_chains()?;
+        self.check_macro_files()?;
         Ok(())
     }
 
@@ -410,6 +431,7 @@ impl Tera {
             self.add_file(name, path)?;
         }
         self.build_inheritance_chains()?;
+        self.check_macro_files()?;
         Ok(())
     }
 
@@ -589,7 +611,8 @@ impl Tera {
             bail!("Reloading is only available if you are using a glob");
         }
 
-        self.build_inheritance_chains()
+        self.build_inheritance_chains()?;
+        self.check_macro_files()
     }
 
     /// Use that method when you want to add a given Tera instance templates/filters/testers
@@ -622,7 +645,8 @@ impl Tera {
             }
         }
 
-        self.build_inheritance_chains()
+        self.build_inheritance_chains()?;
+        self.check_macro_files()
     }
 }
 
