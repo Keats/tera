@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.11.13 (unreleased)
+## 0.11.13 (2018-09-02)
 
 - Add `as_str` filter
 - Way fewer allocations and significant speedup (2-5x) for templates with large objects/loops
