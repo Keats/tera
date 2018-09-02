@@ -10,3 +10,4 @@ yarn.lock
 public/
 *.css
 !examples/**/*.css
+callgrind.out.*

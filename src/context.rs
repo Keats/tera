@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
-use serde_json::value::{to_value, Value};
-use serde::Serializer;
 use serde::ser::SerializeMap;
+use serde::Serializer;
+use serde_json::value::{to_value, Value};
 
 use errors::{Result as TeraResult, ResultExt};
 
@@ -19,9 +19,7 @@ pub struct Context {
 impl Context {
     /// Initializes an empty context
     pub fn new() -> Context {
-        Context {
-            data: BTreeMap::new(),
-        }
+        Context { data: BTreeMap::new() }
     }
 
     /// Converts the `val` parameter to `Value` and insert it into the context

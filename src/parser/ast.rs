@@ -12,10 +12,7 @@ pub struct WS {
 
 impl Default for WS {
     fn default() -> Self {
-        WS {
-            left: false,
-            right: false,
-        }
+        WS { left: false, right: false }
     }
 }
 
@@ -93,33 +90,44 @@ impl fmt::Display for LogicOperator {
 /// A function call, can be a filter or a global function
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionCall {
+    /// The name of the function
     pub name: String,
+    /// The args of the function: key -> value
     pub args: HashMap<String, Expr>,
 }
 
+/// A mathematical expression
 #[derive(Clone, Debug, PartialEq)]
 pub struct MathExpr {
+    /// The left hand side of the expression
     pub lhs: Box<Expr>,
+    /// The right hand side of the expression
     pub rhs: Box<Expr>,
+    /// The operator used
     pub operator: MathOperator,
 }
 
+/// A logical expression
 #[derive(Clone, Debug, PartialEq)]
 pub struct LogicExpr {
+    /// The left hand side of the expression
     pub lhs: Box<Expr>,
+    /// The right hand side of the expression
     pub rhs: Box<Expr>,
+    /// The operator used
     pub operator: LogicOperator,
 }
-
 
 /// Can only be a combination of string + ident or ident + ident
 #[derive(Clone, Debug, PartialEq)]
 pub struct StringConcat {
+    /// All the values we're concatening into a string
     pub values: Vec<ExprVal>,
 }
 
 /// An expression is the node found in variable block, kwargs and conditions.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(missing_docs)]
 pub enum ExprVal {
     String(String),
     Int(i64),
@@ -137,39 +145,35 @@ pub enum ExprVal {
     StringConcat(StringConcat),
 }
 
+/// An expression is a value that can be negated and followed by
+/// optional filters
 #[derive(Clone, Debug, PartialEq)]
 pub struct Expr {
+    /// The expression we are evaluating
     pub val: ExprVal,
+    /// Is it using `not`?
     pub negated: bool,
+    /// List of filters used on that value
     pub filters: Vec<FunctionCall>,
 }
 
 impl Expr {
+    /// Create a new basic Expr
     pub fn new(val: ExprVal) -> Expr {
-        Expr {
-            val,
-            negated: false,
-            filters: vec![],
-        }
+        Expr { val, negated: false, filters: vec![] }
     }
 
+    /// Create a new negated Expr
     pub fn new_negated(val: ExprVal) -> Expr {
-        Expr {
-            val,
-            negated: true,
-            filters: vec![],
-        }
+        Expr { val, negated: true, filters: vec![] }
     }
 
+    /// Create a new basic Expr with some filters
     pub fn with_filters(val: ExprVal, filters: Vec<FunctionCall>) -> Expr {
-        Expr {
-            val,
-            filters,
-            negated: false,
-        }
+        Expr { val, filters, negated: false }
     }
 
-    // Check if the expr has a default filter as first filter
+    /// Check if the expr has a default filter as first filter
     pub fn has_default_filter(&self) -> bool {
         if self.filters.is_empty() {
             return false;
@@ -193,7 +197,9 @@ pub struct Test {
 /// A filter section node `{{ filter name(param="value") }} content {{ endfilter }}`
 #[derive(Clone, Debug, PartialEq)]
 pub struct FilterSection {
+    /// The filter call itsel
     pub filter: FunctionCall,
+    /// The filter body
     pub body: Vec<Node>,
 }
 
@@ -202,32 +208,45 @@ pub struct FilterSection {
 pub struct Set {
     /// The name for that value in the context
     pub key: String,
+    /// The value to assign
     pub value: Expr,
+    /// Whether we want to set the variable globally or locally
+    /// global_set is only useful in loops
     pub global: bool,
 }
 
 /// A call to a namespaced macro `macros::my_macro()`
 #[derive(Clone, Debug, PartialEq)]
 pub struct MacroCall {
+    /// The namespace we're looking for that macro in
     pub namespace: String,
+    /// The macro name
     pub name: String,
+    /// The args for that macro: name -> value
     pub args: HashMap<String, Expr>,
 }
 
+/// A Macro definition
 #[derive(Clone, Debug, PartialEq)]
 pub struct MacroDefinition {
+    /// The macro name
     pub name: String,
     /// The args for that macro: name -> optional default value
     pub args: HashMap<String, Option<Expr>>,
+    /// The macro content
     pub body: Vec<Node>,
 }
 
+/// A block definition
 #[derive(Clone, Debug, PartialEq)]
 pub struct Block {
+    /// The block name
     pub name: String,
+    /// The block content
     pub body: Vec<Node>,
 }
 
+/// A forloop: can be over values or key/values
 #[derive(Clone, Debug, PartialEq)]
 pub struct Forloop {
     /// Name of the key in the loop (only when iterating on map-like objects)
@@ -240,6 +259,7 @@ pub struct Forloop {
     pub body: Vec<Node>,
 }
 
+/// An if/elif/else condition with their respective body
 #[derive(Clone, Debug, PartialEq)]
 pub struct If {
     /// First item if the if, all the ones after are elif

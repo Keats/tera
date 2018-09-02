@@ -1,10 +1,10 @@
 /// Filters operating on string
 use std::collections::HashMap;
 
+use regex::{Captures, Regex};
 use serde_json::value::{to_value, Value};
 use slug;
-use url::percent_encoding::{EncodeSet, utf8_percent_encode};
-use regex::{Captures, Regex};
+use url::percent_encoding::{utf8_percent_encode, EncodeSet};
 
 use unic_segment::GraphemeIndices;
 
@@ -45,7 +45,7 @@ pub fn trim(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 /// * `args`    - A set of key/value arguments that can take the following
 ///   keys.
 /// * `length`  - The length at which the string needs to be truncated. If
-///   the length is larger than the length of the string, the string is 
+///   the length is larger than the length of the string, the string is
 ///   returned untouched. The default value is 255.
 /// * `end`     - The ellipsis string to be used if the given string is
 ///   truncated. The default value is "…".
@@ -159,11 +159,7 @@ pub fn urlencode(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 /// Escapes quote characters
 pub fn addslashes(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("addslashes", "value", String, value);
-    Ok(to_value(
-        &s.replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\'", "\\\'")
-    ).unwrap())
+    Ok(to_value(&s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\'", "\\\'")).unwrap())
 }
 
 /// Transform a string into a slug
@@ -176,13 +172,11 @@ pub fn slugify(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 pub fn title(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("title", "value", String, value);
 
-    Ok(to_value(
-        &WORDS_RE.replace_all(&s, |caps: &Captures| {
-            let first = caps["first"].to_uppercase();
-            let rest = caps["rest"].to_lowercase();
-            format!("{}{}", first, rest)
-        })
-    ).unwrap())
+    Ok(to_value(&WORDS_RE.replace_all(&s, |caps: &Captures| {
+        let first = caps["first"].to_uppercase();
+        let rest = caps["rest"].to_lowercase();
+        format!("{}{}", first, rest)
+    })).unwrap())
 }
 
 /// Removes html tags from string
@@ -318,10 +312,7 @@ mod tests {
 
     #[test]
     fn test_capitalize() {
-        let tests = vec![
-            ("CAPITAL IZE", "Capital ize"),
-            ("capital ize", "Capital ize"),
-        ];
+        let tests = vec![("CAPITAL IZE", "Capital ize"), ("capital ize", "Capital ize")];
         for (input, expected) in tests {
             let result = capitalize(to_value(input).unwrap(), HashMap::new());
             assert!(result.is_ok());
@@ -352,10 +343,8 @@ mod tests {
     fn test_slugify() {
         // slug crate already has tests for general slugification so we just
         // check our function works
-        let tests = vec![
-            (r#"Hello world"#, r#"hello-world"#),
-            (r#"Hello 世界"#, r#"hello-shi-jie"#),
-        ];
+        let tests =
+            vec![(r#"Hello world"#, r#"hello-world"#), (r#"Hello 世界"#, r#"hello-shi-jie"#)];
         for (input, expected) in tests {
             let result = slugify(to_value(input).unwrap(), HashMap::new());
             assert!(result.is_ok());
@@ -371,11 +360,7 @@ mod tests {
                 None,
                 r#"https%3A//www.example.org/foo%3Fa%3Db%26c%3Dd"#,
             ),
-            (
-                r#"https://www.example.org/"#,
-                Some(""),
-                r#"https%3A%2F%2Fwww.example.org%2F"#,
-            ),
+            (r#"https://www.example.org/"#, Some(""), r#"https%3A%2F%2Fwww.example.org%2F"#),
             (r#"/test&"/me?/"#, None, r#"/test%26%22/me%3F/"#),
             (r#"escape/slash"#, Some(""), r#"escape%2Fslash"#),
         ];
@@ -445,10 +430,8 @@ mod tests {
 
     #[test]
     fn test_split() {
-        let tests: Vec<(_, _, &[&str])> = vec![
-            ("a/b/cde", "/", &["a", "b", "cde"]),
-            ("hello, world", ", ", &["hello", "world"]),
-        ];
+        let tests: Vec<(_, _, &[&str])> =
+            vec![("a/b/cde", "/", &["a", "b", "cde"]), ("hello, world", ", ", &["hello", "world"])];
         for (input, pat, expected) in tests {
             let mut args = HashMap::new();
             args.insert("pat".to_string(), to_value(pat).unwrap());

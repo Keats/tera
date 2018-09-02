@@ -6,14 +6,12 @@
 //!
 //! See the [site](https://tera.netlify.com) for features and to get started.
 
-#![allow(missing_docs)]
-//#![deny(missing_docs)]
-#![allow(unused)]
+#![deny(missing_docs)]
 
 extern crate glob;
 extern crate pest;
 extern crate serde;
-#[macro_use]
+#[cfg_attr(test, macro_use)]
 extern crate serde_json;
 #[macro_use]
 extern crate pest_derive;
@@ -36,31 +34,31 @@ extern crate unic_segment;
 
 #[macro_use]
 mod macros;
-mod errors;
-mod context;
-mod parser;
-mod template;
-mod utils;
-mod sort_utils;
 mod builtins;
+mod context;
+mod errors;
+mod parser;
 mod renderer;
+mod sort_utils;
+mod template;
 mod tera;
+mod utils;
 
 // Library exports.
 
 // Template is meant to be used internally only but is exported for test/bench.
+pub use builtins::filters::FilterFn;
+pub use builtins::global_functions::GlobalFn;
+pub use builtins::testers::TesterFn;
+pub use context::Context;
+pub use errors::{Error, ErrorKind, Result};
+/// Re-export Value and other useful things from serde
+/// so apps/tools can encode data in Tera types
+pub use serde_json::value::{from_value, to_value, Map, Number, Value};
 #[doc(hidden)]
 pub use template::Template;
-pub use context::Context;
 pub use tera::Tera;
-pub use errors::{Error, ErrorKind, Result};
 pub use utils::escape_html;
-pub use builtins::global_functions::GlobalFn;
-pub use builtins::filters::FilterFn;
-pub use builtins::testers::TesterFn;
-//// Re-export Value so apps/tools can encode data in Tera types
-//// for now it's just an alias to serde_json::Value
-pub use serde_json::value::{from_value, to_value, Map, Number, Value};
 
 // Exposes the AST if one needs it but changing the AST is not considered
 // a breaking change so it isn't public

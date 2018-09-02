@@ -2,11 +2,10 @@ extern crate tera;
 #[macro_use]
 extern crate serde_derive;
 
-use tera::{Tera, Context, Result};
+use tera::{Context, Result, Tera};
 
 mod common;
 use common::{Product, Review};
-
 
 fn render_tpl(tpl_name: &str) -> Result<String> {
     let tera = Tera::new("tests/render-failures/**/*").unwrap();
@@ -20,7 +19,6 @@ fn render_tpl(tpl_name: &str) -> Result<String> {
 
     tera.render(tpl_name, &context)
 }
-
 
 #[test]
 fn test_error_render_field_unknown() {
@@ -41,11 +39,7 @@ fn test_error_render_field_unknown_in_forloop() {
     let err = result.unwrap_err();
     assert_eq!(
         err.iter().nth(1).unwrap().description(),
-        "Variable lookup failed in forloop for `r.random`"
-    );
-    assert_eq!(
-        err.iter().nth(2).unwrap().description(),
-        "Variable `random` not found in context while rendering \'field_unknown_forloop.html\'"
+        "Variable `r.random` not found in context while rendering \'field_unknown_forloop.html\'"
     );
 }
 
@@ -85,13 +79,13 @@ fn test_error_render_iterate_non_array() {
 #[test]
 fn test_error_render_serialize_non_object() {
     let tera = Tera::new("tests/render-failures/**/*").unwrap();
-    let result = tera.render("value_render_non_object.html", &[1,2,3]);
+    let result = tera.render("value_render_non_object.html", &[1, 2, 3]);
 
     assert_eq!(result.is_err(), true);
     assert_eq!(
         result.unwrap_err().iter().nth(0).unwrap().description(),
         "Failed to render \'value_render_non_object.html\': context isn\'t a JSON object. \
-        The value passed needs to be a key-value object: context, struct, hashmap for example."
+         The value passed needs to be a key-value object: context, struct, hashmap for example."
     );
 }
 
@@ -101,11 +95,15 @@ fn test_error_wrong_args_macros() {
 
     assert_eq!(result.is_err(), true);
     assert!(
-        result.unwrap_err().iter().nth(1).unwrap().description()
+        result
+            .unwrap_err()
+            .iter()
+            .nth(1)
+            .unwrap()
+            .description()
             .contains("Macro `input` is missing the argument")
     );
 }
-
 
 #[test]
 fn test_error_macros_self_inexisting() {
@@ -114,10 +112,9 @@ fn test_error_macros_self_inexisting() {
     assert_eq!(result.is_err(), true);
     assert_eq!(
         result.unwrap_err().iter().nth(1).unwrap().description(),
-        "Macro `inexisting` was not found in the namespace `macros`"
+        "Macro `self::inexisting` not found in template `macros.html`"
     );
 }
-
 
 #[test]
 fn test_error_in_child_template_location() {
@@ -131,7 +128,6 @@ fn test_error_in_child_template_location() {
     );
 }
 
-
 #[test]
 fn test_error_in_grandchild_template_location() {
     let result = render_tpl("error-location/error_in_grand_child.html");
@@ -143,7 +139,6 @@ fn test_error_in_grandchild_template_location() {
         "Failed to render 'error-location/error_in_grand_child.html'"
     );
 }
-
 
 #[test]
 fn test_error_in_parent_template_location() {
@@ -157,7 +152,6 @@ fn test_error_in_parent_template_location() {
     );
 }
 
-
 #[test]
 fn test_error_in_macro_location() {
     let result = render_tpl("error-location/error_in_macro.html");
@@ -166,6 +160,6 @@ fn test_error_in_macro_location() {
     let errs = result.unwrap_err();
     assert_eq!(
         errs.iter().nth(0).unwrap().description(),
-        "Failed to render 'error-location/error_in_macro.html': error while rendering a macro from the `macros` namespace"
+        "Failed to render 'error-location/error_in_macro.html': error while rendering macro `macros::cause_error`"
     );
 }

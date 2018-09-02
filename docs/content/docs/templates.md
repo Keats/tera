@@ -779,11 +779,22 @@ It accepts a parameter `pretty` (boolean) to print a formatted JSON instead of a
 
 Example: `{{ value | safe | json_encode(pretty=true) }}`
 
+### as_str
+Returns a string representation of the given value.
+
+Example: `{{ value | as_str }}`
+
 ### default
-Returns the default value given if the variable evaluated is not present in the context.
+Returns the default value given only if the variable evaluated is not present in the context
+and is therefore meant to be at the beginning of a filter chain if there are several filters.
 
 Example: `{{ value | default(value=1) }}`
 
+This is a shortcut for:
+
+```jinja2
+{% if value %}{{ value }}{% else %}1{% endif %}
+```
 
 ## Built-in tests
 

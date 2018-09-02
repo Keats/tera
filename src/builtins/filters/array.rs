@@ -1,9 +1,9 @@
 /// Filters operating on array
 use std::collections::HashMap;
 
-use serde_json::value::{to_value, Value, Map};
 use context::{get_json_pointer, ValueRender};
 use errors::Result;
+use serde_json::value::{to_value, Map, Value};
 use sort_utils::get_sort_strategy_for_type;
 
 /// Returns the first value of an array
@@ -44,7 +44,7 @@ pub fn join(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 /// Sorts the array in ascending order.
 /// Use the 'attribute' argument to define a field to sort by.
 pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
-    let mut arr = try_get_value!("sort", "value", Vec<Value>, value);
+    let arr = try_get_value!("sort", "value", Vec<Value>, value);
     if arr.is_empty() {
         return Ok(arr.into());
     }
@@ -64,7 +64,8 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     let mut strategy = get_sort_strategy_for_type(first)?;
     for v in &arr {
-        let key = v.pointer(&ptr)
+        let key = v
+            .pointer(&ptr)
             .ok_or_else(|| format!("attribute '{}' does not reference a field", attribute))?;
         strategy.try_add_pair(v, key)?;
     }
@@ -77,7 +78,7 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 /// Returns a hashmap of key => values, items without the `attribute` or where `attribute` is `null` are discarded.
 /// The returned keys are stringified
 pub fn group_by(value: Value, args: HashMap<String, Value>) -> Result<Value> {
-    let mut arr = try_get_value!("group_by", "value", Vec<Value>, value);
+    let arr = try_get_value!("group_by", "value", Vec<Value>, value);
     if arr.is_empty() {
         return Ok(Map::new().into());
     }
@@ -96,16 +97,12 @@ pub fn group_by(value: Value, args: HashMap<String, Value>) -> Result<Value> {
                 continue;
             }
             let str_key = format!("{}", key_val);
-            // Work around the borrow check to not have to clone `val`
-            let mut insert_new = true;
-            if let Some(vals) = grouped.get_mut(&str_key){
+
+            if let Some(vals) = grouped.get_mut(&str_key) {
                 vals.as_array_mut().unwrap().push(val);
-                insert_new = false;
                 continue;
             }
-            if insert_new {
-                grouped.insert(str_key, Value::Array(vec![val]));
-            }
+            grouped.insert(str_key, Value::Array(vec![val]));
         }
     }
 
@@ -142,9 +139,7 @@ pub fn filter(value: Value, args: HashMap<String, Value>) -> Result<Value> {
             } else {
                 false
             }
-        })
-        .collect::<Vec<_>>();
-
+        }).collect::<Vec<_>>();
 
     Ok(to_value(arr).unwrap())
 }
@@ -154,7 +149,7 @@ pub fn filter(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 /// and `end` argument to define where to stop (exclusive, default to the length of the array)
 /// `start` and `end` are 0-indexed
 pub fn slice(value: Value, args: HashMap<String, Value>) -> Result<Value> {
-    let mut arr = try_get_value!("slice", "value", Vec<Value>, value);
+    let arr = try_get_value!("slice", "value", Vec<Value>, value);
     if arr.is_empty() {
         return Ok(arr.into());
     }
@@ -180,9 +175,9 @@ pub fn slice(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use serde_json::value::{to_value, Value};
     use super::*;
+    use serde_json::value::{to_value, Value};
+    use std::collections::HashMap;
 
     #[test]
     fn test_first() {
@@ -326,10 +321,7 @@ mod tests {
 
         let result = sort(v, args);
         assert!(result.is_err());
-        assert_eq!(
-            result.unwrap_err().description(),
-            "Null is not a sortable value"
-        );
+        assert_eq!(result.unwrap_err().description(), "Null is not a sortable value");
     }
 
     #[derive(Serialize)]

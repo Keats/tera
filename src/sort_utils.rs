@@ -33,8 +33,7 @@ pub trait GetSortKey: Ord + Sized + Clone {
 
 impl GetSortKey for OrderedF64 {
     fn get_sort_key(val: &Value) -> Result<Self> {
-        let n = val.as_f64()
-            .ok_or_else(|| format!("expected number got {}", val))?;
+        let n = val.as_f64().ok_or_else(|| format!("expected number got {}", val))?;
         OrderedF64::new(n)
     }
 }
@@ -47,16 +46,15 @@ impl GetSortKey for bool {
 
 impl GetSortKey for String {
     fn get_sort_key(val: &Value) -> Result<Self> {
-        let str: Result<&str> = val.as_str()
-            .ok_or_else(|| format!("expected string got {}", val).into());
+        let str: Result<&str> =
+            val.as_str().ok_or_else(|| format!("expected string got {}", val).into());
         Ok(str?.to_owned())
     }
 }
 
 impl GetSortKey for ArrayLen {
     fn get_sort_key(val: &Value) -> Result<Self> {
-        let arr = val.as_array()
-            .ok_or_else(|| format!("expected array got {}", val))?;
+        let arr = val.as_array().ok_or_else(|| format!("expected array got {}", val))?;
         Ok(ArrayLen(arr.len()))
     }
 }

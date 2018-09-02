@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.13 (2018-09-02)
+
+- Add `as_str` filter
+- Way fewer allocations and significant speedup (2-5x) for templates with large objects/loops
+- Checks that all macro files are accounted for at compile time and errors if it's not the case
+
 ## 0.11.12 (2018-08-04)
 
 - `filter` filter was not properly registered (╯°□°）╯︵ ┻━┻

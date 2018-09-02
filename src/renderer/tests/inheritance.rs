@@ -1,5 +1,4 @@
 use context::Context;
-use errors::Result;
 use tera::Tera;
 
 #[test]
@@ -108,9 +107,8 @@ fn render_nested_block_multiple_inheritance_no_super() {
 #[test]
 fn render_super_in_top_block_errors() {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("index", "{% block content%}{{super()}}{% endblock content %}"),
-    ]).unwrap();
+    tera.add_raw_templates(vec![("index", "{% block content%}{{super()}}{% endblock content %}")])
+        .unwrap();
 
     let result = tera.render("index", &Context::new());
     assert!(result.is_err());
@@ -122,7 +120,10 @@ fn render_super_in_grandchild_without_redefining_works() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![
         ("grandparent", "{% block title %}Title{% endblock %}"),
-        ("parent", "{% extends \"grandparent\" %}{% block title %}{{ super() }} - More{% endblock %}"),
+        (
+            "parent",
+            "{% extends \"grandparent\" %}{% block title %}{{ super() }} - More{% endblock %}",
+        ),
         ("child", "{% extends \"parent\" %}"),
     ]).unwrap();
 

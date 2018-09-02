@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use pest::{Error as PestError, Parser};
-use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::iterators::Pair;
+use pest::prec_climber::{Assoc, Operator, PrecClimber};
+use pest::Parser;
 
-use errors::{Result as TeraResult, ResultExt};
+use errors::Result as TeraResult;
 
 // This include forces recompiling this source file if the grammar file changes.
 // Uncomment it when doing changes to the .pest file
@@ -14,14 +14,15 @@ const _GRAMMAR: &str = include_str!("tera.pest");
 #[grammar = "parser/tera.pest"]
 pub struct TeraParser;
 
+/// The AST of Tera
 pub mod ast;
 mod whitespace;
 
 #[cfg(test)]
 mod tests;
 
-pub use self::whitespace::remove_whitespace;
 use self::ast::*;
+pub use self::whitespace::remove_whitespace;
 
 lazy_static! {
     static ref MATH_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
@@ -117,14 +118,16 @@ fn parse_test_call(pair: Pair<Rule>) -> (String, Vec<Expr>) {
         match p.as_rule() {
             Rule::ident => name = Some(p.into_span().as_str().to_string()),
             Rule::test_args =>
-                // iterate on the test_arg rule
+            // iterate on the test_arg rule
+            {
                 for p2 in p.into_inner() {
                     // only expressions allowed in the grammar so we skip the
                     // matching
                     for p3 in p2.into_inner() {
                         args.push(parse_logic_expr(p3));
                     }
-                },
+                }
+            }
             _ => unreachable!("{:?} not supposed to get there (parse_test_call)!", p.as_rule()),
         };
     }
@@ -161,14 +164,14 @@ fn parse_string_concat(pair: Pair<Rule>) -> ExprVal {
         match p.as_rule() {
             Rule::string => {
                 current_str.push_str(&replace_string_markers(p.as_str()));
-            },
+            }
             Rule::dotted_square_bracket_ident => {
                 if !current_str.is_empty() {
                     values.push(ExprVal::String(current_str));
                     current_str = String::new();
                 }
                 values.push(ExprVal::Ident(p.as_str().to_string()))
-            },
+            }
             _ => unreachable!("Got {:?} in parse_string_concat", p),
         };
     }
@@ -344,7 +347,7 @@ fn parse_array(pair: Pair<Rule>) -> ExprVal {
         match p.as_rule() {
             Rule::basic_expr_filter => {
                 vals.push(parse_basic_expr_with_filters(p));
-            },
+            }
             _ => unreachable!("Got {:?} in parse_array", p.as_rule()),
         }
     }
@@ -618,7 +621,7 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
                         Rule::ident => idents.push(p2.as_str().to_string()),
                         Rule::basic_expr_filter => {
                             container = Some(parse_basic_expr_with_filters(p2));
-                        },
+                        }
                         Rule::array => container = Some(Expr::new(parse_array(p2))),
                         _ => unreachable!(),
                     };
@@ -652,12 +655,7 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
 
     Node::Forloop(
         start_ws,
-        Forloop {
-            key,
-            value: value.unwrap(),
-            container: container.unwrap(),
-            body,
-        },
+        Forloop { key, value: value.unwrap(), container: container.unwrap(), body },
         end_ws,
     )
 }
@@ -669,13 +667,13 @@ fn parse_break_tag(pair: Pair<Rule>) -> Node {
         match p.as_rule() {
             Rule::tag_start => {
                 ws.left = p.into_span().as_str() == "{%-";
-            },
+            }
             Rule::tag_end => {
                 ws.right = p.into_span().as_str() == "-%}";
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         };
-    };
+    }
 
     Node::Break(ws)
 }
@@ -687,13 +685,13 @@ fn parse_continue_tag(pair: Pair<Rule>) -> Node {
         match p.as_rule() {
             Rule::tag_start => {
                 ws.left = p.into_span().as_str() == "{%-";
-            },
+            }
             Rule::tag_end => {
                 ws.right = p.into_span().as_str() == "-%}";
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         };
-    };
+    }
 
     Node::Continue(ws)
 }
@@ -734,9 +732,7 @@ fn parse_if(pair: Pair<Rule>) -> Node {
             | Rule::macro_content
             | Rule::block_content
             | Rule::for_content
-            | Rule::filter_section_content => {
-                current_body.extend(parse_content(p))
-            }
+            | Rule::filter_section_content => current_body.extend(parse_content(p)),
             Rule::else_tag => {
                 // had an elif before the else
                 if expr.is_some() {
@@ -803,9 +799,7 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             | Rule::macro_if
             | Rule::block_if
             | Rule::for_if
-            | Rule::filter_section_if => {
-                nodes.push(parse_if(p))
-            },
+            | Rule::filter_section_if => nodes.push(parse_if(p)),
             Rule::filter_section => nodes.push(parse_filter_section(p)),
             Rule::text => nodes.push(Node::Text(p.into_span().as_str().to_string())),
             Rule::block => nodes.push(parse_block(p)),
@@ -881,7 +875,6 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::filter_section_content => "the filter section content".to_string(),
                     Rule::set_tag => "a `set` tag`".to_string(),
                     Rule::set_global_tag => "a `set_global` tag`".to_string(),
-                    Rule::endif_tag => "a `endif` tag`".to_string(),
                     Rule::block_content | Rule::content | Rule::for_content => {
                         "some content".to_string()
                     },

@@ -44,7 +44,7 @@ macro_rules! try_get_value {
 /// ```
 #[macro_export]
 macro_rules! compile_templates {
-    ($glob:expr) => {{
+    ($glob: expr) => {{
         match $crate::Tera::new($glob) {
             Ok(t) => t,
             Err(e) => {

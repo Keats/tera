@@ -2,11 +2,13 @@
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
+use errors::Result;
 use serde_json::value::{to_value, Value};
 use serde_json::{to_string, to_string_pretty};
-use errors::Result;
 
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc};
+
+use context::ValueRender;
 
 // Returns the number of items in an array or the number of characters in a string.
 // Returns 0 if not an array or string.
@@ -37,9 +39,7 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 // Encodes a value of any type into json, optionally `pretty`-printing it
 // `pretty` can be true to enable pretty-print, or omitted for compact printing
 pub fn json_encode(value: Value, args: HashMap<String, Value>) -> Result<Value> {
-    let pretty = args.get("pretty")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
+    let pretty = args.get("pretty").and_then(|v| v.as_bool()).unwrap_or(false);
 
     if pretty {
         Ok(Value::String(to_string_pretty(&value)?))
@@ -75,15 +75,12 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
                         Ok(val) => val.format(&format),
                         Err(_) => {
                             bail!("Error parsing `{:?}` as rfc3339 date or naive datetime", s)
-                        },
+                        }
                     },
                 }
             } else {
                 match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
-                    Ok(val) => {
-                        DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc)
-                            .format(&format)
-                    },
+                    Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format),
                     Err(_) => bail!("Error parsing `{:?}` as YYYY-MM-DD date", s),
                 }
             }
@@ -98,13 +95,33 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(&formatted.to_string())?)
 }
 
+// Returns the given value as a string.
+pub fn as_str(value: Value, _: HashMap<String, Value>) -> Result<Value> {
+    Ok(to_value(&value.render())?)
+}
+
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use serde_json;
-    use serde_json::value::to_value;
     use super::*;
     use chrono::{DateTime, Local};
+    use serde_json;
+    use serde_json::value::to_value;
+    use std::collections::HashMap;
+
+    #[test]
+    fn as_str_object() {
+        let map: HashMap<String, String> = HashMap::new();
+        let result = as_str(to_value(&map).unwrap(), HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(&"[object]").unwrap());
+    }
+
+    #[test]
+    fn as_str_vec() {
+        let result = as_str(to_value(&vec![1, 2, 3, 4]).unwrap(), HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(&"[1, 2, 3, 4]").unwrap());
+    }
 
     #[test]
     fn length_vec() {
@@ -181,10 +198,7 @@ mod tests {
         let dt: DateTime<Local> = Local::now();
         let result = date(to_value(dt.to_rfc3339()).unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            to_value(dt.format("%Y-%m-%d").to_string()).unwrap()
-        );
+        assert_eq!(result.unwrap(), to_value(dt.format("%Y-%m-%d").to_string()).unwrap());
     }
 
     #[test]
@@ -199,56 +213,37 @@ mod tests {
     #[test]
     fn date_yyyy_mm_dd() {
         let mut args = HashMap::new();
-        args.insert(
-            "format".to_string(),
-            to_value("%a, %d %b %Y %H:%M:%S %z").unwrap(),
-        );
+        args.insert("format".to_string(), to_value("%a, %d %b %Y %H:%M:%S %z").unwrap());
         let result = date(to_value("2017-03-05").unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            to_value("Sun, 05 Mar 2017 00:00:00 +0000").unwrap()
-        );
+        assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00 +0000").unwrap());
     }
 
     #[test]
     fn date_from_naive_datetime() {
         let mut args = HashMap::new();
-        args.insert(
-            "format".to_string(),
-            to_value("%a, %d %b %Y %H:%M:%S").unwrap(),
-        );
+        args.insert("format".to_string(), to_value("%a, %d %b %Y %H:%M:%S").unwrap());
         let result = date(to_value("2017-03-05T00:00:00.602").unwrap(), args);
         println!("{:?}", result);
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            to_value("Sun, 05 Mar 2017 00:00:00").unwrap()
-        );
+        assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00").unwrap());
     }
 
     #[test]
     fn test_json_encode() {
-        let mut args = HashMap::new();
-        let result = json_encode(
-            serde_json::from_str("{\"key\": [\"value1\", 2, true]}").unwrap(),
-            args,
-        );
+        let args = HashMap::new();
+        let result =
+            json_encode(serde_json::from_str("{\"key\": [\"value1\", 2, true]}").unwrap(), args);
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            to_value("{\"key\":[\"value1\",2,true]}").unwrap()
-        );
+        assert_eq!(result.unwrap(), to_value("{\"key\":[\"value1\",2,true]}").unwrap());
     }
 
     #[test]
     fn test_json_encode_pretty() {
         let mut args = HashMap::new();
         args.insert("pretty".to_string(), to_value(true).unwrap());
-        let result = json_encode(
-            serde_json::from_str("{\"key\": [\"value1\", 2, true]}").unwrap(),
-            args,
-        );
+        let result =
+            json_encode(serde_json::from_str("{\"key\": [\"value1\", 2, true]}").unwrap(), args);
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),

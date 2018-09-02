@@ -1,8 +1,8 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
 use errors::Result;
-use parser::{parse, remove_whitespace};
 use parser::ast::{Block, MacroDefinition, Node};
+use parser::{parse, remove_whitespace};
 
 /// This is the parsed equivalent of a template file.
 /// It also does some pre-processing to ensure it does as less as possible at runtime
@@ -31,7 +31,6 @@ pub struct Template {
     pub blocks: HashMap<String, Block>,
 
     // Below are filled when all templates have been parsed so we know the full hierarchy of templates
-
     /// The full list of parent templates
     pub parents: Vec<String>,
     /// The definition of all the blocks for the current template and the definition of those blocks
@@ -91,20 +90,18 @@ impl Template {
             }
         }
 
-        Ok(
-            Template {
-                name: tpl_name.to_string(),
-                path: tpl_path,
-                ast,
-                parent,
-                blocks,
-                macros,
-                imported_macro_files,
-                parents: vec![],
-                blocks_definitions: HashMap::new(),
-                from_extend: false,
-            }
-        )
+        Ok(Template {
+            name: tpl_name.to_string(),
+            path: tpl_path,
+            ast,
+            parent,
+            blocks,
+            macros,
+            imported_macro_files,
+            parents: vec![],
+            blocks_definitions: HashMap::new(),
+            from_extend: false,
+        })
     }
 }
 
@@ -157,11 +154,10 @@ mod tests {
 
     #[test]
     fn test_can_find_imported_macros() {
-        let tpl = Template::new(
-            "hello",
-            None,
-            "{% import \"macros.html\" as macros %}",
-        ).unwrap();
-        assert_eq!(tpl.imported_macro_files, vec![("macros.html".to_string(), "macros".to_string())]);
+        let tpl = Template::new("hello", None, "{% import \"macros.html\" as macros %}").unwrap();
+        assert_eq!(
+            tpl.imported_macro_files,
+            vec![("macros.html".to_string(), "macros".to_string())]
+        );
     }
 }
