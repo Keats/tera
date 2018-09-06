@@ -146,9 +146,10 @@ fn error_invalid_type_index_variable() {
 #[test]
 fn error_when_missing_macro_templates() {
     let mut tera = Tera::default();
-    let result = tera.add_raw_templates(vec![
-        ("parent", "{% import \"macros\" as macros %}{{ macros::hello() }}{% block bob %}{% endblock bob %}"),
-    ]);
+    let result = tera.add_raw_templates(vec![(
+        "parent",
+        "{% import \"macros\" as macros %}{{ macros::hello() }}{% block bob %}{% endblock bob %}",
+    )]);
     assert_eq!(
         result.unwrap_err().iter().nth(0).unwrap().description(),
         "Template `parent` loads macros from `macros` which isn\'t present in Tera"

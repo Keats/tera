@@ -174,14 +174,16 @@ impl<'a> Processor<'a> {
                         container_name,
                     );
                 }
-                ForLoop::from_object(
-                    &for_loop.key.as_ref().unwrap(),
-                    &for_loop.value,
-                    match container_val {
-                        Cow::Borrowed(c) => c,
-                        Cow::Owned(_) => unreachable!(),
-                    },
-                )
+                match container_val {
+                    Cow::Borrowed(c) => {
+                        ForLoop::from_object(&for_loop.key.as_ref().unwrap(), &for_loop.value, c)
+                    }
+                    Cow::Owned(c) => ForLoop::from_object_owned(
+                        &for_loop.key.as_ref().unwrap(),
+                        &for_loop.value,
+                        c,
+                    ),
+                }
             }
             _ => bail!(
                 "Tried to iterate on a container (`{}`) that has a unsupported type",

@@ -277,7 +277,11 @@ impl Tera {
         for template in self.templates.values() {
             for &(ref tpl_name, _) in &template.imported_macro_files {
                 if !self.templates.contains_key(tpl_name) {
-                    bail!("Template `{}` loads macros from `{}` which isn't present in Tera", template.name, tpl_name);
+                    bail!(
+                        "Template `{}` loads macros from `{}` which isn't present in Tera",
+                        template.name,
+                        tpl_name
+                    );
                 }
             }
         }

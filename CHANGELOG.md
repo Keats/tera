@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.15 (unreleased)
+
+- Remove invalid `unreachable!` call causing panic in some cases
+
 ## 0.11.14 (2018-09-02)
 
 - Remove stray println
