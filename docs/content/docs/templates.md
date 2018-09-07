@@ -790,11 +790,24 @@ and is therefore meant to be at the beginning of a filter chain if there are sev
 
 Example: `{{ value | default(value=1) }}`
 
-This is a shortcut for:
+This is in most cases a shortcut for:
 
 ```jinja2
 {% if value %}{{ value }}{% else %}1{% endif %}
 ```
+
+However, only the existence of the value in the context is checked. With a value that `if` would
+evaluate to false (such as an empty string, or the number 0), the `default` filter will not attempt
+replace it with the alternate value provided. For example, the following will produce
+"I would like to read more !":
+
+```jinja2
+I would like to read more {{ "" | default (value="Louise Michel") }}!
+```
+
+If you intend to use the default filter to deal with optional values, you should make sure those values
+aren't set! Otherwise, use a full `if` block. This is especially relevant for dealing with optional arguments
+passed to a macro.
 
 ## Built-in tests
 
