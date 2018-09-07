@@ -56,11 +56,33 @@ fn var_access_by_square_brackets_errors() {
 #[test]
 fn var_access_by_loop_index() {
     let context = Context::new();
-    let res = Tera::one_off(r#"
+    let res = Tera::one_off(
+        r#"
 {% set ics = ["fa-rocket","fa-paper-plane","fa-diamond","fa-signal"] %}
 {% for a in ics %}
 {{ ics[loop.index0] }}
 {% endfor %}
-    "#, &context, true);
+    "#,
+        &context,
+        true,
+    );
+    assert!(res.is_ok());
+}
+
+// https://github.com/Keats/tera/issues/334
+#[test]
+fn var_access_by_loop_index_with_set() {
+    let context = Context::new();
+    let res = Tera::one_off(
+        r#"
+{% set ics = ["fa-rocket","fa-paper-plane","fa-diamond","fa-signal"] %}
+{% for a in ics %}
+    {% set i = loop.index - 1 %}
+    {{ ics[i] }}
+{% endfor %}
+    "#,
+        &context,
+        true,
+    );
     assert!(res.is_ok());
 }
