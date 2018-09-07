@@ -183,8 +183,8 @@ impl<'a> CallStack<'a> {
     pub fn current_context_cloned(self: &Self) -> Value {
         let mut context = HashMap::new();
 
-        // and add specific context
-        for frame in &self.stack {
+        // Go back the stack in reverse to see what we have access to
+        for frame in self.stack.iter().rev() {
             context.extend(frame.context_owned());
             if let Some(ref for_loop) = frame.for_loop {
                 context.insert(
@@ -204,6 +204,9 @@ impl<'a> CallStack<'a> {
             }
         }
 
+        // If we are here we take the user context
+        // and add the values found in the stack to it.
+        // We do it this way as we can override global variable temporarily in forloops
         match self.context.inner.clone() {
             Value::Object(mut m) => {
                 for (key, val) in context {
