@@ -531,3 +531,49 @@ fn does_render_owned_for_loop_with_objects() {
     let expected = "2015,2016,2017,2018,";
     assert_eq!(render_template(tpl, &context).unwrap(), expected);
 }
+
+#[test]
+fn render_magic_variable_gets_all_contexts() {
+    let mut context = Context::new();
+    context.insert("html", &"<html>");
+    context.insert("num", &1);
+    context.insert("i", &10);
+
+    let result = render_template(
+        "{% set some_val = 1 %}{% for i in range(start=0, end=1) %}{% set for_val = i %}{{ __tera_context }}{% endfor %}",
+        &context
+    );
+
+    assert_eq!(
+        result.unwrap(),
+        r#"{
+  "for_val": 0,
+  "html": "<html>",
+  "i": 0,
+  "num": 1,
+  "some_val": 1
+}"#.to_owned()
+    );
+}
+
+#[test]
+fn render_magic_variable_macro_doesnt_leak() {
+    let mut context = Context::new();
+    context.insert("html", &"<html>");
+    context.insert("num", &1);
+    context.insert("i", &10);
+
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("macros", "{% macro hello(arg=1) %}{{ __tera_context }}{% endmacro hello %}"),
+        ("tpl", "{% import \"macros\" as macros %}{{macros::hello()}}"),
+    ]).unwrap();
+    let result = tera.render("tpl", &context);
+
+    assert_eq!(
+        result.unwrap(),
+        r#"{
+  "arg": 1,
+}"#.to_owned()
+    );
+}

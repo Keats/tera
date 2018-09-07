@@ -1,6 +1,7 @@
 use std::borrow::Cow;
+use std::collections::HashMap;
 
-use serde_json::Value;
+use serde_json::{to_value, Value};
 
 use context::get_json_pointer;
 use errors::Result;
@@ -180,6 +181,32 @@ impl<'a> CallStack<'a> {
     }
 
     pub fn current_context_cloned(self: &Self) -> Value {
-        self.context.inner.clone()
+        let mut context = HashMap::new();
+
+        // and add specific context
+        for frame in &self.stack {
+            context.extend(frame.context_owned());
+            if let Some(ref for_loop) = frame.for_loop {
+                context.insert(for_loop.value_name.to_string(), for_loop.get_current_value().into_owned());
+                if for_loop.is_key_value() {
+                    context.insert(for_loop.key_name.clone().unwrap(), Value::String(for_loop.get_current_key()));
+                }
+            }
+            // Macros don't have access to the user context, we're done
+            if frame.kind == FrameType::Macro {
+                return to_value(&context).unwrap();
+            }
+        }
+
+        match self.context.inner.clone() {
+            Value::Object(mut m) => {
+                for (key, val) in context {
+                    m.insert(key.to_string(), val);
+                }
+
+                Value::Object(m)
+            },
+            _ => unreachable!("Had a context that wasn't a map?!")
+        }
     }
 }

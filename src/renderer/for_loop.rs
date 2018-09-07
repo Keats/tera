@@ -133,6 +133,8 @@ impl<'a> ForLoop<'a> {
         self.state = ForLoopState::Normal;
     }
 
+    pub fn is_key_value(&self) -> bool { self.kind == ForLoopKind::KeyValue }
+
     #[inline]
     pub fn break_loop(&mut self) {
         self.state = ForLoopState::Break;

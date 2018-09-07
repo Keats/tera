@@ -182,4 +182,14 @@ impl<'a> StackFrame<'a> {
     pub fn insert(&mut self, key: &'a str, value: Val<'a>) {
         self.context.insert(key, value);
     }
+
+    pub fn context_owned(&self) -> HashMap<String, Value> {
+        let mut context = HashMap::new();
+
+        for (key, val) in &self.context {
+            context.insert(key.to_string(), val.clone().into_owned());
+        }
+
+        context
+    }
 }

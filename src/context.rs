@@ -161,11 +161,11 @@ mod tests {
     #[test]
     fn test_extend() {
         let mut target = Context::new();
-        target.add("a", &1);
-        target.add("b", &2);
+        target.insert("a", &1);
+        target.insert("b", &2);
         let mut source = Context::new();
-        source.add("b", &3);
-        source.add("c", &4);
+        source.insert("b", &3);
+        source.insert("c", &4);
         target.extend(source);
         assert_eq!(*target.data.get("a").unwrap(), to_value(1).unwrap());
         assert_eq!(*target.data.get("b").unwrap(), to_value(3).unwrap());

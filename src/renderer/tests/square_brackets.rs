@@ -14,7 +14,7 @@ struct Test {
 fn test_var_access_by_square_brackets() {
     let mut context = Context::new();
     context
-        .add("var", &Test { a: "hi".into(), b: "i_am_actually_b".into(), c: vec!["fred".into()] });
+        .insert("var", &Test { a: "hi".into(), b: "i_am_actually_b".into(), c: vec!["fred".into()] });
     context.insert("zero", &0);
     context.insert("a", "b");
 
