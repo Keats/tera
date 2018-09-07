@@ -4,6 +4,7 @@
 
 - Remove invalid `unreachable!` call causing panic in some combination or for loop and specific filters
 - Fix macros loading in parent templates and using them in child ones
+- Fix macros loading other macros not working when called in inheritance
 - Mark `Context::add` as deprecated and do not display it in the docs anymore (aka TIL the `deprecated` attribute)
 - Fix `__tera_context` not getting all the available context (`set`, `forloop` etc)
 

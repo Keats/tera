@@ -187,9 +187,15 @@ impl<'a> CallStack<'a> {
         for frame in &self.stack {
             context.extend(frame.context_owned());
             if let Some(ref for_loop) = frame.for_loop {
-                context.insert(for_loop.value_name.to_string(), for_loop.get_current_value().into_owned());
+                context.insert(
+                    for_loop.value_name.to_string(),
+                    for_loop.get_current_value().into_owned(),
+                );
                 if for_loop.is_key_value() {
-                    context.insert(for_loop.key_name.clone().unwrap(), Value::String(for_loop.get_current_key()));
+                    context.insert(
+                        for_loop.key_name.clone().unwrap(),
+                        Value::String(for_loop.get_current_key()),
+                    );
                 }
             }
             // Macros don't have access to the user context, we're done
@@ -205,8 +211,8 @@ impl<'a> CallStack<'a> {
                 }
 
                 Value::Object(m)
-            },
-            _ => unreachable!("Had a context that wasn't a map?!")
+            }
+            _ => unreachable!("Had a context that wasn't a map?!"),
         }
     }
 }

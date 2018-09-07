@@ -919,7 +919,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::block_start => "`{{`, `{%` or `{#`".to_string(),
                     Rule::import_macro_tag => r#"an import macro tag (`{% import "filename" as namespace %}`"#.to_string(),
                     Rule::block | Rule::block_tag => r#"a block tag (`{% block block_name %}`"#.to_string(),
-                    Rule::endblock_tag => r#"an enblock tag (`{% endblock block_name %}`"#.to_string(),
+                    Rule::endblock_tag => r#"an endblock tag (`{% endblock block_name %}`"#.to_string(),
                     Rule::macro_definition
                     | Rule::macro_tag => r#"a macro definition tag (`{% macro my_macro() %}`"#.to_string(),
                     Rule::extends_tag => r#"an extends tag (`{% extends "myfile" %}`"#.to_string(),

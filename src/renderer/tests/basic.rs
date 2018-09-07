@@ -573,7 +573,7 @@ fn render_magic_variable_macro_doesnt_leak() {
     assert_eq!(
         result.unwrap(),
         r#"{
-  "arg": 1,
+  "arg": 1
 }"#.to_owned()
     );
 }
