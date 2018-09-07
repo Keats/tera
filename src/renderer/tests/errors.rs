@@ -107,7 +107,7 @@ fn error_out_of_range_index() {
 
     assert_eq!(
         result.unwrap_err().iter().nth(1).unwrap().description(),
-        "Variable `arr[10]` not found in context while rendering \'tpl\'"
+        "Variable `arr[10]` not found in context while rendering \'tpl\': the evaluated version was `arr.10`. Maybe the index is out of bounds?"
     );
 }
 

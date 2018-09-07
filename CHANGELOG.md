@@ -7,6 +7,7 @@
 - Fix macros loading other macros not working when called in inheritance
 - Mark `Context::add` as deprecated and do not display it in the docs anymore (aka TIL the `deprecated` attribute)
 - Fix `__tera_context` not getting all the available context (`set`, `forloop` etc)
+- Better error message when variable indexing fails
 
 ## 0.11.14 (2018-09-02)
 
