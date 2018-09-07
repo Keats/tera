@@ -15,16 +15,16 @@ fn test_var_access_by_square_brackets() {
     let mut context = Context::new();
     context
         .add("var", &Test { a: "hi".into(), b: "i_am_actually_b".into(), c: vec!["fred".into()] });
-    context.add("zero", &0);
-    context.add("a", "b");
+    context.insert("zero", &0);
+    context.insert("a", "b");
 
     let mut map = HashMap::new();
     map.insert("true", "yes");
     map.insert("false", "no");
     let mut deep_map = HashMap::new();
     deep_map.insert("inner_map", &map);
-    context.add("deep_map", &deep_map);
-    context.add("bool_vec", &vec!["true", "false"]);
+    context.insert("deep_map", &deep_map);
+    context.insert("bool_vec", &vec!["true", "false"]);
 
     let inputs = vec![
         ("{{var.a}}", "hi"),
@@ -45,7 +45,7 @@ fn test_var_access_by_square_brackets() {
 #[test]
 fn test_var_access_by_square_brackets_errors() {
     let mut context = Context::new();
-    context.add("var", &Test { a: "hi".into(), b: "there".into(), c: vec![] });
+    context.insert("var", &Test { a: "hi".into(), b: "there".into(), c: vec![] });
     let t = Tera::one_off("{{var[csd]}}", &context, true);
     assert!(t.is_err(), "Access of csd should be impossible");
 }

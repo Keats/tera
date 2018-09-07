@@ -22,13 +22,8 @@ impl Context {
         Context { data: BTreeMap::new() }
     }
 
-    /// Converts the `val` parameter to `Value` and insert it into the context
-    ///
-    /// ```rust,ignore
-    /// let mut context = Context::new();
-    /// // user is an instance of a struct implementing `Serialize`
-    /// context.add("number_users", 42);
-    /// ```
+    #[doc(hidden)]
+    #[deprecated(since="0.11.15", note="Use `insert` instead to keep consistency with std collections")]
     pub fn add<T: Serialize + ?Sized>(&mut self, key: &str, val: &T) {
         self.data.insert(key.to_owned(), to_value(val).unwrap());
     }
@@ -54,11 +49,11 @@ impl Context {
     ///
     /// ```rust,ignore
     /// let mut target = Context::new();
-    /// target.add("a", 1);
-    /// target.add("b", 2);
+    /// target.insert("a", 1);
+    /// target.insert("b", 2);
     /// let mut source = Context::new();
-    /// source.add("b", 3);
-    /// source.add("d", 4);
+    /// source.insert("b", 3);
+    /// source.insert("d", 4);
     /// target.extend(source);
     /// ```
     pub fn extend(&mut self, mut source: Context) {

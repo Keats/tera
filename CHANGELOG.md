@@ -4,6 +4,7 @@
 
 - Remove invalid `unreachable!` call causing panic in some combination or for loop and specific filters
 - Fix macros loading in parent templates and using them in child ones
+- Mark `Context::add` as deprecated and do not display it in the docs
 
 ## 0.11.14 (2018-09-02)
 

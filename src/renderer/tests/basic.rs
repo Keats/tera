@@ -56,13 +56,13 @@ fn render_variable_block_lit_expr() {
 #[test]
 fn render_variable_block_ident() {
     let mut context = Context::new();
-    context.add("name", &"john");
-    context.add("malicious", &"<html>");
-    context.add("a", &2);
-    context.add("b", &3);
-    context.add("numbers", &vec![1, 2, 3]);
-    context.add("tuple_list", &vec![(1, 2, 3), (1, 2, 3)]);
-    context.add("review", &Review::new());
+    context.insert("name", &"john");
+    context.insert("malicious", &"<html>");
+    context.insert("a", &2);
+    context.insert("b", &3);
+    context.insert("numbers", &vec![1, 2, 3]);
+    context.insert("tuple_list", &vec![(1, 2, 3), (1, 2, 3)]);
+    context.insert("review", &Review::new());
 
     let inputs = vec![
         ("{{ name }}", "john"),
@@ -113,12 +113,12 @@ fn render_variable_block_ident() {
 #[test]
 fn render_variable_block_logic_expr() {
     let mut context = Context::new();
-    context.add("name", &"john");
-    context.add("malicious", &"<html>");
-    context.add("a", &2);
-    context.add("b", &3);
-    context.add("numbers", &vec![1, 2, 3]);
-    context.add("tuple_list", &vec![(1, 2, 3), (1, 2, 3)]);
+    context.insert("name", &"john");
+    context.insert("malicious", &"<html>");
+    context.insert("a", &2);
+    context.insert("b", &3);
+    context.insert("numbers", &vec![1, 2, 3]);
+    context.insert("tuple_list", &vec![(1, 2, 3), (1, 2, 3)]);
 
     let inputs = vec![
         ("{{ (1.9 + a) | round > 10 }}", "false"),
@@ -141,8 +141,8 @@ fn render_variable_block_logic_expr() {
 #[test]
 fn render_variable_block_autoescaping_disabled() {
     let mut context = Context::new();
-    context.add("name", &"john");
-    context.add("malicious", &"<html>");
+    context.insert("name", &"john");
+    context.insert("malicious", &"<html>");
 
     let inputs = vec![
         ("{{ name }}", "john"),
@@ -177,8 +177,8 @@ fn comments_are_ignored() {
 #[test]
 fn filter_args_are_not_escaped() {
     let mut context = Context::new();
-    context.add("my_var", &"hey");
-    context.add("to", &"&");
+    context.insert("my_var", &"hey");
+    context.insert("to", &"&");
     let input = r#"{{ my_var | replace(from="h", to=to) }}"#;
 
     assert_eq!(render_template(input, &context).unwrap(), "&ey");
@@ -212,10 +212,10 @@ fn render_raw_tag() {
 #[test]
 fn add_set_values_in_context() {
     let mut context = Context::new();
-    context.add("my_var", &"hey");
-    context.add("malicious", &"<html>");
-    context.add("admin", &true);
-    context.add("num", &1);
+    context.insert("my_var", &"hey");
+    context.insert("malicious", &"<html>");
+    context.insert("admin", &true);
+    context.insert("num", &1);
 
     let inputs = vec![
         ("{% set i = 1 %}{{ i }}", "1"),
@@ -263,10 +263,10 @@ fn render_filter_section() {
 #[test]
 fn render_if_elif_else() {
     let mut context = Context::new();
-    context.add("is_true", &true);
-    context.add("is_false", &false);
-    context.add("age", &18);
-    context.add("numbers", &vec![1, 2, 3]);
+    context.insert("is_true", &true);
+    context.insert("is_false", &false);
+    context.insert("age", &18);
+    context.insert("numbers", &vec![1, 2, 3]);
 
     let inputs = vec![
         ("{% if is_true %}Admin{% endif %}", "Admin"),
@@ -316,12 +316,12 @@ fn render_for() {
     map.insert("name", "bob");
     map.insert("age", "18");
 
-    context.add("data", &vec![1, 2, 3]);
-    context.add("notes", &vec![1, 2, 3]);
-    context.add("vectors", &vec![vec![0, 3, 6], vec![1, 4, 7]]);
-    context.add("vectors_some_empty", &vec![vec![0, 3, 6], vec![], vec![1, 4, 7]]);
-    context.add("map", &map);
-    context.add("truthy", &2);
+    context.insert("data", &vec![1, 2, 3]);
+    context.insert("notes", &vec![1, 2, 3]);
+    context.insert("vectors", &vec![vec![0, 3, 6], vec![1, 4, 7]]);
+    context.insert("vectors_some_empty", &vec![vec![0, 3, 6], vec![], vec![1, 4, 7]]);
+    context.insert("map", &map);
+    context.insert("truthy", &2);
 
     let inputs = vec![
         ("{% for i in data %}{{i}}{% endfor %}", "123"),
@@ -390,7 +390,7 @@ fn render_for() {
 #[test]
 fn render_magic_variable_isnt_escaped() {
     let mut context = Context::new();
-    context.add("html", &"<html>");
+    context.insert("html", &"<html>");
 
     let result = render_template("{{ __tera_context }}", &context);
 
@@ -406,7 +406,7 @@ fn render_magic_variable_isnt_escaped() {
 #[test]
 fn ok_many_variable_blocks() {
     let mut context = Context::new();
-    context.add("username", &"bob");
+    context.insert("username", &"bob");
 
     let mut tpl = String::new();
     for _ in 0..200 {
@@ -422,8 +422,8 @@ fn ok_many_variable_blocks() {
 #[test]
 fn can_set_variable_in_global_context_in_forloop() {
     let mut context = Context::new();
-    context.add("tags", &vec![1, 2, 3]);
-    context.add("default", &"default");
+    context.insert("tags", &vec![1, 2, 3]);
+    context.insert("default", &"default");
 
     let result = render_template(
         r#"
@@ -441,7 +441,7 @@ fn can_set_variable_in_global_context_in_forloop() {
 #[test]
 fn default_filter_works() {
     let mut context = Context::new();
-    context.add("existing", "hello");
+    context.insert("existing", "hello");
 
     let inputs = vec![
         (r#"{{ existing | default(value="hey") }}"#, "hello"),
@@ -467,7 +467,7 @@ fn filter_filter_works() {
     };
 
     let mut context = Context::new();
-    context.add("authors", &vec![Author { id: 1 }, Author { id: 2 }, Author { id: 3 }]);
+    context.insert("authors", &vec![Author { id: 1 }, Author { id: 2 }, Author { id: 3 }]);
 
     let inputs =
         vec![(r#"{{ authors | filter(attribute="id", value=1) | first | get(key="id") }}"#, "1")];
@@ -481,8 +481,8 @@ fn filter_filter_works() {
 #[test]
 fn can_concat_strings() {
     let mut context = Context::new();
-    context.add("a_string", "hello");
-    context.add("another_string", "xXx");
+    context.insert("a_string", "hello");
+    context.insert("another_string", "xXx");
 
     let inputs = vec![
         (r#"{{ "hello" ~ " world" }}"#, "hello world"),
@@ -500,7 +500,7 @@ fn can_concat_strings() {
 #[test]
 fn can_fail_rendering_from_template() {
     let mut context = Context::new();
-    context.add("title", "hello");
+    context.insert("title", "hello");
     let res = render_template(
         r#"{{ throw(message="Error: " ~ title ~ " did not include a summary") }}"#,
         &context,
