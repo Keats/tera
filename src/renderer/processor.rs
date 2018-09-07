@@ -30,6 +30,7 @@ fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<S
                 bail!(format!("Variable {} can not be evaluated because: {}", key, e));
             }
             Ok(post_var) => {
+                println!("{:?}", post_var);
                 let post_var_as_str = match *post_var {
                     Value::String(ref s) => s.to_string(),
                     Value::Number(ref n) => n.to_string(),

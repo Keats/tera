@@ -11,7 +11,7 @@ struct Test {
 }
 
 #[test]
-fn test_var_access_by_square_brackets() {
+fn var_access_by_square_brackets() {
     let mut context = Context::new();
     context.insert(
         "var",
@@ -45,9 +45,22 @@ fn test_var_access_by_square_brackets() {
 }
 
 #[test]
-fn test_var_access_by_square_brackets_errors() {
+fn var_access_by_square_brackets_errors() {
     let mut context = Context::new();
     context.insert("var", &Test { a: "hi".into(), b: "there".into(), c: vec![] });
     let t = Tera::one_off("{{var[csd]}}", &context, true);
     assert!(t.is_err(), "Access of csd should be impossible");
+}
+
+// https://github.com/Keats/tera/issues/334
+#[test]
+fn var_access_by_loop_index() {
+    let context = Context::new();
+    let res = Tera::one_off(r#"
+{% set ics = ["fa-rocket","fa-paper-plane","fa-diamond","fa-signal"] %}
+{% for a in ics %}
+{{ ics[loop.index0] }}
+{% endfor %}
+    "#, &context, true);
+    assert!(res.is_ok());
 }
