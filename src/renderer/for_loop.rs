@@ -105,10 +105,36 @@ impl<'a> ForLoop<'a> {
         }
     }
 
+    pub fn from_object_owned(key_name: &str, value_name: &str, object: Value) -> Self {
+        let object_values = match object {
+            Value::Object(c) => c,
+            _ => unreachable!(
+                "Tried to create a Forloop from an object owned but it wasn't an object"
+            ),
+        };
+        let mut values = Vec::with_capacity(object_values.len());
+        for (k, v) in object_values {
+            values.push((k.to_string(), Cow::Owned(v)));
+        }
+
+        ForLoop {
+            key_name: Some(key_name.to_string()),
+            value_name: value_name.to_string(),
+            current: 0,
+            values: ForLoopValues::Object(values),
+            kind: ForLoopKind::KeyValue,
+            state: ForLoopState::Normal,
+        }
+    }
+
     #[inline]
     pub fn increment(&mut self) {
         self.current += 1;
         self.state = ForLoopState::Normal;
+    }
+
+    pub fn is_key_value(&self) -> bool {
+        self.kind == ForLoopKind::KeyValue
     }
 
     #[inline]

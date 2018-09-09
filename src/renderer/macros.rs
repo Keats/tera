@@ -36,8 +36,6 @@ impl<'a> MacroCollection<'a> {
     /// happen recursively. We need all of the macros loaded in one go to be in the same
     /// HashMap for easy popping as well, otherwise there could be stray macro
     /// definitions remaining
-    /// TODO: add checks while building Tera that all the template files with macros are loaded
-    /// so we can get rid of Result here
     pub fn add_macros_from_template(
         self: &mut Self,
         tera: &'a Tera,
@@ -58,6 +56,15 @@ impl<'a> MacroCollection<'a> {
             let macro_tpl = tera.get_template(filename)?;
             macro_namespace_map.insert(namespace, (filename, &macro_tpl.macros));
             self.add_macros_from_template(tera, macro_tpl)?;
+
+            // We need to load the macros loaded in our macros in our namespace as well, unless we override it
+            for (namespace, m) in &self.macros[&macro_tpl.name.as_ref()].clone() {
+                if macro_namespace_map.contains_key(namespace) {
+                    continue;
+                }
+                // We inserted before so we're safe
+                macro_namespace_map.insert(namespace, *m);
+            }
         }
 
         self.macros.insert(template_name, macro_namespace_map);
@@ -66,6 +73,15 @@ impl<'a> MacroCollection<'a> {
             let parent = &parent[..];
             let parent_template = tera.get_template(parent)?;
             self.add_macros_from_template(tera, parent_template)?;
+
+            // We need to load the parent macros in our namespace as well, unless we override it
+            for (namespace, m) in &self.macros[parent].clone() {
+                if self.macros[template_name].contains_key(namespace) {
+                    continue;
+                }
+                // We inserted before so we're safe
+                self.macros.get_mut(template_name).unwrap().insert(namespace, *m);
+            }
         }
 
         Ok(())

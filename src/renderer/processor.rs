@@ -69,11 +69,24 @@ fn process_path<'a>(path: &str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
 
     match call_stack.lookup(full_path.as_ref()) {
         Some(v) => Ok(v),
-        None => bail!(
-            "Variable `{}` not found in context while rendering '{}'",
-            path,
-            call_stack.active_template().name
-        ),
+        None => {
+            if path == full_path {
+                bail!(
+                    "Variable `{}` not found in context while rendering '{}'",
+                    path,
+                    call_stack.active_template().name
+                )
+            } else {
+                // we had to evaluate sub-variables
+                bail!(
+                    "Variable `{}` not found in context while rendering '{}': \
+                    the evaluated version was `{}`. Maybe the index is out of bounds?",
+                    path,
+                    call_stack.active_template().name,
+                    full_path,
+                )
+            }
+        }
     }
 }
 
@@ -174,14 +187,16 @@ impl<'a> Processor<'a> {
                         container_name,
                     );
                 }
-                ForLoop::from_object(
-                    &for_loop.key.as_ref().unwrap(),
-                    &for_loop.value,
-                    match container_val {
-                        Cow::Borrowed(c) => c,
-                        Cow::Owned(_) => unreachable!(),
-                    },
-                )
+                match container_val {
+                    Cow::Borrowed(c) => {
+                        ForLoop::from_object(&for_loop.key.as_ref().unwrap(), &for_loop.value, c)
+                    }
+                    Cow::Owned(c) => ForLoop::from_object_owned(
+                        &for_loop.key.as_ref().unwrap(),
+                        &for_loop.value,
+                        c,
+                    ),
+                }
             }
             _ => bail!(
                 "Tried to iterate on a container (`{}`) that has a unsupported type",

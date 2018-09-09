@@ -10,12 +10,12 @@ use common::{Product, Review};
 fn render_tpl(tpl_name: &str) -> Result<String> {
     let tera = Tera::new("tests/render-failures/**/*").unwrap();
     let mut context = Context::new();
-    context.add("product", &Product::new());
-    context.add("username", &"bob");
-    context.add("friend_reviewed", &true);
-    context.add("number_reviews", &2);
-    context.add("show_more", &true);
-    context.add("reviews", &vec![Review::new(), Review::new()]);
+    context.insert("product", &Product::new());
+    context.insert("username", &"bob");
+    context.insert("friend_reviewed", &true);
+    context.insert("number_reviews", &2);
+    context.insert("show_more", &true);
+    context.insert("reviews", &vec![Review::new(), Review::new()]);
 
     tera.render(tpl_name, &context)
 }

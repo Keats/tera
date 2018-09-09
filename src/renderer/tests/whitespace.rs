@@ -4,7 +4,7 @@ use tera::Tera;
 #[test]
 fn can_remove_whitespace_basic() {
     let mut context = Context::new();
-    context.add("numbers", &vec![1, 2, 3]);
+    context.insert("numbers", &vec![1, 2, 3]);
 
     let inputs = vec![
         ("  {%- for n in numbers %}{{n}}{% endfor -%} ", "123"),
@@ -31,7 +31,7 @@ fn can_remove_whitespace_basic() {
 #[test]
 fn can_remove_whitespace_include() {
     let mut context = Context::new();
-    context.add("numbers", &vec![1, 2, 3]);
+    context.insert("numbers", &vec![1, 2, 3]);
 
     let inputs = vec![
         (r#"Hi {%- include "include" -%} "#, "HiIncluded"),
@@ -49,7 +49,7 @@ fn can_remove_whitespace_include() {
 #[test]
 fn can_remove_whitespace_macros() {
     let mut context = Context::new();
-    context.add("numbers", &vec![1, 2, 3]);
+    context.insert("numbers", &vec![1, 2, 3]);
 
     let inputs = vec![
         (r#" {%- import "macros" as macros -%} {{macros::hey()}}"#, "Hey!"),
@@ -70,7 +70,7 @@ fn can_remove_whitespace_macros() {
 #[test]
 fn can_remove_whitespace_inheritance() {
     let mut context = Context::new();
-    context.add("numbers", &vec![1, 2, 3]);
+    context.insert("numbers", &vec![1, 2, 3]);
 
     let inputs = vec![
         (r#"{%- extends "base" -%} {% block content %}{{super()}}{% endblock %}"#, " Hey! "),

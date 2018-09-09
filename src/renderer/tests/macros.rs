@@ -22,7 +22,7 @@ fn render_macros() {
 #[test]
 fn render_macros_expression_arg() {
     let mut context = Context::new();
-    context.add("pages", &vec![1, 2, 3, 4, 5]);
+    context.insert("pages", &vec![1, 2, 3, 4, 5]);
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![
         ("macros", "{% macro hello(val)%}{{val}}{% endmacro hello %}"),
@@ -88,7 +88,7 @@ fn macro_param_arent_escaped() {
         ("hello.html", r#"{% import "macros.html" as macros %}{{ macros::print(val=my_var)}}"#),
     ]).unwrap();
     let mut context = Context::new();
-    context.add("my_var", &"&");
+    context.insert("my_var", &"&");
     let result = tera.render("hello.html", &context);
 
     assert_eq!(result.unwrap(), "&".to_string());
@@ -158,7 +158,7 @@ fn recursive_macro_with_loops() {
         numbers: vec![1, 2, 3],
     };
     let mut context = Context::new();
-    context.add("objects", &vec![child]);
+    context.insert("objects", &vec![child]);
     let mut tera = Tera::default();
 
     tera.add_raw_templates(vec![
@@ -249,6 +249,35 @@ fn can_load_macro_in_child() {
     assert_eq!(result.unwrap(), "1".to_string());
 }
 
+// https://github.com/Keats/tera/issues/333
+// this test fails in 0.11.14, worked in 0.11.10
+#[test]
+fn can_inherit_macro_import_from_parent() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("macros", "{% macro hello()%}HELLO{% endmacro hello %}"),
+        ("parent", "{% import \"macros\" as macros %}{% block bob %}parent{% endblock bob %}"),
+        ("child", "{% extends \"parent\" %}{% block bob %}{{macros::hello()}}{% endblock bob %}"),
+    ]).unwrap();
+
+    let result = tera.render("child", &Context::default());
+    assert_eq!(result.unwrap(), "HELLO".to_string());
+}
+
+#[test]
+fn can_inherit_macro_import_from_grandparent() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("macros", "{% macro hello()%}HELLO{% endmacro hello %}"),
+        ("grandparent", "{% import \"macros\" as macros %}{% block bob %}grandparent{% endblock bob %}"),
+        ("parent", "{% extends \"grandparent\" %}{% import \"macros\" as macros2 %}{% block bob %}parent{% endblock bob %}"),
+        ("child", "{% extends \"parent\" %}{% block bob %}{{macros::hello()}}-{{macros2::hello()}}{% endblock bob %}"),
+    ]).unwrap();
+
+    let result = tera.render("child", &Context::default());
+    assert_eq!(result.unwrap(), "HELLO-HELLO".to_string());
+}
+
 #[test]
 fn can_load_macro_in_parent_with_grandparent() {
     let mut tera = Tera::default();
@@ -262,4 +291,19 @@ fn can_load_macro_in_parent_with_grandparent() {
     let result = tera.render("child", &Context::new());
 
     assert_eq!(result.unwrap(), "1 - Hey".to_string());
+}
+
+#[test]
+fn macro_can_load_macro_from_macro_files() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("submacros", "{% macro emma() %}Emma{% endmacro emma %}"),
+        ("macros", "{% import \"submacros\" as submacros %}{% macro hommage() %}{{ submacros::emma() }} was an amazing person!{% endmacro hommage %}"),
+        ("parent", "{% block main %}Someone was a terrible person!{% endblock main %} Don't you think?"),
+        ("child", "{% extends \"parent\" %}{% import \"macros\" as macros %}{% block main %}{{ macros::hommage() }}{% endblock main %}")
+    ]).unwrap();
+
+    let result = tera.render("child", &Context::new());
+    //println!("{:#?}", result);
+    assert_eq!(result.unwrap(), "Emma was an amazing person! Don't you think?".to_string());
 }

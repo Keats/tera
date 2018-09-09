@@ -101,13 +101,13 @@ fn error_out_of_range_index() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![("tpl", "{{ arr[10] }}")]).unwrap();
     let mut context = Context::new();
-    context.add("arr", &[1, 2, 3]);
+    context.insert("arr", &[1, 2, 3]);
 
     let result = tera.render("tpl", &Context::new());
 
     assert_eq!(
         result.unwrap_err().iter().nth(1).unwrap().description(),
-        "Variable `arr[10]` not found in context while rendering \'tpl\'"
+        "Variable `arr[10]` not found in context while rendering \'tpl\': the evaluated version was `arr.10`. Maybe the index is out of bounds?"
     );
 }
 
@@ -116,7 +116,7 @@ fn error_unknown_index_variable() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![("tpl", "{{ arr[a] }}")]).unwrap();
     let mut context = Context::new();
-    context.add("arr", &[1, 2, 3]);
+    context.insert("arr", &[1, 2, 3]);
 
     let result = tera.render("tpl", &Context::new());
 
@@ -132,8 +132,8 @@ fn error_invalid_type_index_variable() {
     tera.add_raw_templates(vec![("tpl", "{{ arr[a] }}")]).unwrap();
 
     let mut context = Context::new();
-    context.add("arr", &[1, 2, 3]);
-    context.add("a", &true);
+    context.insert("arr", &[1, 2, 3]);
+    context.insert("a", &true);
 
     let result = tera.render("tpl", &context);
 
@@ -146,9 +146,10 @@ fn error_invalid_type_index_variable() {
 #[test]
 fn error_when_missing_macro_templates() {
     let mut tera = Tera::default();
-    let result = tera.add_raw_templates(vec![
-        ("parent", "{% import \"macros\" as macros %}{{ macros::hello() }}{% block bob %}{% endblock bob %}"),
-    ]);
+    let result = tera.add_raw_templates(vec![(
+        "parent",
+        "{% import \"macros\" as macros %}{{ macros::hello() }}{% block bob %}{% endblock bob %}",
+    )]);
     assert_eq!(
         result.unwrap_err().iter().nth(0).unwrap().description(),
         "Template `parent` loads macros from `macros` which isn\'t present in Tera"

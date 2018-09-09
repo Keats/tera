@@ -277,7 +277,11 @@ impl Tera {
         for template in self.templates.values() {
             for &(ref tpl_name, _) in &template.imported_macro_files {
                 if !self.templates.contains_key(tpl_name) {
-                    bail!("Template `{}` loads macros from `{}` which isn't present in Tera", template.name, tpl_name);
+                    bail!(
+                        "Template `{}` loads macros from `{}` which isn't present in Tera",
+                        template.name,
+                        tpl_name
+                    );
                 }
             }
         }
@@ -294,7 +298,7 @@ impl Tera {
     /// ```rust,ignore
     /// // Rendering a template with a normal context
     /// let mut context = Context::new();
-    /// context.add("age", 18);
+    /// context.insert("age", 18);
     /// tera.render("hello.html", &context);
     /// // Rendering a template with a struct that impl `Serialize`
     /// tera.render("hello.html", &product);
@@ -326,7 +330,7 @@ impl Tera {
     ///
     /// ```rust,ignore
     /// let mut context = Context::new();
-    /// context.add("greeting", &"hello");
+    /// context.insert("greeting", &"hello");
     /// Tera::one_off("{{ greeting }} world", &context, true);
     /// // Or with a struct that impl Serialize
     /// Tera::one_off("{{ greeting }} world", &user, true);
@@ -584,7 +588,7 @@ impl Tera {
     /// tera.add_raw_template("foo", "\"{{ content }}\"").unwrap();
     /// tera.autoescape_on(vec!["foo"]);
     /// let mut context = Context::new();
-    /// context.add("content", &"Hello\n\'world\"!");
+    /// context.insert("content", &"Hello\n\'world\"!");
     /// let result = tera.render("foo", &context).unwrap();
     /// assert_eq!(result, r#""Hello\n\'world\"!""#);
     ///```
@@ -796,7 +800,7 @@ mod tests {
     #[test]
     fn test_can_autoescape_one_off_template() {
         let mut context = Context::new();
-        context.add("greeting", &"<p>");
+        context.insert("greeting", &"<p>");
         let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "&lt;p&gt; world");
@@ -805,7 +809,7 @@ mod tests {
     #[test]
     fn test_can_disable_autoescape_one_off_template() {
         let mut context = Context::new();
-        context.add("greeting", &"<p>");
+        context.insert("greeting", &"<p>");
         let result = Tera::one_off("{{ greeting }} world", &context, false).unwrap();
 
         assert_eq!(result, "<p> world");
@@ -833,7 +837,7 @@ mod tests {
         tera.autoescape_on(vec!["foo"]);
         tera.set_escape_fn(escape_c_string);
         let mut context = Context::new();
-        context.add("content", &"Hello\n\'world\"!");
+        context.insert("content", &"Hello\n\'world\"!");
         let result = tera.render("foo", &context).unwrap();
         assert_eq!(result, r#""Hello\n\'world\"!""#);
     }
@@ -847,7 +851,7 @@ mod tests {
         tera.set_escape_fn(no_escape);
         tera.reset_escape_fn();
         let mut context = Context::new();
-        context.add("content", &"Hello\n\'world\"!");
+        context.insert("content", &"Hello\n\'world\"!");
         let result = tera.render("foo", &context).unwrap();
         assert_eq!(result, "Hello\n&#x27;world&quot;!");
     }
