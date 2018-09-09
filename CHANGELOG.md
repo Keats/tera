@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.11.15 (unreleased)
+## 0.11.15 (2018-09-09)
 
 - Remove invalid `unreachable!` call causing panic in some combination or for loop and specific filters
 - Fix macros loading in parent templates and using them in child ones

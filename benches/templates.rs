@@ -24,7 +24,7 @@ pub fn big_table(b: &mut test::Bencher) {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![("big-table.html", BIG_TABLE_TEMPLATE)]).unwrap();
     let mut ctx = Context::new();
-    ctx.add("table", &table);
+    ctx.insert("table", &table);
 
     b.iter(|| tera.render("big-table.html", &ctx));
 }
@@ -46,8 +46,8 @@ pub fn teams(b: &mut test::Bencher) {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![("teams.html", TEAMS_TEMPLATE)]).unwrap();
     let mut ctx = Context::new();
-    ctx.add("year", &2015);
-    ctx.add(
+    ctx.insert("year", &2015);
+    ctx.insert(
         "teams",
         &vec![
             Team { name: "Jiangsu".into(), score: 43 },
