@@ -4,6 +4,18 @@
   padding: 40px;
   display: inline-block;
   vertical-align: top;
+  
+  > ul > li > ul {
+    border-left: 2px solid $main-colour;
+    
+    > li > ul {
+        display: none;
+    }
+    
+    .submenu-open:target + ul {
+        display: block;
+    }
+  }
 
   ul {
     margin: 0;
@@ -21,7 +33,6 @@
 
       ul {
         padding-left: 1rem;
-        border-left: 2px solid $main-colour;
       }
 
       li {
