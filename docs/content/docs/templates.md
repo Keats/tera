@@ -4,6 +4,10 @@ weight = 10
 
 # Templates
 
+## Introduction
+
+### Tera Basics
+
 A Tera template is just a text file where variables and expressions get replaced with values
 when it is rendered. The syntax is based on Jinja2 and Django templates.
 
@@ -13,7 +17,55 @@ There are 3 kinds of delimiter and those cannot be changed:
 - `{%` or `{%-` and `%}` or `-%}` for statements
 - `{#` and `#}` for comments
 
-## Literals
+### Raw
+
+Tera will consider all text inside the `raw` block as a string and won't try to
+render what's inside. Useful if you have text that contains Tera delimiters.
+
+```jinja2
+{% raw %}
+  Hello {{ name }}
+{% endraw %}
+```
+would be rendered as `Hello {{ name }}`.
+
+### Whitespace control
+
+Tera comes with easy to use whitespace control: use `{%-` if you want to remove all whitespace
+before a statement and `-%}` if you want to remove all whitespace after.
+
+For example, let's look at the following template:
+
+```jinja2
+{% set my_var = 2 %}
+{{ my_var }}
+```
+
+will have the following output:
+
+```html
+
+2
+```
+
+If we want to get rid of the empty line, we can write the following:
+
+```jinja2
+{% set my_var = 2 -%}
+{{ my_var }}
+```
+
+### Comments
+To comment out part of the template, wrap it in `{# #}`. Anything in between those tags
+will not be rendered.
+
+```jinja2
+{# A comment #}
+```
+
+## Data structures
+
+### Literals
 
 Tera has a few literals that can be used:
 
@@ -23,9 +75,9 @@ Tera has a few literals that can be used:
 - strings: text delimited by `""`, `''` or backticks
 - arrays: a list of literals and/or idents by `[` and `]` and comma separated (trailing comma allowed)
 
-## Variables
+### Variables
 
-Variables are defined by the context given when rendering a template.
+Variables are defined by the context given when rendering a template. If you'd like to define your own variables, see the [Assignments](#assignments) section.
 
 You can render a variable by using the `{{ name }}`.
 
@@ -33,11 +85,11 @@ Trying to access or render a variable that doesn't exist will result in an error
 
 A magical variable is available in every template if you want to print the current context: `__tera_context`.
 
-### Dot notation:
+#### Dot notation:
 Construct and attributes can be accessed by using the dot (`.`) like `{{ product.name }}`.
 Specific members of an array or tuple are accessed by using the `.i` notation, where i is a zero-based index.
 
-### Square bracket notation:
+#### Square bracket notation:
 A more powerful alternative to (`.`) is to use square brackets (`[ ]`).
 Variables can be rendering using the notation `{{product['name']}}` or `{{product["name"]}}`.
 
@@ -48,11 +100,11 @@ and `my_field = "name"`, calling `{{product[my_field]}}` will resolve to: `{{pro
 Only variables evaluating to String and Number can be used as index: anything else will be
 an error.
 
-## Expressions
+### Expressions
 
 Tera allows expressions almost everywhere.
 
-### Math
+#### Math
 You can do some basic math in Tera but it shouldn't be abused other than the occasional `+ 1` or similar.
 Math operations are only allowed with numbers, using them on any other kind of values will result in an error.
 You can use the following operators:
@@ -68,7 +120,7 @@ The priority of operations is the following, from lowest to highest:
 - `+` and `-`
 - `*` and `/` and `%`
 
-### Comparisons
+#### Comparisons
 
 - `==`: checks whether the values are equal
 - `!=`: checks whether the values are different
@@ -77,13 +129,13 @@ The priority of operations is the following, from lowest to highest:
 - `>`: true if the left value is greater than the right one
 - `<`: true if the right value is greater than the left one
 
-### Logic
+#### Logic
 
 - `and`: true if the left and right operands are true
 - `or`: true if the left or right operands are true
 - `not`: negate a statement
 
-### String concatenation
+#### String concatenation
 
 You can concatenate several strings/idents using the `~` operator
 
@@ -99,7 +151,35 @@ You can concatenate several strings/idents using the `~` operator
 
 An ident resolving to something other than a string will raise an error.
 
-## Filters
+
+## Manipulating data
+
+### Assignments
+You can assign values to variables during the rendering.
+Assignments in for loops and macros are scoped to their context but
+assignments outside of those will be set in the global context.
+
+```jinja2
+{% set my_var = "hello" %}
+{% set my_var = 1 + 4 %}
+{% set my_var = some_var %}
+{% set my_var = macros::some_macro() %}
+{% set my_var = global_fn() %}
+{% set my_var = [1, true, some_var | round] %}
+```
+
+If you want to assign a value in the global context while in a forloop, you can use `set_global`:
+
+```jinja2
+{% set_global my_var = "hello" %}
+{% set_global my_var = 1 + 4 %}
+{% set_global my_var = some_var %}
+{% set_global my_var = macros::some_macro() %}
+{% set_global my_var = global_fn() %}
+{% set_global my_var = [1, true, some_var | round] %}
+```
+
+### Filters
 
 You can modify variables using **filters**.
 Filters are separated from the variable by a pipe symbol (|) and may have named arguments in parentheses.
@@ -129,7 +209,7 @@ While filters can be used in math operations, they will have the lowest priority
 ```
 Tera has many [built-in filters](./docs/templates.md#built-in-filters) that you can use.
 
-### Filter sections
+#### Filter sections
 
 Whole sections can also be processed by filters if they are encapsulated in `{% filter name %}` and `{% endfilter %}`
 tags where `name` is the name of the filter:
@@ -142,7 +222,7 @@ tags where `name` is the name of the filter:
 
 This example transforms the text `Hello` in all upper-case (`HELLO`).
 
-## Tests
+### Tests
 
 Tests can be used against an expression to check some condition on it and
 are made in `if` blocks using the `is` keyword.
@@ -162,7 +242,7 @@ tera.register_tester("odd", testers::odd);
 
 Tera has many [built-in tests](./docs/templates.md#built-in-tests) that you can use.
 
-## Global functions
+### Global functions
 Global functions are Rust code that return a `Result<Value>` from the given params.
 
 Quite often, global functions will need to capture some external variables, such as a `url_for` global function needing
@@ -203,40 +283,10 @@ Currently global functions can be called in two places in templates:
 
 Tera comes with some [built-in global functions](./docs/templates.md#built-in-global-functions).
 
-## Assignments
-You can assign values to variables during the rendering.
-Assignments in for loops and macros are scoped to their context but
-assignments outside of those will be set in the global context.
+## Control structures
 
-```jinja2
-{% set my_var = "hello" %}
-{% set my_var = 1 + 4 %}
-{% set my_var = some_var %}
-{% set my_var = macros::some_macro() %}
-{% set my_var = global_fn() %}
-{% set my_var = [1, true, some_var | round] %}
-```
+### Conditions (If)
 
-If you want to assign a value in the global context while in a forloop, you can use `set_global`:
-
-```jinja2
-{% set_global my_var = "hello" %}
-{% set_global my_var = 1 + 4 %}
-{% set_global my_var = some_var %}
-{% set_global my_var = macros::some_macro() %}
-{% set_global my_var = global_fn() %}
-{% set_global my_var = [1, true, some_var | round] %}
-```
-
-## Comments
-To comment out part of the template, wrap it in `{# #}`. Anything in between those tags
-will not be rendered.
-
-```jinja2
-{# A comment #}
-```
-
-## If
 Conditionals are fully supported and are identical to the ones in Python.
 
 ```jinja2
@@ -261,7 +311,7 @@ presence of a variable in the current context by writing:
 ```
 Every `if` statement has to end with an `endif` tag.
 
-## For
+### Loops (For)
 
 Loop over items in a array:
 ```jinja2
@@ -303,7 +353,7 @@ Lastly, you can iterate on array literals:
 ```
 
 
-### Loop Controls
+#### Loop Controls
 
 Within a loop, `break` and `continue` may be used to control iteration.
 
@@ -324,7 +374,7 @@ To skip even-numbered items:
 {% endfor %}
 ```
 
-## Include
+### Include
 
 You can include a template to be rendered using the current context with the `include` tag.
 
@@ -341,7 +391,7 @@ Tera uses the same kind of inheritance as Jinja2 and Django templates:
 you define a base template and extends it in child templates through blocks.
 There can be multiple levels of inheritance (i.e. A extends B that extends C).
 
-#### Base template
+### Base template
 A base template typically contains the basic document structure as well as
 several `blocks` that can have content.
 
@@ -371,7 +421,7 @@ The only difference with Jinja2 being that the `endblock` tags have to be named.
 This `base.html` template defines 4 `block` tag that child templates can override.
 The `head` and `footer` block have some content already which will be rendered if they are not overridden.
 
-#### Child template
+### Child template
 Again, straight from Jinja2 docs:
 
 ```jinja2
@@ -420,7 +470,9 @@ which also contains a `super()` so we render the `hey` block of the `grandparent
 
 The end result of that rendering (not counting whitespace) will be: "dad says hi and grandma says hello sincerely with love".
 
-## Macros
+## Extending templates
+
+### Macros
 
 Think of macros as functions or components that you can call and return some text.
 Macros currently need to be defined in a separate file and imported to be useable.
@@ -464,71 +516,35 @@ Here's an example of a recursive macro:
 
 Macros body can contain all normal Tera syntax with the exception of macros definition, `block` and `extends`.
 
-## Raw
+## Built-in tools
 
-Tera will consider all text inside the `raw` block as a string and won't try to
-render what's inside. Useful if you have text that contains Tera delimiters.
-
-```jinja2
-{% raw %}
-  Hello {{ name }}
-{% endraw %}
-```
-would be rendered as `Hello {{ name }}`.
-
-## Whitespace control
-
-Tera comes with easy to use whitespace control: use `{%-` if you want to remove all whitespace
-before a statement and `-%}` if you want to remove all whitespace after.
-
-For example, let's look at the following template:
-
-```jinja2
-{% set my_var = 2 %}
-{{ my_var }}
-```
-
-will have the following output:
-
-```html
-
-2
-```
-
-If we want to get rid of the empty line, we can write the following:
-
-```jinja2
-{% set my_var = 2 -%}
-{{ my_var }}
-```
-
-## Built-in filters
+### Built-in filters
 
 Tera has the following filters built-in:
 
-### lower
+#### lower
 Lowercase a string
 
-### wordcount
+#### wordcount
 Returns number of words in a string
 
-### capitalize
+#### capitalize
 Returns the string with all its character lowercased apart from the first char which is uppercased.
 
-### replace
+#### replace
 Takes 2 mandatory string named arguments: `from` and `to`. It will return a string with all instances of
 the `from` string with the `to` string.
 
 Example: `{{ name | replace(from="Robert", to="Bob")}}`
 
-### addslashes
+#### addslashes
 Adds slashes before quotes.
 
 Example: `{{ value | addslashes }}`
 
 If value is "I'm using Tera", the output will be "I\'m using Tera".
 
-### slugify
+#### slugify
 Transform a string into ASCII, lowercase it, trim it, converts spaces to hyphens and
 remove all characters that are not numbers, lowercase letters or hyphens.
 
@@ -536,17 +552,17 @@ Example: `{{ value | slugify }}`
 
 If value is "-Hello world! ", the output will be "hello-world".
 
-### title
+#### title
 Capitalizes each word inside a sentence.
 
 Example: `{{ value | title }}`
 
 If value is "foo  bar", the output will be "Foo  Bar".
 
-### trim
+#### trim
 Remove leading and trailing whitespace if the variable is a string.
 
-### truncate
+#### truncate
 Truncates a string to the indicated length. If the string has a smaller length than
 the `length` argument, the string is returned as is.
 
@@ -556,7 +572,7 @@ By default, the filter will add an ellipsis at the end if the text was truncated
 change the string appended by setting the `end` argument.
 For example, `{{ value | truncate(length=10, end="") }}` will not append anything.
 
-### striptags
+#### striptags
 Tries to remove HTML tags from input. Does not guarantee well formed output if input is not valid HTML.
 
 Example: `{{ value | striptags}}`
@@ -566,28 +582,28 @@ If value is "<b>Joel</b>", the output will be "Joel".
 Note that if the template you using it in is automatically escaped, you will need to call the `safe` filter
 before `striptags`.
 
-### first
+#### first
 Returns the first element of an array.
 If the array is empty, returns empty string.
 
-### last
+#### last
 Returns the last element of an array.
 If the array is empty, returns empty string.
 
-### join
+#### join
 Joins an array with a string.
 
 Example: `{{ value| join(sep=" // ") }}`
 
 If value is the array `['a', 'b', 'c']`, the output will be the string "a // b // c".
 
-### length
+#### length
 Returns the length of an array or a string, 0 if the value is not an array.
 
-### reverse
+#### reverse
 Returns a reversed string or array.
 
-### sort
+#### sort
 Sorts an array into ascending order.
 
 The values in the array must be a sortable type:
@@ -624,7 +640,7 @@ or by age:
 {{ people | sort(attribute="age") }}
 ```
 
-### slice
+#### slice
 Slice an array by the given `start` and `end` parameter. Both parameters are
 optional and omitting them will return the same array.
 Use the `start` argument to define where to start (inclusive, default to `0`)
@@ -637,7 +653,7 @@ and `end` argument to define where to stop (exclusive, default to the length of 
 {% for i in my_arr | slice(start=1, end=5) %}
 ```
 
-### group_by
+#### group_by
 Group an array using the required `attribute` argument. The filter takes an array and return
 a map where the keys are the values of the `attribute` stringified and the values are all elements of
 the initial array having that `attribute`. Values with missing `attribute` or where `attribute` is null
@@ -671,7 +687,7 @@ or by author name:
 {{ posts | sort(attribute="author.name") }}
 ```
 
-### filter
+#### filter
 
 Filter the array values, returning only the values where the `attribute` is equal to the `value`.
 Values with missing `attribute` or where `attribute` is null will be discarded.
@@ -708,7 +724,7 @@ or by author name:
 {{ posts | filter(attribute="author.name", value="Vincent") }}
 ```
 
-### urlencode
+#### urlencode
 Percent-encodes a string.
 
 Example: `{{ value | urlencode }}`
@@ -718,7 +734,7 @@ If value is `/foo?a=b&c=d`, the output will be `/foo%3Fa%3Db%26c%3Dd`.
 Takes an optional argument of characters that shouldn't be percent-encoded (`/` by default).
 So, to encode slashes as well, you can do `{{ value | urlencode(safe="") }}`.
 
-### pluralize
+#### pluralize
 Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
 
 Example: `You have {{ num_messages }} message{{ num_messages|pluralize }}`
@@ -726,7 +742,7 @@ Example: `You have {{ num_messages }} message{{ num_messages|pluralize }}`
 If num_messages is 1, the output will be You have 1 message. If num_messages is 2 the output will be You have 2 messages.
 You can specify the suffix as an argument that way: `{{ num_messages|pluralize(suffix="es") }}`
 
-### round
+#### round
 Returns a number rounded following the method given. Default method is `common` which will round to the nearest integer.
 `ceil` and `floor` are available as alternative methods.
 Another optional argument, `precision`, is available to select the precision of the rounding. It defaults to `0`, which will
@@ -734,19 +750,19 @@ round to the nearest integer for the given method.
 
 Example: `{{ num | round }} {{ num | round(method="ceil", precision=2) }}`
 
-### filesizeformat
+#### filesizeformat
 Returns a human-readable file size (i.e. '110 MB') from an integer.
 
 Example: `{{ num | filesizeformat }}`
 
-### date
+#### date
 Parse a timestamp into a date(time) string. Defaults to `YYYY-MM-DD` format.
 Time formatting syntax is inspired from strftime and a full reference is available
 on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html).
 
 Example: `{{ ts | date }} {{ ts | date(format="%Y-%m-%d %H:%M") }}`
 
-### escape
+#### escape
 Escapes a string's HTML. Specifically, it makes these replacements:
 
 - `&` is converted to `&amp;`
@@ -757,20 +773,20 @@ Escapes a string's HTML. Specifically, it makes these replacements:
 - `/` is converted to `&#x27;`
 - `` ` `` is converted to `&#96;`
 
-### safe
+#### safe
 Mark a variable as safe: HTML will not be escaped anymore.
 Currently the position of the safe filter does not matter, e.g.
 `{{ content | safe | replace(from="Robert", to="Bob") }}` and `{{ content | replace(from="Robert", to="Bob") | safe }}` will output the same thing.
 
-### get
+#### get
 Access a value from an object when the key is not a Tera identifier.
 Example: `{{ sections | get(key="posts/content") }}`
 
-### split
+#### split
 Split a string into an array of strings, separated by a pattern given.
 Example: `{{ path | split(pat="/") }}`
 
-### json_encode
+#### json_encode
 Transforms any value into a JSON representation. This filter is better used together with `safe` or when automatic escape is disabled.
 
 Example: `{{ value | safe | json_encode() }}`
@@ -779,7 +795,7 @@ It accepts a parameter `pretty` (boolean) to print a formatted JSON instead of a
 
 Example: `{{ value | safe | json_encode(pretty=true) }}`
 
-### as_str
+#### as_str
 Returns a string representation of the given value.
 
 Example: `{{ value | as_str }}`
@@ -809,29 +825,29 @@ If you intend to use the default filter to deal with optional values, you should
 aren't set! Otherwise, use a full `if` block. This is especially relevant for dealing with optional arguments
 passed to a macro.
 
-## Built-in tests
+### Built-in tests
 
 Here are the currently built-in tests:
 
-### defined
+#### defined
 Returns true if the given variable is defined.
 
-### undefined
+#### undefined
 Returns true if the given variable is undefined.
 
-### odd
+#### odd
 Returns true if the given variable is an odd number.
 
-### even
+#### even
 Returns true if the given variable is an even number.
 
-### string
+#### string
 Returns true if the given variable is a string.
 
-### number
+#### number
 Returns true if the given variable is a number.
 
-### divisibleby
+#### divisibleby
 Returns true if the given expression is divisible by the arg given.
 
 Example:
@@ -841,10 +857,10 @@ Example:
 {% endif %}
 ```
 
-### iterable
+#### iterable
 Returns true if the given variable can be iterated over in Tera (ie is an array/tuple).
 
-### starting\_with
+#### starting\_with
 Returns true if the given variable is a string starts with the arg given.
 
 Example:
@@ -854,10 +870,10 @@ Example:
 {% endif %}
 ```
 
-### ending\_with
+#### ending\_with
 Returns true if the given variable is a string ends with the arg given.
 
-### containing
+#### containing
 Returns true if the given variable contains the arg given.
 
 The test works on:
@@ -873,7 +889,7 @@ Example:
 {% endif %}
 ```
 
-### matching
+#### matching
 Returns true if the given variable is a string and matches the regex in the argument.
 
 Example:
@@ -889,10 +905,10 @@ Example:
 
 A comprehensive syntax description can be found in the [regex crate documentation](https://docs.rs/regex/).
 
-## Built-in global functions
+### Built-in global functions
 Tera comes with some built-in global functions.
 
-### range
+#### range
 
 Returns an array of integers created using the arguments given.
 There are 3 arguments, all integers:
@@ -902,7 +918,7 @@ There are 3 arguments, all integers:
 - `step_by`: with what number do we increment, defaults to `1`
 
 
-### now
+#### now
 
 Returns the local datetime as string or the timestamp as integer if requested.
 
@@ -914,7 +930,7 @@ There are 2 arguments, both booleans:
 Formatting is not built-in the global function but you can use the `date` filter like so `now() | date(format="%Y")` if you
 wanted to get the current year.
 
-### throw
+#### throw
 
 The template rendering will error with the given message when encountered.
 
