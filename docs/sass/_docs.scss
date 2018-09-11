@@ -8,12 +8,9 @@
   > ul > li > ul {
     border-left: 2px solid $main-colour;
     
-    > li > ul {
-        display: none;
-    }
-    
-    .submenu-open:target + ul {
-        display: block;
+    .submenu-open {
+        + ul { display: none; }
+        &:target + ul { display: block; }
     }
   }
 

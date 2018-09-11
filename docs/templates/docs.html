@@ -8,9 +8,9 @@
         <aside class="docs__sidebar">
             <ul>
                 {% set section = get_section(path="docs/_index.md") %}
-                {% for page in section.pages %}
+                {% for p in section.pages %}
                     {% set index = loop.index %}
-                    {% for h1 in page.toc %}
+                    {% for h1 in p.toc %}
                         <li>
                             <a href="{{ h1.permalink }}">{{ h1.title }}</a>
                             {% if h1.children %}
@@ -19,7 +19,8 @@
                                         {% set index2 = loop.index %}
                                         <li>
                                             <a href="{{ h2.permalink }}">{{ h2.title }}</a>
-                                            {% if h2.children %}<a aria-hidden="true" id="docs-{{ index }}-{{ index2 }}-open" class="submenu-open" href="#docs-{{ index }}-{{ index2 }}-open">(+)</a>
+                                            {% if h2.children %}
+                                                {% if page and page != p %}<a aria-hidden="true" id="docs-{{ index }}-{{ index2 }}-open" class="submenu-open" href="#docs-{{ index }}-{{ index2 }}-open">(+)</a>{% endif %}
                                                 <ul>
                                                     {% for h3 in h2.children %}<li><a href="{{ h3.permalink }}">{{ h3.title }}</a></li>{% endfor %}
                                                 </ul>
