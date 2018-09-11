@@ -285,7 +285,7 @@ Tera comes with some [built-in global functions](./docs/templates.md#built-in-gl
 
 ## Control structures
 
-### Conditions (If)
+### If
 
 Conditionals are fully supported and are identical to the ones in Python.
 
@@ -311,7 +311,7 @@ presence of a variable in the current context by writing:
 ```
 Every `if` statement has to end with an `endif` tag.
 
-### Loops (For)
+### For
 
 Loop over items in a array:
 ```jinja2
@@ -383,7 +383,53 @@ You can include a template to be rendered using the current context with the `in
 ```
 
 Tera doesn't offer passing a custom context to the `include` tag.
-If you want to do that, use [macros](./docs/templates.md#macros).
+If you want to do that, use macros.
+
+
+### Macros
+
+Think of macros as functions or components that you can call and return some text.
+Macros currently need to be defined in a separate file and imported to be useable.
+
+They are defined as follows:
+
+```jinja2
+{% macro input(label, type="text") %}
+    <label>
+        {{ label }}
+        <input type="{{type}}" />
+    </label>
+{% endmacro input %}
+```
+As shown in the example above, macro arguments can have a default [literal](./docs/templates.md#literals) value.
+
+In order to use them, you need to import the file containing the macros:
+
+```jinja2
+{% import "macros.html" as macros %}
+```
+You can name that file namespace (`macros` in the example) anything you want.
+A macro is called like this:
+
+```jinja2
+// namespace::macro_name(**kwargs)
+{{ macros::input(label="Name", type="text") }}
+```
+Do note that macros, like filters, require keyword arguments.
+If you are trying to call a macro defined in the same file or itself, you will need to use the `self` namespace.
+The `self` namespace can only be used in macros.
+Macros can be called recursively but there is no limit to recursion so make sure you macro ends.
+
+Here's an example of a recursive macro:
+
+```jinja2
+{% macro factorial(n) %}
+  {% if n > 1 %}{{ n }} - {{ self::factorial(n=n-1) }}{% else %}1{% endif %}
+{% endmacro factorial %}
+```
+
+Macros body can contain all normal Tera syntax with the exception of macros definition, `block` and `extends`.
+
 
 ## Inheritance
 
@@ -469,52 +515,6 @@ which also contains a `super()` so we render the `hey` block of the `grandparent
 - See `ending` block in `child`, render it and also renders the `ending` block of `parent` as there is a `super()`
 
 The end result of that rendering (not counting whitespace) will be: "dad says hi and grandma says hello sincerely with love".
-
-## Extending templates
-
-### Macros
-
-Think of macros as functions or components that you can call and return some text.
-Macros currently need to be defined in a separate file and imported to be useable.
-
-They are defined as follows:
-
-```jinja2
-{% macro input(label, type="text") %}
-    <label>
-        {{ label }}
-        <input type="{{type}}" />
-    </label>
-{% endmacro input %}
-```
-As shown in the example above, macro arguments can have a default [literal](./docs/templates.md#literals) value.
-
-In order to use them, you need to import the file containing the macros:
-
-```jinja2
-{% import "macros.html" as macros %}
-```
-You can name that file namespace (`macros` in the example) anything you want.
-A macro is called like this:
-
-```jinja2
-// namespace::macro_name(**kwargs)
-{{ macros::input(label="Name", type="text") }}
-```
-Do note that macros, like filters, require keyword arguments.
-If you are trying to call a macro defined in the same file or itself, you will need to use the `self` namespace.
-The `self` namespace can only be used in macros.
-Macros can be called recursively but there is no limit to recursion so make sure you macro ends.
-
-Here's an example of a recursive macro:
-
-```jinja2
-{% macro factorial(n) %}
-  {% if n > 1 %}{{ n }} - {{ self::factorial(n=n-1) }}{% else %}1{% endif %}
-{% endmacro factorial %}
-```
-
-Macros body can contain all normal Tera syntax with the exception of macros definition, `block` and `extends`.
 
 ## Built-in tools
 
@@ -800,7 +800,7 @@ Returns a string representation of the given value.
 
 Example: `{{ value | as_str }}`
 
-### default
+#### default
 Returns the default value given only if the variable evaluated is not present in the context
 and is therefore meant to be at the beginning of a filter chain if there are several filters.
 
