@@ -516,7 +516,7 @@ which also contains a `super()` so we render the `hey` block of the `grandparent
 
 The end result of that rendering (not counting whitespace) will be: "dad says hi and grandma says hello sincerely with love".
 
-## Built-in tools
+## Built-ins
 
 ### Built-in filters
 
