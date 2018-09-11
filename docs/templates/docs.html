@@ -5,7 +5,7 @@
 
 {% block content %}
     <div class="container">
-        <aside class="docs__sidebar">
+        <nav class="docs__sidebar">
             <ul>
                 {% set section = get_section(path="docs/_index.md") %}
                 {% for p in section.pages %}
@@ -20,7 +20,7 @@
                                         <li>
                                             <a href="{{ h2.permalink }}">{{ h2.title }}</a>
                                             {% if h2.children %}
-                                                {% if page and page != p %}<a aria-hidden="true" id="docs-{{ index }}-{{ index2 }}-open" class="submenu-open" href="#docs-{{ index }}-{{ index2 }}-open">(+)</a>{% endif %}
+                                                {% if page and page != p %}<label aria-hidden="true" for="docs-{{ index }}-{{ index2 }}-open">(+)</label><input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-{{ index }}-{{ index2 }}-open"/>{% endif %}
                                                 <ul>
                                                     {% for h3 in h2.children %}<li><a href="{{ h3.permalink }}">{{ h3.title }}</a></li>{% endfor %}
                                                 </ul>
@@ -34,11 +34,11 @@
                 {% endfor %}
             </ul>
 
-        </aside>
-        <div class="docs__content">
+        </nav>
+        <main class="docs__content">
             {% block doc_content %}
                 {{ section.content | safe }}
             {% endblock doc_content %}
-        </div>
+        </main>
     </div>
 {% endblock content %}

@@ -7,11 +7,6 @@
   
   > ul > li > ul {
     border-left: 2px solid $main-colour;
-    
-    .submenu-open {
-        + ul { display: none; }
-        &:target + ul { display: block; }
-    }
   }
 
   ul {
@@ -24,11 +19,8 @@
       margin-bottom: 1rem;
       font-weight: bold;
 
-      a + ul {
-        margin-top: 1rem;
-      }
-
       ul {
+        margin-top: 1rem;
         padding-left: 1rem;
       }
 
@@ -43,6 +35,12 @@
       }
     }
   }
+}
+
+.submenu-open {
+    display: none;
+    + ul { display: none; }
+    &:checked + ul { display: block; }
 }
 
 .docs__content {
