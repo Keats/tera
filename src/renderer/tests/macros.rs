@@ -307,3 +307,40 @@ fn macro_can_load_macro_from_macro_files() {
     //println!("{:#?}", result);
     assert_eq!(result.unwrap(), "Emma was an amazing person! Don't you think?".to_string());
 }
+
+#[test]
+fn macro_can_access_global_context() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("parent", r#"{% import "macros" as macros %}{{ macros::test_global() }}"#),
+        ("macros", r#"{% macro test_global() %}{% set_global value1 = "42" %}{% for i in range(end=1) %}{% set_global value2 = " is the truth." %}{% endfor %}{{ value1 }}{% endmacro test_global %}"#)
+    ]).unwrap();
+
+    let result = tera.render("parent", &Context::new());
+    assert_eq!(result.unwrap(), "42".to_string());
+}
+
+#[test]
+fn template_cant_access_macros_context() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("parent", r#"{% import "macros" as macros %}{{ macros::empty() }}{{ quote | default(value="I'd rather have roses on my table than diamonds on my neck.") }}"#),
+        ("macros", r#"{% macro empty() %}{% set_global quote = "This should not reachable from the calling template!" %}{% endmacro empty %}"#)
+    ]).unwrap();
+
+    let result = tera.render("parent", &Context::new());
+    assert_eq!(result.unwrap(), "I'd rather have roses on my table than diamonds on my neck.");
+}
+
+#[test]
+fn parent_macro_cant_access_child_macro_context() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("parent", "{% import \"macros\" as macros %}{{ macros::test_global() }}"),
+        ("macros", r#"{% import "moremacros" as moremacros %}{% macro test_global() %}{% set_global value1 = "ACAB" %}{{ moremacros::another_one() }}{{ value1 }}-{{ value2 | default(value="ACAB") }}{% endmacro test_global %}"#),
+        ("moremacros", r#"{% macro another_one() %}{% set_global value2 = "1312" %}{% endmacro another_one %}"#)
+    ]).unwrap();
+
+    let result = tera.render("parent", &Context::new());
+    assert_eq!(result.unwrap(), "ACAB-ACAB".to_string());
+}
