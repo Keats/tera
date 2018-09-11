@@ -516,35 +516,33 @@ which also contains a `super()` so we render the `hey` block of the `grandparent
 
 The end result of that rendering (not counting whitespace) will be: "dad says hi and grandma says hello sincerely with love".
 
-## Built-in tools
-
-### Built-in filters
+## Built-in filters
 
 Tera has the following filters built-in:
 
-#### lower
+### lower
 Lowercase a string
 
-#### wordcount
+### wordcount
 Returns number of words in a string
 
-#### capitalize
+### capitalize
 Returns the string with all its character lowercased apart from the first char which is uppercased.
 
-#### replace
+### replace
 Takes 2 mandatory string named arguments: `from` and `to`. It will return a string with all instances of
 the `from` string with the `to` string.
 
 Example: `{{ name | replace(from="Robert", to="Bob")}}`
 
-#### addslashes
+### addslashes
 Adds slashes before quotes.
 
 Example: `{{ value | addslashes }}`
 
 If value is "I'm using Tera", the output will be "I\'m using Tera".
 
-#### slugify
+### slugify
 Transform a string into ASCII, lowercase it, trim it, converts spaces to hyphens and
 remove all characters that are not numbers, lowercase letters or hyphens.
 
@@ -552,17 +550,17 @@ Example: `{{ value | slugify }}`
 
 If value is "-Hello world! ", the output will be "hello-world".
 
-#### title
+### title
 Capitalizes each word inside a sentence.
 
 Example: `{{ value | title }}`
 
 If value is "foo  bar", the output will be "Foo  Bar".
 
-#### trim
+### trim
 Remove leading and trailing whitespace if the variable is a string.
 
-#### truncate
+### truncate
 Truncates a string to the indicated length. If the string has a smaller length than
 the `length` argument, the string is returned as is.
 
@@ -572,7 +570,7 @@ By default, the filter will add an ellipsis at the end if the text was truncated
 change the string appended by setting the `end` argument.
 For example, `{{ value | truncate(length=10, end="") }}` will not append anything.
 
-#### striptags
+### striptags
 Tries to remove HTML tags from input. Does not guarantee well formed output if input is not valid HTML.
 
 Example: `{{ value | striptags}}`
@@ -582,25 +580,25 @@ If value is "<b>Joel</b>", the output will be "Joel".
 Note that if the template you using it in is automatically escaped, you will need to call the `safe` filter
 before `striptags`.
 
-#### first
+### first
 Returns the first element of an array.
 If the array is empty, returns empty string.
 
-#### last
+### last
 Returns the last element of an array.
 If the array is empty, returns empty string.
 
-#### join
+### join
 Joins an array with a string.
 
 Example: `{{ value| join(sep=" // ") }}`
 
 If value is the array `['a', 'b', 'c']`, the output will be the string "a // b // c".
 
-#### length
+### length
 Returns the length of an array or a string, 0 if the value is not an array.
 
-#### reverse
+### reverse
 Returns a reversed string or array.
 
 #### sort
@@ -640,7 +638,7 @@ or by age:
 {{ people | sort(attribute="age") }}
 ```
 
-#### slice
+### slice
 Slice an array by the given `start` and `end` parameter. Both parameters are
 optional and omitting them will return the same array.
 Use the `start` argument to define where to start (inclusive, default to `0`)
@@ -653,7 +651,7 @@ and `end` argument to define where to stop (exclusive, default to the length of 
 {% for i in my_arr | slice(start=1, end=5) %}
 ```
 
-#### group_by
+### group_by
 Group an array using the required `attribute` argument. The filter takes an array and return
 a map where the keys are the values of the `attribute` stringified and the values are all elements of
 the initial array having that `attribute`. Values with missing `attribute` or where `attribute` is null
@@ -687,7 +685,7 @@ or by author name:
 {{ posts | sort(attribute="author.name") }}
 ```
 
-#### filter
+### filter
 
 Filter the array values, returning only the values where the `attribute` is equal to the `value`.
 Values with missing `attribute` or where `attribute` is null will be discarded.
@@ -724,7 +722,7 @@ or by author name:
 {{ posts | filter(attribute="author.name", value="Vincent") }}
 ```
 
-#### urlencode
+### urlencode
 Percent-encodes a string.
 
 Example: `{{ value | urlencode }}`
@@ -734,7 +732,7 @@ If value is `/foo?a=b&c=d`, the output will be `/foo%3Fa%3Db%26c%3Dd`.
 Takes an optional argument of characters that shouldn't be percent-encoded (`/` by default).
 So, to encode slashes as well, you can do `{{ value | urlencode(safe="") }}`.
 
-#### pluralize
+### pluralize
 Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
 
 Example: `You have {{ num_messages }} message{{ num_messages|pluralize }}`
@@ -742,7 +740,7 @@ Example: `You have {{ num_messages }} message{{ num_messages|pluralize }}`
 If num_messages is 1, the output will be You have 1 message. If num_messages is 2 the output will be You have 2 messages.
 You can specify the suffix as an argument that way: `{{ num_messages|pluralize(suffix="es") }}`
 
-#### round
+### round
 Returns a number rounded following the method given. Default method is `common` which will round to the nearest integer.
 `ceil` and `floor` are available as alternative methods.
 Another optional argument, `precision`, is available to select the precision of the rounding. It defaults to `0`, which will
@@ -750,19 +748,19 @@ round to the nearest integer for the given method.
 
 Example: `{{ num | round }} {{ num | round(method="ceil", precision=2) }}`
 
-#### filesizeformat
+### filesizeformat
 Returns a human-readable file size (i.e. '110 MB') from an integer.
 
 Example: `{{ num | filesizeformat }}`
 
-#### date
+### date
 Parse a timestamp into a date(time) string. Defaults to `YYYY-MM-DD` format.
 Time formatting syntax is inspired from strftime and a full reference is available
 on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html).
 
 Example: `{{ ts | date }} {{ ts | date(format="%Y-%m-%d %H:%M") }}`
 
-#### escape
+### escape
 Escapes a string's HTML. Specifically, it makes these replacements:
 
 - `&` is converted to `&amp;`
@@ -773,20 +771,20 @@ Escapes a string's HTML. Specifically, it makes these replacements:
 - `/` is converted to `&#x27;`
 - `` ` `` is converted to `&#96;`
 
-#### safe
+### safe
 Mark a variable as safe: HTML will not be escaped anymore.
 Currently the position of the safe filter does not matter, e.g.
 `{{ content | safe | replace(from="Robert", to="Bob") }}` and `{{ content | replace(from="Robert", to="Bob") | safe }}` will output the same thing.
 
-#### get
+### get
 Access a value from an object when the key is not a Tera identifier.
 Example: `{{ sections | get(key="posts/content") }}`
 
-#### split
+### split
 Split a string into an array of strings, separated by a pattern given.
 Example: `{{ path | split(pat="/") }}`
 
-#### json_encode
+### json_encode
 Transforms any value into a JSON representation. This filter is better used together with `safe` or when automatic escape is disabled.
 
 Example: `{{ value | safe | json_encode() }}`
@@ -795,12 +793,12 @@ It accepts a parameter `pretty` (boolean) to print a formatted JSON instead of a
 
 Example: `{{ value | safe | json_encode(pretty=true) }}`
 
-#### as_str
+### as_str
 Returns a string representation of the given value.
 
 Example: `{{ value | as_str }}`
 
-#### default
+### default
 Returns the default value given only if the variable evaluated is not present in the context
 and is therefore meant to be at the beginning of a filter chain if there are several filters.
 
@@ -825,29 +823,29 @@ If you intend to use the default filter to deal with optional values, you should
 aren't set! Otherwise, use a full `if` block. This is especially relevant for dealing with optional arguments
 passed to a macro.
 
-### Built-in tests
+## Built-in tests
 
 Here are the currently built-in tests:
 
-#### defined
+### defined
 Returns true if the given variable is defined.
 
-#### undefined
+### undefined
 Returns true if the given variable is undefined.
 
-#### odd
+### odd
 Returns true if the given variable is an odd number.
 
-#### even
+### even
 Returns true if the given variable is an even number.
 
-#### string
+### string
 Returns true if the given variable is a string.
 
-#### number
+### number
 Returns true if the given variable is a number.
 
-#### divisibleby
+### divisibleby
 Returns true if the given expression is divisible by the arg given.
 
 Example:
@@ -857,10 +855,10 @@ Example:
 {% endif %}
 ```
 
-#### iterable
+### iterable
 Returns true if the given variable can be iterated over in Tera (ie is an array/tuple).
 
-#### starting\_with
+### starting\_with
 Returns true if the given variable is a string starts with the arg given.
 
 Example:
@@ -870,10 +868,10 @@ Example:
 {% endif %}
 ```
 
-#### ending\_with
+### ending\_with
 Returns true if the given variable is a string ends with the arg given.
 
-#### containing
+### containing
 Returns true if the given variable contains the arg given.
 
 The test works on:
@@ -889,7 +887,7 @@ Example:
 {% endif %}
 ```
 
-#### matching
+### matching
 Returns true if the given variable is a string and matches the regex in the argument.
 
 Example:
@@ -905,10 +903,10 @@ Example:
 
 A comprehensive syntax description can be found in the [regex crate documentation](https://docs.rs/regex/).
 
-### Built-in global functions
+## Built-in global functions
 Tera comes with some built-in global functions.
 
-#### range
+### range
 
 Returns an array of integers created using the arguments given.
 There are 3 arguments, all integers:
@@ -918,7 +916,7 @@ There are 3 arguments, all integers:
 - `step_by`: with what number do we increment, defaults to `1`
 
 
-#### now
+### now
 
 Returns the local datetime as string or the timestamp as integer if requested.
 
@@ -930,7 +928,7 @@ There are 2 arguments, both booleans:
 Formatting is not built-in the global function but you can use the `date` filter like so `now() | date(format="%Y")` if you
 wanted to get the current year.
 
-#### throw
+### throw
 
 The template rendering will error with the given message when encountered.
 
