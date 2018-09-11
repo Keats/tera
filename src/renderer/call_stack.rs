@@ -68,9 +68,21 @@ impl<'a> CallStack<'a> {
         self.stack.push(StackFrame::new_include(name, tpl));
     }
 
-    /// Returns mutable reference to current `StackFrame`
-    pub fn origin_frame_mut(self: &mut Self) -> &mut StackFrame<'a> {
-        self.stack.first_mut().expect("Origin frame missing")
+    /// Returns mutable reference to global `StackFrame`
+    /// i.e gets first stack outside current for loops
+    pub fn global_frame_mut(self: &mut Self) -> &mut StackFrame<'a> {
+        if self.current_frame().kind == FrameType::ForLoop {
+            for stack_frame in self.stack.iter_mut().rev(){
+                // walk up the parent stacks until we meet the current template
+                if stack_frame.kind != FrameType::ForLoop {
+                    return stack_frame;
+                }
+            }
+            unreachable!("Global frame not found when trying to break out of for loop");
+        } else {
+            // Macro, Origin, or Include
+            return self.current_frame_mut();
+        }
     }
 
     /// Returns mutable reference to current `StackFrame`
@@ -118,7 +130,7 @@ impl<'a> CallStack<'a> {
     /// Add an assignment value (via {% set ... %} and {% set_global ... %} )
     pub fn add_assignment(&mut self, key: &'a str, global: bool, value: Val<'a>) {
         if global {
-            self.origin_frame_mut().insert(key, value);
+            self.global_frame_mut().insert(key, value);
         } else {
             self.current_frame_mut().insert(key, value);
         }
