@@ -8,7 +8,7 @@
         <aside class="docs__sidebar">
             <ul>
                 {% set section = get_section(path="docs/_index.md") %}
-                {% for page in section.pages | reverse %}
+                {% for page in section.pages %}
                     {% set index = loop.index %}
                     {% for h1 in page.toc %}
                         <li>
