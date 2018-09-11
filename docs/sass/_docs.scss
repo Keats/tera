@@ -39,8 +39,12 @@
 
 .submenu-open {
     display: none;
-    + ul { display: none; }
-    &:checked + ul { display: block; }
+    ~ ul { display: none; }
+    ~ label::after { content: "(+)"; }
+    &:checked {
+        ~ ul { display: block; }
+        ~ label::after { content: "(-)"; }
+   }
 }
 
 .docs__content {

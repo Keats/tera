@@ -20,7 +20,7 @@
                                         <li>
                                             <a href="{{ h2.permalink }}">{{ h2.title }}</a>
                                             {% if h2.children %}
-                                                {% if page and page != p %}<label aria-hidden="true" for="docs-{{ index }}-{{ index2 }}-open">(+)</label><input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-{{ index }}-{{ index2 }}-open"/>{% endif %}
+                                                {% if page and page != p %}<input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-{{ index }}-{{ index2 }}-open"/><label aria-hidden="true" for="docs-{{ index }}-{{ index2 }}-open"></label>{% endif %}
                                                 <ul>
                                                     {% for h3 in h2.children %}<li><a href="{{ h3.permalink }}">{{ h3.title }}</a></li>{% endfor %}
                                                 </ul>
