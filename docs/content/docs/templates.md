@@ -183,7 +183,7 @@ Outside of a for loop, `set_global` is exactly the same as `set`.
 ### Filters
 
 You can modify variables using **filters**.
-Filters are separated from the variable by a pipe symbol (|) and may have named arguments in parentheses.
+Filters are separated from the variable by a pipe symbol (`|`) and may have named arguments in parentheses.
 Multiple filters can be chained: the output of one filter is applied to the next.
 
 For example, `{{ name | lower | replace(from="doctor", to="Dr.") }}` will take a variable called name, make it lowercase and then replace instances of `doctor` by `Dr.`.
@@ -243,14 +243,14 @@ tera.register_tester("odd", testers::odd);
 
 Tera has many [built-in tests](./docs/templates.md#built-in-tests) that you can use.
 
-### Global functions
-Global functions are Rust code that return a `Result<Value>` from the given params.
+### Functions
+Functions are Rust code that return a `Result<Value>` from the given params.
 
-Quite often, global functions will need to capture some external variables, such as a `url_for` global function needing
+Quite often, functions will need to capture some external variables, such as a `url_for` global function needing
 the list of URLs for example.
 To make that work, the type of `GlobalFn` is a boxed closure: `Box<Fn(HashMap<String, Value>) -> Result<Value> + Sync + Send>`.
 
-Here's an example on how to implement a very basic global function:
+Here's an example on how to implement a very basic function:
 
 ```rust
 fn make_url_for(urls: BTreeMap<String, String>) -> GlobalFn {
@@ -268,7 +268,7 @@ fn make_url_for(urls: BTreeMap<String, String>) -> GlobalFn {
 You then need to add it to Tera:
 
 ```rust
-tera.register_global_function("url_for", make_url_for(urls));
+tera.register_function("url_for", make_url_for(urls));
 ```
 
 And you can now call it from a template:
@@ -277,12 +277,12 @@ And you can now call it from a template:
 {{/* url_for(name="home") */}}
 ```
 
-Currently global functions can be called in two places in templates:
+Currently functions can be called in two places in templates:
 
 - variable block: `{{/* url_for(name="home") */}}`
 - for loop container: `{% for i in range(end=5) %}`
 
-Tera comes with some [built-in global functions](./docs/templates.md#built-in-global-functions).
+Tera comes with some [built-in functions](./docs/templates.md#built-in-functions).
 
 ## Control structures
 

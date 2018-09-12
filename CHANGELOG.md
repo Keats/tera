@@ -3,6 +3,7 @@
 ## 0.11.16 (unreleased)
 
 - Fix `set`/`set_global` not working correctly in macros
+- Deprecate `register_global_function` for `register_function`
 
 ## 0.11.15 (2018-09-09)
 

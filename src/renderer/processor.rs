@@ -328,7 +328,7 @@ impl<'a> Processor<'a> {
             }
             ExprVal::FunctionCall(ref fn_call) => {
                 needs_escape = true;
-                self.eval_global_fn_call(fn_call)?
+                self.eval_tera_fn_call(fn_call)?
             }
             ExprVal::MacroCall(ref macro_call) => {
                 Cow::Owned(Value::String(self.eval_macro_call(macro_call)?))
@@ -395,8 +395,8 @@ impl<'a> Processor<'a> {
         Ok(tester_fn(found, tester_args)?)
     }
 
-    fn eval_global_fn_call(self: &mut Self, function_call: &'a FunctionCall) -> Result<Val<'a>> {
-        let global_fn = self.tera.get_global_function(&function_call.name)?;
+    fn eval_tera_fn_call(self: &mut Self, function_call: &'a FunctionCall) -> Result<Val<'a>> {
+        let tera_fn = self.tera.get_function(&function_call.name)?;
 
         let mut args = HashMap::new();
         for (arg_name, expr) in &function_call.args {
@@ -406,7 +406,7 @@ impl<'a> Processor<'a> {
             );
         }
 
-        Ok(Cow::Owned(global_fn(args)?))
+        Ok(Cow::Owned(tera_fn(args)?))
     }
 
     fn eval_macro_call(self: &mut Self, macro_call: &'a MacroCall) -> Result<String> {

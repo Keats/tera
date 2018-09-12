@@ -1,6 +1,6 @@
 [package]
 name = "tera"
-version = "0.11.15"
+version = "0.11.16"
 authors = ["Vincent Prouillet <prouillet.vincent@gmail.com>"]
 license = "MIT"
 readme = "README.md"

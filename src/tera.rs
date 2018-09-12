@@ -9,7 +9,7 @@ use serde::Serialize;
 use serde_json::value::to_value;
 
 use builtins::filters::{array, common, number, object, string, FilterFn};
-use builtins::global_functions::{self, GlobalFn};
+use builtins::functions::{self, GlobalFn};
 use builtins::testers::{self, TesterFn};
 use errors::{Result, ResultExt};
 use renderer::Renderer;
@@ -63,7 +63,7 @@ impl Tera {
         }
         tera.register_tera_filters();
         tera.register_tera_testers();
-        tera.register_tera_global_functions();
+        tera.register_tera_functions();
         Ok(tera)
     }
 
@@ -480,6 +480,7 @@ impl Tera {
 
     #[doc(hidden)]
     #[inline]
+    #[deprecated(since = "0.11.16", note = "Use `get_function` instead")]
     pub fn get_global_function(&self, fn_name: &str) -> Result<&GlobalFn> {
         match self.global_functions.get(fn_name) {
             Some(t) => Ok(t),
@@ -487,6 +488,14 @@ impl Tera {
         }
     }
 
+    #[doc(hidden)]
+    #[inline]
+    pub fn get_function(&self, fn_name: &str) -> Result<&GlobalFn> {
+        match self.global_functions.get(fn_name) {
+            Some(t) => Ok(t),
+            None => bail!("Global function '{}' not found", fn_name),
+        }
+    }
     /// Register a global function with Tera.
     ///
     /// If a global function with that name already exists, it will be overwritten
@@ -494,7 +503,19 @@ impl Tera {
     /// ```rust,ignore
     /// tera.register_global_function("range", range);
     /// ```
+    #[deprecated(since = "0.11.16", note = "Use `register_function` instead")]
     pub fn register_global_function(&mut self, name: &str, function: GlobalFn) {
+        self.global_functions.insert(name.to_string(), function);
+    }
+
+    /// Register a function with Tera.
+    ///
+    /// If a function with that name already exists, it will be overwritten
+    ///
+    /// ```rust,ignore
+    /// tera.register_function("range", range);
+    /// ```
+    pub fn register_function(&mut self, name: &str, function: GlobalFn) {
         self.global_functions.insert(name.to_string(), function);
     }
 
@@ -550,10 +571,10 @@ impl Tera {
         self.register_tester("matching", testers::matching);
     }
 
-    fn register_tera_global_functions(&mut self) {
-        self.register_global_function("range", global_functions::make_range_fn());
-        self.register_global_function("now", global_functions::make_now_fn());
-        self.register_global_function("throw", global_functions::make_throw_fn());
+    fn register_tera_functions(&mut self) {
+        self.register_function("range", functions::make_range_fn());
+        self.register_function("now", functions::make_now_fn());
+        self.register_function("throw", functions::make_throw_fn());
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on,
@@ -667,7 +688,7 @@ impl Default for Tera {
 
         tera.register_tera_filters();
         tera.register_tera_testers();
-        tera.register_tera_global_functions();
+        tera.register_tera_functions();
         tera
     }
 }
