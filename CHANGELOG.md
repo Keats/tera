@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.16 (unreleased)
+
+- Fix `set`/`set_global` not working correctly in macros
+
 ## 0.11.15 (2018-09-09)
 
 - Remove invalid `unreachable!` call causing panic in some combination or for loop and specific filters
