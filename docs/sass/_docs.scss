@@ -1,9 +1,12 @@
-
 .docs__sidebar {
   width: 280px;
   padding: 40px;
   display: inline-block;
   vertical-align: top;
+  
+  > ul > li > ul {
+    border-left: 2px solid $main-colour;
+  }
 
   ul {
     margin: 0;
@@ -15,13 +18,9 @@
       margin-bottom: 1rem;
       font-weight: bold;
 
-      a + ul {
-        margin-top: 1rem;
-      }
-
       ul {
+        margin-top: 1rem;
         padding-left: 1rem;
-        border-left: 2px solid $main-colour;
       }
 
       li {
@@ -35,6 +34,25 @@
       }
     }
   }
+}
+
+.submenu-open {
+    display: none;
+    cursor: pointer;
+    ~ ul { display: none; }
+    ~ label {
+        &:hover {
+            font-weight: bolder;
+        }
+        &::after { content: "[+]"; }
+    }
+    &:checked {
+        ~ ul { display: block; }
+        ~ label {
+            font-weight: bolder;
+            &::after { content: "[-]"; }
+        }
+   }
 }
 
 .docs__content {
