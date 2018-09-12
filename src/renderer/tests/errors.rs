@@ -155,3 +155,20 @@ fn error_when_missing_macro_templates() {
         "Template `parent` loads macros from `macros` which isn\'t present in Tera"
     );
 }
+
+#[test]
+fn error_when_using_variable_set_in_included_templates_outside() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("included", r#"{{a}}{% set b = "hi" %}-{{b}}"#),
+        ("base", r#"{{a}}{% include "included" %}{{b}}"#),
+    ]).unwrap();
+    let mut context = Context::new();
+    context.insert("a", &10);
+    let result = tera.render("base", &context);
+
+    assert_eq!(
+        result.unwrap_err().iter().nth(1).unwrap().description(),
+        "Variable `b` not found in context while rendering \'base\'"
+    );
+}

@@ -168,7 +168,7 @@ assignments outside of those will be set in the global context.
 {% set my_var = [1, true, some_var | round] %}
 ```
 
-If you want to assign a value in the global context while in a forloop, you can use `set_global`:
+If you want to assign a value in the global context while in a for loop, you can use `set_global`:
 
 ```jinja2
 {% set_global my_var = "hello" %}
@@ -178,6 +178,7 @@ If you want to assign a value in the global context while in a forloop, you can 
 {% set_global my_var = global_fn() %}
 {% set_global my_var = [1, true, some_var | round] %}
 ```
+Outside of a for loop, `set_global` is exactly the same as `set`.
 
 ### Filters
 
@@ -385,6 +386,8 @@ You can include a template to be rendered using the current context with the `in
 Tera doesn't offer passing a custom context to the `include` tag.
 If you want to do that, use macros.
 
+While you can `set` values in included templates, those values only exist while rendering
+them: the template calling `include` doesn't see them.
 
 ### Macros
 
