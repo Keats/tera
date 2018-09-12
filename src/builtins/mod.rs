@@ -1,3 +1,3 @@
 pub mod filters;
-pub mod global_functions;
+pub mod functions;
 pub mod testers;
