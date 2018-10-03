@@ -588,3 +588,23 @@ fn render_magic_variable_macro_doesnt_leak() {
 }"#.to_owned()
     );
 }
+
+// https://github.com/Keats/tera/issues/342
+#[test]
+fn redefining_loop_value_doesnt_break_loop() {
+    let mut tera = Tera::default();
+    tera.add_raw_template(
+        "tpl",
+        r#"
+{%- set string = "abcdefghdijklm" | split(pat="d") -%}
+{% for i in string -%}
+    {%- set j = i ~ "lol" ~ " " -%}
+    {{ j }}
+{%- endfor -%}
+        "#
+    ).unwrap();
+    let context = Context::new();
+    let result = tera.render("tpl", &context);
+
+    assert_eq!(result.unwrap(), "abclol efghlol ijklmlol ");
+}

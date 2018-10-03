@@ -149,7 +149,9 @@ impl<'a> CallStack<'a> {
 
     /// Continues current for loop
     pub fn increment_for_loop(self: &mut Self) -> Result<()> {
-        match self.current_frame_mut().for_loop {
+        let frame = self.current_frame_mut();
+        frame.clear_context();
+        match frame.for_loop {
             Some(ref mut for_loop) => {
                 for_loop.increment();
                 Ok(())

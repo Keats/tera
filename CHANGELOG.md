@@ -2,7 +2,7 @@
 
 ## 0.11.17 (unreleased)
 
--
+- Clear local context on each forloop iteration
 
 
 ## 0.11.16 (2018-09-12)

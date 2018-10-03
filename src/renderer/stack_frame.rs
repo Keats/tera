@@ -183,6 +183,13 @@ impl<'a> StackFrame<'a> {
         self.context.insert(key, value);
     }
 
+    /// Context is cleared on each loop
+    pub fn clear_context(&mut self) {
+        if self.for_loop.is_some() {
+            self.context.clear();
+        }
+    }
+
     pub fn context_owned(&self) -> HashMap<String, Value> {
         let mut context = HashMap::new();
 
