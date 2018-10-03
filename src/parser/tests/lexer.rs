@@ -560,6 +560,7 @@ fn lex_template() {
             {% for country in countries %}
                 {{ loop.index }}.{{ country }}
             {% endfor %}",
-        ).is_ok()
+        )
+        .is_ok()
     );
 }

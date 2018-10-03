@@ -139,7 +139,8 @@ pub fn filter(value: Value, args: HashMap<String, Value>) -> Result<Value> {
             } else {
                 false
             }
-        }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
 
     Ok(to_value(arr).unwrap())
 }
@@ -270,7 +271,8 @@ mod tests {
             Foo { a: 2, b: 8 },
             Foo { a: 4, b: 7 },
             Foo { a: 1, b: 6 },
-        ]).unwrap();
+        ])
+        .unwrap();
         let mut args = HashMap::new();
         args.insert("attribute".to_string(), to_value(&"a").unwrap());
 
@@ -283,7 +285,8 @@ mod tests {
                 Foo { a: 2, b: 8 },
                 Foo { a: 3, b: 5 },
                 Foo { a: 4, b: 7 },
-            ]).unwrap()
+            ])
+            .unwrap()
         );
     }
 
@@ -316,7 +319,8 @@ mod tests {
         let v = to_value(vec![
             ::std::f64::NEG_INFINITY, // NaN and friends get deserialized as Null by serde.
             ::std::f64::NAN,
-        ]).unwrap();
+        ])
+        .unwrap();
         let args = HashMap::new();
 
         let result = sort(v, args);
@@ -334,7 +338,8 @@ mod tests {
             TupleStruct(7, 0),
             TupleStruct(-1, 12),
             TupleStruct(18, 18),
-        ]).unwrap();
+        ])
+        .unwrap();
         let mut args = HashMap::new();
         args.insert("attribute".to_string(), to_value("0").unwrap());
 
@@ -347,7 +352,8 @@ mod tests {
                 TupleStruct(0, 1),
                 TupleStruct(7, 0),
                 TupleStruct(18, 18),
-            ]).unwrap()
+            ])
+            .unwrap()
         );
     }
 

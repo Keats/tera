@@ -164,7 +164,8 @@ fn bench_rendering_inheritance_and_macros(b: &mut test::Bencher) {
         ("parent.html", PARENT_TEMPLATE),
         ("child.html", CHILD_TEMPLATE_WITH_MACRO),
         ("macros.html", MACRO_TEMPLATE),
-    ]).unwrap();
+    ])
+    .unwrap();
     let mut context = Context::new();
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
@@ -179,7 +180,8 @@ fn bench_build_inheritance_chains(b: &mut test::Bencher) {
         ("parent.html", PARENT_TEMPLATE),
         ("child.html", CHILD_TEMPLATE_WITH_MACRO),
         ("macros.html", MACRO_TEMPLATE),
-    ]).unwrap();
+    ])
+    .unwrap();
     b.iter(|| tera.build_inheritance_chains());
 }
 
@@ -252,7 +254,8 @@ fn access_deep_object(b: &mut test::Bencher) {
     tera.add_raw_templates(vec![(
         "deep_object.html",
         "{% for cow in deep_object.foo.bar.goo.moo.cows %}{{cow.temperament}}{% endfor %}",
-    )]).unwrap();
+    )])
+    .unwrap();
     let mut context = Context::new();
     println!("{:?}", deep_object());
     context.insert("deep_object", &deep_object());
@@ -270,7 +273,8 @@ fn access_deep_object_with_literal(b: &mut test::Bencher) {
 {% set goo = deep_object.foo['bar'][\"goo\"] %}
 {% for cow in goo.moo.cows %}{{cow.temperament}}
 {% endfor %}",
-    )]).unwrap();
+    )])
+    .unwrap();
     let mut context = Context::new();
     context.insert("deep_object", &deep_object());
     assert!(tera.render("deep_object.html", &context).unwrap().contains("ornery"));

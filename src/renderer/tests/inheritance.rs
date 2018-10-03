@@ -7,7 +7,8 @@ fn render_simple_inheritance() {
     tera.add_raw_templates(vec![
         ("top", "{% block pre %}{% endblock pre %}{% block main %}{% endblock main %}"),
         ("bottom", "{% extends \"top\" %}{% block main %}MAIN{% endblock %}"),
-    ]).unwrap();
+    ])
+    .unwrap();
     let result = tera.render("bottom", &Context::new());
 
     assert_eq!(result.unwrap(), "MAIN".to_string());
@@ -19,7 +20,8 @@ fn render_simple_inheritance_super() {
     tera.add_raw_templates(vec![
         ("top", "{% block main %}TOP{% endblock main %}"),
         ("bottom", "{% extends \"top\" %}{% block main %}{{ super() }}MAIN{% endblock %}"),
-    ]).unwrap();
+    ])
+    .unwrap();
     let result = tera.render("bottom", &Context::new());
 
     assert_eq!(result.unwrap(), "TOPMAIN".to_string());
@@ -32,7 +34,8 @@ fn render_multiple_inheritance() {
         ("top", "{% block pre %}{% endblock pre %}{% block main %}{% endblock main %}"),
         ("mid", "{% extends \"top\" %}{% block pre %}PRE{% endblock pre %}"),
         ("bottom", "{% extends \"mid\" %}{% block main %}MAIN{% endblock main %}"),
-    ]).unwrap();
+    ])
+    .unwrap();
     let result = tera.render("bottom", &Context::new());
 
     assert_eq!(result.unwrap(), "PREMAIN".to_string());
@@ -125,7 +128,8 @@ fn render_super_in_grandchild_without_redefining_works() {
             "{% extends \"grandparent\" %}{% block title %}{{ super() }} - More{% endblock %}",
         ),
         ("child", "{% extends \"parent\" %}"),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     let result = tera.render("child", &Context::new());
     assert_eq!(result.unwrap(), "Title - More".to_string());
@@ -138,7 +142,8 @@ fn render_super_in_grandchild_without_redefining_in_parent_works() {
         ("grandparent", "{% block title %}Title{% endblock %}"),
         ("parent", "{% extends \"grandparent\" %}"),
         ("child", "{% extends \"parent\" %}{% block title %}{{ super() }} - More{% endblock %}"),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     let result = tera.render("child", &Context::new());
     assert_eq!(result.unwrap(), "Title - More".to_string());

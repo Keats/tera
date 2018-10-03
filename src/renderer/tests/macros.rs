@@ -12,7 +12,8 @@ fn render_macros() {
             "tpl",
             "{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}",
         ),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     let result = tera.render("tpl", &Context::new());
 
@@ -27,7 +28,8 @@ fn render_macros_expression_arg() {
     tera.add_raw_templates(vec![
         ("macros", "{% macro hello(val)%}{{val}}{% endmacro hello %}"),
         ("tpl", "{% import \"macros\" as macros %}{{macros::hello(val=pages|last)}}"),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     let result = tera.render("tpl", &context);
 
@@ -86,7 +88,8 @@ fn macro_param_arent_escaped() {
     tera.add_raw_templates(vec![
         ("macros.html", r#"{% macro print(val) %}{{val|safe}}{% endmacro print %}"#),
         ("hello.html", r#"{% import "macros.html" as macros %}{{ macros::print(val=my_var)}}"#),
-    ]).unwrap();
+    ])
+    .unwrap();
     let mut context = Context::new();
     context.insert("my_var", &"&");
     let result = tera.render("hello.html", &context);
@@ -103,7 +106,8 @@ fn render_set_tag_macro() {
             "hello.html",
             "{% import \"macros\" as macros %}{% set my_var = macros::hello() %}{{my_var}}",
         ),
-    ]).unwrap();
+    ])
+    .unwrap();
     let result = tera.render("hello.html", &Context::new());
 
     assert_eq!(result.unwrap(), "Hello".to_string());
@@ -115,7 +119,8 @@ fn render_macros_with_default_args() {
     tera.add_raw_templates(vec![
         ("macros", "{% macro hello(val=1) %}{{val}}{% endmacro hello %}"),
         ("hello.html", "{% import \"macros\" as macros %}{{macros::hello()}}"),
-    ]).unwrap();
+    ])
+    .unwrap();
     let result = tera.render("hello.html", &Context::new());
 
     assert_eq!(result.unwrap(), "1".to_string());
@@ -127,7 +132,8 @@ fn render_macros_override_default_args() {
     tera.add_raw_templates(vec![
         ("macros", "{% macro hello(val=1) %}{{val}}{% endmacro hello %}"),
         ("hello.html", "{% import \"macros\" as macros %}{{macros::hello(val=2)}}"),
-    ]).unwrap();
+    ])
+    .unwrap();
     let result = tera.render("hello.html", &Context::new());
 
     assert_eq!(result.unwrap(), "2".to_string());
@@ -183,7 +189,8 @@ fn recursive_macro_with_loops() {
 {%- endfor -%}
 "#,
         ),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     let result = tera.render("recursive", &context);
 
@@ -198,7 +205,8 @@ fn render_macros_in_included() {
         ("macros", "{% macro my_macro() %}my macro{% endmacro %}"),
         ("includeme", r#"{% import "macros" as macros %}{{ macros::my_macro() }}"#),
         ("example", r#"{% include "includeme" %}"#),
-    ]).unwrap();
+    ])
+    .unwrap();
     let result = tera.render("example", &Context::new());
 
     assert_eq!(result.unwrap(), "my macro".to_string());
@@ -215,7 +223,8 @@ fn import_macros_into_other_macro_files() {
             r#"{% import "submacros" as sub %}{% macro test() %}{{ sub::test() }}{% endmacro %}"#,
         ),
         ("index", r#"{% import "macros" as macros %}{{ macros::test() }}"#),
-    ]).unwrap();
+    ])
+    .unwrap();
     let result = tera.render("index", &Context::new());
 
     assert_eq!(result.unwrap(), "Success!".to_string());
@@ -258,7 +267,8 @@ fn can_inherit_macro_import_from_parent() {
         ("macros", "{% macro hello()%}HELLO{% endmacro hello %}"),
         ("parent", "{% import \"macros\" as macros %}{% block bob %}parent{% endblock bob %}"),
         ("child", "{% extends \"parent\" %}{% block bob %}{{macros::hello()}}{% endblock bob %}"),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     let result = tera.render("child", &Context::default());
     assert_eq!(result.unwrap(), "HELLO".to_string());

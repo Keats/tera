@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use context::Context;
 use tera::Tera;
 
-
 #[test]
 fn error_location_basic() {
     let mut tera = Tera::default();
@@ -23,7 +22,8 @@ fn error_location_inside_macro() {
     tera.add_raw_templates(vec![
         ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
         ("tpl", "{% import \"macros\" as macros %}{{ macros::hello() }}"),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     let result = tera.render("tpl", &Context::new());
 
@@ -39,7 +39,8 @@ fn error_loading_macro_from_unloaded_namespace() {
     tera.add_raw_templates(vec![
         ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
         ("tpl", "{% import \"macros\" as macros %}{{ macro::hello() }}"),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     let result = tera.render("tpl", &Context::new());
     println!("{:#?}", result);
@@ -55,7 +56,8 @@ fn error_location_base_template() {
     tera.add_raw_templates(vec![
         ("parent", "Hello {{ greeting + 1}} {% block bob %}{% endblock bob %}"),
         ("child", "{% extends \"parent\" %}{% block bob %}Hey{% endblock bob %}"),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     let result = tera.render("child", &Context::new());
 
@@ -71,7 +73,8 @@ fn error_location_in_parent_block() {
     tera.add_raw_templates(vec![
         ("parent", "Hello {{ greeting }} {% block bob %}{{ 1 + true }}{% endblock bob %}"),
         ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}"),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     let result = tera.render("child", &Context::new());
 
@@ -165,7 +168,8 @@ fn error_when_using_variable_set_in_included_templates_outside() {
     tera.add_raw_templates(vec![
         ("included", r#"{{a}}{% set b = "hi" %}-{{b}}"#),
         ("base", r#"{{a}}{% include "included" %}{{b}}"#),
-    ]).unwrap();
+    ])
+    .unwrap();
     let mut context = Context::new();
     context.insert("a", &10);
     let result = tera.render("base", &context);
@@ -192,8 +196,9 @@ fn right_variable_name_is_needed_in_for_loop() {
 <p>{{ comment.content }}</p>
 <p>{{ whocares.content }}</p>
 <p>{{ doesntmatter.content }}</p>
-{% endfor -%}"#
-    ).unwrap();
+{% endfor -%}"#,
+    )
+    .unwrap();
     let result = tera.render("tpl", &context);
 
     assert_eq!(

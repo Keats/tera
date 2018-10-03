@@ -190,7 +190,8 @@ fn render_include_tag() {
     tera.add_raw_templates(vec![
         ("world", "world"),
         ("hello", "<h1>Hello {% include \"world\" %}</h1>"),
-    ]).unwrap();
+    ])
+    .unwrap();
     let result = tera.render("hello", &Context::new()).unwrap();
     assert_eq!(result, "<h1>Hello world</h1>".to_owned());
 }
@@ -201,7 +202,8 @@ fn can_set_variables_in_included_templates() {
     tera.add_raw_templates(vec![
         ("world", r#"{% set a = "world" %}{{a}}"#),
         ("hello", "<h1>Hello {% include \"world\" %}</h1>"),
-    ]).unwrap();
+    ])
+    .unwrap();
     let result = tera.render("hello", &Context::new()).unwrap();
     assert_eq!(result, "<h1>Hello world</h1>".to_owned());
 }
@@ -409,7 +411,8 @@ fn render_magic_variable_isnt_escaped() {
         result.unwrap(),
         r#"{
   "html": "<html>"
-}"#.to_owned()
+}"#
+        .to_owned()
     );
 }
 
@@ -563,7 +566,8 @@ fn render_magic_variable_gets_all_contexts() {
   "i": 0,
   "num": 1,
   "some_val": 1
-}"#.to_owned()
+}"#
+        .to_owned()
     );
 }
 
@@ -578,14 +582,16 @@ fn render_magic_variable_macro_doesnt_leak() {
     tera.add_raw_templates(vec![
         ("macros", "{% macro hello(arg=1) %}{{ __tera_context }}{% endmacro hello %}"),
         ("tpl", "{% import \"macros\" as macros %}{{macros::hello()}}"),
-    ]).unwrap();
+    ])
+    .unwrap();
     let result = tera.render("tpl", &context);
 
     assert_eq!(
         result.unwrap(),
         r#"{
   "arg": 1
-}"#.to_owned()
+}"#
+        .to_owned()
     );
 }
 
@@ -601,8 +607,9 @@ fn redefining_loop_value_doesnt_break_loop() {
     {%- set j = i ~ "lol" ~ " " -%}
     {{ j }}
 {%- endfor -%}
-        "#
-    ).unwrap();
+        "#,
+    )
+    .unwrap();
     let context = Context::new();
     let result = tera.render("tpl", &context);
 

@@ -127,7 +127,8 @@ mod tests {
             "hello",
             None,
             "{% extends \"base.html\" %}{% block hey %}{% endblock hey %}",
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
         assert_eq!(tpl.blocks.contains_key("hey"), true);
