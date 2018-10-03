@@ -3,6 +3,7 @@
 ## 0.11.17 (unreleased)
 
 - Clear local context on each forloop iteration
+- Fix variable lookup with `.` that was completely wrong
 
 
 ## 0.11.16 (2018-09-12)

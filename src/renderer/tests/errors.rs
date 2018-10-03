@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 use context::Context;
 use tera::Tera;
+
 
 #[test]
 fn error_location_basic() {
@@ -170,5 +173,31 @@ fn error_when_using_variable_set_in_included_templates_outside() {
     assert_eq!(
         result.unwrap_err().iter().nth(1).unwrap().description(),
         "Variable `b` not found in context while rendering \'base\'"
+    );
+}
+
+// https://github.com/Keats/tera/issues/344
+// Yes it is as silly as it sounds
+#[test]
+fn right_variable_name_is_needed_in_for_loop() {
+    let mut data = HashMap::new();
+    data.insert("content", "hello");
+    let mut context = Context::new();
+    context.insert("comments", &vec![data]);
+    let mut tera = Tera::default();
+    tera.add_raw_template(
+        "tpl",
+        r#"
+{%- for comment in comments -%}
+<p>{{ comment.content }}</p>
+<p>{{ whocares.content }}</p>
+<p>{{ doesntmatter.content }}</p>
+{% endfor -%}"#
+    ).unwrap();
+    let result = tera.render("tpl", &context);
+
+    assert_eq!(
+        result.unwrap_err().iter().nth(1).unwrap().description(),
+        "Variable `whocares.content` not found in context while rendering \'tpl\'"
     );
 }
