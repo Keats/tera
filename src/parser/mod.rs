@@ -814,8 +814,10 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
     let mut pairs = match TeraParser::parse(Rule::template, input) {
         Ok(p) => p,
         Err(e) => {
+            println!("{:?}", e);
             let fancy_e = e.renamed_rules(|rule| {
                 match *rule {
+                    Rule::EOI => "end of input".to_string(),
                     Rule::int => "an integer".to_string(),
                     Rule::float => "a float".to_string(),
                     Rule::string
@@ -911,7 +913,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::elif_tag => "an `elif` tag".to_string(),
                     Rule::else_tag => "an `else` tag".to_string(),
                     Rule::endif_tag => "an endif tag (`{% endif %}`)".to_string(),
-                    Rule::whitespace => "whitespace".to_string(),
+                    Rule::WHITESPACE => "whitespace".to_string(),
                     Rule::variable_start => "a variable start (`{{`)".to_string(),
                     Rule::variable_end => "a variable end (`}}`)".to_string(),
                     Rule::comment_start => "a comment start (`{#`)".to_string(),
@@ -943,6 +945,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
             }
             Rule::content => nodes.extend(parse_content(p)),
             Rule::comment_tag => (),
+            Rule::EOI => (),
             _ => unreachable!("unknown tpl rule: {:?}", p.as_rule()),
         }
     }

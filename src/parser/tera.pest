@@ -1,4 +1,4 @@
-whitespace = _{ " " | "\t" | "\r" | "\n" }
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 
 /// LITERALS
 int   = @{ "-" ? ~ ("0" | '1'..'9' ~ '0'..'9' * ) }
@@ -10,11 +10,11 @@ float = @{
     )
 }
 // matches anything between 2 double quotes
-double_quoted_string  = @{ "\"" ~ (!("\"") ~ any)* ~ "\""}
+double_quoted_string  = @{ "\"" ~ (!("\"") ~ ANY)* ~ "\""}
 // matches anything between 2 single quotes
-single_quoted_string  = @{ "\'" ~ (!("\'") ~ any)* ~ "\'"}
+single_quoted_string  = @{ "\'" ~ (!("\'") ~ ANY)* ~ "\'"}
 // matches anything between 2 backquotes\backticks
-backquoted_quoted_string  = @{ "`" ~ (!("`") ~ any)* ~ "`"}
+backquoted_quoted_string  = @{ "`" ~ (!("`") ~ ANY)* ~ "`"}
 
 string = @{
     double_quoted_string |
@@ -27,9 +27,9 @@ boolean = { "true" | "false" | "True" | "False" }
 // -----------------------------------------------
 
 /// OPERATORS
-op_or        = @{ "or" ~ whitespace }
-op_and       = @{ "and" ~ whitespace }
-op_not       = @{ "not" ~ whitespace }
+op_or        = @{ "or" ~ WHITESPACE }
+op_and       = @{ "and" ~ WHITESPACE }
+op_not       = @{ "not" ~ WHITESPACE }
 op_lte       = { "<=" }
 op_gte       = { ">=" }
 op_lt        = { "<" }
@@ -144,7 +144,7 @@ block_start    = _{ variable_start | tag_start | comment_start }
 // Actual tags
 include_tag      = !{ tag_start ~ "include" ~ string ~ tag_end }
 import_macro_tag = !{ tag_start ~ "import" ~ string ~ "as" ~ ident ~ tag_end}
-comment_tag      = !{ comment_start ~ (!comment_end ~ any)* ~ comment_end }
+comment_tag      = !{ comment_start ~ (!comment_end ~ ANY)* ~ comment_end }
 block_tag        = !{ tag_start ~ "block" ~ ident ~ tag_end }
 macro_tag        = !{ tag_start ~ "macro" ~ macro_fn ~ tag_end }
 if_tag           = !{ tag_start ~ "if" ~ logic_expr ~ tag_end }
@@ -165,11 +165,11 @@ continue_tag     = !{ tag_start ~ "continue" ~ tag_end }
 variable_tag     = !{ variable_start ~ logic_expr ~ variable_end }
 super_tag        = !{ variable_start ~ "super()" ~ variable_end }
 
-text       = ${ (!(block_start) ~ any)+ }
+text       = ${ (!(block_start) ~ ANY)+ }
 
 raw_tag    = { tag_start ~ "raw" ~ tag_end }
 endraw_tag = { tag_start ~ "endraw" ~ tag_end }
-raw_text   = { (!endraw_tag ~ any)* }
+raw_text   = { (!endraw_tag ~ ANY)* }
 raw        = !{ raw_tag ~ raw_text ~ endraw_tag }
 
 filter_section = !{ filter_tag ~ filter_section_content* ~ endfilter_tag }
@@ -263,4 +263,4 @@ content = @{
 extends_tag = !{ tag_start ~ "extends" ~ string ~ tag_end }
 
 // top level rule
-template = ${ soi ~ comment_tag* ~ extends_tag? ~ content* ~ eoi }
+template = ${ SOI ~ comment_tag* ~ extends_tag? ~ content* ~ EOI }
