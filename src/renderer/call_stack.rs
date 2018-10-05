@@ -81,7 +81,7 @@ impl<'a> CallStack<'a> {
             unreachable!("Global frame not found when trying to break out of for loop");
         } else {
             // Macro, Origin, or Include
-            return self.current_frame_mut();
+            self.current_frame_mut()
         }
     }
 
