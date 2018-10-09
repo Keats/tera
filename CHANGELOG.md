@@ -1,11 +1,10 @@
 # Changelog
 
-## 0.11.17 (unreleased)
+## 0.11.17 (2018-10-09)
 
 - Clear local context on each forloop iteration
 - Fix variable lookup with `.` that was completely wrong
 - Now requires Rust 1.26 because of some dependencies update
-
 
 ## 0.11.16 (2018-09-12)
 
