@@ -167,12 +167,14 @@ impl<'a> StackFrame<'a> {
             // Last case: the variable is/starts with the value name of the for loop
             // The `set` case will have been taken into account before
             let v = for_loop.get_current_value();
-            // Exact match to the loop value
+            // Exact match to the loop value and no tail
             if key == for_loop.value_name {
                 return Some(v);
             }
 
-            return value_by_pointer(tail, &v);
+            if real_key == for_loop.value_name && tail != "" {
+                return value_by_pointer(tail, &v);
+            }
         }
 
         None
@@ -181,6 +183,13 @@ impl<'a> StackFrame<'a> {
     /// Insert a value in the context
     pub fn insert(&mut self, key: &'a str, value: Val<'a>) {
         self.context.insert(key, value);
+    }
+
+    /// Context is cleared on each loop
+    pub fn clear_context(&mut self) {
+        if self.for_loop.is_some() {
+            self.context.clear();
+        }
     }
 
     pub fn context_owned(&self) -> HashMap<String, Value> {

@@ -459,21 +459,25 @@ fn parse_raw_tag(pair: Pair<Rule>) -> Node {
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::raw_tag => for p2 in p.into_inner() {
-                match p2.as_rule() {
-                    Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
-                    Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
-                    _ => unreachable!(),
+            Rule::raw_tag => {
+                for p2 in p.into_inner() {
+                    match p2.as_rule() {
+                        Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
+                        Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
+                        _ => unreachable!(),
+                    }
                 }
-            },
+            }
             Rule::raw_text => text = Some(p.as_str().to_string()),
-            Rule::endraw_tag => for p2 in p.into_inner() {
-                match p2.as_rule() {
-                    Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
-                    Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
-                    _ => unreachable!(),
+            Rule::endraw_tag => {
+                for p2 in p.into_inner() {
+                    match p2.as_rule() {
+                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        _ => unreachable!(),
+                    }
                 }
-            },
+            }
             _ => unreachable!("unexpected {:?} rule in parse_raw_tag", p.as_rule()),
         };
     }
@@ -489,20 +493,22 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::filter_tag => for p2 in p.into_inner() {
-                match p2.as_rule() {
-                    Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
-                    Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
-                    Rule::fn_call => filter = Some(parse_fn_call(p2)),
-                    Rule::ident => {
-                        filter = Some(FunctionCall {
-                            name: p2.as_str().to_string(),
-                            args: HashMap::new(),
-                        });
+            Rule::filter_tag => {
+                for p2 in p.into_inner() {
+                    match p2.as_rule() {
+                        Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
+                        Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::fn_call => filter = Some(parse_fn_call(p2)),
+                        Rule::ident => {
+                            filter = Some(FunctionCall {
+                                name: p2.as_str().to_string(),
+                                args: HashMap::new(),
+                            });
+                        }
+                        _ => unreachable!("Got {:?} while parsing filter_tag", p2),
                     }
-                    _ => unreachable!("Got {:?} while parsing filter_tag", p2),
                 }
-            },
+            }
             Rule::content
             | Rule::macro_content
             | Rule::block_content
@@ -510,13 +516,15 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
             | Rule::for_content => {
                 body.extend(parse_content(p));
             }
-            Rule::endfilter_tag => for p2 in p.into_inner() {
-                match p2.as_rule() {
-                    Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
-                    Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
-                    _ => unreachable!(),
+            Rule::endfilter_tag => {
+                for p2 in p.into_inner() {
+                    match p2.as_rule() {
+                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        _ => unreachable!(),
+                    }
                 }
-            },
+            }
             _ => unreachable!("unexpected {:?} rule in parse_filter_section", p.as_rule()),
         };
     }
@@ -532,23 +540,27 @@ fn parse_block(pair: Pair<Rule>) -> Node {
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::block_tag => for p2 in p.into_inner() {
-                match p2.as_rule() {
-                    Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
-                    Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
-                    Rule::ident => name = Some(p2.into_span().as_str().to_string()),
-                    _ => unreachable!(),
-                };
-            },
+            Rule::block_tag => {
+                for p2 in p.into_inner() {
+                    match p2.as_rule() {
+                        Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
+                        Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::ident => name = Some(p2.into_span().as_str().to_string()),
+                        _ => unreachable!(),
+                    };
+                }
+            }
             Rule::block_content => body.extend(parse_content(p)),
-            Rule::endblock_tag => for p2 in p.into_inner() {
-                match p2.as_rule() {
-                    Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
-                    Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
-                    Rule::ident => (),
-                    _ => unreachable!(),
-                };
-            },
+            Rule::endblock_tag => {
+                for p2 in p.into_inner() {
+                    match p2.as_rule() {
+                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::ident => (),
+                        _ => unreachable!(),
+                    };
+                }
+            }
             _ => unreachable!("unexpected {:?} rule in parse_filter_section", p.as_rule()),
         };
     }
@@ -565,35 +577,39 @@ fn parse_macro_definition(pair: Pair<Rule>) -> Node {
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::macro_tag => for p2 in p.into_inner() {
-                match p2.as_rule() {
-                    Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
-                    Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
-                    Rule::ident => name = Some(p2.as_str().to_string()),
-                    Rule::macro_def_arg => {
-                        let mut arg_name = None;
-                        let mut default_val = None;
-                        for p3 in p2.into_inner() {
-                            match p3.as_rule() {
-                                Rule::ident => arg_name = Some(p3.as_str().to_string()),
-                                // no filters allowed on macro definition
-                                _ => default_val = Some(Expr::new(parse_basic_expression(p3))),
-                            };
+            Rule::macro_tag => {
+                for p2 in p.into_inner() {
+                    match p2.as_rule() {
+                        Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
+                        Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::ident => name = Some(p2.as_str().to_string()),
+                        Rule::macro_def_arg => {
+                            let mut arg_name = None;
+                            let mut default_val = None;
+                            for p3 in p2.into_inner() {
+                                match p3.as_rule() {
+                                    Rule::ident => arg_name = Some(p3.as_str().to_string()),
+                                    // no filters allowed on macro definition
+                                    _ => default_val = Some(Expr::new(parse_basic_expression(p3))),
+                                };
+                            }
+                            args.insert(arg_name.unwrap(), default_val);
                         }
-                        args.insert(arg_name.unwrap(), default_val);
-                    }
-                    _ => continue,
-                };
-            },
+                        _ => continue,
+                    };
+                }
+            }
             Rule::macro_content => body.extend(parse_content(p)),
-            Rule::endmacro_tag => for p2 in p.into_inner() {
-                match p2.as_rule() {
-                    Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
-                    Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
-                    Rule::ident => (),
-                    _ => unreachable!(),
-                };
-            },
+            Rule::endmacro_tag => {
+                for p2 in p.into_inner() {
+                    match p2.as_rule() {
+                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::ident => (),
+                        _ => unreachable!(),
+                    };
+                }
+            }
             _ => unreachable!("unexpected {:?} rule in parse_macro_definition", p.as_rule()),
         }
     }
@@ -641,14 +657,16 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
             | Rule::for_content => {
                 body.extend(parse_content(p));
             }
-            Rule::endfor_tag => for p2 in p.into_inner() {
-                match p2.as_rule() {
-                    Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
-                    Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
-                    Rule::ident => (),
-                    _ => unreachable!(),
-                };
-            },
+            Rule::endfor_tag => {
+                for p2 in p.into_inner() {
+                    match p2.as_rule() {
+                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::ident => (),
+                        _ => unreachable!(),
+                    };
+                }
+            }
             _ => unreachable!("unexpected {:?} rule in parse_forloop", p.as_rule()),
         };
     }
@@ -816,6 +834,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
         Err(e) => {
             let fancy_e = e.renamed_rules(|rule| {
                 match *rule {
+                    Rule::EOI => "end of input".to_string(),
                     Rule::int => "an integer".to_string(),
                     Rule::float => "a float".to_string(),
                     Rule::string
@@ -911,7 +930,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::elif_tag => "an `elif` tag".to_string(),
                     Rule::else_tag => "an `else` tag".to_string(),
                     Rule::endif_tag => "an endif tag (`{% endif %}`)".to_string(),
-                    Rule::whitespace => "whitespace".to_string(),
+                    Rule::WHITESPACE => "whitespace".to_string(),
                     Rule::variable_start => "a variable start (`{{`)".to_string(),
                     Rule::variable_end => "a variable end (`}}`)".to_string(),
                     Rule::comment_start => "a comment start (`{#`)".to_string(),
@@ -943,6 +962,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
             }
             Rule::content => nodes.extend(parse_content(p)),
             Rule::comment_tag => (),
+            Rule::EOI => (),
             _ => unreachable!("unknown tpl rule: {:?}", p.as_rule()),
         }
     }

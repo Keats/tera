@@ -704,7 +704,8 @@ impl<'a> Processor<'a> {
             return Ok(Cow::Owned(
                 to_value(
                     to_string_pretty(&self.call_stack.current_context_cloned().take()).unwrap(),
-                ).unwrap(),
+                )
+                .unwrap(),
             ));
         }
 

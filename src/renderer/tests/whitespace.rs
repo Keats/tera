@@ -62,7 +62,8 @@ fn can_remove_whitespace_macros() {
         tera.add_raw_templates(vec![
             ("macros", "{% macro hey() -%} Hey! {%- endmacro %}"),
             ("tpl", input),
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_eq!(tera.render("tpl", &context).unwrap(), expected);
     }
 }
@@ -83,7 +84,8 @@ fn can_remove_whitespace_inheritance() {
         tera.add_raw_templates(vec![
             ("base", "{% block content %} Hey! {% endblock %}"),
             ("tpl", input),
-        ]).unwrap();
+        ])
+        .unwrap();
         assert_eq!(tera.render("tpl", &context).unwrap(), expected);
     }
 }

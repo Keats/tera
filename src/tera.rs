@@ -111,7 +111,8 @@ impl Tera {
         }
         // We want to preserve templates that have been added through
         // Tera::extend so we only keep those
-        self.templates = self.templates
+        self.templates = self
+            .templates
             .iter()
             .filter(|&(_, t)| t.from_extend)
             .map(|(n, t)| (n.clone(), t.clone())) // TODO: avoid that clone
@@ -734,7 +735,8 @@ mod tests {
             ("b", "{% extends \"c\" %}"),
             ("c", "{% extends \"d\" %}"),
             ("d", ""),
-        ]).unwrap();
+        ])
+        .unwrap();
 
         assert_eq!(
             tera.get_template("a").unwrap().parents,
@@ -894,7 +896,8 @@ mod tests {
                 ("one", "{% block hey %}1{% endblock hey %}"),
                 ("two", "{% block hey %}2{% endblock hey %}"),
                 ("three", "{% block hey %}3{% endblock hey %}"),
-            ]).unwrap();
+            ])
+            .unwrap();
 
         let mut framework_tera = Tera::default();
         framework_tera.add_raw_templates(vec![("four", "Framework X")]).unwrap();
@@ -913,7 +916,8 @@ mod tests {
                 ("one", "MINE"),
                 ("two", "{% block hey %}2{% endblock hey %}"),
                 ("three", "{% block hey %}3{% endblock hey %}"),
-            ]).unwrap();
+            ])
+            .unwrap();
 
         let mut framework_tera = Tera::default();
         framework_tera

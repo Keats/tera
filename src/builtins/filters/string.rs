@@ -176,7 +176,8 @@ pub fn title(value: Value, _: HashMap<String, Value>) -> Result<Value> {
         let first = caps["first"].to_uppercase();
         let rest = caps["rest"].to_lowercase();
         format!("{}{}", first, rest)
-    })).unwrap())
+    }))
+    .unwrap())
 }
 
 /// Removes html tags from string

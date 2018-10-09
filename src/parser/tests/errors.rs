@@ -154,7 +154,7 @@ fn invalid_extends_position() {
 hello
 {% extends "hey.html" %}
     "#,
-        &["3:1", "unexpected tag; expected some content"],
+        &["3:1", "unexpected tag; expected end of input or some content"],
     );
 }
 
