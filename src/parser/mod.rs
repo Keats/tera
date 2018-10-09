@@ -832,7 +832,6 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
     let mut pairs = match TeraParser::parse(Rule::template, input) {
         Ok(p) => p,
         Err(e) => {
-            println!("{:?}", e);
             let fancy_e = e.renamed_rules(|rule| {
                 match *rule {
                     Rule::EOI => "end of input".to_string(),
