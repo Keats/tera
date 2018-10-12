@@ -165,6 +165,20 @@ fn parse_string_concat(pair: Pair<Rule>) -> ExprVal {
             Rule::string => {
                 current_str.push_str(&replace_string_markers(p.as_str()));
             }
+            Rule::int => {
+                if !current_str.is_empty() {
+                    values.push(ExprVal::String(current_str));
+                    current_str = String::new();
+                }
+                values.push(ExprVal::Int(p.as_str().parse().unwrap()));
+            },
+            Rule::float => {
+                if !current_str.is_empty() {
+                    values.push(ExprVal::String(current_str));
+                    current_str = String::new();
+                }
+                values.push(ExprVal::Float(p.as_str().parse().unwrap()));
+            }
             Rule::dotted_square_bracket_ident => {
                 if !current_str.is_empty() {
                     values.push(ExprVal::String(current_str));

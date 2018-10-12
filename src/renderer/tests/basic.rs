@@ -493,16 +493,22 @@ fn filter_filter_works() {
 }
 
 #[test]
-fn can_concat_strings() {
+fn can_do_string_concat() {
     let mut context = Context::new();
     context.insert("a_string", "hello");
     context.insert("another_string", "xXx");
+    context.insert("an_int", &1);
+    context.insert("a_float", &3.14);
 
     let inputs = vec![
         (r#"{{ "hello" ~ " world" }}"#, "hello world"),
+        (r#"{{ "hello" ~ 1 }}"#, "hello1"),
+        (r#"{{ "hello" ~ 3.14 }}"#, "hello3.14"),
         (r#"{{ a_string ~ " world" }}"#, "hello world"),
         (r#"{{ a_string ~ ' world ' ~ another_string }}"#, "hello world xXx"),
         (r#"{{ a_string ~ another_string }}"#, "helloxXx"),
+        (r#"{{ a_string ~ an_int }}"#, "hello1"),
+        (r#"{{ a_string ~ a_float }}"#, "hello3.14"),
     ];
 
     for (input, expected) in inputs {
