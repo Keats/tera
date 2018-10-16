@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.11.18 (unreleased)
+## 0.11.18 (2018-10-16)
 
 - Allow concatenation of strings and numbers
 
