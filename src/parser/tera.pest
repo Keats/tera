@@ -71,7 +71,7 @@ dotted_square_bracket_ident = @{
     dotted_ident ~ ( ("." ~ all_chars+) | square_brackets )*
 }
 
-string_concat = { (string | dotted_square_bracket_ident) ~ ("~" ~ (string | dotted_square_bracket_ident))+ }
+string_concat = { (string | dotted_square_bracket_ident) ~ ("~" ~ (float | int | string | dotted_square_bracket_ident))+ }
 
 // ----------------------------------------------------
 

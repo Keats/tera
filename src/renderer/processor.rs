@@ -287,10 +287,13 @@ impl<'a> Processor<'a> {
                 for s in &str_concat.values {
                     match *s {
                         ExprVal::String(ref v) => res.push_str(&v),
+                        ExprVal::Int(ref v) => res.push_str(&format!("{}", v)),
+                        ExprVal::Float(ref v) => res.push_str(&format!("{}", v)),
                         ExprVal::Ident(ref i) => match *self.lookup_ident(i)? {
                             Value::String(ref v) => res.push_str(&v),
+                            Value::Number(ref v) => res.push_str(&v.to_string()),
                             _ => bail!(
-                                "Tried to concat a value that is not a string from ident {}",
+                                "Tried to concat a value that is not a string or a number from ident {}",
                                 i
                             ),
                         },
