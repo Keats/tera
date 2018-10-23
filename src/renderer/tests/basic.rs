@@ -1,6 +1,9 @@
+use std::collections::BTreeMap;
+
+use serde_json::Value;
+
 use context::Context;
 use errors::Result;
-use std::collections::BTreeMap;
 use tera::Tera;
 
 use super::Review;
@@ -8,6 +11,8 @@ use super::Review;
 fn render_template(content: &str, context: &Context) -> Result<String> {
     let mut tera = Tera::default();
     tera.add_raw_template("hello.html", content).unwrap();
+    tera.register_function("get_number", Box::new(|_| Ok(Value::Number(10.into()))));
+    tera.register_function("get_string", Box::new(|_| Ok(Value::String("Hello".to_string()))));
 
     tera.render("hello.html", context)
 }
@@ -96,6 +101,7 @@ fn render_variable_block_ident() {
         ("{{ 1 + 1 + 1 }}", "3"),
         ("{{ 2 - 2 - 1 }}", "-1"),
         ("{{ 1 - 1 + 1 }}", "1"),
+        ("{{ 1 + get_number() }}", "11"),
         ("{{ (1.9 + a) | round }}", "4"),
         ("{{ 1.9 + a | round }}", "4"),
         ("{{ numbers | length - 1 }}", "2"),
