@@ -3,7 +3,8 @@
 ## 0.11.19 (unreleased)
 
 - Allow function calls in math expressions
--
+- Allow string concatenation to start with a number
+- Allow function calls in string concatenations
 
 ## 0.11.18 (2018-10-16)
 

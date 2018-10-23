@@ -297,6 +297,14 @@ impl<'a> Processor<'a> {
                                 i
                             ),
                         },
+                        ExprVal::FunctionCall(ref fn_call) => match *self.eval_tera_fn_call(fn_call)? {
+                            Value::String(ref v) => res.push_str(&v),
+                            Value::Number(ref v) => res.push_str(&v.to_string()),
+                            _ => bail!(
+                                "Tried to concat a value that is not a string or a number from function call {}",
+                                fn_call.name
+                            ),
+                        },
                         _ => unreachable!(),
                     };
                 }
