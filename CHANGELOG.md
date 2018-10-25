@@ -5,6 +5,7 @@
 - Allow function calls in math expressions
 - Allow string concatenation to start with a number
 - Allow function calls in string concatenations
+- Add a `concat` filter to concat arrays or push an element to an array
 
 ## 0.11.18 (2018-10-16)
 

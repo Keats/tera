@@ -543,6 +543,7 @@ impl Tera {
         self.register_filter("slice", array::slice);
         self.register_filter("group_by", array::group_by);
         self.register_filter("filter", array::filter);
+        self.register_filter("concat", array::concat);
 
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);

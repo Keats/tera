@@ -727,6 +727,25 @@ or by author name:
 {{ posts | filter(attribute="author.name", value="Vincent") }}
 ```
 
+#### concat
+Appends values to an array.
+
+```jinja2
+{{ posts | concat(with=drafts) }}
+```
+
+The filter takes an array and returns a new array with the value(s) from the `with` parameter
+added. If the `with` parameter is an array, all of its values will be appended one by one to the new array and
+not as an array.
+
+This filter can also be used to append a single value to an array if the value passed to `with` is not an array:
+
+```jinja2
+{% set pages_id = pages_id | concat(with=id) %}
+```
+
+The `with` attribute is mandatory.
+
 #### urlencode
 Percent-encodes a string.
 
