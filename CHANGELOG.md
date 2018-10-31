@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.11.19 (unreleased)
+## 0.11.19 (2018-10-31)
 
 - Allow function calls in math expressions
 - Allow string concatenation to start with a number
