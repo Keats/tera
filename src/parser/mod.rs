@@ -186,6 +186,13 @@ fn parse_string_concat(pair: Pair<Rule>) -> ExprVal {
                 }
                 values.push(ExprVal::Ident(p.as_str().to_string()))
             }
+            Rule::fn_call => {
+                if !current_str.is_empty() {
+                    values.push(ExprVal::String(current_str));
+                    current_str = String::new();
+                }
+                values.push(ExprVal::FunctionCall(parse_fn_call(p)))
+            }
             _ => unreachable!("Got {:?} in parse_string_concat", p),
         };
     }

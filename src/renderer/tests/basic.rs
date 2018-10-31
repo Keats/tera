@@ -1,6 +1,9 @@
+use std::collections::BTreeMap;
+
+use serde_json::Value;
+
 use context::Context;
 use errors::Result;
-use std::collections::BTreeMap;
 use tera::Tera;
 
 use super::Review;
@@ -8,6 +11,8 @@ use super::Review;
 fn render_template(content: &str, context: &Context) -> Result<String> {
     let mut tera = Tera::default();
     tera.add_raw_template("hello.html", content).unwrap();
+    tera.register_function("get_number", Box::new(|_| Ok(Value::Number(10.into()))));
+    tera.register_function("get_string", Box::new(|_| Ok(Value::String("Hello".to_string()))));
 
     tera.render("hello.html", context)
 }
@@ -96,6 +101,8 @@ fn render_variable_block_ident() {
         ("{{ 1 + 1 + 1 }}", "3"),
         ("{{ 2 - 2 - 1 }}", "-1"),
         ("{{ 1 - 1 + 1 }}", "1"),
+        ("{{ 1 + get_number() }}", "11"),
+        ("{{ get_number() + 1 }}", "11"),
         ("{{ (1.9 + a) | round }}", "4"),
         ("{{ 1.9 + a | round }}", "4"),
         ("{{ numbers | length - 1 }}", "2"),
@@ -504,6 +511,10 @@ fn can_do_string_concat() {
         (r#"{{ "hello" ~ " world" }}"#, "hello world"),
         (r#"{{ "hello" ~ 1 }}"#, "hello1"),
         (r#"{{ "hello" ~ 3.14 }}"#, "hello3.14"),
+        (r#"{{ 3.14 ~ "hello"}}"#, "3.14hello"),
+        (r#"{{ "hello" ~ get_string() }}"#, "helloHello"),
+        (r#"{{ get_string() ~ "hello" }}"#, "Hellohello"),
+        (r#"{{ get_string() ~ 3.14 }}"#, "Hello3.14"),
         (r#"{{ a_string ~ " world" }}"#, "hello world"),
         (r#"{{ a_string ~ ' world ' ~ another_string }}"#, "hello world xXx"),
         (r#"{{ a_string ~ another_string }}"#, "helloxXx"),
@@ -620,4 +631,23 @@ fn redefining_loop_value_doesnt_break_loop() {
     let result = tera.render("tpl", &context);
 
     assert_eq!(result.unwrap(), "abclol efghlol ijklmlol ");
+}
+
+#[test]
+fn can_use_concat_to_push_to_array() {
+    let mut tera = Tera::default();
+    tera.add_raw_template(
+        "tpl",
+        r#"
+{%- set ids = [] -%}
+{% for i in range(end=5) -%}
+{%- set_global ids = ids | concat(with=i) -%}
+{%- endfor -%}
+{{ids}}"#,
+    )
+    .unwrap();
+    let context = Context::new();
+    let result = tera.render("tpl", &context);
+
+    assert_eq!(result.unwrap(), "[0, 1, 2, 3, 4]");
 }

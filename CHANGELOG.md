@@ -1,9 +1,15 @@
 # Changelog
 
+## 0.11.19 (2018-10-31)
+
+- Allow function calls in math expressions
+- Allow string concatenation to start with a number
+- Allow function calls in string concatenations
+- Add a `concat` filter to concat arrays or push an element to an array
+
 ## 0.11.18 (2018-10-16)
 
 - Allow concatenation of strings and numbers
-
 
 ## 0.11.17 (2018-10-09)
 

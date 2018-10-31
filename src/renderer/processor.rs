@@ -297,6 +297,14 @@ impl<'a> Processor<'a> {
                                 i
                             ),
                         },
+                        ExprVal::FunctionCall(ref fn_call) => match *self.eval_tera_fn_call(fn_call)? {
+                            Value::String(ref v) => res.push_str(&v),
+                            Value::Number(ref v) => res.push_str(&v.to_string()),
+                            _ => bail!(
+                                "Tried to concat a value that is not a string or a number from function call {}",
+                                fn_call.name
+                            ),
+                        },
                         _ => unreachable!(),
                     };
                 }
@@ -656,9 +664,21 @@ impl<'a> Processor<'a> {
                     }
                 }
             }
+            ExprVal::FunctionCall(ref fn_call) => {
+                let v = self.eval_tera_fn_call(fn_call)?;
+                if v.is_i64() {
+                    Some(Number::from(v.as_i64().unwrap()))
+                } else if v.is_u64() {
+                    Some(Number::from(v.as_u64().unwrap()))
+                } else if v.is_f64() {
+                    Some(Number::from_f64(v.as_f64().unwrap()).unwrap())
+                } else {
+                    bail!("Function `{}` was used in a math operation but is not returning a number", fn_call.name,)
+                }
+            },
             ExprVal::String(ref val) => bail!("Tried to do math with a string: `{}`", val),
             ExprVal::Bool(val) => bail!("Tried to do math with a boolean: `{}`", val),
-            _ => unreachable!("unimplemented"),
+            _ => unreachable!("unimplemented math expression for {:?}", expr),
         };
 
         Ok(result)

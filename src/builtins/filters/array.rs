@@ -174,6 +174,33 @@ pub fn slice(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     Ok(arr[start..end].into())
 }
 
+/// Concat the array with another one if the `with` parameter is an array or
+/// just append it otherwise
+pub fn concat(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
+    let mut arr = try_get_value!("concat", "value", Vec<Value>, value);
+
+    let value = match args.remove("with") {
+        Some(val) => val,
+        None => bail!("The `concat` filter has to have a `with` argument"),
+    };
+
+    if value.is_array() {
+        match value {
+            Value::Array(vals) => {
+                for val in vals {
+                    arr.push(val);
+                }
+            },
+            _ => unreachable!("Got something other than an array??")
+        }
+    } else {
+        arr.push(value);
+    }
+
+    Ok(to_value(arr).unwrap())
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -466,6 +493,49 @@ mod tests {
         ]);
 
         let res = filter(input, args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_concat_array() {
+        let input = json!([
+            1,
+            2,
+            3,
+        ]);
+        let mut args = HashMap::new();
+        args.insert("with".to_string(), json!([3, 4]));
+        let expected = json!([
+            1,
+            2,
+            3,
+            3,
+            4,
+        ]);
+
+        let res = concat(input, args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_concat_single_value() {
+        let input = json!([
+            1,
+            2,
+            3,
+        ]);
+        let mut args = HashMap::new();
+        args.insert("with".to_string(), json!(4));
+        let expected = json!([
+            1,
+            2,
+            3,
+            4,
+        ]);
+
+        let res = concat(input, args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }
