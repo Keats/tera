@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::prelude::*;
 use serde_json::value::{from_value, to_value, Value};
 
-use errors::Result;
+use errors::{Result, Error};
 
 /// The global function type definition
 pub type GlobalFn = Box<Fn(HashMap<String, Value>) -> Result<Value> + Sync + Send>;
@@ -13,36 +13,36 @@ pub fn make_range_fn() -> GlobalFn {
         let start = match args.get("start") {
             Some(val) => match from_value::<usize>(val.clone()) {
                 Ok(v) => v,
-                Err(_) => bail!(
+                Err(_) => return Err(Error::msg(format!(
                     "Global function `range` received start={} but `start` can only be a number",
                     val
-                ),
+                ))),
             },
             None => 0,
         };
         let step_by = match args.get("step_by") {
             Some(val) => match from_value::<usize>(val.clone()) {
                 Ok(v) => v,
-                Err(_) => bail!(
+                Err(_) => return Err(Error::msg(format!(
                     "Global function `range` received step_by={} but `step` can only be a number",
                     val
-                ),
+                ))),
             },
             None => 1,
         };
         let end = match args.get("end") {
             Some(val) => match from_value::<usize>(val.clone()) {
                 Ok(v) => v,
-                Err(_) => bail!(
+                Err(_) => return Err(Error::msg(format!(
                     "Global function `range` received end={} but `end` can only be a number",
                     val
-                ),
+                ))),
             },
-            None => bail!("Global function `range` was called without a `end` argument"),
+            None => return Err(Error::msg("Global function `range` was called without a `end` argument")),
         };
 
         if start > end {
-            bail!("Global function `range` was called without a `start` argument greater than the `end` one");
+            return Err(Error::msg("Global function `range` was called without a `start` argument greater than the `end` one"));
         }
 
         let mut i = start;
@@ -60,19 +60,19 @@ pub fn make_now_fn() -> GlobalFn {
         let utc = match args.get("utc") {
             Some(val) => match from_value::<bool>(val.clone()) {
                 Ok(v) => v,
-                Err(_) => bail!(
+                Err(_) => return Err(Error::msg(format!(
                     "Global function `now` received utc={} but `utc` can only be a boolean",
                     val
-                ),
+                ))),
             },
             None => false,
         };
         let timestamp = match args.get("timestamp") {
             Some(val) => match from_value::<bool>(val.clone()) {
                 Ok(v) => v,
-                Err(_) => bail!(
+                Err(_) => return Err(Error::msg(format!(
                     "Global function `now` received timestamp={} but `timestamp` can only be a boolean", val
-                ),
+                ))),
             },
             None => false,
         };
@@ -97,12 +97,12 @@ pub fn make_throw_fn() -> GlobalFn {
     Box::new(move |args| -> Result<Value> {
         match args.get("message") {
             Some(val) => match from_value::<String>(val.clone()) {
-                Ok(v) => bail!("{}", v),
-                Err(_) => bail!(
+                Ok(v) => Err(Error::msg(v)),
+                Err(_) => Err(Error::msg(format!(
                     "Global function `throw` received message={} but `message` can only be a string", val
-                ),
+                ))),
             },
-            None => bail!("Global function `throw` was called without a `message` argument"),
+            None => Err(Error::msg("Global function `throw` was called without a `message` argument")),
         }
     })
 }
@@ -192,6 +192,6 @@ mod tests {
         let res = make_throw_fn()(args);
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert_eq!(err.description(), "Hello");
+        assert_eq!(err.to_string(), "Hello");
     }
 }
