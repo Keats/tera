@@ -4,7 +4,7 @@ use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
 
-use errors::Result as TeraResult;
+use errors::{Result as TeraResult, Error};
 
 // This include forces recompiling this source file if the grammar file changes.
 // Uncomment it when doing changes to the .pest file
@@ -968,7 +968,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::continue_tag => "a continue tag".to_string(),
                 }
             });
-            bail!("{}", fancy_e)
+            return Err(Error::msg(fancy_e));
         }
     };
 

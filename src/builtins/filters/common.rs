@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
-use errors::Result;
+use errors::{Result, Error};
 use serde_json::value::{to_value, Value};
 use serde_json::{to_string, to_string_pretty};
 
@@ -25,14 +25,14 @@ pub fn reverse(value: Value, _: HashMap<String, Value>) -> Result<Value> {
     match value {
         Value::Array(mut arr) => {
             arr.reverse();
-            Ok(to_value(&arr)?)
+            to_value(&arr).map_err(Error::json)
         }
-        Value::String(s) => Ok(to_value(&String::from_iter(s.chars().rev()))?),
-        _ => bail!(
+        Value::String(s) => to_value(&String::from_iter(s.chars().rev())).map_err(Error::json),
+        _ => Err(Error::msg(format!(
             "Filter `reverse` received an incorrect type for arg `value`: \
              got `{}` but expected Array|String",
-            value.to_string()
-        ),
+            value
+        ))),
     }
 }
 
@@ -42,9 +42,9 @@ pub fn json_encode(value: Value, args: HashMap<String, Value>) -> Result<Value> 
     let pretty = args.get("pretty").and_then(|v| v.as_bool()).unwrap_or(false);
 
     if pretty {
-        Ok(Value::String(to_string_pretty(&value)?))
+        to_string_pretty(&value).map(Value::String).map_err(Error::json)
     } else {
-        Ok(Value::String(to_string(&value)?))
+        to_string(&value).map(Value::String).map_err(Error::json)
     }
 }
 
@@ -65,7 +65,7 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
     let formatted = match value {
         Value::Number(n) => match n.as_i64() {
             Some(i) => NaiveDateTime::from_timestamp(i, 0).format(&format),
-            None => bail!("Filter `date` was invoked on a float: {}", n),
+            None => return Err(Error::msg(format!("Filter `date` was invoked on a float: {}", n))),
         },
         Value::String(s) => {
             if s.contains('T') {
@@ -74,30 +74,30 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
                     Err(_) => match s.parse::<NaiveDateTime>() {
                         Ok(val) => val.format(&format),
                         Err(_) => {
-                            bail!("Error parsing `{:?}` as rfc3339 date or naive datetime", s)
+                            return Err(Error::msg(format!("Error parsing `{:?}` as rfc3339 date or naive datetime", s)))
                         }
                     },
                 }
             } else {
                 match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
                     Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format),
-                    Err(_) => bail!("Error parsing `{:?}` as YYYY-MM-DD date", s),
+                    Err(_) => return Err(Error::msg(format!("Error parsing `{:?}` as YYYY-MM-DD date", s))),
                 }
             }
         }
-        _ => bail!(
+        _ => return Err(Error::msg(format!(
             "Filter `date` received an incorrect type for arg `value`: \
              got `{:?}` but expected i64|u64|String",
             value
-        ),
+        ))),
     };
 
-    Ok(to_value(&formatted.to_string())?)
+    to_value(&formatted.to_string()).map_err(Error::json)
 }
 
 // Returns the given value as a string.
 pub fn as_str(value: Value, _: HashMap<String, Value>) -> Result<Value> {
-    Ok(to_value(&value.render())?)
+    to_value(&value.render()).map_err(Error::json)
 }
 
 #[cfg(test)]
@@ -170,7 +170,7 @@ mod tests {
         let result = reverse(to_value(&1.23).unwrap(), HashMap::new());
         assert!(result.is_err());
         assert_eq!(
-            result.err().unwrap().description(),
+            result.err().unwrap().to_string(),
             "Filter `reverse` received an incorrect type for arg `value`: got `1.23` but expected Array|String"
         );
     }

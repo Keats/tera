@@ -1,4 +1,4 @@
-use errors::Result;
+use errors::{Result, Error};
 use parser::ast::MacroDefinition;
 use std::collections::HashMap;
 use template::Template;
@@ -104,18 +104,18 @@ impl<'a> MacroCollection<'a> {
             if let Some(m) = macro_definition_map.get(macro_name).map(|md| (macro_template, md)) {
                 Ok(m)
             } else {
-                bail!(
+                Err(Error::msg(format!(
                     "Macro `{}::{}` not found in template `{}`",
                     macro_namespace,
                     macro_name,
                     template_name
-                )
+                )))
             }
         } else {
-            bail!(
-            "Macro namespace `{}` was not found in template `{}`. Have you maybe forgotten to import it, or misspelled it?",
-            macro_namespace, template_name
-            )
+            Err(Error::msg(format!(
+                "Macro namespace `{}` was not found in template `{}`. Have you maybe forgotten to import it, or misspelled it?",
+                macro_namespace, template_name
+            )))
         }
     }
 }
