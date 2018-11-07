@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::error::Error;
 
 use serde_json::Value;
 
@@ -538,7 +539,7 @@ fn can_fail_rendering_from_template() {
     );
     assert!(res.is_err());
     let err = res.unwrap_err();
-    assert_eq!(err.iter().nth(1).unwrap().description(), "Error: hello did not include a summary");
+    assert_eq!(err.source().unwrap().to_string(), "Error: hello did not include a summary");
 }
 
 #[test]

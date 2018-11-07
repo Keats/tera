@@ -5,7 +5,7 @@ use serde::ser::SerializeMap;
 use serde::Serializer;
 use serde_json::value::{to_value, Value};
 
-use errors::{Result as TeraResult, ResultExt};
+use errors::{Result as TeraResult, Error};
 
 /// The struct that holds the context of a template rendering.
 ///
@@ -44,7 +44,7 @@ impl Context {
 
     #[doc(hidden)]
     pub fn as_json(&self) -> TeraResult<Value> {
-        to_value(&self.data).chain_err(|| "Failed to convert data to JSON")
+        to_value(&self.data).map_err(|e| Error::chain("Failed to convert data to JSON", e))
     }
 
     /// Appends the data of the `source` parameter to `self`, overwriting existing keys.

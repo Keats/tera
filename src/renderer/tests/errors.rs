@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::error::Error;
 
 use context::Context;
 use tera::Tera;
@@ -11,7 +12,7 @@ fn error_location_basic() {
     let result = tera.render("tpl", &Context::new());
 
     assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
+        result.unwrap_err().to_string(),
         "Failed to render \'tpl\'"
     );
 }
@@ -28,7 +29,7 @@ fn error_location_inside_macro() {
     let result = tera.render("tpl", &Context::new());
 
     assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
+        result.unwrap_err().to_string(),
         "Failed to render \'tpl\': error while rendering macro `macros::hello`"
     );
 }
@@ -45,7 +46,7 @@ fn error_loading_macro_from_unloaded_namespace() {
     let result = tera.render("tpl", &Context::new());
     println!("{:#?}", result);
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        result.unwrap_err().source().unwrap().to_string(),
         "Macro namespace `macro` was not found in template `tpl`. Have you maybe forgotten to import it, or misspelled it?"
     );
 }
@@ -62,7 +63,7 @@ fn error_location_base_template() {
     let result = tera.render("child", &Context::new());
 
     assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
+        result.unwrap_err().to_string(),
         "Failed to render \'child\' (error happened in 'parent')."
     );
 }
@@ -79,7 +80,7 @@ fn error_location_in_parent_block() {
     let result = tera.render("child", &Context::new());
 
     assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
+        result.unwrap_err().to_string(),
         "Failed to render \'child\' (error happened in 'parent')."
     );
 }
@@ -97,7 +98,7 @@ fn error_location_in_parent_in_macro() {
     println!("{:?}", result);
 
     assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
+        result.unwrap_err().to_string(),
         "Failed to render \'child\': error while rendering macro `macros::hello` (error happened in \'parent\')."
     );
 }
@@ -112,7 +113,7 @@ fn error_out_of_range_index() {
     let result = tera.render("tpl", &Context::new());
 
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        result.unwrap_err().source().unwrap().to_string(),
         "Variable `arr[10]` not found in context while rendering \'tpl\': the evaluated version was `arr.10`. Maybe the index is out of bounds?"
     );
 }
@@ -127,7 +128,7 @@ fn error_unknown_index_variable() {
     let result = tera.render("tpl", &Context::new());
 
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        result.unwrap_err().source().unwrap().to_string(),
         "Variable arr[a] can not be evaluated because: Variable `a` not found in context while rendering \'tpl\'"
     );
 }
@@ -144,7 +145,7 @@ fn error_invalid_type_index_variable() {
     let result = tera.render("tpl", &context);
 
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        result.unwrap_err().source().unwrap().to_string(),
         "Only variables evaluating to String or Number can be used as index (`a` of `arr[a]`)"
     );
 }
@@ -157,7 +158,7 @@ fn error_when_missing_macro_templates() {
         "{% import \"macros\" as macros %}{{ macros::hello() }}{% block bob %}{% endblock bob %}",
     )]);
     assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
+        result.unwrap_err().to_string(),
         "Template `parent` loads macros from `macros` which isn\'t present in Tera"
     );
 }
@@ -175,7 +176,7 @@ fn error_when_using_variable_set_in_included_templates_outside() {
     let result = tera.render("base", &context);
 
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        result.unwrap_err().source().unwrap().to_string(),
         "Variable `b` not found in context while rendering \'base\'"
     );
 }
@@ -202,7 +203,7 @@ fn right_variable_name_is_needed_in_for_loop() {
     let result = tera.render("tpl", &context);
 
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        result.unwrap_err().source().unwrap().to_string(),
         "Variable `whocares.content` not found in context while rendering \'tpl\'"
     );
 }

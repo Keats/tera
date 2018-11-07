@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use humansize::{file_size_opts, FileSize};
 use serde_json::value::{to_value, Value};
 
-use errors::Result;
+use errors::{Result, Error};
 
 /// Returns a suffix if the value is not equal to ±1. Suffix defaults to `s`
 pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
@@ -42,11 +42,11 @@ pub fn round(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         "common" => Ok(to_value((multiplier * num).round() / multiplier).unwrap()),
         "ceil" => Ok(to_value((multiplier * num).ceil() / multiplier).unwrap()),
         "floor" => Ok(to_value((multiplier * num).floor() / multiplier).unwrap()),
-        _ => bail!(
+        _ => Err(Error::msg(format!(
             "Filter `round` received an incorrect value for arg `method`: got `{:?}`, \
              only common, ceil and floor are allowed",
             method
-        ),
+        ))),
     }
 }
 
@@ -55,7 +55,7 @@ pub fn filesizeformat(value: Value, _: HashMap<String, Value>) -> Result<Value> 
     let num = try_get_value!("filesizeformat", "value", i64, value);
     num.file_size(file_size_opts::CONVENTIONAL)
         .or_else(|_| {
-            Err(format!("Filter `filesizeformat` was called on a negative number: {}", num).into())
+            Err(Error::msg(format!("Filter `filesizeformat` was called on a negative number: {}", num)))
         })
         .map(to_value)
         .map(|x| x.unwrap())

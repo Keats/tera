@@ -8,7 +8,7 @@ use url::percent_encoding::{utf8_percent_encode, EncodeSet};
 
 use unic_segment::GraphemeIndices;
 
-use errors::Result;
+use errors::{Result, Error};
 use utils;
 
 lazy_static! {
@@ -90,12 +90,12 @@ pub fn replace(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     let from = match args.get("from") {
         Some(val) => try_get_value!("replace", "from", String, val),
-        None => bail!("Filter `replace` expected an arg called `from`"),
+        None => return Err(Error::msg("Filter `replace` expected an arg called `from`")),
     };
 
     let to = match args.get("to") {
         Some(val) => try_get_value!("replace", "to", String, val),
-        None => bail!("Filter `replace` expected an arg called `to`"),
+        None => return Err(Error::msg("Filter `replace` expected an arg called `to`")),
     };
 
     Ok(to_value(&s.replace(&from, &to)).unwrap())
@@ -199,7 +199,7 @@ pub fn split(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     let pat = match args.get("pat") {
         Some(pat) => try_get_value!("split", "pat", String, pat),
-        None => bail!("Filter `split` expected an arg called `pat`"),
+        None => return Err(Error::msg("Filter `split` expected an arg called `pat`")),
     };
 
     Ok(to_value(s.split(&pat).collect::<Vec<_>>()).unwrap())
@@ -225,7 +225,7 @@ mod tests {
         let result = upper(to_value(&50).unwrap(), HashMap::new());
         assert!(result.is_err());
         assert_eq!(
-            result.err().unwrap().description(),
+            result.err().unwrap().to_string(),
             "Filter `upper` was called on an incorrect value: got `50` but expected a String"
         );
     }
@@ -306,7 +306,7 @@ mod tests {
         let result = replace(to_value(&"Hello world!").unwrap(), args);
         assert!(result.is_err());
         assert_eq!(
-            result.err().unwrap().description(),
+            result.err().unwrap().to_string(),
             "Filter `replace` expected an arg called `to`"
         );
     }

@@ -1,4 +1,4 @@
-use errors::Result;
+use errors::{Result, Error};
 use serde_json::Value;
 use std::cmp::Ordering;
 
@@ -10,7 +10,7 @@ impl OrderedF64 {
         if n.is_finite() {
             Ok(OrderedF64(n))
         } else {
-            bail!("{} cannot be sorted", n)
+            Err(Error::msg(format!("{} cannot be sorted", n)))
         }
     }
 }
@@ -33,28 +33,28 @@ pub trait GetSortKey: Ord + Sized + Clone {
 
 impl GetSortKey for OrderedF64 {
     fn get_sort_key(val: &Value) -> Result<Self> {
-        let n = val.as_f64().ok_or_else(|| format!("expected number got {}", val))?;
+        let n = val.as_f64().ok_or_else(|| Error::msg(format!("expected number got {}", val)))?;
         OrderedF64::new(n)
     }
 }
 
 impl GetSortKey for bool {
     fn get_sort_key(val: &Value) -> Result<Self> {
-        val.as_bool().ok_or_else(|| format!("expected bool got {}", val).into())
+        val.as_bool().ok_or_else(|| Error::msg(format!("expected bool got {}", val)))
     }
 }
 
 impl GetSortKey for String {
     fn get_sort_key(val: &Value) -> Result<Self> {
         let str: Result<&str> =
-            val.as_str().ok_or_else(|| format!("expected string got {}", val).into());
+            val.as_str().ok_or_else(|| Error::msg(format!("expected string got {}", val)));
         Ok(str?.to_owned())
     }
 }
 
 impl GetSortKey for ArrayLen {
     fn get_sort_key(val: &Value) -> Result<Self> {
-        let arr = val.as_array().ok_or_else(|| format!("expected array got {}", val))?;
+        let arr = val.as_array().ok_or_else(|| Error::msg(format!("expected array got {}", val)))?;
         Ok(ArrayLen(arr.len()))
     }
 }
@@ -100,11 +100,11 @@ impl<K: GetSortKey> SortStrategy for SortPairs<K> {
 pub fn get_sort_strategy_for_type(ty: &Value) -> Result<Box<SortStrategy>> {
     use Value::*;
     match *ty {
-        Null => bail!("Null is not a sortable value"),
+        Null => Err(Error::msg("Null is not a sortable value")),
         Bool(_) => Ok(Box::new(Bools::default())),
         Number(_) => Ok(Box::new(Numbers::default())),
         String(_) => Ok(Box::new(Strings::default())),
         Array(_) => Ok(Box::new(Arrays::default())),
-        Object(_) => bail!("Object is not a sortable value"),
+        Object(_) => Err(Error::msg("Object is not a sortable value")),
     }
 }

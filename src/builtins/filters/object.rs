@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde_json::value::Value;
 
-use errors::Result;
+use errors::{Result, Error};
 
 /// Returns a value by a `key` argument from a given object
 pub fn get(value: Value, args: HashMap<String, Value>) -> Result<Value> {
@@ -14,9 +14,9 @@ pub fn get(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     match value.as_object() {
         Some(o) => o.get(&key).cloned().ok_or_else(|| {
-            format!("Filter `get` tried to get key `{}` but it wasn't found", &key).into()
+            Error::msg(format!("Filter `get` tried to get key `{}` but it wasn't found", &key))
         }),
-        None => bail!("Filter `get` was used on a value that isn't an object"),
+        None => Err(Error::msg("Filter `get` was used on a value that isn't an object")),
     }
 }
 
