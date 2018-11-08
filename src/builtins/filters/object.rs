@@ -6,7 +6,7 @@ use serde_json::value::Value;
 use errors::{Error, Result};
 
 /// Returns a value by a `key` argument from a given object
-pub fn get(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+pub fn get(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let key = match args.get("key") {
         Some(val) => try_get_value!("get", "key", String, val),
         None => bail!("The `get` filter has to have an `key` argument"),
@@ -34,7 +34,7 @@ mod tests {
 
         let mut args = HashMap::new();
         args.insert("key".to_string(), to_value("1").unwrap());
-        let result = get(to_value(&obj).unwrap(), args);
+        let result = get(&to_value(&obj).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("first").unwrap());
     }
@@ -47,7 +47,7 @@ mod tests {
 
         let mut args = HashMap::new();
         args.insert("key".to_string(), to_value("3").unwrap());
-        let result = get(to_value(&obj).unwrap(), args);
+        let result = get(&to_value(&obj).unwrap(), &args);
         assert!(result.is_err());
     }
 }
