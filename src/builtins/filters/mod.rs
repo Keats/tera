@@ -10,4 +10,4 @@ pub mod object;
 pub mod string;
 
 /// The filter function type definition
-pub type FilterFn = fn(Value, HashMap<String, Value>) -> Result<Value>;
+pub type FilterFn = fn(&Value, &HashMap<String, Value>) -> Result<Value>;
