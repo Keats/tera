@@ -3,6 +3,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::sync::Arc;
 
 use glob::glob;
 use serde::Serialize;
@@ -10,7 +11,7 @@ use serde_json::value::to_value;
 
 use builtins::filters::{array, common, number, object, string, FilterFn};
 use builtins::functions::{self, GlobalFn};
-use builtins::testers::{self, TesterFn};
+use builtins::testers::{self, Test};
 use errors::{Error, Result};
 use renderer::Renderer;
 use template::Template;
@@ -29,7 +30,7 @@ pub struct Tera {
     #[doc(hidden)]
     pub filters: HashMap<String, FilterFn>,
     #[doc(hidden)]
-    pub testers: HashMap<String, TesterFn>,
+    pub testers: HashMap<String, Arc<dyn Test>>,
     #[doc(hidden)]
     pub global_functions: HashMap<String, GlobalFn>,
     // Which extensions does Tera automatically autoescape on.
@@ -469,9 +470,9 @@ impl Tera {
 
     #[doc(hidden)]
     #[inline]
-    pub fn get_tester(&self, tester_name: &str) -> Result<&TesterFn> {
+    pub fn get_tester(&self, tester_name: &str) -> Result<&dyn Test> {
         match self.testers.get(tester_name) {
-            Some(t) => Ok(t),
+            Some(t) => Ok(&**t),
             None => Err(Error::msg(format!("Tester '{}' not found", tester_name))),
         }
     }
@@ -483,8 +484,8 @@ impl Tera {
     /// ```rust,ignore
     /// tera.register_tester("odd", testers::odd);
     /// ```
-    pub fn register_tester(&mut self, name: &str, tester: TesterFn) {
-        self.testers.insert(name.to_string(), tester);
+    pub fn register_tester(&mut self, name: &str, tester: &Arc<dyn Test>) {
+        self.testers.insert(name.to_string(), tester.clone());
     }
 
     #[doc(hidden)]
@@ -546,18 +547,18 @@ impl Tera {
     }
 
     fn register_tera_testers(&mut self) {
-        self.register_tester("defined", testers::defined);
-        self.register_tester("undefined", testers::undefined);
-        self.register_tester("odd", testers::odd);
-        self.register_tester("even", testers::even);
-        self.register_tester("string", testers::string);
-        self.register_tester("number", testers::number);
-        self.register_tester("divisibleby", testers::divisible_by);
-        self.register_tester("iterable", testers::iterable);
-        self.register_tester("starting_with", testers::starting_with);
-        self.register_tester("ending_with", testers::ending_with);
-        self.register_tester("containing", testers::containing);
-        self.register_tester("matching", testers::matching);
+        self.register_tester("defined", &make_test(testers::defined));
+        self.register_tester("undefined", &make_test(testers::undefined));
+        self.register_tester("odd", &make_test(testers::odd));
+        self.register_tester("even", &make_test(testers::even));
+        self.register_tester("string", &make_test(testers::string));
+        self.register_tester("number", &make_test(testers::number));
+        self.register_tester("divisibleby", &make_test(testers::divisible_by));
+        self.register_tester("iterable", &make_test(testers::iterable));
+        self.register_tester("starting_with", &make_test(testers::starting_with));
+        self.register_tester("ending_with", &make_test(testers::ending_with));
+        self.register_tester("containing", &make_test(testers::containing));
+        self.register_tester("matching", &make_test(testers::matching));
     }
 
     fn register_tera_functions(&mut self) {
@@ -654,7 +655,7 @@ impl Tera {
 
         for (name, tester) in &other.testers {
             if !self.testers.contains_key(name) {
-                self.testers.insert(name.to_string(), *tester);
+                self.testers.insert(name.to_string(), tester.clone());
             }
         }
 
@@ -707,6 +708,10 @@ impl fmt::Debug for Tera {
 
         writeln!(f, "}}")
     }
+}
+
+pub fn make_test<T: Test + 'static>(t: T) -> Arc<dyn Test> {
+    Arc::new(t)
 }
 
 #[cfg(test)]
@@ -931,7 +936,7 @@ mod tests {
     fn test_extend_new_tester() {
         let mut my_tera = Tera::default();
         let mut framework_tera = Tera::default();
-        framework_tera.register_tester("hello", my_tera.testers["divisibleby"]);
+        framework_tera.register_tester("hello", &my_tera.testers["divisibleby"]);
         my_tera.extend(&framework_tera).unwrap();
         assert!(my_tera.testers.contains_key("hello"));
     }

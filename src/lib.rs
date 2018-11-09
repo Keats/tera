@@ -47,7 +47,7 @@ mod utils;
 // Template is meant to be used internally only but is exported for test/bench.
 pub use builtins::filters::FilterFn;
 pub use builtins::functions::GlobalFn;
-pub use builtins::testers::TesterFn;
+pub use builtins::testers::Test;
 pub use context::Context;
 pub use errors::{Error, ErrorKind, Result};
 /// Re-export Value and other useful things from serde

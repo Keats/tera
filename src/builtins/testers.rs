@@ -4,7 +4,16 @@ use regex::Regex;
 use serde_json::value::Value;
 
 /// The tester function type definition
-pub type TesterFn = fn(Option<&Value>, &[Value]) -> Result<bool>;
+pub trait Test: Sync + Send {
+    /// The tester function type definition
+    fn test(&self, value: Option<&Value>, args: &[Value]) -> Result<bool>;
+}
+
+impl<F> Test for F where F: Fn(Option<&Value>, &[Value]) -> Result<bool> + Sync + Send {
+    fn test(&self, value: Option<&Value>, args: &[Value]) -> Result<bool> {
+        self(value, args)
+    }
+}
 
 // Some helper functions to remove boilerplate with tester error handling
 fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result<()> {
