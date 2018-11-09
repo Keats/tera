@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 (unreleased)
+
+### Breaking changes
+
+- Now requires Rust 1.30
+- Removed error-chain errors and added rich Error enum instead
+
 ## 0.11.19 (2018-10-31)
 
 - Allow function calls in math expressions
