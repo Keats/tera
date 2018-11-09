@@ -413,7 +413,7 @@ impl<'a> Processor<'a> {
 
         let found = self.lookup_ident(&test.ident).map(|found| found.clone().into_owned()).ok();
 
-        Ok(tester_fn(found.as_ref(), &tester_args)?)
+        Ok(tester_fn.test(found.as_ref(), &tester_args)?)
     }
 
     fn eval_tera_fn_call(self: &mut Self, function_call: &'a FunctionCall) -> Result<Val<'a>> {
