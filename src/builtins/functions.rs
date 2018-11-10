@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::prelude::*;
 use serde_json::value::{from_value, to_value, Value};
 
-use errors::{Result, Error};
+use errors::{Error, Result};
 
 /// The global function type definition
 pub type GlobalFn = Box<Fn(HashMap<String, Value>) -> Result<Value> + Sync + Send>;
@@ -13,32 +13,42 @@ pub fn make_range_fn() -> GlobalFn {
         let start = match args.get("start") {
             Some(val) => match from_value::<usize>(val.clone()) {
                 Ok(v) => v,
-                Err(_) => return Err(Error::msg(format!(
+                Err(_) => {
+                    return Err(Error::msg(format!(
                     "Global function `range` received start={} but `start` can only be a number",
                     val
-                ))),
+                )))
+                }
             },
             None => 0,
         };
         let step_by = match args.get("step_by") {
             Some(val) => match from_value::<usize>(val.clone()) {
                 Ok(v) => v,
-                Err(_) => return Err(Error::msg(format!(
+                Err(_) => {
+                    return Err(Error::msg(format!(
                     "Global function `range` received step_by={} but `step` can only be a number",
                     val
-                ))),
+                )))
+                }
             },
             None => 1,
         };
         let end = match args.get("end") {
             Some(val) => match from_value::<usize>(val.clone()) {
                 Ok(v) => v,
-                Err(_) => return Err(Error::msg(format!(
-                    "Global function `range` received end={} but `end` can only be a number",
-                    val
-                ))),
+                Err(_) => {
+                    return Err(Error::msg(format!(
+                        "Global function `range` received end={} but `end` can only be a number",
+                        val
+                    )))
+                }
             },
-            None => return Err(Error::msg("Global function `range` was called without a `end` argument")),
+            None => {
+                return Err(Error::msg(
+                    "Global function `range` was called without a `end` argument",
+                ))
+            }
         };
 
         if start > end {
@@ -60,10 +70,12 @@ pub fn make_now_fn() -> GlobalFn {
         let utc = match args.get("utc") {
             Some(val) => match from_value::<bool>(val.clone()) {
                 Ok(v) => v,
-                Err(_) => return Err(Error::msg(format!(
-                    "Global function `now` received utc={} but `utc` can only be a boolean",
-                    val
-                ))),
+                Err(_) => {
+                    return Err(Error::msg(format!(
+                        "Global function `now` received utc={} but `utc` can only be a boolean",
+                        val
+                    )))
+                }
             },
             None => false,
         };

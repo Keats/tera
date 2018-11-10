@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use serde_json::{to_string_pretty, to_value, Number, Value};
 
 use context::{ValueRender, ValueTruthy};
-use errors::{Result, Error};
+use errors::{Error, Result};
 use parser::ast::*;
 use renderer::call_stack::CallStack;
 use renderer::for_loop::ForLoop;
@@ -27,18 +27,22 @@ fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<S
         // Translate from variable name to variable value
         match process_path(sub_var.as_ref(), call_stack) {
             Err(e) => {
-                return Err(Error::msg(format!("Variable {} can not be evaluated because: {}", key, e)));
+                return Err(Error::msg(format!(
+                    "Variable {} can not be evaluated because: {}",
+                    key, e
+                )));
             }
             Ok(post_var) => {
                 let post_var_as_str = match *post_var {
                     Value::String(ref s) => s.to_string(),
                     Value::Number(ref n) => n.to_string(),
-                    _ => return Err(Error::msg(format!(
-                        "Only variables evaluating to String or Number can be used as \
-                         index (`{}` of `{}`)",
-                        sub_var,
-                        key,
-                    ))),
+                    _ => {
+                        return Err(Error::msg(format!(
+                            "Only variables evaluating to String or Number can be used as \
+                             index (`{}` of `{}`)",
+                            sub_var, key,
+                        )))
+                    }
                 };
 
                 // Rebuild the original key String replacing variable name with value
@@ -198,10 +202,12 @@ impl<'a> Processor<'a> {
                     ),
                 }
             }
-            _ => return Err(Error::msg(format!(
-                "Tried to iterate on a container (`{}`) that has a unsupported type",
-                container_name,
-            ))),
+            _ => {
+                return Err(Error::msg(format!(
+                    "Tried to iterate on a container (`{}`) that has a unsupported type",
+                    container_name,
+                )))
+            }
         };
 
         let len = for_loop.len();
@@ -325,7 +331,9 @@ impl<'a> Processor<'a> {
                             if let Some(default_expr) = expr.filters[0].args.get("value") {
                                 self.eval_expression(default_expr)?
                             } else {
-                                return Err(Error::msg("The `default` filter requires a `value` argument."));
+                                return Err(Error::msg(
+                                    "The `default` filter requires a `value` argument.",
+                                ));
                             }
                         } else {
                             if !expr.negated {
@@ -359,7 +367,9 @@ impl<'a> Processor<'a> {
             && res.is_string()
             && expr.filters.first().map_or(true, |f| f.name != "safe")
         {
-            res = Cow::Owned(to_value(self.tera.get_escape_fn()(res.as_str().unwrap())).map_err(Error::json)?);
+            res = Cow::Owned(
+                to_value(self.tera.get_escape_fn()(res.as_str().unwrap())).map_err(Error::json)?,
+            );
         }
 
         for filter in &expr.filters {
@@ -444,7 +454,10 @@ impl<'a> Processor<'a> {
                 None => match *default_value {
                     Some(ref val) => self.safe_eval_expression(val)?,
                     None => {
-                        return Err(Error::msg(format!("Macro `{}` is missing the argument `{}`", macro_call.name, arg_name)));
+                        return Err(Error::msg(format!(
+                            "Macro `{}` is missing the argument `{}`",
+                            macro_call.name, arg_name
+                        )));
                     }
                 },
             };
@@ -560,7 +573,9 @@ impl<'a> Processor<'a> {
         if !expr.filters.is_empty() {
             match *self.eval_expression(expr)? {
                 Value::Number(ref s) => Ok(Some(s.clone())),
-                _ => return Err(Error::msg("Tried to do math with an expression not resulting in a number")),
+                _ => {
+                    Err(Error::msg("Tried to do math with an expression not resulting in a number"))
+                }
             }
         } else {
             self.eval_as_number(&expr.val)
@@ -579,7 +594,10 @@ impl<'a> Processor<'a> {
                 } else if v.is_f64() {
                     Some(Number::from_f64(v.as_f64().unwrap()).unwrap())
                 } else {
-                    return Err(Error::msg(format!("Variable `{}` was used in a math operation but is not a number", ident)));
+                    return Err(Error::msg(format!(
+                        "Variable `{}` was used in a math operation but is not a number",
+                        ident
+                    )));
                 }
             }
             ExprVal::Int(val) => Some(Number::from(val)),
@@ -673,11 +691,18 @@ impl<'a> Processor<'a> {
                 } else if v.is_f64() {
                     Some(Number::from_f64(v.as_f64().unwrap()).unwrap())
                 } else {
-                    return Err(Error::msg(format!("Function `{}` was used in a math operation but is not returning a number", fn_call.name)));
+                    return Err(Error::msg(format!(
+                        "Function `{}` was used in a math operation but is not returning a number",
+                        fn_call.name
+                    )));
                 }
-            },
-            ExprVal::String(ref val) => return Err(Error::msg(format!("Tried to do math with a string: `{}`", val))),
-            ExprVal::Bool(val) => return Err(Error::msg(format!("Tried to do math with a boolean: `{}`", val))),
+            }
+            ExprVal::String(ref val) => {
+                return Err(Error::msg(format!("Tried to do math with a string: `{}`", val)))
+            }
+            ExprVal::Bool(val) => {
+                return Err(Error::msg(format!("Tried to do math with a boolean: `{}`", val)))
+            }
             _ => unreachable!("unimplemented math expression for {:?}", expr),
         };
 
@@ -814,7 +839,8 @@ impl<'a> Processor<'a> {
         // 10000 is a random value
         let mut output = String::with_capacity(10000);
         for node in &self.template_root.ast {
-            self.render_node(node, &mut output).map_err(|e| Error::chain(self.get_error_location(), e))?;
+            self.render_node(node, &mut output)
+                .map_err(|e| Error::chain(self.get_error_location(), e))?;
         }
 
         Ok(output)

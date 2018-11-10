@@ -1,7 +1,7 @@
-use std::fmt;
-use std::error::{Error as StdError};
-use std::convert::Into;
 use serde_json;
+use std::convert::Into;
+use std::error::Error as StdError;
+use std::fmt;
 
 /// The kind of an error.
 #[derive(Debug)]
@@ -38,26 +38,17 @@ impl StdError for Error {
 impl Error {
     /// Creates generic error
     pub fn msg(value: impl ToString) -> Self {
-        Self {
-            kind: ErrorKind::Msg(value.to_string()),
-            cause: None,
-        }
+        Self { kind: ErrorKind::Msg(value.to_string()), cause: None }
     }
 
     /// Creates generic error with a cause
     pub fn chain(value: impl ToString, cause: impl Into<Box<dyn StdError>>) -> Self {
-        Self {
-            kind: ErrorKind::Msg(value.to_string()),
-            cause: Some(cause.into()),
-        }
+        Self { kind: ErrorKind::Msg(value.to_string()), cause: Some(cause.into()) }
     }
 
     /// Creates JSON error
     pub fn json(value: serde_json::Error) -> Self {
-        Self {
-            kind: ErrorKind::Json(value),
-            cause: None,
-        }
+        Self { kind: ErrorKind::Json(value), cause: None }
     }
 }
 

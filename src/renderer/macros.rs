@@ -1,4 +1,4 @@
-use errors::{Result, Error};
+use errors::{Error, Result};
 use parser::ast::MacroDefinition;
 use std::collections::HashMap;
 use template::Template;
@@ -106,9 +106,7 @@ impl<'a> MacroCollection<'a> {
             } else {
                 Err(Error::msg(format!(
                     "Macro `{}::{}` not found in template `{}`",
-                    macro_namespace,
-                    macro_name,
-                    template_name
+                    macro_namespace, macro_name, template_name
                 )))
             }
         } else {

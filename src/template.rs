@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use errors::{Result, Error};
+use errors::{Error, Result};
 use parser::ast::{Block, MacroDefinition, Node};
 use parser::{parse, remove_whitespace};
 

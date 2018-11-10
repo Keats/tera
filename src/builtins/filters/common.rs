@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
-use errors::{Result, Error};
+use errors::{Error, Result};
 use serde_json::value::{to_value, Value};
 use serde_json::{to_string, to_string_pretty};
 
@@ -74,22 +74,32 @@ pub fn date(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
                     Err(_) => match s.parse::<NaiveDateTime>() {
                         Ok(val) => val.format(&format),
                         Err(_) => {
-                            return Err(Error::msg(format!("Error parsing `{:?}` as rfc3339 date or naive datetime", s)))
+                            return Err(Error::msg(format!(
+                                "Error parsing `{:?}` as rfc3339 date or naive datetime",
+                                s
+                            )))
                         }
                     },
                 }
             } else {
                 match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
                     Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format),
-                    Err(_) => return Err(Error::msg(format!("Error parsing `{:?}` as YYYY-MM-DD date", s))),
+                    Err(_) => {
+                        return Err(Error::msg(format!(
+                            "Error parsing `{:?}` as YYYY-MM-DD date",
+                            s
+                        )))
+                    }
                 }
             }
         }
-        _ => return Err(Error::msg(format!(
-            "Filter `date` received an incorrect type for arg `value`: \
-             got `{:?}` but expected i64|u64|String",
-            value
-        ))),
+        _ => {
+            return Err(Error::msg(format!(
+                "Filter `date` received an incorrect type for arg `value`: \
+                 got `{:?}` but expected i64|u64|String",
+                value
+            )))
+        }
     };
 
     to_value(&formatted.to_string()).map_err(Error::json)

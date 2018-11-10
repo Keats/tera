@@ -5,7 +5,7 @@ use serde::ser::SerializeMap;
 use serde::Serializer;
 use serde_json::value::{to_value, Value};
 
-use errors::{Result as TeraResult, Error};
+use errors::{Error, Result as TeraResult};
 
 /// The struct that holds the context of a template rendering.
 ///

@@ -11,10 +11,7 @@ fn error_location_basic() {
 
     let result = tera.render("tpl", &Context::new());
 
-    assert_eq!(
-        result.unwrap_err().to_string(),
-        "Failed to render \'tpl\'"
-    );
+    assert_eq!(result.unwrap_err().to_string(), "Failed to render \'tpl\'");
 }
 
 #[test]
