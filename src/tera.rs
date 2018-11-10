@@ -485,32 +485,11 @@ impl Tera {
 
     #[doc(hidden)]
     #[inline]
-    #[deprecated(since = "0.11.16", note = "Use `get_function` instead")]
-    pub fn get_global_function(&self, fn_name: &str) -> Result<&GlobalFn> {
-        match self.global_functions.get(fn_name) {
-            Some(t) => Ok(t),
-            None => Err(Error::msg(format!("Global function '{}' not found", fn_name))),
-        }
-    }
-
-    #[doc(hidden)]
-    #[inline]
     pub fn get_function(&self, fn_name: &str) -> Result<&GlobalFn> {
         match self.global_functions.get(fn_name) {
             Some(t) => Ok(t),
             None => Err(Error::msg(format!("Global function '{}' not found", fn_name))),
         }
-    }
-    /// Register a global function with Tera.
-    ///
-    /// If a global function with that name already exists, it will be overwritten
-    ///
-    /// ```rust,ignore
-    /// tera.register_global_function("range", range);
-    /// ```
-    #[deprecated(since = "0.11.16", note = "Use `register_function` instead")]
-    pub fn register_global_function(&mut self, name: &str, function: GlobalFn) {
-        self.global_functions.insert(name.to_string(), function);
     }
 
     /// Register a function with Tera.
