@@ -16,7 +16,6 @@ serde = "1.0"
 serde_json = "1.0"
 pest = "2"
 pest_derive = "2"
-error-chain = "0.12"
 # used in slugify filter
 slug = "0.1"
 # used in striptags filters

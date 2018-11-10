@@ -11,7 +11,7 @@ use serde_json::value::to_value;
 use builtins::filters::{array, common, number, object, string, FilterFn};
 use builtins::functions::{self, GlobalFn};
 use builtins::testers::{self, TesterFn};
-use errors::{Result, ResultExt};
+use errors::{Result, Error};
 use renderer::Renderer;
 use template::Template;
 use utils::escape_html;
@@ -43,7 +43,7 @@ pub struct Tera {
 impl Tera {
     fn create(dir: &str, parse_only: bool) -> Result<Tera> {
         if dir.find('*').is_none() {
-            bail!("Tera expects a glob as input, no * were found in `{}`", dir);
+            return Err(Error::msg(format!("Tera expects a glob as input, no * were found in `{}`", dir)));
         }
 
         let mut tera = Tera {
@@ -107,7 +107,7 @@ impl Tera {
     /// Loads all the templates found in the glob that was given to Tera::new
     fn load_from_glob(&mut self) -> Result<()> {
         if self.glob.is_none() {
-            bail!("Tera can only load from glob if a glob is provided");
+            return Err(Error::msg("Tera can only load from glob if a glob is provided"));
         }
         // We want to preserve templates that have been added through
         // Tera::extend so we only keep those
@@ -141,16 +141,20 @@ impl Tera {
                     .replace("\\", "/");
 
                 if let Err(e) = self.add_file(Some(&filepath), path) {
+                    use std::error::Error;
+
                     errors += &format!("\n* {}", e);
-                    for e in e.iter().skip(1) {
+                    let mut cause = e.source();
+                    while let Some(e) = cause {
                         errors += &format!("\n{}", e);
+                        cause = e.source();
                     }
                 }
             }
         }
 
         if !errors.is_empty() {
-            bail!(errors);
+            return Err(Error::msg(errors));
         }
 
         Ok(())
@@ -164,14 +168,14 @@ impl Tera {
         let tpl_name = name.unwrap_or_else(|| path.to_str().unwrap());
 
         let mut f =
-            File::open(path).chain_err(|| format!("Couldn't open template '{:?}'", path))?;
+            File::open(path).map_err(|e| Error::chain(format!("Couldn't open template '{:?}'", path), e))?;
 
         let mut input = String::new();
         f.read_to_string(&mut input)
-            .chain_err(|| format!("Failed to read template '{:?}'", path))?;
+            .map_err(|e| Error::chain(format!("Failed to read template '{:?}'", path), e))?;
 
         let tpl = Template::new(tpl_name, Some(path.to_str().unwrap().to_string()), &input)
-            .chain_err(|| format!("Failed to parse {:?}", path))?;
+            .map_err(|e| Error::chain(format!("Failed to parse {:?}", path), e))?;
 
         self.templates.insert(tpl_name.to_string(), tpl);
         Ok(())
@@ -195,11 +199,11 @@ impl Tera {
             mut parents: Vec<String>,
         ) -> Result<Vec<String>> {
             if !parents.is_empty() && start.name == template.name {
-                bail!(
+                return Err(Error::msg(format!(
                     "Circular extend detected for template '{}'. Inheritance chain: `{:?}`",
                     start.name,
                     parents,
-                );
+                )));
             }
 
             match template.parent {
@@ -208,10 +212,10 @@ impl Tera {
                         parents.push(parent.name.clone());
                         build_chain(templates, start, parent, parents)
                     }
-                    None => bail!(
+                    None => return Err(Error::msg(format!(
                         "Template '{}' is inheriting from '{}', which doesn't exist or isn't loaded.",
                         template.name, p,
-                    ),
+                    ))),
                 },
                 None => Ok(parents),
             }
@@ -234,11 +238,11 @@ impl Tera {
 
                 // and then see if our parents have it
                 for parent in &parents {
-                    let t = self.get_template(parent).chain_err(|| {
-                        format!(
+                    let t = self.get_template(parent).map_err(|e| {
+                        Error::chain(format!(
                             "Couldn't find template {} while building inheritance chains",
                             parent,
-                        )
+                        ), e)
                     })?;
 
                     if let Some(b) = t.blocks.get(block_name) {
@@ -278,11 +282,11 @@ impl Tera {
         for template in self.templates.values() {
             for &(ref tpl_name, _) in &template.imported_macro_files {
                 if !self.templates.contains_key(tpl_name) {
-                    bail!(
+                    return Err(Error::msg(format!(
                         "Template `{}` loads macros from `{}` which isn't present in Tera",
                         template.name,
                         tpl_name
-                    );
+                    )));
                 }
             }
         }
@@ -307,13 +311,13 @@ impl Tera {
     /// tera.render("hello.html", &Context::new());
     /// ```
     pub fn render<T: Serialize>(&self, template_name: &str, data: &T) -> Result<String> {
-        let value = to_value(data)?;
+        let value = to_value(data).map_err(Error::json)?;
         if !value.is_object() {
-            bail!(
+            return Err(Error::msg(format!(
                 "Failed to render '{}': context isn't a JSON object. \
                 The value passed needs to be a key-value object: context, struct, hashmap for example.",
                 template_name
-            );
+            )));
         }
 
         let template = self.get_template(template_name)?;
@@ -351,7 +355,7 @@ impl Tera {
     pub fn get_template(&self, template_name: &str) -> Result<&Template> {
         match self.templates.get(template_name) {
             Some(tpl) => Ok(tpl),
-            None => bail!("Template '{}' not found", template_name),
+            None => Err(Error::msg(format!("Template '{}' not found", template_name))),
         }
     }
 
@@ -366,7 +370,7 @@ impl Tera {
     /// ```
     pub fn add_raw_template(&mut self, name: &str, content: &str) -> Result<()> {
         let tpl = Template::new(name, None, content)
-            .chain_err(|| format!("Failed to parse '{}'", name))?;
+            .map_err(|e| Error::chain(format!("Failed to parse '{}'", name), e))?;
         self.templates.insert(name.to_string(), tpl);
         self.build_inheritance_chains()?;
         self.check_macro_files()?;
@@ -387,7 +391,7 @@ impl Tera {
     pub fn add_raw_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()> {
         for (name, content) in templates {
             let tpl = Template::new(name, None, content)
-                .chain_err(|| format!("Failed to parse '{}'", name))?;
+                .map_err(|e| Error::chain(format!("Failed to parse '{}'", name), e))?;
             self.templates.insert(name.to_string(), tpl);
         }
         self.build_inheritance_chains()?;
@@ -444,7 +448,7 @@ impl Tera {
     pub fn get_filter(&self, filter_name: &str) -> Result<&FilterFn> {
         match self.filters.get(filter_name) {
             Some(fil) => Ok(fil),
-            None => bail!("Filter '{}' not found", filter_name),
+            None => Err(Error::msg(format!("Filter '{}' not found", filter_name))),
         }
     }
 
@@ -464,7 +468,7 @@ impl Tera {
     pub fn get_tester(&self, tester_name: &str) -> Result<&TesterFn> {
         match self.testers.get(tester_name) {
             Some(t) => Ok(t),
-            None => bail!("Tester '{}' not found", tester_name),
+            None => Err(Error::msg(format!("Tester '{}' not found", tester_name))),
         }
     }
 
@@ -485,7 +489,7 @@ impl Tera {
     pub fn get_global_function(&self, fn_name: &str) -> Result<&GlobalFn> {
         match self.global_functions.get(fn_name) {
             Some(t) => Ok(t),
-            None => bail!("Global function '{}' not found", fn_name),
+            None => Err(Error::msg(format!("Global function '{}' not found", fn_name))),
         }
     }
 
@@ -494,7 +498,7 @@ impl Tera {
     pub fn get_function(&self, fn_name: &str) -> Result<&GlobalFn> {
         match self.global_functions.get(fn_name) {
             Some(t) => Ok(t),
-            None => bail!("Global function '{}' not found", fn_name),
+            None => Err(Error::msg(format!("Global function '{}' not found", fn_name))),
         }
     }
     /// Register a global function with Tera.
@@ -634,7 +638,7 @@ impl Tera {
         if self.glob.is_some() {
             self.load_from_glob()?;
         } else {
-            bail!("Reloading is only available if you are using a glob");
+            return Err(Error::msg("Reloading is only available if you are using a glob"));
         }
 
         self.build_inheritance_chains()?;
@@ -755,7 +759,7 @@ mod tests {
     fn test_missing_parent_template() {
         let mut tera = Tera::default();
         assert_eq!(
-            tera.add_raw_template("a", "{% extends \"b\" %}").unwrap_err().description(),
+            tera.add_raw_template("a", "{% extends \"b\" %}").unwrap_err().to_string(),
             "Template \'a\' is inheriting from \'b\', which doesn\'t exist or isn\'t loaded."
         );
     }
@@ -767,7 +771,7 @@ mod tests {
             .add_raw_templates(vec![("a", "{% extends \"b\" %}"), ("b", "{% extends \"a\" %}")])
             .unwrap_err();
 
-        assert!(err.description().contains("Circular extend detected for template"));
+        assert!(err.to_string().contains("Circular extend detected for template"));
     }
 
     #[test]

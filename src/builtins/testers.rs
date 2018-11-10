@@ -1,5 +1,5 @@
 use context::ValueNumber;
-use errors::Result;
+use errors::{Result, Error};
 use regex::Regex;
 use serde_json::value::Value;
 
@@ -9,16 +9,16 @@ pub type TesterFn = fn(Option<Value>, Vec<Value>) -> Result<bool>;
 // Some helper functions to remove boilerplate with tester error handling
 fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result<()> {
     if max == 0 && args_len > max {
-        bail!("Tester `{}` was called with some args but this test doesn't take args", tester_name);
+        return Err(Error::msg(format!("Tester `{}` was called with some args but this test doesn't take args", tester_name)));
     }
 
     if args_len > max {
-        bail!(
+        return Err(Error::msg(format!(
             "Tester `{}` was called with {} args, the max number is {}",
             tester_name,
             args_len,
             max
-        );
+        )));
     }
 
     Ok(())
@@ -27,7 +27,7 @@ fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result
 // Called to check if the Value is defined and return an Err if not
 fn value_defined(tester_name: &str, value: &Option<Value>) -> Result<()> {
     if value.is_none() {
-        bail!("Tester `{}` was called on an undefined variable", tester_name);
+        return Err(Error::msg(format!("Tester `{}` was called on an undefined variable", tester_name)));
     }
 
     Ok(())
@@ -76,7 +76,7 @@ pub fn odd(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
 
     match value.and_then(|v| v.to_number().ok()) {
         Some(f) => Ok(f % 2.0 != 0.0),
-        _ => bail!("Tester `odd` was called on a variable that isn't a number"),
+        _ => Err(Error::msg("Tester `odd` was called on a variable that isn't a number")),
     }
 }
 
@@ -97,9 +97,9 @@ pub fn divisible_by(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
     match value.and_then(|v| v.to_number().ok()) {
         Some(val) => match params.first().and_then(|v| v.to_number().ok()) {
             Some(p) => Ok(val % p == 0.0),
-            None => bail!("Tester `divisibleby` was called with a parameter that isn't a number"),
+            None => Err(Error::msg("Tester `divisibleby` was called with a parameter that isn't a number")),
         },
-        None => bail!("Tester `divisibleby` was called on a variable that isn't a number"),
+        None => Err(Error::msg("Tester `divisibleby` was called on a variable that isn't a number")),
     }
 }
 
@@ -117,7 +117,7 @@ pub fn iterable(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
 fn extract_string<'a>(tester_name: &str, part: &str, value: Option<&'a Value>) -> Result<&'a str> {
     match value.and_then(|v| v.as_str()) {
         Some(s) => Ok(s),
-        None => bail!("Tester `{}` was called {} that isn't a string", tester_name, part),
+        None => Err(Error::msg(format!("Tester `{}` was called {} that isn't a string", tester_name, part))),
     }
 }
 
@@ -156,7 +156,7 @@ pub fn containing(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
             let needle = extract_string("containing", "with a parameter", params.first())?;
             Ok(v.contains_key(needle))
         }
-        _ => bail!("Tester `containing` can only be used on string, array or map"),
+        _ => Err(Error::msg("Tester `containing` can only be used on string, array or map")),
     }
 }
 
@@ -170,7 +170,7 @@ pub fn matching(value: Option<Value>, params: Vec<Value>) -> Result<bool> {
 
     let regex = match Regex::new(regex) {
         Ok(regex) => regex,
-        Err(err) => bail!("Tester `matching`: Invalid regular expression: {}", err),
+        Err(err) => return Err(Error::msg(format!("Tester `matching`: Invalid regular expression: {}", err))),
     };
 
     Ok(regex.is_match(value))

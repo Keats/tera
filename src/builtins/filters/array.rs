@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use context::{get_json_pointer, ValueRender};
-use errors::Result;
+use errors::{Result, Error};
 use serde_json::value::{to_value, Map, Value};
 use sort_utils::get_sort_strategy_for_type;
 
@@ -38,7 +38,7 @@ pub fn join(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     // Convert all the values to strings before we join them together.
     let rendered = arr.iter().map(|val| val.render()).collect::<Vec<_>>();
-    Ok(to_value(&rendered.join(&sep))?)
+    to_value(&rendered.join(&sep)).map_err(Error::json)
 }
 
 /// Sorts the array in ascending order.
@@ -60,13 +60,13 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     let first = arr[0]
         .pointer(&ptr)
-        .ok_or_else(|| format!("attribute '{}' does not reference a field", attribute))?;
+        .ok_or_else(|| Error::msg(format!("attribute '{}' does not reference a field", attribute)))?;
 
     let mut strategy = get_sort_strategy_for_type(first)?;
     for v in &arr {
         let key = v
             .pointer(&ptr)
-            .ok_or_else(|| format!("attribute '{}' does not reference a field", attribute))?;
+            .ok_or_else(|| Error::msg(format!("attribute '{}' does not reference a field", attribute)))?;
         strategy.try_add_pair(v, key)?;
     }
     let sorted = strategy.sort();
@@ -85,7 +85,7 @@ pub fn group_by(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     let key = match args.get("attribute") {
         Some(val) => try_get_value!("group_by", "attribute", String, val),
-        None => bail!("The `group_by` filter has to have an `attribute` argument"),
+        None => return Err(Error::msg("The `group_by` filter has to have an `attribute` argument")),
     };
 
     let mut grouped = Map::new();
@@ -119,11 +119,11 @@ pub fn filter(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
     let key = match args.get("attribute") {
         Some(val) => try_get_value!("filter", "attribute", String, val),
-        None => bail!("The `filter` filter has to have an `attribute` argument"),
+        None => return Err(Error::msg("The `filter` filter has to have an `attribute` argument")),
     };
     let value = match args.get("value") {
         Some(val) => val,
-        None => bail!("The `filter` filter has to have a `value` argument"),
+        None => return Err(Error::msg("The `filter` filter has to have a `value` argument")),
     };
 
     let json_pointer = get_json_pointer(&key);
@@ -181,7 +181,7 @@ pub fn concat(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
 
     let value = match args.remove("with") {
         Some(val) => val,
-        None => bail!("The `concat` filter has to have a `with` argument"),
+        None => return Err(Error::msg("The `concat` filter has to have a `with` argument")),
     };
 
     if value.is_array() {
@@ -326,7 +326,7 @@ mod tests {
         let result = sort(v, args);
         assert!(result.is_err());
         assert_eq!(
-            result.unwrap_err().description(),
+            result.unwrap_err().to_string(),
             "attribute 'invalid_field' does not reference a field"
         );
     }
@@ -338,7 +338,7 @@ mod tests {
 
         let result = sort(v, args);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().description(), "expected number got []");
+        assert_eq!(result.unwrap_err().to_string(), "expected number got []");
     }
 
     #[test]
@@ -352,7 +352,7 @@ mod tests {
 
         let result = sort(v, args);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().description(), "Null is not a sortable value");
+        assert_eq!(result.unwrap_err().to_string(), "Null is not a sortable value");
     }
 
     #[derive(Serialize)]

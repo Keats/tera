@@ -2,6 +2,7 @@ extern crate tera;
 #[macro_use]
 extern crate serde_derive;
 
+use std::error::Error;
 use tera::{Context, Result, Tera};
 
 mod common;
@@ -26,7 +27,7 @@ fn test_error_render_field_unknown() {
 
     assert_eq!(result.is_err(), true);
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        result.unwrap_err().source().unwrap().to_string(),
         "Variable `hey` not found in context while rendering \'field_unknown.html\'"
     );
 }
@@ -38,7 +39,7 @@ fn test_error_render_field_unknown_in_forloop() {
     assert_eq!(result.is_err(), true);
     let err = result.unwrap_err();
     assert_eq!(
-        err.iter().nth(1).unwrap().description(),
+        err.source().unwrap().to_string(),
         "Variable `r.random` not found in context while rendering \'field_unknown_forloop.html\'"
     );
 }
@@ -49,7 +50,7 @@ fn test_error_render_non_math() {
 
     assert_eq!(result.is_err(), true);
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        result.unwrap_err().source().unwrap().to_string(),
         "Variable `username` was used in a math operation but is not a number"
     );
 }
@@ -60,7 +61,7 @@ fn test_error_render_filter_section_invalid() {
 
     assert_eq!(result.is_err(), true);
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        result.unwrap_err().source().unwrap().to_string(),
         "Filter `round` was called on an incorrect value: got `\"hello\"` but expected a f64"
     );
 }
@@ -71,7 +72,7 @@ fn test_error_render_iterate_non_array() {
 
     assert_eq!(result.is_err(), true);
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        result.unwrap_err().source().unwrap().to_string(),
         "Tried to iterate on a container (`username`) that has a unsupported type"
     );
 }
@@ -83,7 +84,7 @@ fn test_error_render_serialize_non_object() {
 
     assert_eq!(result.is_err(), true);
     assert_eq!(
-        result.unwrap_err().iter().nth(0).unwrap().description(),
+        result.unwrap_err().to_string(),
         "Failed to render \'value_render_non_object.html\': context isn\'t a JSON object. \
          The value passed needs to be a key-value object: context, struct, hashmap for example."
     );
@@ -97,10 +98,9 @@ fn test_error_wrong_args_macros() {
     assert!(
         result
             .unwrap_err()
-            .iter()
-            .nth(1)
+            .source()
             .unwrap()
-            .description()
+            .to_string()
             .contains("Macro `input` is missing the argument")
     );
 }
@@ -111,7 +111,7 @@ fn test_error_macros_self_inexisting() {
 
     assert_eq!(result.is_err(), true);
     assert_eq!(
-        result.unwrap_err().iter().nth(1).unwrap().description(),
+        result.unwrap_err().source().unwrap().to_string(),
         "Macro `self::inexisting` not found in template `macros.html`"
     );
 }
@@ -123,7 +123,7 @@ fn test_error_in_child_template_location() {
     assert_eq!(result.is_err(), true);
     let errs = result.unwrap_err();
     assert_eq!(
-        errs.iter().nth(0).unwrap().description(),
+        errs.to_string(),
         "Failed to render 'error-location/error_in_child.html'"
     );
 }
@@ -135,7 +135,7 @@ fn test_error_in_grandchild_template_location() {
     assert_eq!(result.is_err(), true);
     let errs = result.unwrap_err();
     assert_eq!(
-        errs.iter().nth(0).unwrap().description(),
+        errs.to_string(),
         "Failed to render 'error-location/error_in_grand_child.html'"
     );
 }
@@ -147,7 +147,7 @@ fn test_error_in_parent_template_location() {
     assert_eq!(result.is_err(), true);
     let errs = result.unwrap_err();
     assert_eq!(
-        errs.iter().nth(0).unwrap().description(),
+        errs.to_string(),
         "Failed to render 'error-location/error_in_parent.html' (error happened in a parent template)"
     );
 }
@@ -159,7 +159,7 @@ fn test_error_in_macro_location() {
     assert_eq!(result.is_err(), true);
     let errs = result.unwrap_err();
     assert_eq!(
-        errs.iter().nth(0).unwrap().description(),
+        errs.to_string(),
         "Failed to render 'error-location/error_in_macro.html': error while rendering macro `macros::cause_error`"
     );
 }
