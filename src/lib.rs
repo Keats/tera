@@ -15,7 +15,6 @@ extern crate serde;
 extern crate serde_json;
 #[macro_use]
 extern crate pest_derive;
-#[macro_use]
 extern crate regex;
 extern crate slug;
 #[macro_use]

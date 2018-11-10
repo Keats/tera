@@ -33,24 +33,3 @@ macro_rules! try_get_value {
         }
     }};
 }
-
-/// Compile templates or exits process
-///
-/// Takes a glob as only argument.
-/// If it fails, it will print all the errors and exit the process
-///
-/// ```rust,ignore
-/// let mut tera = compile_templates!("templates/**/*");
-/// ```
-#[macro_export]
-macro_rules! compile_templates {
-    ($glob: expr) => {{
-        match $crate::Tera::new($glob) {
-            Ok(t) => t,
-            Err(e) => {
-                println!("Parsing error(s): {}", e);
-                ::std::process::exit(1);
-            }
-        }
-    }};
-}
