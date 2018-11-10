@@ -8,7 +8,7 @@ use url::percent_encoding::{utf8_percent_encode, EncodeSet};
 
 use unic_segment::GraphemeIndices;
 
-use errors::{Result, Error};
+use errors::{Error, Result};
 use utils;
 
 lazy_static! {

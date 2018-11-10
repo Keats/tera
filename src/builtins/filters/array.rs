@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use context::{get_json_pointer, ValueRender};
-use errors::{Result, Error};
+use errors::{Error, Result};
 use serde_json::value::{to_value, Map, Value};
 use sort_utils::get_sort_strategy_for_type;
 
@@ -58,15 +58,15 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         s => get_json_pointer(s),
     };
 
-    let first = arr[0]
-        .pointer(&ptr)
-        .ok_or_else(|| Error::msg(format!("attribute '{}' does not reference a field", attribute)))?;
+    let first = arr[0].pointer(&ptr).ok_or_else(|| {
+        Error::msg(format!("attribute '{}' does not reference a field", attribute))
+    })?;
 
     let mut strategy = get_sort_strategy_for_type(first)?;
     for v in &arr {
-        let key = v
-            .pointer(&ptr)
-            .ok_or_else(|| Error::msg(format!("attribute '{}' does not reference a field", attribute)))?;
+        let key = v.pointer(&ptr).ok_or_else(|| {
+            Error::msg(format!("attribute '{}' does not reference a field", attribute))
+        })?;
         strategy.try_add_pair(v, key)?;
     }
     let sorted = strategy.sort();
@@ -190,8 +190,8 @@ pub fn concat(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
                 for val in vals {
                     arr.push(val);
                 }
-            },
-            _ => unreachable!("Got something other than an array??")
+            }
+            _ => unreachable!("Got something other than an array??"),
         }
     } else {
         arr.push(value);
@@ -199,7 +199,6 @@ pub fn concat(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
 
     Ok(to_value(arr).unwrap())
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -499,20 +498,10 @@ mod tests {
 
     #[test]
     fn test_concat_array() {
-        let input = json!([
-            1,
-            2,
-            3,
-        ]);
+        let input = json!([1, 2, 3,]);
         let mut args = HashMap::new();
         args.insert("with".to_string(), json!([3, 4]));
-        let expected = json!([
-            1,
-            2,
-            3,
-            3,
-            4,
-        ]);
+        let expected = json!([1, 2, 3, 3, 4,]);
 
         let res = concat(input, args);
         assert!(res.is_ok());
@@ -521,19 +510,10 @@ mod tests {
 
     #[test]
     fn test_concat_single_value() {
-        let input = json!([
-            1,
-            2,
-            3,
-        ]);
+        let input = json!([1, 2, 3,]);
         let mut args = HashMap::new();
         args.insert("with".to_string(), json!(4));
-        let expected = json!([
-            1,
-            2,
-            3,
-            4,
-        ]);
+        let expected = json!([1, 2, 3, 4,]);
 
         let res = concat(input, args);
         assert!(res.is_ok());

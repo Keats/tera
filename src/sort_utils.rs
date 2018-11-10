@@ -1,4 +1,4 @@
-use errors::{Result, Error};
+use errors::{Error, Result};
 use serde_json::Value;
 use std::cmp::Ordering;
 
@@ -54,7 +54,8 @@ impl GetSortKey for String {
 
 impl GetSortKey for ArrayLen {
     fn get_sort_key(val: &Value) -> Result<Self> {
-        let arr = val.as_array().ok_or_else(|| Error::msg(format!("expected array got {}", val)))?;
+        let arr =
+            val.as_array().ok_or_else(|| Error::msg(format!("expected array got {}", val)))?;
         Ok(ArrayLen(arr.len()))
     }
 }

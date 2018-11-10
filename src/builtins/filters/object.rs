@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde_json::value::Value;
 
-use errors::{Result, Error};
+use errors::{Error, Result};
 
 /// Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
 pub fn get(value: Value, args: HashMap<String, Value>) -> Result<Value> {

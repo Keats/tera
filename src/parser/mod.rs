@@ -4,7 +4,7 @@ use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
 
-use errors::{Result as TeraResult, Error};
+use errors::{Error, Result as TeraResult};
 
 // This include forces recompiling this source file if the grammar file changes.
 // Uncomment it when doing changes to the .pest file
@@ -171,7 +171,7 @@ fn parse_string_concat(pair: Pair<Rule>) -> ExprVal {
                     current_str = String::new();
                 }
                 values.push(ExprVal::Int(p.as_str().parse().unwrap()));
-            },
+            }
             Rule::float => {
                 if !current_str.is_empty() {
                     values.push(ExprVal::String(current_str));
