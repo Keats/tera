@@ -95,14 +95,12 @@ fn test_error_wrong_args_macros() {
     let result = render_tpl("macro_wrong_args.html");
 
     assert_eq!(result.is_err(), true);
-    assert!(
-        result
-            .unwrap_err()
-            .source()
-            .unwrap()
-            .to_string()
-            .contains("Macro `input` is missing the argument")
-    );
+    assert!(result
+        .unwrap_err()
+        .source()
+        .unwrap()
+        .to_string()
+        .contains("Macro `input` is missing the argument"));
 }
 
 #[test]
@@ -122,10 +120,7 @@ fn test_error_in_child_template_location() {
 
     assert_eq!(result.is_err(), true);
     let errs = result.unwrap_err();
-    assert_eq!(
-        errs.to_string(),
-        "Failed to render 'error-location/error_in_child.html'"
-    );
+    assert_eq!(errs.to_string(), "Failed to render 'error-location/error_in_child.html'");
 }
 
 #[test]
@@ -134,10 +129,7 @@ fn test_error_in_grandchild_template_location() {
 
     assert_eq!(result.is_err(), true);
     let errs = result.unwrap_err();
-    assert_eq!(
-        errs.to_string(),
-        "Failed to render 'error-location/error_in_grand_child.html'"
-    );
+    assert_eq!(errs.to_string(), "Failed to render 'error-location/error_in_grand_child.html'");
 }
 
 #[test]

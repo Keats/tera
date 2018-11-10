@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use context::{get_json_pointer, ValueRender};
-use errors::{Result, Error};
+use errors::{Error, Result};
 use serde_json::value::{to_value, Map, Value};
 use sort_utils::get_sort_strategy_for_type;
 
@@ -58,15 +58,15 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         s => get_json_pointer(s),
     };
 
-    let first = arr[0]
-        .pointer(&ptr)
-        .ok_or_else(|| Error::msg(format!("attribute '{}' does not reference a field", attribute)))?;
+    let first = arr[0].pointer(&ptr).ok_or_else(|| {
+        Error::msg(format!("attribute '{}' does not reference a field", attribute))
+    })?;
 
     let mut strategy = get_sort_strategy_for_type(first)?;
     for v in &arr {
-        let key = v
-            .pointer(&ptr)
-            .ok_or_else(|| Error::msg(format!("attribute '{}' does not reference a field", attribute)))?;
+        let key = v.pointer(&ptr).ok_or_else(|| {
+            Error::msg(format!("attribute '{}' does not reference a field", attribute))
+        })?;
         strategy.try_add_pair(v, key)?;
     }
     let sorted = strategy.sort();

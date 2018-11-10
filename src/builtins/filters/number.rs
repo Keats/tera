@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use humansize::{file_size_opts, FileSize};
 use serde_json::value::{to_value, Value};
 
-use errors::{Result, Error};
+use errors::{Error, Result};
 
 /// Returns a suffix if the value is not equal to ±1. Suffix defaults to `s`
 pub fn pluralize(value: Value, args: HashMap<String, Value>) -> Result<Value> {
@@ -55,7 +55,10 @@ pub fn filesizeformat(value: Value, _: HashMap<String, Value>) -> Result<Value> 
     let num = try_get_value!("filesizeformat", "value", i64, value);
     num.file_size(file_size_opts::CONVENTIONAL)
         .or_else(|_| {
-            Err(Error::msg(format!("Filter `filesizeformat` was called on a negative number: {}", num)))
+            Err(Error::msg(format!(
+                "Filter `filesizeformat` was called on a negative number: {}",
+                num
+            )))
         })
         .map(to_value)
         .map(|x| x.unwrap())

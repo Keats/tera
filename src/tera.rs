@@ -11,7 +11,7 @@ use serde_json::value::to_value;
 use builtins::filters::{array, common, number, object, string, FilterFn};
 use builtins::functions::{self, GlobalFn};
 use builtins::testers::{self, TesterFn};
-use errors::{Result, Error};
+use errors::{Error, Result};
 use renderer::Renderer;
 use template::Template;
 use utils::escape_html;
@@ -43,7 +43,10 @@ pub struct Tera {
 impl Tera {
     fn create(dir: &str, parse_only: bool) -> Result<Tera> {
         if dir.find('*').is_none() {
-            return Err(Error::msg(format!("Tera expects a glob as input, no * were found in `{}`", dir)));
+            return Err(Error::msg(format!(
+                "Tera expects a glob as input, no * were found in `{}`",
+                dir
+            )));
         }
 
         let mut tera = Tera {
@@ -167,8 +170,8 @@ impl Tera {
         let path = path.as_ref();
         let tpl_name = name.unwrap_or_else(|| path.to_str().unwrap());
 
-        let mut f =
-            File::open(path).map_err(|e| Error::chain(format!("Couldn't open template '{:?}'", path), e))?;
+        let mut f = File::open(path)
+            .map_err(|e| Error::chain(format!("Couldn't open template '{:?}'", path), e))?;
 
         let mut input = String::new();
         f.read_to_string(&mut input)
@@ -201,8 +204,7 @@ impl Tera {
             if !parents.is_empty() && start.name == template.name {
                 return Err(Error::msg(format!(
                     "Circular extend detected for template '{}'. Inheritance chain: `{:?}`",
-                    start.name,
-                    parents,
+                    start.name, parents,
                 )));
             }
 
@@ -212,7 +214,7 @@ impl Tera {
                         parents.push(parent.name.clone());
                         build_chain(templates, start, parent, parents)
                     }
-                    None => return Err(Error::msg(format!(
+                    None => Err(Error::msg(format!(
                         "Template '{}' is inheriting from '{}', which doesn't exist or isn't loaded.",
                         template.name, p,
                     ))),
@@ -239,10 +241,13 @@ impl Tera {
                 // and then see if our parents have it
                 for parent in &parents {
                     let t = self.get_template(parent).map_err(|e| {
-                        Error::chain(format!(
-                            "Couldn't find template {} while building inheritance chains",
-                            parent,
-                        ), e)
+                        Error::chain(
+                            format!(
+                                "Couldn't find template {} while building inheritance chains",
+                                parent,
+                            ),
+                            e,
+                        )
                     })?;
 
                     if let Some(b) = t.blocks.get(block_name) {
@@ -284,8 +289,7 @@ impl Tera {
                 if !self.templates.contains_key(tpl_name) {
                     return Err(Error::msg(format!(
                         "Template `{}` loads macros from `{}` which isn't present in Tera",
-                        template.name,
-                        tpl_name
+                        template.name, tpl_name
                     )));
                 }
             }
