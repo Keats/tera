@@ -188,6 +188,8 @@ impl Expr {
 pub struct Test {
     /// Which expression is evaluated
     pub ident: String,
+    /// Is it using `not`?
+    pub negated: bool,
     /// Name of the test
     pub name: String,
     /// Any optional arg given to the test
