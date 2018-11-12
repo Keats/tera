@@ -710,14 +710,17 @@ impl fmt::Debug for Tera {
     }
 }
 
+/// Helper function to create a test
 pub fn make_test<T: Test + 'static>(t: T) -> Arc<dyn Test> {
     Arc::new(t)
 }
 
+/// Helper function to create a function
 pub fn make_function<G: Function + 'static>(g: G) -> Arc<dyn Function> {
     Arc::new(g)
 }
 
+/// Helper function to create a filter
 pub fn make_filter<F: Filter + 'static>(f: F) -> Arc<dyn Filter> {
     Arc::new(f)
 }
