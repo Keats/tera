@@ -1,11 +1,11 @@
 extern crate actix_web;
 extern crate env_logger;
-#[macro_use]
 extern crate tera;
 
 use actix_web::{
     error, http, middleware, server, App, Error, HttpResponse, State, fs
 };
+
 
 struct AppState {
     template: tera::Tera
@@ -36,12 +36,18 @@ fn main() {
     env_logger::init();
 
     server::new(|| {
-        let tera =
-            compile_templates!(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*"));
+        let tera = match tera::Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")) {
+            Ok(t) => t,
+            Err(e) => {
+                println!("Parsing error(s): {}", e);
+                ::std::process::exit(1);
+            }
+        };
 
         App::with_state(AppState{template: tera})
             .middleware(middleware::Logger::default())
             .handler( "/static", fs::StaticFiles::new("static")
+                .unwrap()
                 .show_files_listing())
             .resource("/", |r| r.method(http::Method::GET).with(index))
             .resource("/detail", |r| r.method(http::Method::GET).with(detail))

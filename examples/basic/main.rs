@@ -1,6 +1,7 @@
-
-#[macro_use] extern crate tera;
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate tera;
+#[macro_use]
+extern crate lazy_static;
 extern crate serde_json;
 
 use std::collections::HashMap;
@@ -11,7 +12,13 @@ use serde_json::value::{Value, to_value};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
-        let mut tera = compile_templates!("examples/templates/**/*");
+        let mut tera = match Tera::new("examples/basic/templates/**/*") {
+            Ok(t) => t,
+            Err(e) => {
+                println!("Parsing error(s): {}", e);
+                ::std::process::exit(1);
+            }
+        };
         tera.autoescape_on(vec!["html", ".sql"]);
         tera.register_filter("do_nothing", do_nothing_filter);
         tera
@@ -25,10 +32,10 @@ pub fn do_nothing_filter(value: Value, _: HashMap<String, Value>) -> Result<Valu
 
 fn main() {
     let mut context = Context::new();
-    context.add("username", &"Bob");
-    context.add("numbers", &vec![1,2,3]);
-    context.add("show_all", &false);
-    context.add("bio", &"<script>alert('pwnd');</script>");
+    context.insert("username", &"Bob");
+    context.insert("numbers", &vec![1, 2, 3]);
+    context.insert("show_all", &false);
+    context.insert("bio", &"<script>alert('pwnd');</script>");
 
     // A one off template
     Tera::one_off("hello", &Context::new(), true).unwrap();
@@ -36,10 +43,11 @@ fn main() {
     match TEMPLATES.render("users/profile.html", &context) {
         Ok(s) => println!("{:?}", s),
         Err(e) => {
+            // println!("Error: {:#?}", e);
             println!("Error: {}", e);
-            for e in e.iter().skip(1) {
-                println!("Reason: {}", e);
-            }
+//            for e in e.iter().skip(1) {
+//                println!("Reason: {}", e);
+//            }
         }
     };
 }
