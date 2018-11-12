@@ -489,7 +489,7 @@ impl<'a> Processor<'a> {
             );
         }
 
-        Ok(Cow::Owned(filter_fn(&value, &args)?))
+        Ok(Cow::Owned(filter_fn.filter(&value, &args)?))
     }
 
     fn eval_as_bool(&mut self, bool_expr: &'a Expr) -> Result<bool> {
