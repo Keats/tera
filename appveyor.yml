@@ -21,4 +21,6 @@ install:
 build: false
 
 test_script:
-  - cargo test
+  - cargo test --verbose --all
+  - cargo run --example basic
+  - cd examples/actix && cargo build
