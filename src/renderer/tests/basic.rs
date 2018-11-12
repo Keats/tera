@@ -1,19 +1,19 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 
 use serde_json::Value;
 
 use context::Context;
 use errors::Result;
-use tera::Tera;
+use tera::{Tera, make_function};
 
 use super::Review;
 
 fn render_template(content: &str, context: &Context) -> Result<String> {
     let mut tera = Tera::default();
     tera.add_raw_template("hello.html", content).unwrap();
-    tera.register_function("get_number", Box::new(|_| Ok(Value::Number(10.into()))));
-    tera.register_function("get_string", Box::new(|_| Ok(Value::String("Hello".to_string()))));
+    tera.register_function("get_number", &make_function(|_: &HashMap<String, Value>| Ok(Value::Number(10.into()))));
+    tera.register_function("get_string", &make_function(|_: &HashMap<String, Value>| Ok(Value::String("Hello".to_string()))));
 
     tera.render("hello.html", context)
 }
