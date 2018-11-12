@@ -50,6 +50,34 @@ impl Error {
     pub fn json(value: serde_json::Error) -> Self {
         Self { kind: ErrorKind::Json(value), cause: None }
     }
+
+    /// Iterate on all the error sources
+    pub fn iter(&self) -> Iter {
+        Iter::new(Some(self))
+    }
+}
+
+#[derive(Debug)]
+pub struct Iter<'a>(Option<&'a dyn StdError>);
+
+impl<'a> Iter<'a> {
+    pub fn new(err: Option<&'a dyn StdError>) -> Iter<'a> {
+        Iter(err)
+    }
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = &'a dyn StdError;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.0.take() {
+            Some(e) => {
+                self.0 = e.cause();
+                Some(e)
+            }
+            None => None,
+        }
+    }
 }
 
 /// Convenient wrapper around std::Result.
