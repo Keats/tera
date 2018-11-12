@@ -1,11 +1,13 @@
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde_json::Value;
 
 use context::Context;
 use errors::Result;
 use tera::{Tera, make_function};
+use builtins::functions::Function;
 
 use super::Review;
 
@@ -651,4 +653,23 @@ fn can_use_concat_to_push_to_array() {
     let result = tera.render("tpl", &context);
 
     assert_eq!(result.unwrap(), "[0, 1, 2, 3, 4]");
+}
+
+#[test]
+fn stateful_global_fn() {
+    struct Next(AtomicUsize);
+
+    impl Function for Next {
+        fn call(&self, _args: &HashMap<String, Value>) -> Result<Value> {
+            Ok(Value::Number(self.0.fetch_add(1, Ordering::Relaxed).into()))
+        }
+    }
+
+    let mut tera = Tera::default();
+    tera.add_raw_template("fn.html", "<h1>{{ get_next() }}, {{ get_next() }}, {{ get_next() }}...</h1>").unwrap();
+    tera.register_function("get_next", &make_function(Next(AtomicUsize::new(1))));
+
+    let result = tera.render("fn.html", &Context::new());
+
+    assert_eq!(result.unwrap(), "<h1>1, 2, 3...</h1>".to_owned());
 }
