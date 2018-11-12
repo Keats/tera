@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::value::to_value;
 
 use builtins::filters::{array, common, number, object, string, FilterFn};
-use builtins::functions::{self, GlobalFn};
+use builtins::functions::{self, Function};
 use builtins::testers::{self, Test};
 use errors::{Error, Result};
 use renderer::Renderer;
@@ -32,7 +32,7 @@ pub struct Tera {
     #[doc(hidden)]
     pub testers: HashMap<String, Arc<dyn Test>>,
     #[doc(hidden)]
-    pub global_functions: HashMap<String, GlobalFn>,
+    pub global_functions: HashMap<String, Arc<dyn Function>>,
     // Which extensions does Tera automatically autoescape on.
     // Defaults to [".html", ".htm", ".xml"]
     #[doc(hidden)]
@@ -490,9 +490,9 @@ impl Tera {
 
     #[doc(hidden)]
     #[inline]
-    pub fn get_function(&self, fn_name: &str) -> Result<&GlobalFn> {
+    pub fn get_function(&self, fn_name: &str) -> Result<&dyn Function> {
         match self.global_functions.get(fn_name) {
-            Some(t) => Ok(t),
+            Some(t) => Ok(&**t),
             None => Err(Error::msg(format!("Global function '{}' not found", fn_name))),
         }
     }
@@ -504,8 +504,8 @@ impl Tera {
     /// ```rust,ignore
     /// tera.register_function("range", range);
     /// ```
-    pub fn register_function(&mut self, name: &str, function: GlobalFn) {
-        self.global_functions.insert(name.to_string(), function);
+    pub fn register_function(&mut self, name: &str, function: &Arc<dyn Function>) {
+        self.global_functions.insert(name.to_string(), function.clone());
     }
 
     fn register_tera_filters(&mut self) {
@@ -562,9 +562,9 @@ impl Tera {
     }
 
     fn register_tera_functions(&mut self) {
-        self.register_function("range", functions::make_range_fn());
-        self.register_function("now", functions::make_now_fn());
-        self.register_function("throw", functions::make_throw_fn());
+        self.register_function("range", &make_function(functions::range));
+        self.register_function("now", &make_function(functions::now));
+        self.register_function("throw", &make_function(functions::throw));
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on,
@@ -712,6 +712,10 @@ impl fmt::Debug for Tera {
 
 pub fn make_test<T: Test + 'static>(t: T) -> Arc<dyn Test> {
     Arc::new(t)
+}
+
+pub fn make_function<G: Function + 'static>(g: G) -> Arc<dyn Function> {
+    Arc::new(g)
 }
 
 #[cfg(test)]

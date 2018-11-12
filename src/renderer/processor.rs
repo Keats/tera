@@ -427,7 +427,7 @@ impl<'a> Processor<'a> {
             );
         }
 
-        Ok(Cow::Owned(tera_fn(args)?))
+        Ok(Cow::Owned(tera_fn.call(&args)?))
     }
 
     fn eval_macro_call(self: &mut Self, macro_call: &'a MacroCall) -> Result<String> {
