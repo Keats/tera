@@ -11,6 +11,10 @@ matrix:
     - env: TARGET=x86_64-unknown-linux-gnu
       rust: nightly
 
+script:
+  - cargo test --verbose --all
+  - cargo run --example basic
+  - cd examples/actix && cargo build
 
 notifications:
   email: false
