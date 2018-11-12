@@ -99,6 +99,8 @@ fn render_variable_block_ident() {
         ("{{ name | length }}", "4"),
         ("{{ name is defined }}", "true"),
         ("{{ not name is defined }}", "false"),
+        ("{{ name is not defined }}", "false"),
+        ("{{ not name is not defined }}", "true"),
         ("{{ a is odd }}", "false"),
         ("{{ a is odd or b is odd  }}", "true"),
         ("{{ range(start=1, end=4) }}", "[1, 2, 3]"),
