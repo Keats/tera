@@ -6,7 +6,7 @@ extern crate serde_json;
 
 use std::collections::HashMap;
 
-use tera::{Tera, Context, Result};
+use tera::{Tera, Context, make_filter, Result};
 use serde_json::value::{Value, to_value};
 
 
@@ -20,12 +20,12 @@ lazy_static! {
             }
         };
         tera.autoescape_on(vec!["html", ".sql"]);
-        tera.register_filter("do_nothing", do_nothing_filter);
+        tera.register_filter("do_nothing", &make_filter(do_nothing_filter));
         tera
     };
 }
 
-pub fn do_nothing_filter(value: Value, _: HashMap<String, Value>) -> Result<Value> {
+pub fn do_nothing_filter(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("do_nothing_filter", "value", String, value);
     Ok(to_value(&s).unwrap())
 }
