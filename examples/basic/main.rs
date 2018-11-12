@@ -43,11 +43,10 @@ fn main() {
     match TEMPLATES.render("users/profile.html", &context) {
         Ok(s) => println!("{:?}", s),
         Err(e) => {
-            // println!("Error: {:#?}", e);
             println!("Error: {}", e);
-//            for e in e.iter().skip(1) {
-//                println!("Reason: {}", e);
-//            }
+            for e in e.iter().skip(1) {
+                println!("Reason: {}", e);
+            }
         }
     };
 }
