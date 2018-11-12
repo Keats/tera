@@ -45,7 +45,7 @@ mod utils;
 // Library exports.
 
 // Template is meant to be used internally only but is exported for test/bench.
-pub use builtins::filters::FilterFn;
+pub use builtins::filters::Filter;
 pub use builtins::functions::Function;
 pub use builtins::testers::Test;
 pub use context::Context;
