@@ -5,11 +5,11 @@ use serde_json::value::Value;
 
 use errors::Result;
 
-/// Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
+/// Returns a value by a `key` argument from a given object
 pub fn get(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let key = match args.get("key") {
         Some(val) => try_get_value!("get", "key", String, val),
-        None => "s".to_string(),
+        None => bail!("The `get` filter has to have an `key` argument"),
     };
 
     match value.as_object() {
