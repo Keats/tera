@@ -114,7 +114,7 @@ pub fn group_by(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 pub fn filter(value: Value, args: HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("filter", "value", Vec<Value>, value);
     if arr.is_empty() {
-        return Ok(Map::new().into());
+        return Ok(arr.into());
     }
 
     let key = match args.get("attribute") {
@@ -468,6 +468,13 @@ mod tests {
         let res = group_by(input, args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_filter_empty() {
+        let res = filter(json!([]), HashMap::new());
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), json!([]));
     }
 
     #[test]
