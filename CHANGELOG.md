@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.20 (2018-11-14)
+
+- Fix bugs in `filter` and `get` filters
+
 ## 0.11.19 (2018-10-31)
 
 - Allow function calls in math expressions

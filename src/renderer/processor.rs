@@ -673,9 +673,12 @@ impl<'a> Processor<'a> {
                 } else if v.is_f64() {
                     Some(Number::from_f64(v.as_f64().unwrap()).unwrap())
                 } else {
-                    bail!("Function `{}` was used in a math operation but is not returning a number", fn_call.name,)
+                    bail!(
+                        "Function `{}` was used in a math operation but is not returning a number",
+                        fn_call.name,
+                    )
                 }
-            },
+            }
             ExprVal::String(ref val) => bail!("Tried to do math with a string: `{}`", val),
             ExprVal::Bool(val) => bail!("Tried to do math with a boolean: `{}`", val),
             _ => unreachable!("unimplemented math expression for {:?}", expr),

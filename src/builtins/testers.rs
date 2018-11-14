@@ -229,22 +229,22 @@ mod tests {
 
     #[test]
     fn test_starting_with() {
-        assert!(
-            starting_with(Some(to_value("helloworld").unwrap()), vec![to_value("hello").unwrap()],)
-                .unwrap()
-        );
-        assert!(
-            !starting_with(Some(to_value("hello").unwrap()), vec![to_value("hi").unwrap()],)
-                .unwrap()
-        );
+        assert!(starting_with(
+            Some(to_value("helloworld").unwrap()),
+            vec![to_value("hello").unwrap()],
+        )
+        .unwrap());
+        assert!(!starting_with(Some(to_value("hello").unwrap()), vec![to_value("hi").unwrap()],)
+            .unwrap());
     }
 
     #[test]
     fn test_ending_with() {
-        assert!(
-            ending_with(Some(to_value("helloworld").unwrap()), vec![to_value("world").unwrap()],)
-                .unwrap()
-        );
+        assert!(ending_with(
+            Some(to_value("helloworld").unwrap()),
+            vec![to_value("world").unwrap()],
+        )
+        .unwrap());
         assert!(
             !ending_with(Some(to_value("hello").unwrap()), vec![to_value("hi").unwrap()],).unwrap()
         );
@@ -290,9 +290,7 @@ mod tests {
             assert_eq!(matching(Some(container), vec![needle]).unwrap(), expected);
         }
 
-        assert!(
-            matching(Some(to_value("").unwrap()), vec![to_value("(Invalid regex").unwrap()])
-                .is_err()
-        );
+        assert!(matching(Some(to_value("").unwrap()), vec![to_value("(Invalid regex").unwrap()])
+            .is_err());
     }
 }

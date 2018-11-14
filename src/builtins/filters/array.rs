@@ -190,8 +190,8 @@ pub fn concat(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
                 for val in vals {
                     arr.push(val);
                 }
-            },
-            _ => unreachable!("Got something other than an array??")
+            }
+            _ => unreachable!("Got something other than an array??"),
         }
     } else {
         arr.push(value);
@@ -199,7 +199,6 @@ pub fn concat(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
 
     Ok(to_value(arr).unwrap())
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -506,20 +505,10 @@ mod tests {
 
     #[test]
     fn test_concat_array() {
-        let input = json!([
-            1,
-            2,
-            3,
-        ]);
+        let input = json!([1, 2, 3,]);
         let mut args = HashMap::new();
         args.insert("with".to_string(), json!([3, 4]));
-        let expected = json!([
-            1,
-            2,
-            3,
-            3,
-            4,
-        ]);
+        let expected = json!([1, 2, 3, 3, 4,]);
 
         let res = concat(input, args);
         assert!(res.is_ok());
@@ -528,19 +517,10 @@ mod tests {
 
     #[test]
     fn test_concat_single_value() {
-        let input = json!([
-            1,
-            2,
-            3,
-        ]);
+        let input = json!([1, 2, 3,]);
         let mut args = HashMap::new();
         args.insert("with".to_string(), json!(4));
-        let expected = json!([
-            1,
-            2,
-            3,
-            4,
-        ]);
+        let expected = json!([1, 2, 3, 4,]);
 
         let res = concat(input, args);
         assert!(res.is_ok());

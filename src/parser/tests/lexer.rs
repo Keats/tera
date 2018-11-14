@@ -387,10 +387,8 @@ fn lex_include_tag() {
 
 #[test]
 fn lex_import_macro_tag() {
-    assert!(
-        TeraParser::parse(Rule::import_macro_tag, "{% import \"macros.html\" as macros %}",)
-            .is_ok()
-    );
+    assert!(TeraParser::parse(Rule::import_macro_tag, "{% import \"macros.html\" as macros %}",)
+        .is_ok());
 }
 
 #[test]
@@ -558,15 +556,13 @@ fn lex_content() {
 
 #[test]
 fn lex_template() {
-    assert!(
-        TeraParser::parse(
-            Rule::template,
-            "{# Greeter template #}
+    assert!(TeraParser::parse(
+        Rule::template,
+        "{# Greeter template #}
             Hello {% if i18n %}世界{% else %}world{% endif %}
             {% for country in countries %}
                 {{ loop.index }}.{{ country }}
             {% endfor %}",
-        )
-        .is_ok()
-    );
+    )
+    .is_ok());
 }

@@ -24,7 +24,8 @@ impl Context {
 
     #[doc(hidden)]
     #[deprecated(
-        since = "0.11.15", note = "Use `insert` instead to keep consistency with std collections"
+        since = "0.11.15",
+        note = "Use `insert` instead to keep consistency with std collections"
     )]
     pub fn add<T: Serialize + ?Sized>(&mut self, key: &str, val: &T) {
         self.data.insert(key.to_owned(), to_value(val).unwrap());

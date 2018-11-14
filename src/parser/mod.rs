@@ -171,7 +171,7 @@ fn parse_string_concat(pair: Pair<Rule>) -> ExprVal {
                     current_str = String::new();
                 }
                 values.push(ExprVal::Int(p.as_str().parse().unwrap()));
-            },
+            }
             Rule::float => {
                 if !current_str.is_empty() {
                     values.push(ExprVal::String(current_str));

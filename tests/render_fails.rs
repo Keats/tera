@@ -94,15 +94,13 @@ fn test_error_wrong_args_macros() {
     let result = render_tpl("macro_wrong_args.html");
 
     assert_eq!(result.is_err(), true);
-    assert!(
-        result
-            .unwrap_err()
-            .iter()
-            .nth(1)
-            .unwrap()
-            .description()
-            .contains("Macro `input` is missing the argument")
-    );
+    assert!(result
+        .unwrap_err()
+        .iter()
+        .nth(1)
+        .unwrap()
+        .description()
+        .contains("Macro `input` is missing the argument"));
 }
 
 #[test]
