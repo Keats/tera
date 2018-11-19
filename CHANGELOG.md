@@ -6,6 +6,7 @@
 
 - Now requires Rust 1.30
 - Removed error-chain errors and added rich Error enum instead
+- Filter, Tester and Function are now traits and now take borrowed values instead of owned
 
 ## 0.11.19 (2018-10-31)
 

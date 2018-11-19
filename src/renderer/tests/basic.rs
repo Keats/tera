@@ -4,18 +4,24 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde_json::Value;
 
+use builtins::functions::Function;
 use context::Context;
 use errors::Result;
-use tera::{Tera, make_function};
-use builtins::functions::Function;
+use tera::{Tera};
 
 use super::Review;
 
 fn render_template(content: &str, context: &Context) -> Result<String> {
     let mut tera = Tera::default();
     tera.add_raw_template("hello.html", content).unwrap();
-    tera.register_function("get_number", &make_function(|_: &HashMap<String, Value>| Ok(Value::Number(10.into()))));
-    tera.register_function("get_string", &make_function(|_: &HashMap<String, Value>| Ok(Value::String("Hello".to_string()))));
+    tera.register_function(
+        "get_number",
+        |_: &HashMap<String, Value>| Ok(Value::Number(10.into())),
+    );
+    tera.register_function(
+        "get_string",
+        |_: &HashMap<String, Value>| Ok(Value::String("Hello".to_string())),
+    );
 
     tera.render("hello.html", context)
 }
@@ -655,21 +661,31 @@ fn can_use_concat_to_push_to_array() {
     assert_eq!(result.unwrap(), "[0, 1, 2, 3, 4]");
 }
 
+struct Next(AtomicUsize);
+
+impl Function for Next {
+    fn call(&self, _args: &HashMap<String, Value>) -> Result<Value> {
+        Ok(Value::Number(self.0.fetch_add(1, Ordering::Relaxed).into()))
+    }
+}
+
+lazy_static! {
+    static ref NEXT_GLOBAL: Next = Next(AtomicUsize::new(1));
+}
+
 #[test]
 fn stateful_global_fn() {
-    struct Next(AtomicUsize);
-
-    impl Function for Next {
-        fn call(&self, _args: &HashMap<String, Value>) -> Result<Value> {
-            Ok(Value::Number(self.0.fetch_add(1, Ordering::Relaxed).into()))
-        }
-    }
-
     let mut tera = Tera::default();
-    tera.add_raw_template("fn.html", "<h1>{{ get_next() }}, {{ get_next() }}, {{ get_next() }}...</h1>").unwrap();
-    tera.register_function("get_next", &make_function(Next(AtomicUsize::new(1))));
+    tera.add_raw_template(
+        "fn.html",
+        "<h1>{{ get_next() }}, {{ get_next_borrowed() }}, {{ get_next() }}...</h1>",
+    )
+    .unwrap();
+
+    tera.register_function("get_next", Next(AtomicUsize::new(1)));
+    tera.register_function("get_next_borrowed", &NEXT_GLOBAL);
 
     let result = tera.render("fn.html", &Context::new());
 
-    assert_eq!(result.unwrap(), "<h1>1, 2, 3...</h1>".to_owned());
+    assert_eq!(result.unwrap(), "<h1>1, 1, 2...</h1>".to_owned());
 }

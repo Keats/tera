@@ -11,7 +11,10 @@ pub trait Function: Sync + Send {
     fn call(&self, args: &HashMap<String, Value>) -> Result<Value>;
 }
 
-impl<F> Function for F where F: Fn(&HashMap<String, Value>) -> Result<Value> + Sync + Send {
+impl<F> Function for F
+where
+    F: Fn(&HashMap<String, Value>) -> Result<Value> + Sync + Send,
+{
     fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
         self(args)
     }
@@ -23,9 +26,9 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                "Global function `range` received start={} but `start` can only be a number",
-                val
-            )))
+                    "Global function `range` received start={} but `start` can only be a number",
+                    val
+                )))
             }
         },
         None => 0,
@@ -35,9 +38,9 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                "Global function `range` received step_by={} but `step` can only be a number",
-                val
-            )))
+                    "Global function `range` received step_by={} but `step` can only be a number",
+                    val
+                )))
             }
         },
         None => 1,
@@ -53,9 +56,7 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
             }
         },
         None => {
-            return Err(Error::msg(
-                "Global function `range` was called without a `end` argument",
-            ))
+            return Err(Error::msg("Global function `range` was called without a `end` argument"))
         }
     };
 
@@ -89,7 +90,8 @@ pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
         Some(val) => match from_value::<bool>(val.clone()) {
             Ok(v) => v,
             Err(_) => return Err(Error::msg(format!(
-                "Global function `now` received timestamp={} but `timestamp` can only be a boolean", val
+                "Global function `now` received timestamp={} but `timestamp` can only be a boolean",
+                val
             ))),
         },
         None => false,
@@ -115,7 +117,8 @@ pub fn throw(args: &HashMap<String, Value>) -> Result<Value> {
         Some(val) => match from_value::<String>(val.clone()) {
             Ok(v) => Err(Error::msg(v)),
             Err(_) => Err(Error::msg(format!(
-                "Global function `throw` received message={} but `message` can only be a string", val
+                "Global function `throw` received message={} but `message` can only be a string",
+                val
             ))),
         },
         None => Err(Error::msg("Global function `throw` was called without a `message` argument")),

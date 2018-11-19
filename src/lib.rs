@@ -55,7 +55,7 @@ pub use errors::{Error, ErrorKind, Result};
 pub use serde_json::value::{from_value, to_value, Map, Number, Value};
 #[doc(hidden)]
 pub use template::Template;
-pub use tera::{Tera, make_test, make_function, make_filter};
+pub use tera::Tera;
 pub use utils::escape_html;
 
 // Exposes the AST if one needs it but changing the AST is not considered
