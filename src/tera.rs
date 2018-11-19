@@ -3,14 +3,15 @@ use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::sync::Arc;
 
 use glob::glob;
 use serde::Serialize;
 use serde_json::value::to_value;
 
-use builtins::filters::{array, common, number, object, string, FilterFn};
-use builtins::functions::{self, GlobalFn};
-use builtins::testers::{self, TesterFn};
+use builtins::filters::{array, common, number, object, string, Filter};
+use builtins::functions::{self, Function};
+use builtins::testers::{self, Test};
 use errors::{Error, Result};
 use renderer::Renderer;
 use template::Template;
@@ -27,11 +28,11 @@ pub struct Tera {
     #[doc(hidden)]
     pub templates: HashMap<String, Template>,
     #[doc(hidden)]
-    pub filters: HashMap<String, FilterFn>,
+    pub filters: HashMap<String, Arc<dyn Filter>>,
     #[doc(hidden)]
-    pub testers: HashMap<String, TesterFn>,
+    pub testers: HashMap<String, Arc<dyn Test>>,
     #[doc(hidden)]
-    pub global_functions: HashMap<String, GlobalFn>,
+    pub global_functions: HashMap<String, Arc<dyn Function>>,
     // Which extensions does Tera automatically autoescape on.
     // Defaults to [".html", ".htm", ".xml"]
     #[doc(hidden)]
@@ -449,9 +450,9 @@ impl Tera {
 
     #[doc(hidden)]
     #[inline]
-    pub fn get_filter(&self, filter_name: &str) -> Result<&FilterFn> {
+    pub fn get_filter(&self, filter_name: &str) -> Result<&dyn Filter> {
         match self.filters.get(filter_name) {
-            Some(fil) => Ok(fil),
+            Some(fil) => Ok(&**fil),
             None => Err(Error::msg(format!("Filter '{}' not found", filter_name))),
         }
     }
@@ -461,17 +462,17 @@ impl Tera {
     /// If a filter with that name already exists, it will be overwritten
     ///
     /// ```rust,ignore
-    /// tera.register_filter("upper", string::upper);
+    /// tera.register_filter("upper", &make_filter_fn(string::upper);
     /// ```
-    pub fn register_filter(&mut self, name: &str, filter: FilterFn) {
-        self.filters.insert(name.to_string(), filter);
+    pub fn register_filter(&mut self, name: &str, filter: &Arc<dyn Filter>) {
+        self.filters.insert(name.to_string(), filter.clone());
     }
 
     #[doc(hidden)]
     #[inline]
-    pub fn get_tester(&self, tester_name: &str) -> Result<&TesterFn> {
+    pub fn get_tester(&self, tester_name: &str) -> Result<&dyn Test> {
         match self.testers.get(tester_name) {
-            Some(t) => Ok(t),
+            Some(t) => Ok(&**t),
             None => Err(Error::msg(format!("Tester '{}' not found", tester_name))),
         }
     }
@@ -483,15 +484,15 @@ impl Tera {
     /// ```rust,ignore
     /// tera.register_tester("odd", testers::odd);
     /// ```
-    pub fn register_tester(&mut self, name: &str, tester: TesterFn) {
-        self.testers.insert(name.to_string(), tester);
+    pub fn register_tester(&mut self, name: &str, tester: &Arc<dyn Test>) {
+        self.testers.insert(name.to_string(), tester.clone());
     }
 
     #[doc(hidden)]
     #[inline]
-    pub fn get_function(&self, fn_name: &str) -> Result<&GlobalFn> {
+    pub fn get_function(&self, fn_name: &str) -> Result<&dyn Function> {
         match self.global_functions.get(fn_name) {
-            Some(t) => Ok(t),
+            Some(t) => Ok(&**t),
             None => Err(Error::msg(format!("Global function '{}' not found", fn_name))),
         }
     }
@@ -503,67 +504,67 @@ impl Tera {
     /// ```rust,ignore
     /// tera.register_function("range", range);
     /// ```
-    pub fn register_function(&mut self, name: &str, function: GlobalFn) {
-        self.global_functions.insert(name.to_string(), function);
+    pub fn register_function(&mut self, name: &str, function: &Arc<dyn Function>) {
+        self.global_functions.insert(name.to_string(), function.clone());
     }
 
     fn register_tera_filters(&mut self) {
-        self.register_filter("upper", string::upper);
-        self.register_filter("lower", string::lower);
-        self.register_filter("trim", string::trim);
-        self.register_filter("truncate", string::truncate);
-        self.register_filter("wordcount", string::wordcount);
-        self.register_filter("replace", string::replace);
-        self.register_filter("capitalize", string::capitalize);
-        self.register_filter("title", string::title);
-        self.register_filter("striptags", string::striptags);
-        self.register_filter("urlencode", string::urlencode);
-        self.register_filter("escape", string::escape_html);
-        self.register_filter("slugify", string::slugify);
-        self.register_filter("addslashes", string::addslashes);
-        self.register_filter("split", string::split);
+        self.register_filter("upper", &make_filter(string::upper));
+        self.register_filter("lower", &make_filter(string::lower));
+        self.register_filter("trim", &make_filter(string::trim));
+        self.register_filter("truncate", &make_filter(string::truncate));
+        self.register_filter("wordcount", &make_filter(string::wordcount));
+        self.register_filter("replace", &make_filter(string::replace));
+        self.register_filter("capitalize", &make_filter(string::capitalize));
+        self.register_filter("title", &make_filter(string::title));
+        self.register_filter("striptags", &make_filter(string::striptags));
+        self.register_filter("urlencode", &make_filter(string::urlencode));
+        self.register_filter("escape", &make_filter(string::escape_html));
+        self.register_filter("slugify", &make_filter(string::slugify));
+        self.register_filter("addslashes", &make_filter(string::addslashes));
+        self.register_filter("split", &make_filter(string::split));
 
-        self.register_filter("first", array::first);
-        self.register_filter("last", array::last);
-        self.register_filter("join", array::join);
-        self.register_filter("sort", array::sort);
-        self.register_filter("slice", array::slice);
-        self.register_filter("group_by", array::group_by);
-        self.register_filter("filter", array::filter);
-        self.register_filter("concat", array::concat);
+        self.register_filter("first", &make_filter(array::first));
+        self.register_filter("last", &make_filter(array::last));
+        self.register_filter("join", &make_filter(array::join));
+        self.register_filter("sort", &make_filter(array::sort));
+        self.register_filter("slice", &make_filter(array::slice));
+        self.register_filter("group_by", &make_filter(array::group_by));
+        self.register_filter("filter", &make_filter(array::filter));
+        self.register_filter("concat", &make_filter(array::concat));
 
-        self.register_filter("pluralize", number::pluralize);
-        self.register_filter("round", number::round);
-        self.register_filter("filesizeformat", number::filesizeformat);
+        self.register_filter("pluralize", &make_filter(number::pluralize));
+        self.register_filter("round", &make_filter(number::round));
+        self.register_filter("filesizeformat", &make_filter(number::filesizeformat));
 
-        self.register_filter("length", common::length);
-        self.register_filter("reverse", common::reverse);
-        self.register_filter("date", common::date);
-        self.register_filter("json_encode", common::json_encode);
-        self.register_filter("as_str", common::as_str);
+        self.register_filter("length", &make_filter(common::length));
+        self.register_filter("reverse", &make_filter(common::reverse));
+        self.register_filter("date", &make_filter(common::date));
+        self.register_filter("json_encode", &make_filter(common::json_encode));
+        self.register_filter("as_str", &make_filter(common::as_str));
 
-        self.register_filter("get", object::get);
+        self.register_filter("get", &make_filter(object::get));
     }
 
     fn register_tera_testers(&mut self) {
-        self.register_tester("defined", testers::defined);
-        self.register_tester("undefined", testers::undefined);
-        self.register_tester("odd", testers::odd);
-        self.register_tester("even", testers::even);
-        self.register_tester("string", testers::string);
-        self.register_tester("number", testers::number);
-        self.register_tester("divisibleby", testers::divisible_by);
-        self.register_tester("iterable", testers::iterable);
-        self.register_tester("starting_with", testers::starting_with);
-        self.register_tester("ending_with", testers::ending_with);
-        self.register_tester("containing", testers::containing);
-        self.register_tester("matching", testers::matching);
+        self.register_tester("defined", &make_test(testers::defined));
+        self.register_tester("undefined", &make_test(testers::undefined));
+        self.register_tester("odd", &make_test(testers::odd));
+        self.register_tester("even", &make_test(testers::even));
+        self.register_tester("string", &make_test(testers::string));
+        self.register_tester("number", &make_test(testers::number));
+        self.register_tester("divisibleby", &make_test(testers::divisible_by));
+        self.register_tester("iterable", &make_test(testers::iterable));
+        self.register_tester("starting_with", &make_test(testers::starting_with));
+        self.register_tester("ending_with", &make_test(testers::ending_with));
+        self.register_tester("containing", &make_test(testers::containing));
+        self.register_tester("matching", &make_test(testers::matching));
     }
 
     fn register_tera_functions(&mut self) {
-        self.register_function("range", functions::make_range_fn());
-        self.register_function("now", functions::make_now_fn());
-        self.register_function("throw", functions::make_throw_fn());
+        self.register_function("range", &make_function(functions::range));
+        self.register_function("now", &make_function(functions::now));
+        self.register_function("throw", &make_function(functions::throw));
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on,
@@ -648,13 +649,13 @@ impl Tera {
 
         for (name, filter) in &other.filters {
             if !self.filters.contains_key(name) {
-                self.filters.insert(name.to_string(), *filter);
+                self.filters.insert(name.to_string(), filter.clone());
             }
         }
 
         for (name, tester) in &other.testers {
             if !self.testers.contains_key(name) {
-                self.testers.insert(name.to_string(), *tester);
+                self.testers.insert(name.to_string(), tester.clone());
             }
         }
 
@@ -707,6 +708,21 @@ impl fmt::Debug for Tera {
 
         writeln!(f, "}}")
     }
+}
+
+/// Helper function to create a test
+pub fn make_test<T: Test + 'static>(t: T) -> Arc<dyn Test> {
+    Arc::new(t)
+}
+
+/// Helper function to create a function
+pub fn make_function<G: Function + 'static>(g: G) -> Arc<dyn Function> {
+    Arc::new(g)
+}
+
+/// Helper function to create a filter
+pub fn make_filter<F: Filter + 'static>(f: F) -> Arc<dyn Filter> {
+    Arc::new(f)
 }
 
 #[cfg(test)]
@@ -922,7 +938,7 @@ mod tests {
     fn test_extend_new_filter() {
         let mut my_tera = Tera::default();
         let mut framework_tera = Tera::default();
-        framework_tera.register_filter("hello", my_tera.filters["first"]);
+        framework_tera.register_filter("hello", &my_tera.filters["first"]);
         my_tera.extend(&framework_tera).unwrap();
         assert!(my_tera.filters.contains_key("hello"));
     }
@@ -931,7 +947,7 @@ mod tests {
     fn test_extend_new_tester() {
         let mut my_tera = Tera::default();
         let mut framework_tera = Tera::default();
-        framework_tera.register_tester("hello", my_tera.testers["divisibleby"]);
+        framework_tera.register_tester("hello", &my_tera.testers["divisibleby"]);
         my_tera.extend(&framework_tera).unwrap();
         assert!(my_tera.testers.contains_key("hello"));
     }

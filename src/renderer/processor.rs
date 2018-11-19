@@ -413,7 +413,7 @@ impl<'a> Processor<'a> {
 
         let found = self.lookup_ident(&test.ident).map(|found| found.clone().into_owned()).ok();
 
-        Ok(tester_fn(found, tester_args)?)
+        Ok(tester_fn.test(found.as_ref(), &tester_args)?)
     }
 
     fn eval_tera_fn_call(self: &mut Self, function_call: &'a FunctionCall) -> Result<Val<'a>> {
@@ -427,7 +427,7 @@ impl<'a> Processor<'a> {
             );
         }
 
-        Ok(Cow::Owned(tera_fn(args)?))
+        Ok(Cow::Owned(tera_fn.call(&args)?))
     }
 
     fn eval_macro_call(self: &mut Self, macro_call: &'a MacroCall) -> Result<String> {
@@ -489,7 +489,7 @@ impl<'a> Processor<'a> {
             );
         }
 
-        Ok(Cow::Owned(filter_fn(value.clone().into_owned(), args)?))
+        Ok(Cow::Owned(filter_fn.filter(&value, &args)?))
     }
 
     fn eval_as_bool(&mut self, bool_expr: &'a Expr) -> Result<bool> {

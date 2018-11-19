@@ -10,4 +10,13 @@ pub mod object;
 pub mod string;
 
 /// The filter function type definition
-pub type FilterFn = fn(Value, HashMap<String, Value>) -> Result<Value>;
+pub trait Filter: Sync + Send {
+    /// The filter function type definition
+    fn filter(&self, value: &Value, args: &HashMap<String, Value>) -> Result<Value>;
+}
+
+impl<F> Filter for F where F: Fn(&Value, &HashMap<String, Value>) -> Result<Value> + Sync + Send {
+    fn filter(&self, value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+        self(value, args)
+    }
+}

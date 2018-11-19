@@ -8,7 +8,7 @@ use sort_utils::get_sort_strategy_for_type;
 
 /// Returns the first value of an array
 /// If the array is empty, returns empty string
-pub fn first(value: Value, _: HashMap<String, Value>) -> Result<Value> {
+pub fn first(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("first", "value", Vec<Value>, value);
 
     if arr.is_empty() {
@@ -20,7 +20,7 @@ pub fn first(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 
 /// Returns the last value of an array
 /// If the array is empty, returns empty string
-pub fn last(value: Value, _: HashMap<String, Value>) -> Result<Value> {
+pub fn last(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("last", "value", Vec<Value>, value);
 
     Ok(arr.pop().unwrap_or_else(|| to_value("").unwrap()))
@@ -29,7 +29,7 @@ pub fn last(value: Value, _: HashMap<String, Value>) -> Result<Value> {
 /// Joins all values in the array by the `sep` argument given
 /// If no separator is given, it will use `""` (empty string) as separator
 /// If the array is empty, returns empty string
-pub fn join(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+pub fn join(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("join", "value", Vec<Value>, value);
     let sep = match args.get("sep") {
         Some(val) => try_get_value!("truncate", "sep", String, val),
@@ -43,7 +43,7 @@ pub fn join(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
 /// Sorts the array in ascending order.
 /// Use the 'attribute' argument to define a field to sort by.
-pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("sort", "value", Vec<Value>, value);
     if arr.is_empty() {
         return Ok(arr.into());
@@ -77,7 +77,7 @@ pub fn sort(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 /// Group the array values by the `attribute` given
 /// Returns a hashmap of key => values, items without the `attribute` or where `attribute` is `null` are discarded.
 /// The returned keys are stringified
-pub fn group_by(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+pub fn group_by(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("group_by", "value", Vec<Value>, value);
     if arr.is_empty() {
         return Ok(Map::new().into());
@@ -111,7 +111,7 @@ pub fn group_by(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
 /// Filter the array values, returning only the values where the `attribute` is equal to the `value`
 /// Values without the `attribute` or with a null `attribute` are discarded
-pub fn filter(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+pub fn filter(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("filter", "value", Vec<Value>, value);
     if arr.is_empty() {
         return Ok(Map::new().into());
@@ -149,7 +149,7 @@ pub fn filter(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 /// Use the `start` argument to define where to start (inclusive, default to `0`)
 /// and `end` argument to define where to stop (exclusive, default to the length of the array)
 /// `start` and `end` are 0-indexed
-pub fn slice(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+pub fn slice(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("slice", "value", Vec<Value>, value);
     if arr.is_empty() {
         return Ok(arr.into());
@@ -176,10 +176,10 @@ pub fn slice(value: Value, args: HashMap<String, Value>) -> Result<Value> {
 
 /// Concat the array with another one if the `with` parameter is an array or
 /// just append it otherwise
-pub fn concat(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
+pub fn concat(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("concat", "value", Vec<Value>, value);
 
-    let value = match args.remove("with") {
+    let value = match args.get("with") {
         Some(val) => val,
         None => return Err(Error::msg("The `concat` filter has to have a `with` argument")),
     };
@@ -188,13 +188,13 @@ pub fn concat(value: Value, mut args: HashMap<String, Value>) -> Result<Value> {
         match value {
             Value::Array(vals) => {
                 for val in vals {
-                    arr.push(val);
+                    arr.push(val.clone());
                 }
             }
             _ => unreachable!("Got something other than an array??"),
         }
     } else {
-        arr.push(value);
+        arr.push(value.clone());
     }
 
     Ok(to_value(arr).unwrap())
@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn test_first() {
-        let result = first(to_value(&vec![1, 2, 3, 4]).unwrap(), HashMap::new());
+        let result = first(&to_value(&vec![1, 2, 3, 4]).unwrap(), &HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&1).unwrap());
     }
@@ -217,14 +217,14 @@ mod tests {
     fn test_first_empty() {
         let v: Vec<Value> = Vec::new();
 
-        let result = first(to_value(&v).unwrap(), HashMap::new());
+        let result = first(&to_value(&v).unwrap(), &HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.ok().unwrap(), to_value("").unwrap());
     }
 
     #[test]
     fn test_last() {
-        let result = last(to_value(&vec!["Hello", "World"]).unwrap(), HashMap::new());
+        let result = last(&to_value(&vec!["Hello", "World"]).unwrap(), &HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("World").unwrap());
     }
@@ -233,7 +233,7 @@ mod tests {
     fn test_last_empty() {
         let v: Vec<Value> = Vec::new();
 
-        let result = last(to_value(&v).unwrap(), HashMap::new());
+        let result = last(&to_value(&v).unwrap(), &HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.ok().unwrap(), to_value("").unwrap());
     }
@@ -243,14 +243,14 @@ mod tests {
         let mut args = HashMap::new();
         args.insert("sep".to_owned(), to_value(&"==").unwrap());
 
-        let result = join(to_value(&vec!["Cats", "Dogs"]).unwrap(), args);
+        let result = join(&to_value(&vec!["Cats", "Dogs"]).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&"Cats==Dogs").unwrap());
     }
 
     #[test]
     fn test_join_sep_omitted() {
-        let result = join(to_value(&vec![1.2, 3.4]).unwrap(), HashMap::new());
+        let result = join(&to_value(&vec![1.2, 3.4]).unwrap(), &HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&"1.23.4").unwrap());
     }
@@ -261,7 +261,7 @@ mod tests {
         let mut args = HashMap::new();
         args.insert("sep".to_owned(), to_value(&"==").unwrap());
 
-        let result = join(to_value(&v).unwrap(), args);
+        let result = join(&to_value(&v).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&"").unwrap());
     }
@@ -270,7 +270,7 @@ mod tests {
     fn test_sort() {
         let v = to_value(vec![3, 1, 2, 5, 4]).unwrap();
         let args = HashMap::new();
-        let result = sort(v, args);
+        let result = sort(&v, &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(vec![1, 2, 3, 4, 5]).unwrap());
     }
@@ -279,7 +279,7 @@ mod tests {
     fn test_sort_empty() {
         let v = to_value(Vec::<f64>::new()).unwrap();
         let args = HashMap::new();
-        let result = sort(v, args);
+        let result = sort(&v, &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(Vec::<f64>::new()).unwrap());
     }
@@ -302,7 +302,7 @@ mod tests {
         let mut args = HashMap::new();
         args.insert("attribute".to_string(), to_value(&"a").unwrap());
 
-        let result = sort(v, args);
+        let result = sort(&v, &args);
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
@@ -322,7 +322,7 @@ mod tests {
         let mut args = HashMap::new();
         args.insert("attribute".to_string(), to_value(&"invalid_field").unwrap());
 
-        let result = sort(v, args);
+        let result = sort(&v, &args);
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err().to_string(),
@@ -335,7 +335,7 @@ mod tests {
         let v = to_value(vec![Value::Number(12.into()), Value::Array(vec![])]).unwrap();
         let args = HashMap::new();
 
-        let result = sort(v, args);
+        let result = sort(&v, &args);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "expected number got []");
     }
@@ -349,7 +349,7 @@ mod tests {
         .unwrap();
         let args = HashMap::new();
 
-        let result = sort(v, args);
+        let result = sort(&v, &args);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "Null is not a sortable value");
     }
@@ -369,7 +369,7 @@ mod tests {
         let mut args = HashMap::new();
         args.insert("attribute".to_string(), to_value("0").unwrap());
 
-        let result = sort(v, args);
+        let result = sort(&v, &args);
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
@@ -406,7 +406,7 @@ mod tests {
         ];
 
         for (args, expected) in inputs {
-            let res = slice(v.clone(), args);
+            let res = slice(&v, &args);
             assert!(res.is_ok());
             assert_eq!(res.unwrap(), to_value(expected).unwrap());
         }
@@ -435,7 +435,7 @@ mod tests {
             "2018": [{"id": 7, "year": 2018}],
         });
 
-        let res = group_by(input, args);
+        let res = group_by(&input, &args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }
@@ -464,7 +464,7 @@ mod tests {
             "5": [{"id": 6, "company": {"id": 5}}, {"id": 7, "company": {"id": 5}}],
         });
 
-        let res = group_by(input, args);
+        let res = group_by(&input, &args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }
@@ -491,7 +491,7 @@ mod tests {
             {"id": 2, "year": 2015},
         ]);
 
-        let res = filter(input, args);
+        let res = filter(&input, &args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }
@@ -503,7 +503,7 @@ mod tests {
         args.insert("with".to_string(), json!([3, 4]));
         let expected = json!([1, 2, 3, 3, 4,]);
 
-        let res = concat(input, args);
+        let res = concat(&input, &args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }
@@ -515,7 +515,7 @@ mod tests {
         args.insert("with".to_string(), json!(4));
         let expected = json!([1, 2, 3, 4,]);
 
-        let res = concat(input, args);
+        let res = concat(&input, &args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }

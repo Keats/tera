@@ -45,9 +45,9 @@ mod utils;
 // Library exports.
 
 // Template is meant to be used internally only but is exported for test/bench.
-pub use builtins::filters::FilterFn;
-pub use builtins::functions::GlobalFn;
-pub use builtins::testers::TesterFn;
+pub use builtins::filters::Filter;
+pub use builtins::functions::Function;
+pub use builtins::testers::Test;
 pub use context::Context;
 pub use errors::{Error, ErrorKind, Result};
 /// Re-export Value and other useful things from serde
@@ -55,7 +55,7 @@ pub use errors::{Error, ErrorKind, Result};
 pub use serde_json::value::{from_value, to_value, Map, Number, Value};
 #[doc(hidden)]
 pub use template::Template;
-pub use tera::Tera;
+pub use tera::{Tera, make_test, make_function, make_filter};
 pub use utils::escape_html;
 
 // Exposes the AST if one needs it but changing the AST is not considered
