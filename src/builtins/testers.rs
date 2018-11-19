@@ -9,7 +9,10 @@ pub trait Test: Sync + Send {
     fn test(&self, value: Option<&Value>, args: &[Value]) -> Result<bool>;
 }
 
-impl<F> Test for F where F: Fn(Option<&Value>, &[Value]) -> Result<bool> + Sync + Send {
+impl<F> Test for F
+where
+    F: Fn(Option<&Value>, &[Value]) -> Result<bool> + Sync + Send,
+{
     fn test(&self, value: Option<&Value>, args: &[Value]) -> Result<bool> {
         self(value, args)
     }
@@ -259,17 +262,17 @@ mod tests {
             &[to_value("hello").unwrap()],
         )
         .unwrap());
-        assert!(!starting_with(Some(&to_value("hello").unwrap()), &[to_value("hi").unwrap()],)
-            .unwrap());
+        assert!(
+            !starting_with(Some(&to_value("hello").unwrap()), &[to_value("hi").unwrap()],).unwrap()
+        );
     }
 
     #[test]
     fn test_ending_with() {
-        assert!(ending_with(
-            Some(&to_value("helloworld").unwrap()),
-            &[to_value("world").unwrap()],
-        )
-        .unwrap());
+        assert!(
+            ending_with(Some(&to_value("helloworld").unwrap()), &[to_value("world").unwrap()],)
+                .unwrap()
+        );
         assert!(
             !ending_with(Some(&to_value("hello").unwrap()), &[to_value("hi").unwrap()],).unwrap()
         );
@@ -315,7 +318,8 @@ mod tests {
             assert_eq!(matching(Some(&container), &[needle]).unwrap(), expected);
         }
 
-        assert!(matching(Some(&to_value("").unwrap()), &[to_value("(Invalid regex").unwrap()])
-            .is_err());
+        assert!(
+            matching(Some(&to_value("").unwrap()), &[to_value("(Invalid regex").unwrap()]).is_err()
+        );
     }
 }
