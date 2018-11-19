@@ -6,9 +6,8 @@ extern crate serde_json;
 
 use std::collections::HashMap;
 
-use tera::{Tera, Context, make_filter, Result};
-use serde_json::value::{Value, to_value};
-
+use serde_json::value::{to_value, Value};
+use tera::{Context, Result, Tera};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
@@ -20,7 +19,7 @@ lazy_static! {
             }
         };
         tera.autoescape_on(vec!["html", ".sql"]);
-        tera.register_filter("do_nothing", &make_filter(do_nothing_filter));
+        tera.register_filter("do_nothing", do_nothing_filter);
         tera
     };
 }

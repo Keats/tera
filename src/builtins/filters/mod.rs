@@ -15,7 +15,10 @@ pub trait Filter: Sync + Send {
     fn filter(&self, value: &Value, args: &HashMap<String, Value>) -> Result<Value>;
 }
 
-impl<F> Filter for F where F: Fn(&Value, &HashMap<String, Value>) -> Result<Value> + Sync + Send {
+impl<F> Filter for F
+where
+    F: Fn(&Value, &HashMap<String, Value>) -> Result<Value> + Sync + Send,
+{
     fn filter(&self, value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         self(value, args)
     }
