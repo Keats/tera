@@ -6,6 +6,24 @@ use errors::{Error, Result};
 use serde_json::value::{to_value, Map, Value};
 use sort_utils::get_sort_strategy_for_type;
 
+
+/// Returns the nth value of an array
+/// If the array is empty, returns empty string
+pub fn nth(value: Value, args: HashMap<String, Value>) -> Result<Value> {
+    let arr = try_get_value!("nth", "value", Vec<Value>, value);
+
+    if arr.is_empty() {
+        return Ok(to_value("").unwrap());
+    }
+
+    let index = match args.get("index") {
+        Some(val) => try_get_value!("nth", "index", usize, val),
+        None => bail!("The `nth` filter has to have an `index` argument"),
+    };
+
+    return Ok(arr.get(index).unwrap_or(&to_value("").unwrap()).to_owned());
+}
+
 /// Returns the first value of an array
 /// If the array is empty, returns empty string
 pub fn first(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
@@ -211,6 +229,25 @@ mod tests {
         let result = first(&to_value(&vec![1, 2, 3, 4]).unwrap(), &HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&1).unwrap());
+    }
+
+    #[test]
+    fn test_nth() {
+        let mut args = HashMap::new();
+        args.insert("index".to_string(), to_value(1).unwrap());
+        let result = nth(to_value(&vec![1, 2, 3, 4]).unwrap(), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(&2).unwrap());
+    }
+
+    #[test]
+    fn test_nth_empty() {
+        let v: Vec<Value> = Vec::new();
+        let mut args = HashMap::new();
+        args.insert("index".to_string(), to_value(1).unwrap());
+        let result = nth(to_value(&v).unwrap(), args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("").unwrap());
     }
 
     #[test]
