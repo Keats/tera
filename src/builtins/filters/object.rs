@@ -9,7 +9,7 @@ use errors::{Error, Result};
 pub fn get(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let key = match args.get("key") {
         Some(val) => try_get_value!("get", "key", String, val),
-        None => bail!("The `get` filter has to have an `key` argument"),
+        None => { return Err(Error::msg("The `get` filter has to have an `key` argument")) },
     };
 
     match value.as_object() {

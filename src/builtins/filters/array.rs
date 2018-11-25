@@ -471,7 +471,7 @@ mod tests {
 
     #[test]
     fn test_filter_empty() {
-        let res = filter(json!([]), HashMap::new());
+        let res = filter(&json!([]), &HashMap::new());
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), json!([]));
     }
