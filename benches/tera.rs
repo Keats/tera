@@ -5,7 +5,7 @@ extern crate test;
 extern crate serde_derive;
 extern crate serde_json;
 
-use tera::{escape_html, Context, Template, Tera, Value};
+use tera::{Context, Template, Tera, Value};
 
 static VARIABLE_ONLY: &'static str = "{{product.name}}";
 
@@ -183,11 +183,6 @@ fn bench_build_inheritance_chains(b: &mut test::Bencher) {
     ])
     .unwrap();
     b.iter(|| tera.build_inheritance_chains());
-}
-
-#[bench]
-fn bench_escape_html(b: &mut test::Bencher) {
-    b.iter(|| escape_html(r#"Hello word <script></script>"#));
 }
 
 #[bench]
