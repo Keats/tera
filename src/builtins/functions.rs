@@ -89,10 +89,12 @@ pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
     let timestamp = match args.get("timestamp") {
         Some(val) => match from_value::<bool>(val.clone()) {
             Ok(v) => v,
-            Err(_) => return Err(Error::msg(format!(
+            Err(_) => {
+                return Err(Error::msg(format!(
                 "Global function `now` received timestamp={} but `timestamp` can only be a boolean",
                 val
-            ))),
+            )))
+            }
         },
         None => false,
     };

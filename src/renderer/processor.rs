@@ -68,20 +68,23 @@ fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<S
 }
 
 fn process_path<'a>(path: &str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
-    let full_path =
-        if path.contains('[') { evaluate_sub_variables(path, call_stack)? } else { path.into() };
-
-    match call_stack.lookup(full_path.as_ref()) {
-        Some(v) => Ok(v),
-        None => {
-            if path == full_path {
+    if !path.contains('[') {
+        match call_stack.lookup(path) {
+            Some(v) => Ok(v),
+            None => {
                 Err(Error::msg(format!(
                     "Variable `{}` not found in context while rendering '{}'",
                     path,
                     call_stack.active_template().name
                 )))
-            } else {
-                // we had to evaluate sub-variables
+            }
+        }
+    } else {
+        let full_path = evaluate_sub_variables(path, call_stack)?;
+
+        match call_stack.lookup(full_path.as_ref()) {
+            Some(v) => Ok(v),
+            None => {
                 Err(Error::msg(format!(
                     "Variable `{}` not found in context while rendering '{}': \
                      the evaluated version was `{}`. Maybe the index is out of bounds?",
