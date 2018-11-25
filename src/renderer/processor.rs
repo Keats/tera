@@ -216,7 +216,7 @@ impl<'a> Processor<'a> {
         let len = for_loop.len();
         self.call_stack.push_for_loop_frame(for_loop_name, for_loop);
 
-        let mut output = String::new();
+        let mut output = String::with_capacity(len * 20);
         for _ in 0..len {
             output.push_str(&self.render_body(&for_loop_body)?);
 

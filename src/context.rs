@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
@@ -73,17 +74,17 @@ impl Serialize for Context {
 }
 
 pub trait ValueRender {
-    fn render(&self) -> String;
+    fn render(&self) -> Cow<str>;
 }
 
 // Convert serde Value to String
 impl ValueRender for Value {
-    fn render(&self) -> String {
+    fn render(&self) -> Cow<str> {
         match *self {
-            Value::String(ref s) => s.clone(),
-            Value::Number(ref i) => i.to_string(),
-            Value::Bool(i) => i.to_string(),
-            Value::Null => "".to_owned(),
+            Value::String(ref s) => Cow::Borrowed(s),
+            Value::Number(ref i) => Cow::Owned(i.to_string()),
+            Value::Bool(i) => Cow::Owned(i.to_string()),
+            Value::Null => Cow::Owned(String::new()),
             Value::Array(ref a) => {
                 let mut buf = String::new();
                 buf.push('[');
@@ -94,9 +95,9 @@ impl ValueRender for Value {
                     buf.push_str(i.render().as_ref());
                 }
                 buf.push(']');
-                buf
+                Cow::Owned(buf)
             }
-            Value::Object(_) => "[object]".to_owned(),
+            Value::Object(_) => Cow::Owned("[object]".to_owned()),
         }
     }
 }
