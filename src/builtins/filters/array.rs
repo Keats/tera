@@ -16,9 +16,9 @@ pub fn nth(value: Value, args: HashMap<String, Value>) -> Result<Value> {
         return Ok(to_value("").unwrap());
     }
 
-    let index = match args.get("index") {
-        Some(val) => try_get_value!("nth", "index", usize, val),
-        None => bail!("The `nth` filter has to have an `index` argument"),
+    let index = match args.get("n") {
+        Some(val) => try_get_value!("nth", "n", usize, val),
+        None => bail!("The `nth` filter has to have an `n` argument"),
     };
 
     return Ok(arr.get(index).unwrap_or(&to_value("").unwrap()).to_owned());
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn test_nth() {
         let mut args = HashMap::new();
-        args.insert("index".to_string(), to_value(1).unwrap());
+        args.insert("n".to_string(), to_value(1).unwrap());
         let result = nth(to_value(&vec![1, 2, 3, 4]).unwrap(), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(&2).unwrap());
@@ -244,7 +244,7 @@ mod tests {
     fn test_nth_empty() {
         let v: Vec<Value> = Vec::new();
         let mut args = HashMap::new();
-        args.insert("index".to_string(), to_value(1).unwrap());
+        args.insert("n".to_string(), to_value(1).unwrap());
         let result = nth(to_value(&v).unwrap(), args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("").unwrap());
