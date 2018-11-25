@@ -1,3 +1,19 @@
+use std::str;
+
+// From https://github.com/djc/askama/tree/master/askama_escape
+// Adapted for use in Tera
+macro_rules! escaping_body {
+    ($start:ident, $i:ident, $fmt:ident, $bytes:ident, $quote:expr) => {{
+        if $start < $i {
+            $fmt.push_str(unsafe { str::from_utf8_unchecked(&$bytes[$start..$i]) });
+        }
+        $fmt.push_str($quote);
+        $start = $i + 1;
+    }};
+}
+
+const FLAG: u8 = b'>' - b'"';
+
 /// Escape HTML following [OWASP](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
 ///
 /// Escape the following characters with HTML entity encoding to prevent switching
@@ -14,25 +30,25 @@
 /// ' --> &#x27;     &apos; is not recommended
 /// / --> &#x2F;     forward slash is included as it helps end an HTML entity
 /// ```
-#[inline] // TODO: check if the inline matters in benches
+#[inline]
 pub fn escape_html(input: &str) -> String {
-    let mut output = String::with_capacity(input.len() * 2);
-    for c in input.chars() {
-        match c {
-            '&' => output.push_str("&amp;"),
-            '<' => output.push_str("&lt;"),
-            '>' => output.push_str("&gt;"),
-            '"' => output.push_str("&quot;"),
-            '\'' => output.push_str("&#x27;"),
-            '/' => output.push_str("&#x2F;"),
-            // Additional one for old IE (unpatched IE8 and below)
-            // See https://github.com/OWASP/owasp-java-encoder/wiki/Grave-Accent-Issue
-            '`' => output.push_str("&#96;"),
-            _ => output.push(c),
+    let mut start = 0;
+    let mut output = String::with_capacity(input.len() + input.len()/2);
+    let bytes = input.as_bytes();
+    for (i, b) in bytes.iter().enumerate() {
+        if b.wrapping_sub(b'"') <= FLAG {
+            match *b {
+                b'<' => escaping_body!(start, i, output, bytes, "&lt;"),
+                b'>' => escaping_body!(start, i, output, bytes, "&gt;"),
+                b'&' => escaping_body!(start, i, output, bytes, "&amp;"),
+                b'"' => escaping_body!(start, i, output, bytes, "&quot;"),
+                b'\'' => escaping_body!(start, i, output, bytes, "&#x27;"),
+                b'/' => escaping_body!(start, i, output, bytes, "&#x2f;"),
+                _ => (),
+            }
         }
     }
-
-    // Not using shrink_to_fit() on purpose
+    output.push_str(unsafe { str::from_utf8_unchecked(&bytes[start..]) });
     output
 }
 
