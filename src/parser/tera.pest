@@ -79,7 +79,7 @@ string_concat = { (fn_call | float | int | string | dotted_square_bracket_ident)
 /// We'll use precedence climbing on those in the parser phase
 
 // boolean first so they are not caught as identifiers
-basic_val  = _{ boolean | string_concat | test | macro_call | fn_call | dotted_square_bracket_ident | float | int | string }
+basic_val  = _{ boolean | string_concat | test_not | test | macro_call | fn_call | dotted_square_bracket_ident | float | int | string }
 basic_op   = _{ op_plus | op_minus | op_times | op_slash | op_modulo }
 basic_expr = { ("(" ~ basic_expr ~ ")" | basic_val) ~ (basic_op ~ basic_val)* }
 basic_expr_filter = { basic_expr ~ filter* }
@@ -124,6 +124,7 @@ macro_call      = { ident ~ "::" ~ ident ~ "(" ~ kwargs? ~ ")" }
 test_arg  = { logic_expr }
 test_args = !{ test_arg ~ ("," ~ test_arg)* }
 test_call = !{ ident ~ ("(" ~ test_args ~ ")")? }
+test_not  = { dotted_ident ~ "is" ~ "not" ~ test_call }
 test      = { dotted_ident ~ "is" ~ test_call }
 
 // -------------------------------------------------------

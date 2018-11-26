@@ -416,7 +416,12 @@ impl<'a> Processor<'a> {
 
         let found = self.lookup_ident(&test.ident).map(|found| found.clone().into_owned()).ok();
 
-        Ok(tester_fn.test(found.as_ref(), &tester_args)?)
+        let result = tester_fn.test(found.as_ref(), &tester_args)?;
+        if test.negated {
+            Ok(!result)
+        } else {
+            Ok(result)
+        }
     }
 
     fn eval_tera_fn_call(self: &mut Self, function_call: &'a FunctionCall) -> Result<Val<'a>> {

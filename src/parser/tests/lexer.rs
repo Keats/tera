@@ -261,6 +261,7 @@ fn lex_logic_val() {
         r#""hey""#,
         "a is defined",
         "a is defined(2)",
+        "a is not defined",
         "1 + 1",
         "1 + counts",
         "1 + counts.first",
