@@ -6,8 +6,6 @@ use serde::ser::SerializeMap;
 use serde::Serializer;
 use serde_json::value::{to_value, Value};
 
-use errors::{Error, Result as TeraResult};
-
 /// The struct that holds the context of a template rendering.
 ///
 /// Light wrapper around a `BTreeMap` for easier insertions of Serializable

@@ -8,6 +8,11 @@
 - Removed error-chain errors and added rich Error enum instead
 - Filter, Tester and Function are now traits and now take borrowed values instead of owned
 
+### Others
+
+- Tests can now use `value is not defined` order (https://github.com/Keats/tera/issues/308)
+- Add `nth` filter to get the nth value in an array
+
 ## 0.11.20 (2018-11-14)
 
 - Fix bugs in `filter` and `get` filters
