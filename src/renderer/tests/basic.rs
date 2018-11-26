@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde_json::Value;
@@ -665,23 +666,34 @@ impl Function for Next {
     }
 }
 
+#[derive(Clone)]
+struct SharedNext(Arc<Next>);
+
+impl Function for SharedNext {
+    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
+        self.0.call(args)
+    }
+}
+
 lazy_static! {
-    static ref NEXT_GLOBAL: Next = Next(AtomicUsize::new(1));
+    static ref NEXT_GLOBAL: SharedNext = SharedNext(Arc::new(Next(AtomicUsize::new(1))));
 }
 
 #[test]
 fn stateful_global_fn() {
-    let mut tera = Tera::default();
-    tera.add_raw_template(
-        "fn.html",
-        "<h1>{{ get_next() }}, {{ get_next_borrowed() }}, {{ get_next() }}...</h1>",
-    )
-    .unwrap();
+    fn make_tera() -> Tera {
+        let mut tera = Tera::default();
+        tera.add_raw_template(
+            "fn.html",
+            "<h1>{{ get_next() }}, {{ get_next_shared() }}, {{ get_next() }}...</h1>",
+        )
+        .unwrap();
 
-    tera.register_function("get_next", Next(AtomicUsize::new(1)));
-    tera.register_function("get_next_borrowed", &NEXT_GLOBAL);
+        tera.register_function("get_next", Next(AtomicUsize::new(1)));
+        tera.register_function("get_next_shared", NEXT_GLOBAL.clone());
+        tera
+    }
 
-    let result = tera.render("fn.html", &Context::new());
-
-    assert_eq!(result.unwrap(), "<h1>1, 1, 2...</h1>".to_owned());
+    assert_eq!(make_tera().render("fn.html", &Context::new()).unwrap(), "<h1>1, 1, 2...</h1>".to_owned());
+    assert_eq!(make_tera().render("fn.html", &Context::new()).unwrap(), "<h1>1, 2, 2...</h1>".to_owned());
 }
