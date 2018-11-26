@@ -34,11 +34,6 @@ impl Context {
         self.data.insert(key.to_owned(), to_value(val).unwrap());
     }
 
-    #[doc(hidden)]
-    pub fn as_json(&self) -> TeraResult<Value> {
-        to_value(&self.data).map_err(|e| Error::chain("Failed to convert data to JSON", e))
-    }
-
     /// Appends the data of the `source` parameter to `self`, overwriting existing keys.
     /// The source context will be dropped.
     ///
