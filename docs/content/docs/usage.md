@@ -55,8 +55,8 @@ The context can either a be data structure that implements the `Serialize` trait
 use tera::Context;
 // Using the tera Context struct
 let mut context = Context::new();
-context.add("product", &product);
-context.add("vat_rate", &0.20);
+context.insert("product", &product);
+context.insert("vat_rate", &0.20);
 tera.render("products/product.html", &context)?;
 
 #[derive(Serialize)]
