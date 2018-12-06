@@ -78,7 +78,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                             return Err(Error::msg(format!(
                                 "Error parsing `{:?}` as rfc3339 date or naive datetime",
                                 s
-                            )))
+                            )));
                         }
                     },
                 }
@@ -89,7 +89,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                         return Err(Error::msg(format!(
                             "Error parsing `{:?}` as YYYY-MM-DD date",
                             s
-                        )))
+                        )));
                     }
                 }
             }
@@ -99,7 +99,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                 "Filter `date` received an incorrect type for arg `value`: \
                  got `{:?}` but expected i64|u64|String",
                 value
-            )))
+            )));
         }
     };
 

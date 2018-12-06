@@ -28,7 +28,7 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
                 return Err(Error::msg(format!(
                     "Global function `range` received start={} but `start` can only be a number",
                     val
-                )))
+                )));
             }
         },
         None => 0,
@@ -40,7 +40,7 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
                 return Err(Error::msg(format!(
                     "Global function `range` received step_by={} but `step` can only be a number",
                     val
-                )))
+                )));
             }
         },
         None => 1,
@@ -52,11 +52,11 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
                 return Err(Error::msg(format!(
                     "Global function `range` received end={} but `end` can only be a number",
                     val
-                )))
+                )));
             }
         },
         None => {
-            return Err(Error::msg("Global function `range` was called without a `end` argument"))
+            return Err(Error::msg("Global function `range` was called without a `end` argument"));
         }
     };
 
@@ -81,7 +81,7 @@ pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
                 return Err(Error::msg(format!(
                     "Global function `now` received utc={} but `utc` can only be a boolean",
                     val
-                )))
+                )));
             }
         },
         None => false,
@@ -93,7 +93,7 @@ pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
                 return Err(Error::msg(format!(
                 "Global function `now` received timestamp={} but `timestamp` can only be a boolean",
                 val
-            )))
+            )));
             }
         },
         None => false,
