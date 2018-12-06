@@ -33,7 +33,7 @@ const FLAG: u8 = b'>' - b'"';
 #[inline]
 pub fn escape_html(input: &str) -> String {
     let mut start = 0;
-    let mut output = String::with_capacity(input.len() + input.len()/2);
+    let mut output = String::with_capacity(input.len() + input.len() / 2);
     let bytes = input.as_bytes();
     for (i, b) in bytes.iter().enumerate() {
         if b.wrapping_sub(b'"') <= FLAG {

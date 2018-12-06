@@ -32,7 +32,7 @@ pub struct Tera {
     #[doc(hidden)]
     pub testers: HashMap<String, Arc<dyn Test>>,
     #[doc(hidden)]
-    pub global_functions: HashMap<String, Arc<dyn Function>>,
+    pub functions: HashMap<String, Arc<dyn Function>>,
     // Which extensions does Tera automatically autoescape on.
     // Defaults to [".html", ".htm", ".xml"]
     #[doc(hidden)]
@@ -54,7 +54,7 @@ impl Tera {
             glob: Some(dir.to_string()),
             templates: HashMap::new(),
             filters: HashMap::new(),
-            global_functions: HashMap::new(),
+            functions: HashMap::new(),
             testers: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
             escape_fn: escape_html,
@@ -203,10 +203,7 @@ impl Tera {
             mut parents: Vec<String>,
         ) -> Result<Vec<String>> {
             if !parents.is_empty() && start.name == template.name {
-                return Err(Error::msg(format!(
-                    "Circular extend detected for template '{}'. Inheritance chain: `{:?}`",
-                    start.name, parents,
-                )));
+                return Err(Error::circular_extend(&start.name, parents));
             }
 
             match template.parent {
@@ -215,10 +212,7 @@ impl Tera {
                         parents.push(parent.name.clone());
                         build_chain(templates, start, parent, parents)
                     }
-                    None => Err(Error::msg(format!(
-                        "Template '{}' is inheriting from '{}', which doesn't exist or isn't loaded.",
-                        template.name, p,
-                    ))),
+                    None => Err(Error::missing_parent(&template.name, &p))
                 },
                 None => Ok(parents),
             }
@@ -241,15 +235,7 @@ impl Tera {
 
                 // and then see if our parents have it
                 for parent in &parents {
-                    let t = self.get_template(parent).map_err(|e| {
-                        Error::chain(
-                            format!(
-                                "Couldn't find template {} while building inheritance chains",
-                                parent,
-                            ),
-                            e,
-                        )
-                    })?;
+                    let t = self.get_template(parent)?;
 
                     if let Some(b) = t.blocks.get(block_name) {
                         definitions.push((t.name.clone(), b.clone()));
@@ -360,7 +346,7 @@ impl Tera {
     pub fn get_template(&self, template_name: &str) -> Result<&Template> {
         match self.templates.get(template_name) {
             Some(tpl) => Ok(tpl),
-            None => Err(Error::msg(format!("Template '{}' not found", template_name))),
+            None => Err(Error::template_not_found(template_name)),
         }
     }
 
@@ -453,7 +439,7 @@ impl Tera {
     pub fn get_filter(&self, filter_name: &str) -> Result<&dyn Filter> {
         match self.filters.get(filter_name) {
             Some(fil) => Ok(&**fil),
-            None => Err(Error::msg(format!("Filter '{}' not found", filter_name))),
+            None => Err(Error::filter_not_found(filter_name)),
         }
     }
 
@@ -473,7 +459,7 @@ impl Tera {
     pub fn get_tester(&self, tester_name: &str) -> Result<&dyn Test> {
         match self.testers.get(tester_name) {
             Some(t) => Ok(&**t),
-            None => Err(Error::msg(format!("Tester '{}' not found", tester_name))),
+            None => Err(Error::test_not_found(tester_name)),
         }
     }
 
@@ -491,9 +477,9 @@ impl Tera {
     #[doc(hidden)]
     #[inline]
     pub fn get_function(&self, fn_name: &str) -> Result<&dyn Function> {
-        match self.global_functions.get(fn_name) {
+        match self.functions.get(fn_name) {
             Some(t) => Ok(&**t),
-            None => Err(Error::msg(format!("Global function '{}' not found", fn_name))),
+            None => Err(Error::function_not_found(fn_name)),
         }
     }
 
@@ -505,7 +491,7 @@ impl Tera {
     /// tera.register_function("range", range);
     /// ```
     pub fn register_function<F: Function + 'static>(&mut self, name: &str, function: F) {
-        self.global_functions.insert(name.to_string(), Arc::new(function));
+        self.functions.insert(name.to_string(), Arc::new(function));
     }
 
     fn register_tera_filters(&mut self) {
@@ -672,7 +658,7 @@ impl Default for Tera {
             templates: HashMap::new(),
             filters: HashMap::new(),
             testers: HashMap::new(),
-            global_functions: HashMap::new(),
+            functions: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
             escape_fn: escape_html,
         };

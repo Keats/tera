@@ -242,7 +242,7 @@ fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
             let mut test = parse_test(pair);
             test.negated = true;
             ExprVal::Test(test)
-        },
+        }
         Rule::fn_call => ExprVal::FunctionCall(parse_fn_call(pair)),
         Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)),
         Rule::string => ExprVal::String(replace_string_markers(pair.as_str())),

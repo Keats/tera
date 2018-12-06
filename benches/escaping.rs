@@ -1,6 +1,6 @@
 #![feature(test)]
-extern crate test;
 extern crate tera;
+extern crate test;
 
 use tera::escape_html;
 
@@ -10,7 +10,7 @@ const HTML_SHORT: &'static str = "Here->An <<example>> of rust codefn foo(u: &u3
 const HTML_LONG: &'static str = "A somewhat longer paragraph containing a character that needs to be escaped, because e.g. the author mentions the movie Fast&Furious in it. This paragraph is also quite long to match the non-html one.";
 
 // taken from https://github.com/djc/askama/blob/master/askama_escape/benches/all.rs
-const NO_HTML_VERY_LONG: &'static str =  r#"
+const NO_HTML_VERY_LONG: &'static str = r#"
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin scelerisque eu urna in aliquet.
 Phasellus ac nulla a urna sagittis consequat id quis est. Nullam eu ex eget erat accumsan dictum
 ac lobortis urna. Etiam fermentum ut quam at dignissim. Curabitur vestibulum luctus tellus, sit
@@ -62,7 +62,6 @@ const HTML_VERY_LONG: &'static str = r#"
     finibus velit a fermentum rhoncus. Maecenas leo purus, eleifend eu lacus a, condimentum sagittis
     justo.
 </p>"#;
-
 
 #[bench]
 fn bench_escape_no_html_short(b: &mut test::Bencher) {

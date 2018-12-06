@@ -242,7 +242,6 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("").unwrap());
     }
 
-
     #[test]
     fn test_first() {
         let result = first(&to_value(&vec![1, 2, 3, 4]).unwrap(), &HashMap::new());
