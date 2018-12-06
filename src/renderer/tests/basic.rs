@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use serde_json::Value;
 
@@ -696,6 +696,12 @@ fn stateful_global_fn() {
         tera
     }
 
-    assert_eq!(make_tera().render("fn.html", &Context::new()).unwrap(), "<h1>1, 1, 2...</h1>".to_owned());
-    assert_eq!(make_tera().render("fn.html", &Context::new()).unwrap(), "<h1>1, 2, 2...</h1>".to_owned());
+    assert_eq!(
+        make_tera().render("fn.html", &Context::new()).unwrap(),
+        "<h1>1, 1, 2...</h1>".to_owned()
+    );
+    assert_eq!(
+        make_tera().render("fn.html", &Context::new()).unwrap(),
+        "<h1>1, 2, 2...</h1>".to_owned()
+    );
 }
