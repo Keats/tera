@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
 
-use glob::glob;
+use globwalk::glob;
 use serde::Serialize;
 use serde_json::value::to_value;
 
@@ -125,18 +125,23 @@ impl Tera {
         let mut errors = String::new();
 
         let dir = self.glob.clone().unwrap();
+        // We clean the filename by removing the dir given
+        // to Tera so users don't have to prefix everytime
+        let mut parent_dir = dir.split_at(dir.find('*').unwrap()).0;
+        // Remove `./` from the glob if used as it would cause an error in strip_prefix
+        if parent_dir.starts_with("./") {
+            parent_dir = &parent_dir[2..];
+        }
+
         // We are parsing all the templates on instantiation
         for entry in glob(&dir).unwrap().filter_map(|e| e.ok()) {
-            let path = entry.as_path();
+            let mut path = entry.into_path();
             // We only care about actual files
             if path.is_file() {
-                // We clean the filename by removing the dir given
-                // to Tera so users don't have to prefix everytime
-                let mut parent_dir = dir.split_at(dir.find('*').unwrap()).0;
-                // Remove `./` from the glob if used as it would cause an error in strip_prefix
-                if parent_dir.starts_with("./") {
-                    parent_dir = &parent_dir[2..];
+                if path.starts_with("./") {
+                    path = path.strip_prefix("./").unwrap().to_path_buf();
                 }
+
                 let filepath = path
                     .strip_prefix(&parent_dir)
                     .unwrap()
@@ -933,6 +938,13 @@ mod tests {
         let tera = Tera::new("examples/basic/templates/**/*").unwrap();
         assert!(tera.get_template("base.html").is_ok());
     }
+
+    #[test]
+    fn can_load_from_glob_with_patterns() {
+        let tera = Tera::new("examples/basic/templates/**/*.{html, xml}").unwrap();
+        assert!(tera.get_template("base.html").is_ok());
+    }
+
 
     #[test]
     fn full_reload_with_glob() {

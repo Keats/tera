@@ -8,7 +8,7 @@
 
 #![deny(missing_docs)]
 
-extern crate glob;
+extern crate globwalk;
 extern crate pest;
 extern crate serde;
 #[cfg_attr(test, macro_use)]
