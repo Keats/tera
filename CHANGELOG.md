@@ -10,8 +10,9 @@
 
 ### Others
 
-- Tests can now use `value is not defined` order (https://github.com/Keats/tera/issues/308)
+- Tests can now use `value is not defined` order for negation (https://github.com/Keats/tera/issues/308)
 - Add `nth` filter to get the nth value in an array
+- You can now use glob patterns in Tera::new
 
 ## 0.11.20 (2018-11-14)
 
