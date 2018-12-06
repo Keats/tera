@@ -51,12 +51,12 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
             ErrorKind::Msg(ref message) => write!(f, "{}", message),
-            ErrorKind::CircularExtend {ref tpl, ref inheritance_chain} => write!(
+            ErrorKind::CircularExtend { ref tpl, ref inheritance_chain } => write!(
                 f,
                 "Circular extend detected for template '{}'. Inheritance chain: `{:?}`",
                 tpl, inheritance_chain
             ),
-            ErrorKind::MissingParent {ref current, ref parent} => write!(
+            ErrorKind::MissingParent { ref current, ref parent } => write!(
                 f,
                 "Template '{}' is inheriting from '{}', which doesn't exist or isn't loaded.",
                 current, parent
@@ -85,12 +85,21 @@ impl Error {
 
     /// Creates a circular extend error
     pub fn circular_extend(tpl: impl ToString, inheritance_chain: Vec<String>) -> Self {
-        Self { kind: ErrorKind::CircularExtend { tpl: tpl.to_string(), inheritance_chain}, cause: None }
+        Self {
+            kind: ErrorKind::CircularExtend { tpl: tpl.to_string(), inheritance_chain },
+            cause: None,
+        }
     }
 
     /// Creates a missing parent error
     pub fn missing_parent(current: impl ToString, parent: impl ToString) -> Self {
-        Self { kind: ErrorKind::MissingParent { current: current.to_string(), parent: parent.to_string() }, cause: None }
+        Self {
+            kind: ErrorKind::MissingParent {
+                current: current.to_string(),
+                parent: parent.to_string(),
+            },
+            cause: None,
+        }
     }
 
     /// Creates a template not found error

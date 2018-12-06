@@ -217,7 +217,7 @@ impl Tera {
                         parents.push(parent.name.clone());
                         build_chain(templates, start, parent, parents)
                     }
-                    None => Err(Error::missing_parent(&template.name, &p))
+                    None => Err(Error::missing_parent(&template.name, &p)),
                 },
                 None => Ok(parents),
             }
@@ -944,7 +944,6 @@ mod tests {
         let tera = Tera::new("examples/basic/templates/**/*.{html, xml}").unwrap();
         assert!(tera.get_template("base.html").is_ok());
     }
-
 
     #[test]
     fn full_reload_with_glob() {

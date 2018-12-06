@@ -41,7 +41,7 @@ fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<S
                             "Only variables evaluating to String or Number can be used as \
                              index (`{}` of `{}`)",
                             sub_var, key,
-                        )))
+                        )));
                     }
                 };
 
@@ -205,7 +205,7 @@ impl<'a> Processor<'a> {
                 return Err(Error::msg(format!(
                     "Tried to iterate on a container (`{}`) that has a unsupported type",
                     container_name,
-                )))
+                )));
             }
         };
 
@@ -702,10 +702,10 @@ impl<'a> Processor<'a> {
                 }
             }
             ExprVal::String(ref val) => {
-                return Err(Error::msg(format!("Tried to do math with a string: `{}`", val)))
+                return Err(Error::msg(format!("Tried to do math with a string: `{}`", val)));
             }
             ExprVal::Bool(val) => {
-                return Err(Error::msg(format!("Tried to do math with a boolean: `{}`", val)))
+                return Err(Error::msg(format!("Tried to do math with a boolean: `{}`", val)));
             }
             _ => unreachable!("unimplemented math expression for {:?}", expr),
         };

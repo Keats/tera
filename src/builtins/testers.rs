@@ -197,7 +197,7 @@ pub fn matching(value: Option<&Value>, params: &[Value]) -> Result<bool> {
             return Err(Error::msg(format!(
                 "Tester `matching`: Invalid regular expression: {}",
                 err
-            )))
+            )));
         }
     };
 

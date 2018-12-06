@@ -553,16 +553,16 @@ fn can_fail_rendering_from_template() {
 fn does_render_owned_for_loop_with_objects() {
     let mut context = Context::new();
     let data = json!([
-            {"id": 1, "year": 2015},
-            {"id": 2, "year": 2015},
-            {"id": 3, "year": 2016},
-            {"id": 4, "year": 2017},
-            {"id": 5, "year": 2017},
-            {"id": 6, "year": 2017},
-            {"id": 7, "year": 2018},
-            {"id": 8},
-            {"id": 9, "year": null},
-        ]);
+        {"id": 1, "year": 2015},
+        {"id": 2, "year": 2015},
+        {"id": 3, "year": 2016},
+        {"id": 4, "year": 2017},
+        {"id": 5, "year": 2017},
+        {"id": 6, "year": 2017},
+        {"id": 7, "year": 2018},
+        {"id": 8},
+        {"id": 9, "year": null},
+    ]);
     context.insert("something", &data);
 
     let tpl =

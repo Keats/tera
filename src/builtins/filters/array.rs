@@ -20,7 +20,7 @@ pub fn nth(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         None => return Err(Error::msg("The `nth` filter has to have an `n` argument")),
     };
 
-    return Ok(arr.get(index).unwrap_or(&to_value("").unwrap()).to_owned());
+    Ok(arr.get(index).unwrap_or(&to_value("").unwrap()).to_owned())
 }
 
 /// Returns the first value of an array
