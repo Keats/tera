@@ -9,6 +9,7 @@ homepage = "https://github.com/Keats/tera"
 repository = "https://github.com/Keats/tera"
 keywords = ["template", "html", "django", "markup", "jinja2"]
 categories = ["template-engine"]
+edition = "2018"
 
 [dependencies]
 globwalk = "0.5"
