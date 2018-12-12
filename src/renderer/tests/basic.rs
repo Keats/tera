@@ -5,10 +5,10 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use builtins::functions::Function;
-use context::Context;
-use errors::Result;
-use tera::Tera;
+use crate::builtins::functions::Function;
+use crate::context::Context;
+use crate::errors::Result;
+use crate::tera::Tera;
 
 use super::Review;
 

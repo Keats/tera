@@ -1,6 +1,6 @@
 use pest::Parser;
 
-use parser::{Rule, TeraParser};
+use crate::parser::{Rule, TeraParser};
 
 macro_rules! assert_lex_rule {
     ($rule: expr, $input: expr) => {

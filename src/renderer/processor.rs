@@ -3,16 +3,16 @@ use std::collections::HashMap;
 
 use serde_json::{to_string_pretty, to_value, Number, Value};
 
-use context::{ValueRender, ValueTruthy};
-use errors::{Error, Result};
-use parser::ast::*;
-use renderer::call_stack::CallStack;
-use renderer::for_loop::ForLoop;
-use renderer::macros::MacroCollection;
-use renderer::square_brackets::pull_out_square_bracket;
-use renderer::stack_frame::{FrameContext, FrameType, Val};
-use template::Template;
-use tera::Tera;
+use crate::context::{ValueRender, ValueTruthy};
+use crate::errors::{Error, Result};
+use crate::parser::ast::*;
+use crate::renderer::call_stack::CallStack;
+use crate::renderer::for_loop::ForLoop;
+use crate::renderer::macros::MacroCollection;
+use crate::renderer::square_brackets::pull_out_square_bracket;
+use crate::renderer::stack_frame::{FrameContext, FrameType, Val};
+use crate::template::Template;
+use crate::tera::Tera;
 
 /// Special string indicating request to dump context
 static MAGICAL_DUMP_VAR: &'static str = "__tera_context";

@@ -1,4 +1,4 @@
-use errors::{Error, Result};
+use crate::errors::{Error, Result};
 use serde_json::Value;
 use std::cmp::Ordering;
 
@@ -99,7 +99,7 @@ impl<K: GetSortKey> SortStrategy for SortPairs<K> {
 }
 
 pub fn get_sort_strategy_for_type(ty: &Value) -> Result<Box<SortStrategy>> {
-    use Value::*;
+    use crate::Value::*;
     match *ty {
         Null => Err(Error::msg("Null is not a sortable value")),
         Bool(_) => Ok(Box::new(Bools::default())),

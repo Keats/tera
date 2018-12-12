@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::error::Error;
 
-use context::Context;
-use tera::Tera;
+use crate::context::Context;
+use crate::tera::Tera;
 
 #[test]
 fn error_location_basic() {

@@ -1,4 +1,4 @@
-use parser::ast::*;
+use crate::parser::ast::*;
 
 macro_rules! trim_right_previous {
     ($vec: expr) => {

@@ -8,8 +8,8 @@ use url::percent_encoding::{utf8_percent_encode, EncodeSet};
 
 use unic_segment::GraphemeIndices;
 
-use errors::{Error, Result};
-use utils;
+use crate::errors::{Error, Result};
+use crate::utils;
 
 lazy_static! {
     static ref STRIPTAGS_RE: Regex = Regex::new(r"(<!--.*?-->|<[^>]*>)").unwrap();
