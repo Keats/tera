@@ -9,13 +9,13 @@ use globwalk::glob;
 use serde::Serialize;
 use serde_json::value::to_value;
 
-use builtins::filters::{array, common, number, object, string, Filter};
-use builtins::functions::{self, Function};
-use builtins::testers::{self, Test};
-use errors::{Error, Result};
-use renderer::Renderer;
-use template::Template;
-use utils::escape_html;
+use crate::builtins::filters::{array, common, number, object, string, Filter};
+use crate::builtins::functions::{self, Function};
+use crate::builtins::testers::{self, Test};
+use crate::errors::{Error, Result};
+use crate::renderer::Renderer;
+use crate::template::Template;
+use crate::utils::escape_html;
 
 /// The escape function type definition
 pub type EscapeFn = fn(&str) -> String;
@@ -707,7 +707,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::Tera;
-    use context::Context;
+    use crate::context::Context;
     use serde_json::{Map as JsonObject, Value as JsonValue};
 
     #[test]

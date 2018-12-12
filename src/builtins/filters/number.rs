@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use humansize::{file_size_opts, FileSize};
 use serde_json::value::{to_value, Value};
 
-use errors::{Error, Result};
+use crate::errors::{Error, Result};
 
 /// Returns a suffix if the value is not equal to ±1. Suffix defaults to `s`
 pub fn pluralize(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {

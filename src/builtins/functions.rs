@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::prelude::*;
 use serde_json::value::{from_value, to_value, Value};
 
-use errors::{Error, Result};
+use crate::errors::{Error, Result};
 
 /// The global function type definition
 pub trait Function: Sync + Send {

@@ -1,5 +1,5 @@
-use parser::ast::*;
-use parser::remove_whitespace;
+use crate::parser::ast::*;
+use crate::parser::remove_whitespace;
 use std::collections::HashMap;
 
 #[test]

@@ -4,7 +4,7 @@ use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
 
-use errors::{Error, Result as TeraResult};
+use crate::errors::{Error, Result as TeraResult};
 
 // This include forces recompiling this source file if the grammar file changes.
 // Uncomment it when doing changes to the .pest file

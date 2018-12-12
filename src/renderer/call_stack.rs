@@ -3,11 +3,11 @@ use std::collections::HashMap;
 
 use serde_json::{to_value, Value};
 
-use context::get_json_pointer;
-use errors::{Error, Result};
-use renderer::for_loop::{ForLoop, ForLoopState};
-use renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
-use template::Template;
+use crate::context::get_json_pointer;
+use crate::errors::{Error, Result};
+use crate::renderer::for_loop::{ForLoop, ForLoopState};
+use crate::renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
+use crate::template::Template;
 
 /// Contains the user data and allows no mutation
 #[derive(Debug)]
