@@ -125,6 +125,7 @@ impl UrlEncodeSet {
 }
 
 impl EncodeSet for UrlEncodeSet {
+    #[allow(clippy::if_same_then_else)]
     fn contains(&self, byte: u8) -> bool {
         if byte >= 48 && byte <= 57 {
             // digit
