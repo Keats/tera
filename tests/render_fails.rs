@@ -6,7 +6,7 @@ use std::error::Error;
 use tera::{Context, Result, Tera};
 
 mod common;
-use common::{Product, Review};
+use crate::common::{Product, Review};
 
 fn render_tpl(tpl_name: &str) -> Result<String> {
     let tera = Tera::new("tests/render-failures/**/*").unwrap();

@@ -2,13 +2,13 @@
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
-use errors::{Error, Result};
+use crate::errors::{Error, Result};
 use serde_json::value::{to_value, Value};
 use serde_json::{to_string, to_string_pretty};
 
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc};
 
-use context::ValueRender;
+use crate::context::ValueRender;
 
 // Returns the number of items in an array or the number of characters in a string.
 // Returns 0 if not an array or string.

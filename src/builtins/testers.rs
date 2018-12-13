@@ -1,5 +1,5 @@
-use context::ValueNumber;
-use errors::{Error, Result};
+use crate::context::ValueNumber;
+use crate::errors::{Error, Result};
 use regex::Regex;
 use serde_json::value::Value;
 

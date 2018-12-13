@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use parser::ast::*;
-use parser::parse;
+use crate::parser::ast::*;
+use crate::parser::parse;
 
 #[test]
 fn parse_empty_template() {

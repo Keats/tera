@@ -1,5 +1,5 @@
-use context::Context;
-use tera::Tera;
+use crate::context::Context;
+use crate::tera::Tera;
 
 #[test]
 fn can_remove_whitespace_basic() {

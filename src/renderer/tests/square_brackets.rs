@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use context::Context;
-use tera::Tera;
+use crate::context::Context;
+use crate::tera::Tera;
 
 #[derive(Serialize)]
 struct Test {

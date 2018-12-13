@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde_json::value::Value;
 
-use errors::{Error, Result};
+use crate::errors::{Error, Result};
 
 /// Returns a value by a `key` argument from a given object
 pub fn get(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
