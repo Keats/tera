@@ -301,7 +301,7 @@ impl Tera {
     /// context.insert("age", 18);
     /// tera.render("hello.html", context);
     /// // Rendering a template with an empty context
-    /// tera.render_borrowed("hello.html", Context::new());
+    /// tera.render("hello.html", Context::new());
     /// ```
     pub fn render(&self, template_name: &str, context: Context) -> Result<String> {
         let template = self.get_template(template_name)?;
@@ -310,15 +310,14 @@ impl Tera {
     }
 
     /// Renders a Tera template given an object that implements `Serialize`.
-    /// This is less efficient as `Tera::render` since we will need to clone the data.
     ///
     /// If `data` is serializing to an object, an error will be returned.
     ///
     /// ```rust,ignore
     /// // Rendering a template with a struct that impl `Serialize`
-    /// tera.render_borrowed("hello.html", &product);
+    /// tera.render_value("hello.html", &product);
     /// ```
-    pub fn render_borrowed<T: Serialize>(&self, template_name: &str, data: &T) -> Result<String> {
+    pub fn render_value<T: Serialize>(&self, template_name: &str, data: &T) -> Result<String> {
         let value = to_value(data).map_err(Error::json)?;
         if !value.is_object() {
             return Err(Error::msg(format!(
@@ -357,7 +356,6 @@ impl Tera {
 
     /// Renders a one off template (for example a template coming from a user input) given an object
     /// that implements `Serialize`.
-    /// This is less efficient as `Tera::one_off` since we will need to clone the data.
     ///
     /// This creates a separate instance of Tera with no possibilities of adding custom filters
     /// or testers, parses the template and render it immediately.
@@ -368,14 +366,14 @@ impl Tera {
     /// // With a struct that impl Serialize
     /// Tera::one_off("{{ greeting }} world", &user, true);
     /// ```
-    pub fn one_off_borrowed<T: Serialize>(input: &str, data: &T, autoescape: bool) -> Result<String> {
+    pub fn one_off_value<T: Serialize>(input: &str, data: &T, autoescape: bool) -> Result<String> {
         let mut tera = Tera::default();
         tera.add_raw_template("one_off", input)?;
         if autoescape {
             tera.autoescape_on(vec!["one_off"]);
         }
 
-        tera.render_borrowed("one_off", data)
+        tera.render_value("one_off", data)
     }
     #[doc(hidden)]
     #[inline]
@@ -897,7 +895,7 @@ mod tests {
     fn test_value_one_off_template() {
         let mut context = JsonObject::new();
         context.insert("greeting".to_string(), JsonValue::String("Good morning".to_string()));
-        let result = Tera::one_off_borrowed("{{ greeting }} world", &context, true).unwrap();
+        let result = Tera::one_off_value("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "Good morning world");
     }

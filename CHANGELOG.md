@@ -8,8 +8,9 @@
 - Removed error-chain errors and added rich Error enum instead
 - Filter, Tester and Function are now traits and now take borrowed values instead of owned
 - Updated for 2018 edition
-- Split a `render/one_off` with `render_borrowed/one_off_borrowed`. `render/one_off` now takes
-a `Context` by value to avoid cloning.
+- Split a `render/one_off` with `render_value/one_off_value`. `render/one_off` now takes
+a `Context` by value to avoid cloning and `render_value/one_off_value` takes something that implements
+`Serialize`
 
 
 ### Others
