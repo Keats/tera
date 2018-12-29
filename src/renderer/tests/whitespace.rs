@@ -24,7 +24,7 @@ fn can_remove_whitespace_basic() {
     for (input, expected) in inputs {
         let mut tera = Tera::default();
         tera.add_raw_template("tpl", input).unwrap();
-        assert_eq!(tera.render("tpl", &context).unwrap(), expected);
+        assert_eq!(tera.render("tpl", context.clone()).unwrap(), expected);
     }
 }
 
@@ -42,7 +42,7 @@ fn can_remove_whitespace_include() {
     for (input, expected) in inputs {
         let mut tera = Tera::default();
         tera.add_raw_templates(vec![("include", "Included"), ("tpl", input)]).unwrap();
-        assert_eq!(tera.render("tpl", &context).unwrap(), expected);
+        assert_eq!(tera.render("tpl", context.clone()).unwrap(), expected);
     }
 }
 
@@ -64,7 +64,7 @@ fn can_remove_whitespace_macros() {
             ("tpl", input),
         ])
         .unwrap();
-        assert_eq!(tera.render("tpl", &context).unwrap(), expected);
+        assert_eq!(tera.render("tpl", context.clone()).unwrap(), expected);
     }
 }
 
@@ -86,6 +86,6 @@ fn can_remove_whitespace_inheritance() {
             ("tpl", input),
         ])
         .unwrap();
-        assert_eq!(tera.render("tpl", &context).unwrap(), expected);
+        assert_eq!(tera.render("tpl", context.clone()).unwrap(), expected);
     }
 }

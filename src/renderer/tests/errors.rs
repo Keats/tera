@@ -9,7 +9,7 @@ fn error_location_basic() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![("tpl", "{{ 1 + true }}")]).unwrap();
 
-    let result = tera.render("tpl", &Context::new());
+    let result = tera.render("tpl", Context::new());
 
     assert_eq!(result.unwrap_err().to_string(), "Failed to render \'tpl\'");
 }
@@ -23,7 +23,7 @@ fn error_location_inside_macro() {
     ])
     .unwrap();
 
-    let result = tera.render("tpl", &Context::new());
+    let result = tera.render("tpl", Context::new());
 
     assert_eq!(
         result.unwrap_err().to_string(),
@@ -40,7 +40,7 @@ fn error_loading_macro_from_unloaded_namespace() {
     ])
     .unwrap();
 
-    let result = tera.render("tpl", &Context::new());
+    let result = tera.render("tpl", Context::new());
     println!("{:#?}", result);
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -57,7 +57,7 @@ fn error_location_base_template() {
     ])
     .unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
 
     assert_eq!(
         result.unwrap_err().to_string(),
@@ -74,7 +74,7 @@ fn error_location_in_parent_block() {
     ])
     .unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
 
     assert_eq!(
         result.unwrap_err().to_string(),
@@ -91,7 +91,7 @@ fn error_location_in_parent_in_macro() {
         ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}"),
     ]).unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
     println!("{:?}", result);
 
     assert_eq!(
@@ -107,7 +107,7 @@ fn error_out_of_range_index() {
     let mut context = Context::new();
     context.insert("arr", &[1, 2, 3]);
 
-    let result = tera.render("tpl", &Context::new());
+    let result = tera.render("tpl", Context::new());
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -122,7 +122,7 @@ fn error_unknown_index_variable() {
     let mut context = Context::new();
     context.insert("arr", &[1, 2, 3]);
 
-    let result = tera.render("tpl", &Context::new());
+    let result = tera.render("tpl", Context::new());
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -139,7 +139,7 @@ fn error_invalid_type_index_variable() {
     context.insert("arr", &[1, 2, 3]);
     context.insert("a", &true);
 
-    let result = tera.render("tpl", &context);
+    let result = tera.render("tpl", context);
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -170,7 +170,7 @@ fn error_when_using_variable_set_in_included_templates_outside() {
     .unwrap();
     let mut context = Context::new();
     context.insert("a", &10);
-    let result = tera.render("base", &context);
+    let result = tera.render("base", context);
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -197,7 +197,7 @@ fn right_variable_name_is_needed_in_for_loop() {
 {% endfor -%}"#,
     )
     .unwrap();
-    let result = tera.render("tpl", &context);
+    let result = tera.render("tpl", context);
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),

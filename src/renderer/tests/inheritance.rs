@@ -9,7 +9,7 @@ fn render_simple_inheritance() {
         ("bottom", "{% extends \"top\" %}{% block main %}MAIN{% endblock %}"),
     ])
     .unwrap();
-    let result = tera.render("bottom", &Context::new());
+    let result = tera.render("bottom", Context::new());
 
     assert_eq!(result.unwrap(), "MAIN".to_string());
 }
@@ -22,7 +22,7 @@ fn render_simple_inheritance_super() {
         ("bottom", "{% extends \"top\" %}{% block main %}{{ super() }}MAIN{% endblock %}"),
     ])
     .unwrap();
-    let result = tera.render("bottom", &Context::new());
+    let result = tera.render("bottom", Context::new());
 
     assert_eq!(result.unwrap(), "TOPMAIN".to_string());
 }
@@ -36,7 +36,7 @@ fn render_multiple_inheritance() {
         ("bottom", "{% extends \"mid\" %}{% block main %}MAIN{% endblock main %}"),
     ])
     .unwrap();
-    let result = tera.render("bottom", &Context::new());
+    let result = tera.render("bottom", Context::new());
 
     assert_eq!(result.unwrap(), "PREMAIN".to_string());
 }
@@ -58,7 +58,7 @@ fn render_multiple_inheritance_with_super() {
             "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}",
         ),
     ]).unwrap();
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
 
     assert_eq!(
         result.unwrap(),
@@ -82,7 +82,7 @@ fn render_super_multiple_inheritance_nested_block() {
             "child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}",
         ),
     ]).unwrap();
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
 
     assert_eq!(
         result.unwrap(),
@@ -102,7 +102,7 @@ fn render_nested_block_multiple_inheritance_no_super() {
         ("page", "{% extends \"docs\" %}{% block more %}PAGE{% endblock more %}"),
     ]).unwrap();
 
-    let result = tera.render("page", &Context::new());
+    let result = tera.render("page", Context::new());
 
     assert_eq!(result.unwrap(), "DOCSPAGE".to_string());
 }
@@ -113,7 +113,7 @@ fn render_super_in_top_block_errors() {
     tera.add_raw_templates(vec![("index", "{% block content%}{{super()}}{% endblock content %}")])
         .unwrap();
 
-    let result = tera.render("index", &Context::new());
+    let result = tera.render("index", Context::new());
     assert!(result.is_err());
 }
 
@@ -131,7 +131,7 @@ fn render_super_in_grandchild_without_redefining_works() {
     ])
     .unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
     assert_eq!(result.unwrap(), "Title - More".to_string());
 }
 
@@ -145,6 +145,6 @@ fn render_super_in_grandchild_without_redefining_in_parent_works() {
     ])
     .unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
     assert_eq!(result.unwrap(), "Title - More".to_string());
 }
