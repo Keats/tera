@@ -16,6 +16,7 @@ use crate::errors::{Error, Result};
 use crate::renderer::Renderer;
 use crate::template::Template;
 use crate::utils::escape_html;
+use crate::context::Context;
 
 /// The escape function type definition
 pub type EscapeFn = fn(&str) -> String;
@@ -290,23 +291,34 @@ impl Tera {
         Ok(())
     }
 
-    /// Renders a Tera template given an object that implements `Serialize`.
+    /// Renders a Tera template given a `tera::Context`,
     ///
-    /// To render a template with an empty context, simply pass a new `Context` object
-    ///
-    /// If `data` is serializing to an object, an error will be returned.
+    /// To render a template with an empty context, simply pass a new `tera::Context` object
     ///
     /// ```rust,ignore
     /// // Rendering a template with a normal context
     /// let mut context = Context::new();
     /// context.insert("age", 18);
-    /// tera.render("hello.html", &context);
-    /// // Rendering a template with a struct that impl `Serialize`
-    /// tera.render("hello.html", &product);
+    /// tera.render("hello.html", context);
     /// // Rendering a template with an empty context
-    /// tera.render("hello.html", &Context::new());
+    /// tera.render_borrowed("hello.html", Context::new());
     /// ```
-    pub fn render<T: Serialize>(&self, template_name: &str, data: &T) -> Result<String> {
+    pub fn render(&self, template_name: &str, context: Context) -> Result<String> {
+        let template = self.get_template(template_name)?;
+        let renderer = Renderer::new(template, self, context.into_json());
+        renderer.render()
+    }
+
+    /// Renders a Tera template given an object that implements `Serialize`.
+    /// This is less efficient as `Tera::render` since we will need to clone the data.
+    ///
+    /// If `data` is serializing to an object, an error will be returned.
+    ///
+    /// ```rust,ignore
+    /// // Rendering a template with a struct that impl `Serialize`
+    /// tera.render_borrowed("hello.html", &product);
+    /// ```
+    pub fn render_borrowed<T: Serialize>(&self, template_name: &str, data: &T) -> Result<String> {
         let value = to_value(data).map_err(Error::json)?;
         if !value.is_object() {
             return Err(Error::msg(format!(
@@ -322,7 +334,6 @@ impl Tera {
     }
 
     /// Renders a one off template (for example a template coming from a user input) given a `Context`
-    /// or an object that implements `Serialize`.
     ///
     /// This creates a separate instance of Tera with no possibilities of adding custom filters
     /// or testers, parses the template and render it immediately.
@@ -332,20 +343,40 @@ impl Tera {
     /// ```rust,ignore
     /// let mut context = Context::new();
     /// context.insert("greeting", &"hello");
-    /// Tera::one_off("{{ greeting }} world", &context, true);
-    /// // Or with a struct that impl Serialize
-    /// Tera::one_off("{{ greeting }} world", &user, true);
+    /// Tera::one_off("{{ greeting }} world", context, true);
     /// ```
-    pub fn one_off<T: Serialize>(input: &str, data: &T, autoescape: bool) -> Result<String> {
+    pub fn one_off(input: &str, context: Context, autoescape: bool) -> Result<String> {
         let mut tera = Tera::default();
         tera.add_raw_template("one_off", input)?;
         if autoescape {
             tera.autoescape_on(vec!["one_off"]);
         }
 
-        tera.render("one_off", data)
+        tera.render("one_off", context)
     }
 
+    /// Renders a one off template (for example a template coming from a user input) given an object
+    /// that implements `Serialize`.
+    /// This is less efficient as `Tera::one_off` since we will need to clone the data.
+    ///
+    /// This creates a separate instance of Tera with no possibilities of adding custom filters
+    /// or testers, parses the template and render it immediately.
+    /// Any errors will mention the `one_off` template: this is the name given to the template by
+    /// Tera
+    ///
+    /// ```rust,ignore
+    /// // With a struct that impl Serialize
+    /// Tera::one_off("{{ greeting }} world", &user, true);
+    /// ```
+    pub fn one_off_borrowed<T: Serialize>(input: &str, data: &T, autoescape: bool) -> Result<String> {
+        let mut tera = Tera::default();
+        tera.add_raw_template("one_off", input)?;
+        if autoescape {
+            tera.autoescape_on(vec!["one_off"]);
+        }
+
+        tera.render_borrowed("one_off", data)
+    }
     #[doc(hidden)]
     #[inline]
     pub fn get_template(&self, template_name: &str) -> Result<&Template> {
@@ -592,7 +623,7 @@ impl Tera {
     /// tera.autoescape_on(vec!["foo"]);
     /// let mut context = Context::new();
     /// context.insert("content", &"Hello\n\'world\"!");
-    /// let result = tera.render("foo", &context).unwrap();
+    /// let result = tera.render("foo", context).unwrap();
     /// assert_eq!(result, r#""Hello\n\'world\"!""#);
     ///```
     pub fn set_escape_fn(&mut self, function: EscapeFn) {
@@ -807,7 +838,7 @@ mod tests {
     fn test_can_autoescape_one_off_template() {
         let mut context = Context::new();
         context.insert("greeting", &"<p>");
-        let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
+        let result = Tera::one_off("{{ greeting }} world", context, true).unwrap();
 
         assert_eq!(result, "&lt;p&gt; world");
     }
@@ -816,7 +847,7 @@ mod tests {
     fn test_can_disable_autoescape_one_off_template() {
         let mut context = Context::new();
         context.insert("greeting", &"<p>");
-        let result = Tera::one_off("{{ greeting }} world", &context, false).unwrap();
+        let result = Tera::one_off("{{ greeting }} world", context, false).unwrap();
 
         assert_eq!(result, "<p> world");
     }
@@ -844,7 +875,7 @@ mod tests {
         tera.set_escape_fn(escape_c_string);
         let mut context = Context::new();
         context.insert("content", &"Hello\n\'world\"!");
-        let result = tera.render("foo", &context).unwrap();
+        let result = tera.render("foo", context).unwrap();
         assert_eq!(result, r#""Hello\n\'world\"!""#);
     }
 
@@ -858,7 +889,7 @@ mod tests {
         tera.reset_escape_fn();
         let mut context = Context::new();
         context.insert("content", &"Hello\n\'world\"!");
-        let result = tera.render("foo", &context).unwrap();
+        let result = tera.render("foo", context).unwrap();
         assert_eq!(result, "Hello\n&#x27;world&quot;!");
     }
 
@@ -866,7 +897,7 @@ mod tests {
     fn test_value_one_off_template() {
         let mut context = JsonObject::new();
         context.insert("greeting".to_string(), JsonValue::String("Good morning".to_string()));
-        let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
+        let result = Tera::one_off_borrowed("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "Good morning world");
     }
@@ -887,7 +918,7 @@ mod tests {
 
         my_tera.extend(&framework_tera).unwrap();
         assert_eq!(my_tera.templates.len(), 4);
-        let result = my_tera.render("four", &Context::default()).unwrap();
+        let result = my_tera.render("four", Context::default()).unwrap();
         assert_eq!(result, "Framework X");
     }
 
@@ -909,7 +940,7 @@ mod tests {
 
         my_tera.extend(&framework_tera).unwrap();
         assert_eq!(my_tera.templates.len(), 4);
-        let result = my_tera.render("one", &Context::default()).unwrap();
+        let result = my_tera.render("one", Context::default()).unwrap();
         assert_eq!(result, "MINE");
     }
 

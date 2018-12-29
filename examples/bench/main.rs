@@ -29,6 +29,6 @@ fn main() {
     let mut ctx = Context::new();
     ctx.insert("table", &table);
 
-    let _ = tera.render("big-table.html", &ctx).unwrap();
+    let _ = tera.render("big-table.html", ctx).unwrap();
     println!("Done!");
 }

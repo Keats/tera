@@ -2,9 +2,7 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
-use serde::ser::SerializeMap;
-use serde::Serializer;
-use serde_json::value::{to_value, Value};
+use serde_json::value::{to_value, Value, Map};
 
 /// The struct that holds the context of a template rendering.
 ///
@@ -47,22 +45,20 @@ impl Context {
     pub fn extend(&mut self, mut source: Context) {
         self.data.append(&mut source.data);
     }
+
+    /// Converts the context to a `serde_json::Value` consuming the context
+    pub fn into_json(self) -> Value {
+        let mut m = Map::new();
+        for (key, value) in self.data {
+            m.insert(key, value);
+        }
+        Value::Object(m)
+    }
 }
 
 impl Default for Context {
     fn default() -> Context {
         Context::new()
-    }
-}
-
-impl Serialize for Context {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut map = serializer.serialize_map(Some(self.data.len()))?;
-        for (k, v) in &self.data {
-            map.serialize_key(&k)?;
-            map.serialize_value(&v)?;
-        }
-        map.end()
     }
 }
 

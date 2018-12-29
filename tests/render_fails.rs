@@ -18,7 +18,7 @@ fn render_tpl(tpl_name: &str) -> Result<String> {
     context.insert("show_more", &true);
     context.insert("reviews", &vec![Review::new(), Review::new()]);
 
-    tera.render(tpl_name, &context)
+    tera.render(tpl_name, context)
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn test_error_render_iterate_non_array() {
 #[test]
 fn test_error_render_serialize_non_object() {
     let tera = Tera::new("tests/render-failures/**/*").unwrap();
-    let result = tera.render("value_render_non_object.html", &[1, 2, 3]);
+    let result = tera.render_borrowed("value_render_non_object.html", &[1, 2, 3]);
 
     assert_eq!(result.is_err(), true);
     assert_eq!(

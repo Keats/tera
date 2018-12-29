@@ -15,7 +15,7 @@ fn render_macros() {
     ])
     .unwrap();
 
-    let result = tera.render("tpl", &Context::new());
+    let result = tera.render("tpl", Context::new());
 
     assert_eq!(result.unwrap(), "Hello".to_string());
 }
@@ -31,7 +31,7 @@ fn render_macros_expression_arg() {
     ])
     .unwrap();
 
-    let result = tera.render("tpl", &context);
+    let result = tera.render("tpl", context);
 
     assert_eq!(result.unwrap(), "5".to_string());
 }
@@ -47,7 +47,7 @@ fn render_macros_in_child_templates_same_namespace() {
         ("child", "{% extends \"parent\" %}{% import \"macros2\" as macros %}{% block hey %}{{super()}}/{{macros::hi()}}{% endblock hey %}"),
     ]).unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
 
     assert_eq!(result.unwrap(), "Hello/Hi".to_string());
 }
@@ -63,7 +63,7 @@ fn render_macros_in_child_templates_different_namespace() {
         ("child", "{% extends \"parent\" %}{% import \"macros2\" as macros2 %}{% block hey %}{{super()}}/{{macros2::hi()}}{% endblock hey %}"),
     ]).unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
 
     assert_eq!(result.unwrap(), "Hello/Hi".to_string());
 }
@@ -77,7 +77,7 @@ fn render_macros_in_parent_template_with_inheritance() {
         ("child", "{% extends \"grandparent\" %}{% import \"macros\" as macros %}{% block hey %}{{super()}}/{{macros::hello()}}{% endblock hey %}"),
     ]).unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
 
     assert_eq!(result.unwrap(), "Hello/Hello".to_string());
 }
@@ -92,7 +92,7 @@ fn macro_param_arent_escaped() {
     .unwrap();
     let mut context = Context::new();
     context.insert("my_var", &"&");
-    let result = tera.render("hello.html", &context);
+    let result = tera.render("hello.html", context);
 
     assert_eq!(result.unwrap(), "&".to_string());
 }
@@ -108,7 +108,7 @@ fn render_set_tag_macro() {
         ),
     ])
     .unwrap();
-    let result = tera.render("hello.html", &Context::new());
+    let result = tera.render("hello.html", Context::new());
 
     assert_eq!(result.unwrap(), "Hello".to_string());
 }
@@ -121,7 +121,7 @@ fn render_macros_with_default_args() {
         ("hello.html", "{% import \"macros\" as macros %}{{macros::hello()}}"),
     ])
     .unwrap();
-    let result = tera.render("hello.html", &Context::new());
+    let result = tera.render("hello.html", Context::new());
 
     assert_eq!(result.unwrap(), "1".to_string());
 }
@@ -134,7 +134,7 @@ fn render_macros_override_default_args() {
         ("hello.html", "{% import \"macros\" as macros %}{{macros::hello(val=2)}}"),
     ])
     .unwrap();
-    let result = tera.render("hello.html", &Context::new());
+    let result = tera.render("hello.html", Context::new());
 
     assert_eq!(result.unwrap(), "2".to_string());
 }
@@ -149,7 +149,7 @@ fn render_recursive_macro() {
         ),
         ("hello.html", "{% import \"macros\" as macros %}{{macros::factorial(n=7)}}"),
     ]).unwrap();
-    let result = tera.render("hello.html", &Context::new());
+    let result = tera.render("hello.html", Context::new());
 
     assert_eq!(result.unwrap(), "7 - 6 - 5 - 4 - 3 - 2 - 11234567".to_string());
 }
@@ -192,7 +192,7 @@ fn recursive_macro_with_loops() {
     ])
     .unwrap();
 
-    let result = tera.render("recursive", &context);
+    let result = tera.render("recursive", context);
 
     assert_eq!(result.unwrap(), "Parent123|Child123".to_string());
 }
@@ -207,7 +207,7 @@ fn render_macros_in_included() {
         ("example", r#"{% include "includeme" %}"#),
     ])
     .unwrap();
-    let result = tera.render("example", &Context::new());
+    let result = tera.render("example", Context::new());
 
     assert_eq!(result.unwrap(), "my macro".to_string());
 }
@@ -225,7 +225,7 @@ fn import_macros_into_other_macro_files() {
         ("index", r#"{% import "macros" as macros %}{{ macros::test() }}"#),
     ])
     .unwrap();
-    let result = tera.render("index", &Context::new());
+    let result = tera.render("index", Context::new());
 
     assert_eq!(result.unwrap(), "Success!".to_string());
 }
@@ -239,7 +239,7 @@ fn can_load_parent_macro_in_child() {
         ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}"),
     ]).unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
 
     assert_eq!(result.unwrap(), "1Hey".to_string());
 }
@@ -253,7 +253,7 @@ fn can_load_macro_in_child() {
         ("child", "{% extends \"parent\" %}{% import \"macros\" as macros %}{% block bob %}{{ macros::hello() }}{% endblock bob %}"),
     ]).unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
 
     assert_eq!(result.unwrap(), "1".to_string());
 }
@@ -270,7 +270,7 @@ fn can_inherit_macro_import_from_parent() {
     ])
     .unwrap();
 
-    let result = tera.render("child", &Context::default());
+    let result = tera.render("child", Context::default());
     assert_eq!(result.unwrap(), "HELLO".to_string());
 }
 
@@ -284,7 +284,7 @@ fn can_inherit_macro_import_from_grandparent() {
         ("child", "{% extends \"parent\" %}{% block bob %}{{macros::hello()}}-{{macros2::hello()}}{% endblock bob %}"),
     ]).unwrap();
 
-    let result = tera.render("child", &Context::default());
+    let result = tera.render("child", Context::default());
     assert_eq!(result.unwrap(), "HELLO-HELLO".to_string());
 }
 
@@ -298,7 +298,7 @@ fn can_load_macro_in_parent_with_grandparent() {
         ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}{% endblock bob %}"),
     ]).unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
 
     assert_eq!(result.unwrap(), "1 - Hey".to_string());
 }
@@ -313,7 +313,7 @@ fn macro_can_load_macro_from_macro_files() {
         ("child", "{% extends \"parent\" %}{% import \"macros\" as macros %}{% block main %}{{ macros::hommage() }}{% endblock main %}")
     ]).unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = tera.render("child", Context::new());
     //println!("{:#?}", result);
     assert_eq!(result.unwrap(), "Emma was an amazing person! Don't you think?".to_string());
 }
@@ -326,7 +326,7 @@ fn macro_can_access_global_context() {
         ("macros", r#"{% macro test_global() %}{% set_global value1 = "42" %}{% for i in range(end=1) %}{% set_global value2 = " is the truth." %}{% endfor %}{{ value1 }}{% endmacro test_global %}"#)
     ]).unwrap();
 
-    let result = tera.render("parent", &Context::new());
+    let result = tera.render("parent", Context::new());
     assert_eq!(result.unwrap(), "42".to_string());
 }
 
@@ -338,7 +338,7 @@ fn template_cant_access_macros_context() {
         ("macros", r#"{% macro empty() %}{% set_global quote = "This should not reachable from the calling template!" %}{% endmacro empty %}"#)
     ]).unwrap();
 
-    let result = tera.render("parent", &Context::new());
+    let result = tera.render("parent", Context::new());
     assert_eq!(result.unwrap(), "I'd rather have roses on my table than diamonds on my neck.");
 }
 
@@ -351,6 +351,6 @@ fn parent_macro_cant_access_child_macro_context() {
         ("moremacros", r#"{% macro another_one() %}{% set_global value2 = "1312" %}{% endmacro another_one %}"#)
     ]).unwrap();
 
-    let result = tera.render("parent", &Context::new());
+    let result = tera.render("parent", Context::new());
     assert_eq!(result.unwrap(), "ACAB-ACAB".to_string());
 }

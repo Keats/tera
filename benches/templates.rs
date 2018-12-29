@@ -26,7 +26,7 @@ pub fn big_table(b: &mut test::Bencher) {
     let mut ctx = Context::new();
     ctx.insert("table", &table);
 
-    b.iter(|| tera.render("big-table.html", &ctx));
+    b.iter(|| tera.render("big-table.html", ctx.clone()));
 }
 
 static BIG_TABLE_TEMPLATE: &'static str = "<table>
@@ -57,7 +57,7 @@ pub fn teams(b: &mut test::Bencher) {
         ],
     );
 
-    b.iter(|| tera.render("teams.html", &ctx));
+    b.iter(|| tera.render("teams.html", ctx.clone()));
 }
 
 static TEAMS_TEMPLATE: &'static str = "<html>
