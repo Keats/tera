@@ -3,8 +3,8 @@ use std::collections::HashMap;
 
 use crate::context::{get_json_pointer, ValueRender};
 use crate::errors::{Error, Result};
-use serde_json::value::{to_value, Map, Value};
 use crate::sort_utils::get_sort_strategy_for_type;
+use serde_json::value::{to_value, Map, Value};
 
 /// Returns the nth value of an array
 /// If the array is empty, returns empty string

@@ -12,11 +12,11 @@ use serde_json::value::to_value;
 use crate::builtins::filters::{array, common, number, object, string, Filter};
 use crate::builtins::functions::{self, Function};
 use crate::builtins::testers::{self, Test};
+use crate::context::Context;
 use crate::errors::{Error, Result};
 use crate::renderer::Renderer;
 use crate::template::Template;
 use crate::utils::escape_html;
-use crate::context::Context;
 
 /// The escape function type definition
 pub type EscapeFn = fn(&str) -> String;
