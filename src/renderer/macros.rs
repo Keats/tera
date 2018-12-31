@@ -1,8 +1,8 @@
 use crate::errors::{Error, Result};
 use crate::parser::ast::MacroDefinition;
-use std::collections::HashMap;
 use crate::template::Template;
 use crate::tera::Tera;
+use std::collections::HashMap;
 
 // Types around Macros get complicated, simplify it a bit by using aliases
 

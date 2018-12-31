@@ -69,23 +69,14 @@ fn unterminated_string() {
 
 #[test]
 fn unterminated_if_tag() {
-    assert_err_msg(
-        r#"{% if true %}sd"#,
-        &[
-            "1:16",
-            r#"expected tag or some content"#
-        ],
-    );
+    assert_err_msg(r#"{% if true %}sd"#, &["1:16", r#"expected tag or some content"#]);
 }
 
 #[test]
 fn unterminated_filter_section() {
     assert_err_msg(
         r#"{% filter uppercase %}sd"#,
-        &[
-            "1:25",
-            r#"expected tag or the filter section content"#
-        ],
+        &["1:25", r#"expected tag or the filter section content"#],
     );
 }
 
@@ -191,28 +182,28 @@ fn missing_variable_name_in_set() {
 
 #[test]
 fn missing_value_in_set() {
-    assert_err_msg("{% set a =  %}", &["1:13", "expected a value that can be negated or an array of values"]);
+    assert_err_msg(
+        "{% set a =  %}",
+        &["1:13", "expected a value that can be negated or an array of values"],
+    );
 }
 
 #[test]
 fn unterminated_fn_call() {
-    assert_err_msg(
-        "{{ a | slice( }}",
-        &["1:15", "expected an identifier (must start with a-z)"],
-    );
+    assert_err_msg("{{ a | slice( }}", &["1:15", "expected an identifier (must start with a-z)"]);
 }
 
 #[test]
 fn invalid_fn_call_missing_value() {
-    assert_err_msg("{{ a | slice(start=) }}", &["1:20", "expected a value that can be negated or an array of values"]);
+    assert_err_msg(
+        "{{ a | slice(start=) }}",
+        &["1:20", "expected a value that can be negated or an array of values"],
+    );
 }
 
 #[test]
 fn unterminated_macro_call() {
-    assert_err_msg(
-        "{{ my::macro( }}",
-        &["1:15", "expected an identifier (must start with a-z)"],
-    );
+    assert_err_msg("{{ my::macro( }}", &["1:15", "expected an identifier (must start with a-z)"]);
 }
 
 #[test]
@@ -266,10 +257,7 @@ fn invalid_block_missing_name() {
 
 #[test]
 fn unterminated_test() {
-    assert_err_msg(
-        r#"{% if a is odd( %}"#,
-        &["1:17", "expected a value that can be negated"],
-    );
+    assert_err_msg(r#"{% if a is odd( %}"#, &["1:17", "expected a value that can be negated"]);
 }
 
 #[test]

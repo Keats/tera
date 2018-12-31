@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
-use serde_json::value::{to_value, Value, Map};
+use serde_json::value::{to_value, Map, Value};
 
 /// The struct that holds the context of a template rendering.
 ///

@@ -432,8 +432,11 @@ mod tests {
 
     #[test]
     fn test_split() {
-        let tests: Vec<(_, _, &[&str])> =
-            vec![("a/b/cde", "/", &["a", "b", "cde"]), ("hello, world", ", ", &["hello", "world"])];
+        let tests: Vec<(_, _, &[&str])> = vec![
+            ("a/b/cde", "/", &["a", "b", "cde"]),
+            ("hello\nworld", "\n", &["hello", "world"]),
+            ("hello, world", ", ", &["hello", "world"]),
+        ];
         for (input, pat, expected) in tests {
             let mut args = HashMap::new();
             args.insert("pat".to_string(), to_value(pat).unwrap());
