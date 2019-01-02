@@ -144,7 +144,6 @@ block_start    = _{ variable_start | tag_start | comment_start }
 
 // Actual tags
 include_tag      = !{ tag_start ~ "include" ~ string ~ tag_end }
-import_macro_tag = !{ tag_start ~ "import" ~ string ~ "as" ~ ident ~ tag_end}
 comment_tag      = !{ comment_start ~ (!comment_end ~ ANY)* ~ comment_end }
 block_tag        = !{ tag_start ~ "block" ~ ident ~ tag_end }
 macro_tag        = !{ tag_start ~ "macro" ~ macro_fn ~ tag_end }
@@ -247,7 +246,6 @@ for_content = @{
 
 content = @{
     include_tag |
-    import_macro_tag |
     variable_tag |
     comment_tag |
     set_tag |
@@ -262,6 +260,13 @@ content = @{
 }
 
 extends_tag = !{ tag_start ~ "extends" ~ string ~ tag_end }
+import_macro_tag = !{ tag_start ~ "import" ~ string ~ "as" ~ ident ~ tag_end }
 
 // top level rule
-template = ${ SOI ~ comment_tag* ~ extends_tag? ~ content* ~ EOI }
+template = ${
+    SOI
+    ~ comment_tag*
+    ~ (extends_tag ~ WHITESPACE* ~ import_macro_tag* | WHITESPACE* ~ import_macro_tag+ ~ WHITESPACE* ~ extends_tag?)? // potentially buggy as we allow 2 extends...
+    ~ content*
+    ~ EOI
+}

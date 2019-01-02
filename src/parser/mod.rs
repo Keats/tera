@@ -834,7 +834,6 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             Rule::set_global_tag => nodes.push(parse_set_tag(p, true)),
             Rule::raw => nodes.push(parse_raw_tag(p)),
             Rule::variable_tag => nodes.push(parse_variable_tag(p)),
-            Rule::import_macro_tag => nodes.push(parse_import_macro(p)),
             Rule::macro_definition => nodes.push(parse_macro_definition(p)),
             Rule::forloop => nodes.push(parse_forloop(p)),
             Rule::break_tag => nodes.push(parse_break_tag(p)),
@@ -987,6 +986,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                 let (ws, file) = parse_extends_include(p);
                 nodes.push(Node::Extends(ws, file));
             }
+            Rule::import_macro_tag => nodes.push(parse_import_macro(p)),
             Rule::content => nodes.extend(parse_content(p)),
             Rule::comment_tag => (),
             Rule::EOI => (),
