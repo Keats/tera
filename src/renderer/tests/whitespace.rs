@@ -53,7 +53,7 @@ fn can_remove_whitespace_macros() {
 
     let inputs = vec![
         (r#" {%- import "macros" as macros -%} {{macros::hey()}}"#, "Hey!"),
-        (r#" {% import "macros" as macros %} {{macros::hey()}}"#, "  Hey!"),
+        (r#" {% import "macros" as macros %} {{macros::hey()}}"#, "Hey!"),
         (r#" {%- import "macros" as macros %} {%- set hey = macros::hey() -%} {{hey}}"#, "Hey!"),
     ];
 

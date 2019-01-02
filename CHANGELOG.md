@@ -11,6 +11,8 @@
 - Split a `render/one_off` with `render_value/one_off_value`. `render/one_off` now takes
 a `Context` by value to avoid cloning and `render_value/one_off_value` takes something that implements
 `Serialize`
+- Require macros import to be at the top of the files along with `extends` as it is fairly cheap and
+the code already only really look there.
 
 
 ### Others

@@ -41,7 +41,7 @@ fn parse_comments_before_extends() {
 
 #[test]
 fn parse_import_macro() {
-    let ast = parse("{% import \"macros.html\" as macros -%}").unwrap();
+    let ast = parse("\n{% import \"macros.html\" as macros -%}").unwrap();
     assert_eq!(
         ast[0],
         Node::ImportMacro(
