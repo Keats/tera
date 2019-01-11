@@ -133,5 +133,20 @@ impl Error {
     }
 }
 
+impl From<&str> for Error {
+    fn from(e: &str) -> Self {
+        Self::msg(e)
+    }
+}
+impl From<String> for Error {
+    fn from(e: String) -> Self {
+        Self::msg(e)
+    }
+}
+impl From<serde_json::Error> for Error {
+    fn from(e: serde_json::Error) -> Self {
+        Self::json(e)
+    }
+}
 /// Convenient wrapper around std::Result.
 pub type Result<T> = ::std::result::Result<T, Error>;
