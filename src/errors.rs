@@ -44,7 +44,7 @@ pub enum ErrorKind {
 pub struct Error {
     /// Kind of error
     pub kind: ErrorKind,
-    cause: Option<Box<dyn StdError>>,
+    source: Option<Box<dyn StdError>>,
 }
 
 impl fmt::Display for Error {
@@ -73,21 +73,21 @@ impl fmt::Display for Error {
 
 impl StdError for Error {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.cause.as_ref().map(|c| &**c)
+        self.source.as_ref().map(|c| &**c)
     }
 }
 
 impl Error {
     /// Creates generic error
     pub fn msg(value: impl ToString) -> Self {
-        Self { kind: ErrorKind::Msg(value.to_string()), cause: None }
+        Self { kind: ErrorKind::Msg(value.to_string()), source: None }
     }
 
     /// Creates a circular extend error
     pub fn circular_extend(tpl: impl ToString, inheritance_chain: Vec<String>) -> Self {
         Self {
             kind: ErrorKind::CircularExtend { tpl: tpl.to_string(), inheritance_chain },
-            cause: None,
+            source: None,
         }
     }
 
@@ -98,66 +98,38 @@ impl Error {
                 current: current.to_string(),
                 parent: parent.to_string(),
             },
-            cause: None,
+            source: None,
         }
     }
 
     /// Creates a template not found error
     pub fn template_not_found(tpl: impl ToString) -> Self {
-        Self { kind: ErrorKind::TemplateNotFound(tpl.to_string()), cause: None }
+        Self { kind: ErrorKind::TemplateNotFound(tpl.to_string()), source: None }
     }
 
     /// Creates a filter not found error
     pub fn filter_not_found(name: impl ToString) -> Self {
-        Self { kind: ErrorKind::FilterNotFound(name.to_string()), cause: None }
+        Self { kind: ErrorKind::FilterNotFound(name.to_string()), source: None }
     }
 
     /// Creates a test not found error
     pub fn test_not_found(name: impl ToString) -> Self {
-        Self { kind: ErrorKind::TestNotFound(name.to_string()), cause: None }
+        Self { kind: ErrorKind::TestNotFound(name.to_string()), source: None }
     }
 
     /// Creates a function not found error
     pub fn function_not_found(name: impl ToString) -> Self {
-        Self { kind: ErrorKind::FunctionNotFound(name.to_string()), cause: None }
+        Self { kind: ErrorKind::FunctionNotFound(name.to_string()), source: None }
     }
 
-    /// Creates generic error with a cause
-    pub fn chain(value: impl ToString, cause: impl Into<Box<dyn StdError>>) -> Self {
-        Self { kind: ErrorKind::Msg(value.to_string()), cause: Some(cause.into()) }
+    /// Creates generic error with a source
+    pub fn chain(value: impl ToString, source: impl Into<Box<dyn StdError>>) -> Self {
+        Self { kind: ErrorKind::Msg(value.to_string()), source: Some(source.into()) }
     }
 
     /// Creates JSON error
     pub fn json(value: serde_json::Error) -> Self {
-        Self { kind: ErrorKind::Json(value), cause: None }
-    }
-
-    /// Iterate on all the error sources
-    pub fn iter(&self) -> Iter {
-        Iter::new(Some(self))
-    }
-}
-
-#[derive(Debug)]
-pub struct Iter<'a>(Option<&'a dyn StdError>);
-
-impl<'a> Iter<'a> {
-    pub fn new(err: Option<&'a dyn StdError>) -> Iter<'a> {
-        Iter(err)
-    }
-}
-
-impl<'a> Iterator for Iter<'a> {
-    type Item = &'a dyn StdError;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.0.take() {
-            Some(e) => {
-                self.0 = e.cause();
-                Some(e)
-            }
-            None => None,
-        }
+        Self { kind: ErrorKind::Json(value), source: None }
     }
 }
 

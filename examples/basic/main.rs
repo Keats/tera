@@ -7,6 +7,7 @@ extern crate serde_json;
 use std::collections::HashMap;
 
 use serde_json::value::{to_value, Value};
+use std::error::Error;
 use tera::{Context, Result, Tera};
 
 lazy_static! {
@@ -43,8 +44,10 @@ fn main() {
         Ok(s) => println!("{:?}", s),
         Err(e) => {
             println!("Error: {}", e);
-            for e in e.iter().skip(1) {
+            let mut cause = e.source();
+            while let Some(e) = cause {
                 println!("Reason: {}", e);
+                cause = e.source();
             }
         }
     };
