@@ -101,7 +101,7 @@ pub struct Processor<'a> {
     /// Can be the same as `template` if a template has no inheritance
     template_root: &'a Template,
     /// The Tera object with template details
-    tera: &'a Tera,
+    tera: &'a Tera<'a>,
     /// The call stack for processing
     call_stack: CallStack<'a>,
     /// The macros organised by template and namespaces
@@ -118,7 +118,7 @@ impl<'a> Processor<'a> {
     /// Create a new `Processor` that will do the rendering
     pub fn new(
         template: &'a Template,
-        tera: &'a Tera,
+        tera: &'a Tera<'a>,
         context: &'a Value,
         should_escape: bool,
     ) -> Self {

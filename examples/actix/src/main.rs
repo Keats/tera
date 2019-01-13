@@ -8,7 +8,7 @@ use actix_web::{
 
 
 struct AppState {
-    template: tera::Tera
+    template: tera::Tera<'static>
 }
 
 fn index(state: State<AppState>) -> Result<HttpResponse, Error> {

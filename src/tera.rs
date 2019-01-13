@@ -22,7 +22,7 @@ use crate::utils::escape_html;
 pub type EscapeFn = fn(&str) -> String;
 
 /// The main point of interaction in this library.
-pub struct Tera {
+pub struct Tera<'tera> {
     // The glob used in `Tera::new`, None if Tera was instantiated differently
     #[doc(hidden)]
     glob: Option<String>,
@@ -33,7 +33,7 @@ pub struct Tera {
     #[doc(hidden)]
     pub testers: HashMap<String, Arc<dyn Test>>,
     #[doc(hidden)]
-    pub functions: HashMap<String, Arc<dyn Function>>,
+    pub functions: HashMap<String, &'tera dyn Function>,
     // Which extensions does Tera automatically autoescape on.
     // Defaults to [".html", ".htm", ".xml"]
     #[doc(hidden)]
@@ -42,7 +42,7 @@ pub struct Tera {
     escape_fn: EscapeFn,
 }
 
-impl Tera {
+impl<'tera> Tera<'tera> {
     fn create(dir: &str, parse_only: bool) -> Result<Tera> {
         if dir.find('*').is_none() {
             return Err(Error::msg(format!(
@@ -524,8 +524,8 @@ impl Tera {
     /// ```rust,ignore
     /// tera.register_function("range", range);
     /// ```
-    pub fn register_function<F: Function + 'static>(&mut self, name: &str, function: F) {
-        self.functions.insert(name.to_string(), Arc::new(function));
+    pub fn register_function(&mut self, name: &str, function: &'tera dyn Function) {
+        self.functions.insert(name.to_string(), function);
     }
 
     fn register_tera_filters(&mut self) {
@@ -583,9 +583,9 @@ impl Tera {
     }
 
     fn register_tera_functions(&mut self) {
-        self.register_function("range", functions::range);
-        self.register_function("now", functions::now);
-        self.register_function("throw", functions::throw);
+        self.register_function("range", &functions::range);
+        self.register_function("now", &functions::now);
+        self.register_function("throw", &functions::throw);
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on,
@@ -685,8 +685,8 @@ impl Tera {
     }
 }
 
-impl Default for Tera {
-    fn default() -> Tera {
+impl<'tera> Default for Tera<'tera> {
+    fn default() -> Tera<'tera> {
         let mut tera = Tera {
             glob: None,
             templates: HashMap::new(),
@@ -705,7 +705,7 @@ impl Default for Tera {
 }
 
 // Needs a manual implementation since borrows in Fn's don't implement Debug.
-impl fmt::Debug for Tera {
+impl<'tera> fmt::Debug for Tera<'tera> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Tera {{")?;
         writeln!(f, "\n\ttemplates: [")?;

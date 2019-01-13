@@ -1,7 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 
 use serde_json::Value;
 
@@ -15,8 +14,8 @@ use super::Review;
 fn render_template(content: &str, context: Context) -> Result<String> {
     let mut tera = Tera::default();
     tera.add_raw_template("hello.html", content).unwrap();
-    tera.register_function("get_number", |_: &HashMap<String, Value>| Ok(Value::Number(10.into())));
-    tera.register_function("get_string", |_: &HashMap<String, Value>| {
+    tera.register_function("get_number", &|_: &HashMap<String, Value>| Ok(Value::Number(10.into())));
+    tera.register_function("get_string", &|_: &HashMap<String, Value>| {
         Ok(Value::String("Hello".to_string()))
     });
 
@@ -668,40 +667,57 @@ impl Function for Next {
     }
 }
 
-#[derive(Clone)]
-struct SharedNext(Arc<Next>);
+#[test]
+fn stateful_global_fn() {
+    let next = Next(AtomicUsize::new(1));
 
-impl Function for SharedNext {
-    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
-        self.0.call(args)
-    }
+    let mut tera = Tera::default();
+    tera.add_raw_template(
+        "fn.html",
+        "<h1>{{ get_next() }}, {{ get_next() }}...</h1>",
+    )
+    .unwrap();
+
+    tera.register_function("get_next", &next);
+
+    assert_eq!(
+        tera.render("fn.html", Context::new()).unwrap(),
+        "<h1>1, 2...</h1>".to_owned()
+    );
+    assert_eq!(
+        tera.render("fn.html", Context::new()).unwrap(),
+        "<h1>3, 4...</h1>".to_owned()
+    );
 }
 
-lazy_static! {
-    static ref NEXT_GLOBAL: SharedNext = SharedNext(Arc::new(Next(AtomicUsize::new(1))));
+struct GetPage<'a> {
+    pages: [&'a str; 3],
+}
+
+impl<'a> Function for GetPage<'a> {
+    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
+        let page = args.get("page").unwrap().as_u64().unwrap() as usize;
+        Ok(Value::String(self.pages[page].to_owned()))
+    }
 }
 
 #[test]
-fn stateful_global_fn() {
-    fn make_tera() -> Tera {
-        let mut tera = Tera::default();
-        tera.add_raw_template(
-            "fn.html",
-            "<h1>{{ get_next() }}, {{ get_next_shared() }}, {{ get_next() }}...</h1>",
-        )
-        .unwrap();
+fn nonstatic_global_fn() {
+    let get_page = GetPage { pages: ["First page", "Second page", "Third page"] };
 
-        tera.register_function("get_next", Next(AtomicUsize::new(1)));
-        tera.register_function("get_next_shared", NEXT_GLOBAL.clone());
-        tera
-    }
+    let mut tera = Tera::default();
+    tera.add_raw_template(
+        "fn.html",
+        "<section>{{ get_page(page=0) }}</section><section>{{ get_page(page=1) }}</section><section>{{ get_page(page=2) }}</section>",
+    )
+    .unwrap();
+
+    tera.register_function("get_page", &get_page);
+
+    let result = tera.render("fn.html", Context::new()).unwrap();
 
     assert_eq!(
-        make_tera().render("fn.html", Context::new()).unwrap(),
-        "<h1>1, 1, 2...</h1>".to_owned()
-    );
-    assert_eq!(
-        make_tera().render("fn.html", Context::new()).unwrap(),
-        "<h1>1, 2, 2...</h1>".to_owned()
+        result,
+        "<section>First page</section><section>Second page</section><section>Third page</section>".to_owned()
     );
 }

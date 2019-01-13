@@ -11,7 +11,7 @@ use std::error::Error;
 use tera::{Context, Result, Tera};
 
 lazy_static! {
-    pub static ref TEMPLATES: Tera = {
+    pub static ref TEMPLATES: Tera<'static> = {
         let mut tera = match Tera::new("examples/basic/templates/**/*") {
             Ok(t) => t,
             Err(e) => {

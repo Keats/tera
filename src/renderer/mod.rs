@@ -21,7 +21,7 @@ pub struct Renderer<'a> {
     /// Template to render
     template: &'a Template,
     /// Houses other templates, filters, global functions, etc
-    tera: &'a Tera,
+    tera: &'a Tera<'a>,
     /// Read-only context to be bound to template˝
     context: Value,
     /// If set rendering should be escaped
@@ -31,7 +31,7 @@ pub struct Renderer<'a> {
 impl<'a> Renderer<'a> {
     /// Create a new `Renderer`
     #[inline]
-    pub fn new(template: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
+    pub fn new(template: &'a Template, tera: &'a Tera<'a>, context: Value) -> Renderer<'a> {
         let should_escape = tera.autoescape_suffixes.iter().any(|ext| {
             // We prefer a `path` if set, otherwise use the `name`
             if let Some(ref p) = template.path {
