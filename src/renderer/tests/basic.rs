@@ -470,7 +470,9 @@ fn can_set_variable_in_global_context_in_forloop() {
 #[test]
 fn default_filter_works() {
     let mut context = Context::new();
+    let i: Option<usize> = None;
     context.insert("existing", "hello");
+    context.insert("null", &i);
 
     let inputs = vec![
         (r#"{{ existing | default(value="hey") }}"#, "hello"),
@@ -480,6 +482,8 @@ fn default_filter_works() {
         (r#"{{ obj.val | default(value="hey") | capitalize }}"#, "Hey"),
         (r#"{{ not admin | default(value=false) }}"#, "true"),
         (r#"{{ not admin | default(value=true) }}"#, "false"),
+        (r#"{{ null | default(value=true) }}"#, "true"),
+        (r#"{{ null | default(value="hey") | capitalize }}"#, "Hey"),
     ];
 
     for (input, expected) in inputs {

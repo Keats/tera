@@ -272,6 +272,16 @@ impl<'a> Processor<'a> {
         self.render_body(&block.body)
     }
 
+    fn get_default_value(self: &mut Self, expr: &'a Expr) -> Result<Val<'a>> {
+        if let Some(default_expr) = expr.filters[0].args.get("value") {
+            self.eval_expression(default_expr)
+        } else {
+            Err(Error::msg(
+                "The `default` filter requires a `value` argument.",
+            ))
+        }
+    }
+
     fn eval_expression(self: &mut Self, expr: &'a Expr) -> Result<Val<'a>> {
         let mut needs_escape = false;
 
@@ -324,16 +334,16 @@ impl<'a> Processor<'a> {
                 // Negated idents are special cased as `not undefined_ident` should not
                 // error but instead be falsy values
                 match self.lookup_ident(ident) {
-                    Ok(val) => val,
+                    Ok(val) => {
+                        if val.is_null() && expr.has_default_filter() {
+                            self.get_default_value(expr)?
+                        } else {
+                            val
+                        }
+                    },
                     Err(e) => {
                         if expr.has_default_filter() {
-                            if let Some(default_expr) = expr.filters[0].args.get("value") {
-                                self.eval_expression(default_expr)?
-                            } else {
-                                return Err(Error::msg(
-                                    "The `default` filter requires a `value` argument.",
-                                ));
-                            }
+                            self.get_default_value(expr)?
                         } else {
                             if !expr.negated {
                                 return Err(e);
