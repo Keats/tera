@@ -276,9 +276,7 @@ impl<'a> Processor<'a> {
         if let Some(default_expr) = expr.filters[0].args.get("value") {
             self.eval_expression(default_expr)
         } else {
-            Err(Error::msg(
-                "The `default` filter requires a `value` argument.",
-            ))
+            Err(Error::msg("The `default` filter requires a `value` argument."))
         }
     }
 
@@ -340,7 +338,7 @@ impl<'a> Processor<'a> {
                         } else {
                             val
                         }
-                    },
+                    }
                     Err(e) => {
                         if expr.has_default_filter() {
                             self.get_default_value(expr)?

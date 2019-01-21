@@ -205,7 +205,6 @@ fn right_variable_name_is_needed_in_for_loop() {
     );
 }
 
-
 // https://github.com/Keats/tera/issues/370#issuecomment-453893826
 #[test]
 fn errors_when_calling_macros_defined_in_file() {
@@ -220,13 +219,11 @@ fn errors_when_calling_macros_defined_in_file() {
 ...
 
 <td>{{ self::path_item(path=hello) }}</td>
-        "#
-    ).unwrap();
+        "#,
+    )
+    .unwrap();
     let mut context = Context::new();
     context.insert("hello", &true);
     let result = tera.render("tpl", context);
-    assert_eq!(
-        result.unwrap_err().source().unwrap().to_string(),
-        "Some error message"
-    );
+    assert_eq!(result.unwrap_err().source().unwrap().to_string(), "Some error message");
 }
