@@ -733,7 +733,10 @@ impl fmt::Debug for Tera {
 
 #[cfg(test)]
 mod tests {
+    use tempfile::tempdir;
+
     use std::collections::HashMap;
+    use std::fs::File;
 
     use super::Tera;
     use crate::context::Context;
@@ -1009,5 +1012,18 @@ mod tests {
         // Will panic here as we changed the parent and it won't be able
         // to build the inheritance chain in this case
         tera.build_inheritance_chains().unwrap();
+    }
+
+    // https://github.com/Keats/tera/issues/380
+    #[test]
+    fn glob_work_with_absolute_paths() {
+        let tmp_dir = tempdir().expect("create temp dir");
+        let cwd = tmp_dir.path().canonicalize().unwrap();
+        File::create(cwd.join("hey.html")).expect("Failed to create a test file");
+        File::create(cwd.join("ho.html")).expect("Failed to create a test file");
+        let glob = cwd.join("*.html").into_os_string().into_string().unwrap();
+        dbg!(&glob);
+        let tera = Tera::new(&glob).expect("Couldn't build Tera instance");
+        assert_eq!(tera.templates.len(), 2);
     }
 }

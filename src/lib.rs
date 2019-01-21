@@ -26,6 +26,8 @@ extern crate url;
 #[macro_use]
 extern crate pretty_assertions;
 #[cfg(test)]
+extern crate tempfile;
+#[cfg(test)]
 #[macro_use]
 extern crate serde_derive;
 extern crate unic_segment;
