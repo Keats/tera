@@ -567,3 +567,20 @@ fn lex_template() {
     )
     .is_ok());
 }
+
+#[test]
+fn lex_extends_with_imports() {
+    assert!(TeraParser::parse(
+        Rule::template,
+        r#"
+{% extends "base.html" %}
+
+{% import "macros/image.html" as image %}
+{% import "macros/masonry.html" as masonry %}
+{% import "macros/breadcrumb.html" as breadcrumb %}
+{% import "macros/ul_links.html" as ul_links %}
+{% import "macros/location.html" as location %}
+         "#,
+    )
+    .is_ok());
+}
