@@ -971,6 +971,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::template => "a template".to_string(),
                     Rule::break_tag => "a break tag".to_string(),
                     Rule::continue_tag => "a continue tag".to_string(),
+                    Rule::top_imports => "top imports".to_string(),
                 }
             });
             return Err(Error::msg(fancy_e));
