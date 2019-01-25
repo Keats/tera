@@ -225,5 +225,5 @@ fn errors_when_calling_macros_defined_in_file() {
     let mut context = Context::new();
     context.insert("hello", &true);
     let result = tera.render("tpl", context);
-    assert_eq!(result.unwrap_err().source().unwrap().to_string(), "Some error message");
+    assert_eq!(result.unwrap_err().source().unwrap().to_string(), "Invalid macro definition: `path_item`");
 }

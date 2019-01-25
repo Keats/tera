@@ -805,6 +805,10 @@ impl<'a> Processor<'a> {
                 self.call_stack.pop();
                 buffer.push_str(&result);
             }
+            // TODO: make that a compile time error
+            Node::MacroDefinition(_, ref def, _) => {
+                return Err(Error::invalid_macro_def(&def.name));
+            }
             _ => unreachable!("render_node -> unexpected node: {:?}", node),
         };
 
