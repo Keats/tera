@@ -28,6 +28,8 @@ pub enum ErrorKind {
     FilterNotFound(String),
     /// A test wasn't found
     TestNotFound(String),
+    /// A macro was defined in a normal template
+    InvalidMacroDefinition(String),
     /// A function wasn't found
     FunctionNotFound(String),
     /// An error happened while serializing JSON
@@ -65,6 +67,7 @@ impl fmt::Display for Error {
             ErrorKind::FilterNotFound(ref name) => write!(f, "Filter '{}' not found", name),
             ErrorKind::TestNotFound(ref name) => write!(f, "Test '{}' not found", name),
             ErrorKind::FunctionNotFound(ref name) => write!(f, "Function '{}' not found", name),
+            ErrorKind::InvalidMacroDefinition(ref info) => write!(f, "Invalid macro definition: `{}`", info),
             ErrorKind::Json(ref e) => write!(f, "{}", e),
             ErrorKind::__Nonexhaustive => write!(f, "Nonexhaustive"),
         }
@@ -130,6 +133,11 @@ impl Error {
     /// Creates JSON error
     pub fn json(value: serde_json::Error) -> Self {
         Self { kind: ErrorKind::Json(value), source: None }
+    }
+
+    /// Creates an invalid macro definition error
+    pub fn invalid_macro_def(name: impl ToString) -> Self {
+        Self { kind: ErrorKind::InvalidMacroDefinition(name.to_string()), source: None }
     }
 }
 
