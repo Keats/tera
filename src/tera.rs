@@ -1022,7 +1022,6 @@ mod tests {
         File::create(cwd.join("hey.html")).expect("Failed to create a test file");
         File::create(cwd.join("ho.html")).expect("Failed to create a test file");
         let glob = cwd.join("*.html").into_os_string().into_string().unwrap();
-        dbg!(&glob);
         let tera = Tera::new(&glob).expect("Couldn't build Tera instance");
         assert_eq!(tera.templates.len(), 2);
     }
