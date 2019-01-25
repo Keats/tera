@@ -709,3 +709,17 @@ fn stateful_global_fn() {
         "<h1>1, 2, 2...</h1>".to_owned()
     );
 }
+
+// https://github.com/Keats/tera/issues/373
+#[test]
+fn split_on_context_value() {
+    let mut tera = Tera::default();
+    tera.add_raw_template(
+        "split.html",
+        "{{ body | split(pat='\n') }}",
+    ).unwrap();
+    let mut context = Context::new();
+    context.insert("body", "multi\nple\nlines");
+    let res = tera.render("split.html", context);
+    assert_eq!(res.unwrap(), "[multi, ple, lines]");
+}
