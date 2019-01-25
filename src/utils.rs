@@ -1,6 +1,4 @@
-use std::str;
-use v_htmlescape::HTMLEscape;
-
+use v_htmlescape::escape;
 /// Escape HTML following [OWASP](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
 ///
 /// Escape the following characters with HTML entity encoding to prevent switching
@@ -19,7 +17,7 @@ use v_htmlescape::HTMLEscape;
 /// ```
 #[inline]
 pub fn escape_html(input: &str) -> String {
-    HTMLEscape::from(input).to_string()
+    escape(input).to_string()
 }
 
 #[cfg(test)]
@@ -29,6 +27,7 @@ mod tests {
     #[test]
     fn test_escape_html() {
         let tests = vec![
+            (r"", ""),
             (r"a&b", "a&amp;b"),
             (r"<a", "&lt;a"),
             (r">a", "&gt;a"),
@@ -39,5 +38,7 @@ mod tests {
         for (input, expected) in tests {
             assert_eq!(escape_html(input), expected);
         }
+        let empty = String::new();
+        assert_eq!(escape_html(&empty), empty);
     }
 }
