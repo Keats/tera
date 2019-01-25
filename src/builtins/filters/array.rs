@@ -113,12 +113,17 @@ pub fn group_by(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
             if key_val.is_null() {
                 continue;
             }
-            let str_key = format!("{}", key_val);
+
+            let str_key = match key_val.as_str() {
+                Some(key) => key.to_owned(),
+                None => format!("{}", key_val),
+            };
 
             if let Some(vals) = grouped.get_mut(&str_key) {
                 vals.as_array_mut().unwrap().push(val);
                 continue;
             }
+
             grouped.insert(str_key, Value::Array(vec![val]));
         }
     }
