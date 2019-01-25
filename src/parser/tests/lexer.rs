@@ -570,8 +570,7 @@ fn lex_template() {
 
 #[test]
 fn lex_extends_with_imports() {
-    assert!(TeraParser::parse(
-        Rule::template,
+    let sample =
         r#"
 {% extends "base.html" %}
 
@@ -580,7 +579,6 @@ fn lex_extends_with_imports() {
 {% import "macros/breadcrumb.html" as breadcrumb %}
 {% import "macros/ul_links.html" as ul_links %}
 {% import "macros/location.html" as location %}
-         "#,
-    )
-    .is_ok());
+         "#;
+    assert_lex_rule!(Rule::template, sample);
 }

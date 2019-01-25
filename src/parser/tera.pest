@@ -259,14 +259,19 @@ content = @{
     text
 }
 
-extends_tag = !{ tag_start ~ "extends" ~ string ~ tag_end }
-import_macro_tag = !{ tag_start ~ "import" ~ string ~ "as" ~ ident ~ tag_end }
+extends_tag = !{ WHITESPACE* ~ tag_start ~ "extends" ~ string ~ tag_end ~ WHITESPACE* }
+import_macro_tag = !{ WHITESPACE* ~ tag_start ~ "import" ~ string ~ "as" ~ ident ~ tag_end ~ WHITESPACE* }
+top_imports = _{
+    (extends_tag ~ import_macro_tag*)
+    |
+    (import_macro_tag+ ~ extends_tag?)
+}
 
 // top level rule
 template = ${
     SOI
     ~ comment_tag*
-    ~ (extends_tag ~ WHITESPACE* ~ import_macro_tag* | WHITESPACE* ~ import_macro_tag+ ~ WHITESPACE* ~ extends_tag?)? // potentially buggy as we allow 2 extends...
+    ~ top_imports?
     ~ content*
     ~ EOI
 }
