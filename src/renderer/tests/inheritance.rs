@@ -148,3 +148,17 @@ fn render_super_in_grandchild_without_redefining_in_parent_works() {
     let result = tera.render("child", &Context::new());
     assert_eq!(result.unwrap(), "Title - More".to_string());
 }
+
+#[test]
+fn render_inheritance_in_included_template() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("base", "Base - {% include \"child\" %}"),
+        ("parent", "{% block title %}Parent{% endblock %}"),
+        ("child", "{% extends \"parent\" %}{% block title %}{{ super() }} - Child{% endblock %}"),
+    ])
+    .unwrap();
+
+    let result = tera.render("base", &Context::new());
+    assert_eq!(result.unwrap(), "Base - Parent - Child".to_string());
+}
