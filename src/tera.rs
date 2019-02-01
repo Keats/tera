@@ -74,8 +74,6 @@ impl Tera {
 
     /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
     ///
-    /// The example below is what the [compile_templates](macro.compile_templates.html) macros expands to.
-    ///
     ///```ignore
     ///match Tera::new("templates/**/*") {
     ///    Ok(t) => t,
