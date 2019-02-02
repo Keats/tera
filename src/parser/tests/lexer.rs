@@ -1,6 +1,6 @@
 use pest::Parser;
 
-use parser::{Rule, TeraParser};
+use crate::parser::{Rule, TeraParser};
 
 macro_rules! assert_lex_rule {
     ($rule: expr, $input: expr) => {
@@ -261,6 +261,7 @@ fn lex_logic_val() {
         r#""hey""#,
         "a is defined",
         "a is defined(2)",
+        "a is not defined",
         "1 + 1",
         "1 + counts",
         "1 + counts.first",
@@ -565,4 +566,19 @@ fn lex_template() {
             {% endfor %}",
     )
     .is_ok());
+}
+
+#[test]
+fn lex_extends_with_imports() {
+    let sample =
+        r#"
+{% extends "base.html" %}
+
+{% import "macros/image.html" as image %}
+{% import "macros/masonry.html" as masonry %}
+{% import "macros/breadcrumb.html" as breadcrumb %}
+{% import "macros/ul_links.html" as ul_links %}
+{% import "macros/location.html" as location %}
+         "#;
+    assert_lex_rule!(Rule::template, sample);
 }

@@ -1,25 +1,31 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
+use std::error::Error;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use serde_json::Value;
 
-use context::Context;
-use errors::Result;
-use tera::Tera;
+use crate::builtins::functions::Function;
+use crate::context::Context;
+use crate::errors::Result;
+use crate::tera::Tera;
 
 use super::Review;
 
-fn render_template(content: &str, context: &Context) -> Result<String> {
+fn render_template(content: &str, context: Context) -> Result<String> {
     let mut tera = Tera::default();
     tera.add_raw_template("hello.html", content).unwrap();
-    tera.register_function("get_number", Box::new(|_| Ok(Value::Number(10.into()))));
-    tera.register_function("get_string", Box::new(|_| Ok(Value::String("Hello".to_string()))));
+    tera.register_function("get_number", |_: &HashMap<String, Value>| Ok(Value::Number(10.into())));
+    tera.register_function("get_string", |_: &HashMap<String, Value>| {
+        Ok(Value::String("Hello".to_string()))
+    });
 
     tera.render("hello.html", context)
 }
 
 #[test]
 fn render_simple_string() {
-    let result = render_template("<h1>Hello world</h1>", &Context::new());
+    let result = render_template("<h1>Hello world</h1>", Context::new());
     assert_eq!(result.unwrap(), "<h1>Hello world</h1>".to_owned());
 }
 
@@ -54,7 +60,7 @@ fn render_variable_block_lit_expr() {
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &Context::new()).unwrap(), expected);
+        assert_eq!(render_template(input, Context::new()).unwrap(), expected);
     }
 }
 
@@ -93,6 +99,8 @@ fn render_variable_block_ident() {
         ("{{ name | length }}", "4"),
         ("{{ name is defined }}", "true"),
         ("{{ not name is defined }}", "false"),
+        ("{{ name is not defined }}", "false"),
+        ("{{ not name is not defined }}", "true"),
         ("{{ a is odd }}", "false"),
         ("{{ a is odd or b is odd  }}", "true"),
         ("{{ range(start=1, end=4) }}", "[1, 2, 3]"),
@@ -113,7 +121,7 @@ fn render_variable_block_ident() {
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &context).unwrap(), expected);
+        assert_eq!(render_template(input, context.clone()).unwrap(), expected);
     }
 }
 
@@ -141,7 +149,7 @@ fn render_variable_block_logic_expr() {
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &context).unwrap(), expected);
+        assert_eq!(render_template(input, context.clone()).unwrap(), expected);
     }
 }
 
@@ -163,7 +171,7 @@ fn render_variable_block_autoescaping_disabled() {
     for (input, expected) in inputs {
         let mut tera = Tera::default();
         tera.add_raw_template("hello.sql", input).unwrap();
-        assert_eq!(tera.render("hello.sql", &context).unwrap(), expected);
+        assert_eq!(tera.render("hello.sql", context.clone()).unwrap(), expected);
     }
 }
 
@@ -177,7 +185,7 @@ fn comments_are_ignored() {
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &Context::new()).unwrap(), expected);
+        assert_eq!(render_template(input, Context::new()).unwrap(), expected);
     }
 }
 
@@ -188,7 +196,7 @@ fn filter_args_are_not_escaped() {
     context.insert("to", &"&");
     let input = r#"{{ my_var | replace(from="h", to=to) }}"#;
 
-    assert_eq!(render_template(input, &context).unwrap(), "&ey");
+    assert_eq!(render_template(input, context).unwrap(), "&ey");
 }
 
 #[test]
@@ -199,7 +207,7 @@ fn render_include_tag() {
         ("hello", "<h1>Hello {% include \"world\" %}</h1>"),
     ])
     .unwrap();
-    let result = tera.render("hello", &Context::new()).unwrap();
+    let result = tera.render("hello", Context::new()).unwrap();
     assert_eq!(result, "<h1>Hello world</h1>".to_owned());
 }
 
@@ -211,7 +219,7 @@ fn can_set_variables_in_included_templates() {
         ("hello", "<h1>Hello {% include \"world\" %}</h1>"),
     ])
     .unwrap();
-    let result = tera.render("hello", &Context::new()).unwrap();
+    let result = tera.render("hello", Context::new()).unwrap();
     assert_eq!(result, "<h1>Hello world</h1>".to_owned());
 }
 
@@ -225,7 +233,7 @@ fn render_raw_tag() {
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &Context::new()).unwrap(), expected);
+        assert_eq!(render_template(input, Context::new()).unwrap(), expected);
     }
 }
 
@@ -256,7 +264,7 @@ fn add_set_values_in_context() {
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &context).unwrap(), expected);
+        assert_eq!(render_template(input, context.clone()).unwrap(), expected);
     }
 }
 
@@ -276,7 +284,7 @@ fn render_filter_section() {
     let context = Context::new();
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &context).unwrap(), expected);
+        assert_eq!(render_template(input, context.clone()).unwrap(), expected);
     }
 }
 
@@ -325,7 +333,7 @@ fn render_if_elif_else() {
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &context).unwrap(), expected);
+        assert_eq!(render_template(input, context.clone()).unwrap(), expected);
     }
 }
 
@@ -403,7 +411,7 @@ fn render_for() {
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &context).unwrap(), expected);
+        assert_eq!(render_template(input, context.clone()).unwrap(), expected);
     }
 }
 
@@ -412,7 +420,7 @@ fn render_magic_variable_isnt_escaped() {
     let mut context = Context::new();
     context.insert("html", &"<html>");
 
-    let result = render_template("{{ __tera_context }}", &context);
+    let result = render_template("{{ __tera_context }}", context);
 
     assert_eq!(
         result.unwrap(),
@@ -437,7 +445,7 @@ fn ok_many_variable_blocks() {
     for _ in 0..200 {
         expected.push_str("bob")
     }
-    assert_eq!(render_template(&tpl, &context).unwrap(), expected);
+    assert_eq!(render_template(&tpl, context).unwrap(), expected);
 }
 
 #[test]
@@ -453,7 +461,7 @@ fn can_set_variable_in_global_context_in_forloop() {
 {%- set_global global_val = i -%}
 {%- endfor -%}
 {{ default }}{{ global_val }}"#,
-        &context,
+        context,
     );
 
     assert_eq!(result.unwrap(), "default3");
@@ -462,7 +470,9 @@ fn can_set_variable_in_global_context_in_forloop() {
 #[test]
 fn default_filter_works() {
     let mut context = Context::new();
+    let i: Option<usize> = None;
     context.insert("existing", "hello");
+    context.insert("null", &i);
 
     let inputs = vec![
         (r#"{{ existing | default(value="hey") }}"#, "hello"),
@@ -472,11 +482,13 @@ fn default_filter_works() {
         (r#"{{ obj.val | default(value="hey") | capitalize }}"#, "Hey"),
         (r#"{{ not admin | default(value=false) }}"#, "true"),
         (r#"{{ not admin | default(value=true) }}"#, "false"),
+        (r#"{{ null | default(value=true) }}"#, "true"),
+        (r#"{{ null | default(value="hey") | capitalize }}"#, "Hey"),
     ];
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &context).unwrap(), expected);
+        assert_eq!(render_template(input, context.clone()).unwrap(), expected);
     }
 }
 
@@ -495,7 +507,7 @@ fn filter_filter_works() {
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &context).unwrap(), expected);
+        assert_eq!(render_template(input, context.clone()).unwrap(), expected);
     }
 }
 
@@ -524,7 +536,7 @@ fn can_do_string_concat() {
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(render_template(input, &context).unwrap(), expected);
+        assert_eq!(render_template(input, context.clone()).unwrap(), expected);
     }
 }
 
@@ -534,33 +546,55 @@ fn can_fail_rendering_from_template() {
     context.insert("title", "hello");
     let res = render_template(
         r#"{{ throw(message="Error: " ~ title ~ " did not include a summary") }}"#,
-        &context,
+        context,
     );
     assert!(res.is_err());
     let err = res.unwrap_err();
-    assert_eq!(err.iter().nth(1).unwrap().description(), "Error: hello did not include a summary");
+    assert_eq!(err.source().unwrap().to_string(), "Error: hello did not include a summary");
 }
 
 #[test]
 fn does_render_owned_for_loop_with_objects() {
     let mut context = Context::new();
     let data = json!([
-            {"id": 1, "year": 2015},
-            {"id": 2, "year": 2015},
-            {"id": 3, "year": 2016},
-            {"id": 4, "year": 2017},
-            {"id": 5, "year": 2017},
-            {"id": 6, "year": 2017},
-            {"id": 7, "year": 2018},
-            {"id": 8},
-            {"id": 9, "year": null},
-        ]);
+        {"id": 1, "year": 2015},
+        {"id": 2, "year": 2015},
+        {"id": 3, "year": 2016},
+        {"id": 4, "year": 2017},
+        {"id": 5, "year": 2017},
+        {"id": 6, "year": 2017},
+        {"id": 7, "year": 2018},
+        {"id": 8},
+        {"id": 9, "year": null},
+    ]);
     context.insert("something", &data);
 
     let tpl =
         r#"{% for year, things in something | group_by(attribute="year") %}{{year}},{% endfor %}"#;
     let expected = "2015,2016,2017,2018,";
-    assert_eq!(render_template(tpl, &context).unwrap(), expected);
+    assert_eq!(render_template(tpl, context).unwrap(), expected);
+}
+
+#[test]
+fn does_render_owned_for_loop_with_objects_string_keys() {
+    let mut context = Context::new();
+    let data = json!([
+        {"id": 1, "group": "a"},
+        {"id": 2, "group": "b"},
+        {"id": 3, "group": "c"},
+        {"id": 4, "group": "a"},
+        {"id": 5, "group": "b"},
+        {"id": 6, "group": "c"},
+        {"id": 7, "group": "a"},
+        {"id": 8},
+        {"id": 9, "year": null},
+    ]);
+    context.insert("something", &data);
+
+    let tpl =
+        r#"{% for group, things in something | group_by(attribute="group") %}{{group}},{% endfor %}"#;
+    let expected = "a,b,c,";
+    assert_eq!(render_template(tpl, context).unwrap(), expected);
 }
 
 #[test]
@@ -572,7 +606,7 @@ fn render_magic_variable_gets_all_contexts() {
 
     let result = render_template(
         "{% set some_val = 1 %}{% for i in range(start=0, end=1) %}{% set for_val = i %}{{ __tera_context }}{% endfor %}",
-        &context
+        context
     );
 
     assert_eq!(
@@ -601,7 +635,7 @@ fn render_magic_variable_macro_doesnt_leak() {
         ("tpl", "{% import \"macros\" as macros %}{{macros::hello()}}"),
     ])
     .unwrap();
-    let result = tera.render("tpl", &context);
+    let result = tera.render("tpl", context);
 
     assert_eq!(
         result.unwrap(),
@@ -628,7 +662,7 @@ fn redefining_loop_value_doesnt_break_loop() {
     )
     .unwrap();
     let context = Context::new();
-    let result = tera.render("tpl", &context);
+    let result = tera.render("tpl", context);
 
     assert_eq!(result.unwrap(), "abclol efghlol ijklmlol ");
 }
@@ -647,7 +681,67 @@ fn can_use_concat_to_push_to_array() {
     )
     .unwrap();
     let context = Context::new();
-    let result = tera.render("tpl", &context);
+    let result = tera.render("tpl", context);
 
     assert_eq!(result.unwrap(), "[0, 1, 2, 3, 4]");
+}
+
+struct Next(AtomicUsize);
+
+impl Function for Next {
+    fn call(&self, _args: &HashMap<String, Value>) -> Result<Value> {
+        Ok(Value::Number(self.0.fetch_add(1, Ordering::Relaxed).into()))
+    }
+}
+
+#[derive(Clone)]
+struct SharedNext(Arc<Next>);
+
+impl Function for SharedNext {
+    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
+        self.0.call(args)
+    }
+}
+
+lazy_static! {
+    static ref NEXT_GLOBAL: SharedNext = SharedNext(Arc::new(Next(AtomicUsize::new(1))));
+}
+
+#[test]
+fn stateful_global_fn() {
+    fn make_tera() -> Tera {
+        let mut tera = Tera::default();
+        tera.add_raw_template(
+            "fn.html",
+            "<h1>{{ get_next() }}, {{ get_next_shared() }}, {{ get_next() }}...</h1>",
+        )
+        .unwrap();
+
+        tera.register_function("get_next", Next(AtomicUsize::new(1)));
+        tera.register_function("get_next_shared", NEXT_GLOBAL.clone());
+        tera
+    }
+
+    assert_eq!(
+        make_tera().render("fn.html", Context::new()).unwrap(),
+        "<h1>1, 1, 2...</h1>".to_owned()
+    );
+    assert_eq!(
+        make_tera().render("fn.html", Context::new()).unwrap(),
+        "<h1>1, 2, 2...</h1>".to_owned()
+    );
+}
+
+// https://github.com/Keats/tera/issues/373
+#[test]
+fn split_on_context_value() {
+    let mut tera = Tera::default();
+    tera.add_raw_template(
+        "split.html",
+        "{{ body | split(pat='\n') }}",
+    ).unwrap();
+    let mut context = Context::new();
+    context.insert("body", "multi\nple\nlines");
+    let res = tera.render("split.html", context);
+    assert_eq!(res.unwrap(), "[multi, ple, lines]");
 }

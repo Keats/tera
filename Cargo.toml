@@ -1,6 +1,6 @@
 [package]
 name = "tera"
-version = "0.11.20"
+version = "1.0.0-alpha.4"
 authors = ["Vincent Prouillet <prouillet.vincent@gmail.com>"]
 license = "MIT"
 readme = "README.md"
@@ -9,14 +9,16 @@ homepage = "https://github.com/Keats/tera"
 repository = "https://github.com/Keats/tera"
 keywords = ["template", "html", "django", "markup", "jinja2"]
 categories = ["template-engine"]
+edition = "2018"
 
 [dependencies]
-glob = "0.2"
+globwalk = "0.6"
 serde = "1.0"
 serde_json = "1.0"
 pest = "2"
 pest_derive = "2"
-error-chain = "0.12"
+v_htmlescape = "0.4"
+
 # used in slugify filter
 slug = "0.1"
 # used in striptags filters
@@ -30,11 +32,12 @@ humansize = "1"
 # used in date format filter
 chrono = "0.4"
 # used in truncate filter
-unic-segment = "0.7"
+unic-segment = "0.8"
 
 [dev-dependencies]
 serde_derive = "1.0"
 pretty_assertions = "0.5"
+tempfile = "3"
 
 [features]
 default = []

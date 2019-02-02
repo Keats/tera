@@ -8,15 +8,13 @@
 
 #![deny(missing_docs)]
 
-extern crate glob;
+extern crate globwalk;
 extern crate pest;
 extern crate serde;
 #[cfg_attr(test, macro_use)]
 extern crate serde_json;
 #[macro_use]
 extern crate pest_derive;
-#[macro_use]
-extern crate error_chain;
 extern crate regex;
 extern crate slug;
 #[macro_use]
@@ -28,9 +26,12 @@ extern crate url;
 #[macro_use]
 extern crate pretty_assertions;
 #[cfg(test)]
+extern crate tempfile;
+#[cfg(test)]
 #[macro_use]
 extern crate serde_derive;
 extern crate unic_segment;
+extern crate v_htmlescape;
 
 #[macro_use]
 mod macros;
@@ -47,20 +48,20 @@ mod utils;
 // Library exports.
 
 // Template is meant to be used internally only but is exported for test/bench.
-pub use builtins::filters::FilterFn;
-pub use builtins::functions::GlobalFn;
-pub use builtins::testers::TesterFn;
-pub use context::Context;
-pub use errors::{Error, ErrorKind, Result};
+pub use crate::builtins::filters::Filter;
+pub use crate::builtins::functions::Function;
+pub use crate::builtins::testers::Test;
+pub use crate::context::Context;
+pub use crate::errors::{Error, ErrorKind, Result};
+#[doc(hidden)]
+pub use crate::template::Template;
+pub use crate::tera::Tera;
+pub use crate::utils::escape_html;
 /// Re-export Value and other useful things from serde
 /// so apps/tools can encode data in Tera types
 pub use serde_json::value::{from_value, to_value, Map, Number, Value};
-#[doc(hidden)]
-pub use template::Template;
-pub use tera::Tera;
-pub use utils::escape_html;
 
 // Exposes the AST if one needs it but changing the AST is not considered
 // a breaking change so it isn't public
 #[doc(hidden)]
-pub use parser::ast;
+pub use crate::parser::ast;

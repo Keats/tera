@@ -235,6 +235,14 @@ For example, you would write the following to test if an expression is odd:
 {% endif %}
 ```
 
+Tests can also be negated:
+
+```jinja2
+{% if my_number is not odd %}
+ Even
+{% endif %}
+```
+
 Tests are functions with the `fn(Option<Value>, Vec<Value>) -> Result<bool>` definition and custom ones can be added like so:
 
 ```rust
@@ -593,10 +601,17 @@ If the array is empty, returns empty string.
 Returns the last element of an array.
 If the array is empty, returns empty string.
 
+#### nth
+Returns the nth element of an array.
+If the array is empty, returns empty string.
+It takes a required `n` argument, corresponding to the 0-based index you want to get.
+
+Example: `{{ value | nth(n=2) }}`
+
 #### join
 Joins an array with a string.
 
-Example: `{{ value| join(sep=" // ") }}`
+Example: `{{ value | join(sep=" // ") }}`
 
 If value is the array `['a', 'b', 'c']`, the output will be the string "a // b // c".
 

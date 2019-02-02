@@ -11,9 +11,9 @@ mod stack_frame;
 use serde_json::value::Value;
 
 use self::processor::Processor;
-use errors::Result;
-use template::Template;
-use tera::Tera;
+use crate::errors::Result;
+use crate::template::Template;
+use crate::tera::Tera;
 
 /// Given a `Tera` and reference to `Template` and a `Context`, renders text
 #[derive(Debug)]

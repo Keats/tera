@@ -5,7 +5,7 @@ extern crate test;
 extern crate serde_derive;
 extern crate serde_json;
 
-use tera::{escape_html, Context, Template, Tera, Value};
+use tera::{Context, Template, Tera, Value};
 
 static VARIABLE_ONLY: &'static str = "{{product.name}}";
 
@@ -108,7 +108,7 @@ fn bench_rendering_only_variable(b: &mut test::Bencher) {
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
 
-    b.iter(|| tera.render("test.html", &context));
+    b.iter(|| tera.render("test.html", context.clone()));
 }
 
 #[bench]
@@ -119,7 +119,7 @@ fn bench_rendering_basic_template(b: &mut test::Bencher) {
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
 
-    b.iter(|| tera.render("bench.html", &context));
+    b.iter(|| tera.render("bench.html", context.clone()));
 }
 
 #[bench]
@@ -130,7 +130,7 @@ fn bench_rendering_only_parent(b: &mut test::Bencher) {
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
 
-    b.iter(|| tera.render("parent.html", &context));
+    b.iter(|| tera.render("parent.html", context.clone()));
 }
 
 #[bench]
@@ -142,7 +142,7 @@ fn bench_rendering_only_macro_call(b: &mut test::Bencher) {
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
 
-    b.iter(|| tera.render("hey.html", &context));
+    b.iter(|| tera.render("hey.html", context.clone()));
 }
 
 #[bench]
@@ -154,7 +154,7 @@ fn bench_rendering_only_inheritance(b: &mut test::Bencher) {
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
 
-    b.iter(|| tera.render("child.html", &context));
+    b.iter(|| tera.render("child.html", context.clone()));
 }
 
 #[bench]
@@ -170,7 +170,7 @@ fn bench_rendering_inheritance_and_macros(b: &mut test::Bencher) {
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
 
-    b.iter(|| tera.render("child.html", &context));
+    b.iter(|| tera.render("child.html", context.clone()));
 }
 
 #[bench]
@@ -183,11 +183,6 @@ fn bench_build_inheritance_chains(b: &mut test::Bencher) {
     ])
     .unwrap();
     b.iter(|| tera.build_inheritance_chains());
-}
-
-#[bench]
-fn bench_escape_html(b: &mut test::Bencher) {
-    b.iter(|| escape_html(r#"Hello word <script></script>"#));
 }
 
 #[bench]
@@ -213,7 +208,7 @@ fn bench_huge_loop(b: &mut test::Bencher) {
     let mut context = Context::new();
     context.insert("rows", &rows);
 
-    b.iter(|| tera.render("huge.html", &context));
+    b.iter(|| tera.render("huge.html", context.clone()));
 }
 
 fn deep_object() -> Value {
@@ -259,9 +254,9 @@ fn access_deep_object(b: &mut test::Bencher) {
     let mut context = Context::new();
     println!("{:?}", deep_object());
     context.insert("deep_object", &deep_object());
-    assert!(tera.render("deep_object.html", &context).unwrap().contains("ornery"));
+    assert!(tera.render("deep_object.html", context.clone()).unwrap().contains("ornery"));
 
-    b.iter(|| tera.render("deep_object.html", &context));
+    b.iter(|| tera.render("deep_object.html", context.clone()));
 }
 
 #[bench]
@@ -277,7 +272,7 @@ fn access_deep_object_with_literal(b: &mut test::Bencher) {
     .unwrap();
     let mut context = Context::new();
     context.insert("deep_object", &deep_object());
-    assert!(tera.render("deep_object.html", &context).unwrap().contains("ornery"));
+    assert!(tera.render("deep_object.html", context.clone()).unwrap().contains("ornery"));
 
-    b.iter(|| tera.render("deep_object.html", &context));
+    b.iter(|| tera.render("deep_object.html", context.clone()));
 }

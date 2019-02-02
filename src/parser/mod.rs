@@ -4,7 +4,7 @@ use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
 
-use errors::Result as TeraResult;
+use crate::errors::{Error, Result as TeraResult};
 
 // This include forces recompiling this source file if the grammar file changes.
 // Uncomment it when doing changes to the .pest file
@@ -152,7 +152,7 @@ fn parse_test(pair: Pair<Rule>) -> Test {
         };
     }
 
-    Test { ident: ident.unwrap(), name: name.unwrap(), args }
+    Test { ident: ident.unwrap(), negated: false, name: name.unwrap(), args }
 }
 
 fn parse_string_concat(pair: Pair<Rule>) -> ExprVal {
@@ -238,6 +238,11 @@ fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
             _ => unreachable!(),
         },
         Rule::test => ExprVal::Test(parse_test(pair)),
+        Rule::test_not => {
+            let mut test = parse_test(pair);
+            test.negated = true;
+            ExprVal::Test(test)
+        }
         Rule::fn_call => ExprVal::FunctionCall(parse_fn_call(pair)),
         Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)),
         Rule::string => ExprVal::String(replace_string_markers(pair.as_str())),
@@ -829,7 +834,6 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             Rule::set_global_tag => nodes.push(parse_set_tag(p, true)),
             Rule::raw => nodes.push(parse_raw_tag(p)),
             Rule::variable_tag => nodes.push(parse_variable_tag(p)),
-            Rule::import_macro_tag => nodes.push(parse_import_macro(p)),
             Rule::macro_definition => nodes.push(parse_macro_definition(p)),
             Rule::forloop => nodes.push(parse_forloop(p)),
             Rule::break_tag => nodes.push(parse_break_tag(p)),
@@ -899,6 +903,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::op_modulo => "`%`".to_string(),
                     Rule::filter => "a filter".to_string(),
                     Rule::test => "a test".to_string(),
+                    Rule::test_not => "a negated test".to_string(),
                     Rule::test_call => "a test call".to_string(),
                     Rule::test_arg => "a test argument (any expressions)".to_string(),
                     Rule::test_args => "a list of test arguments (any expressions)".to_string(),
@@ -966,9 +971,10 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::template => "a template".to_string(),
                     Rule::break_tag => "a break tag".to_string(),
                     Rule::continue_tag => "a continue tag".to_string(),
+                    Rule::top_imports => "top imports".to_string(),
                 }
             });
-            bail!("{}", fancy_e)
+            return Err(Error::msg(fancy_e));
         }
     };
 
@@ -981,6 +987,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                 let (ws, file) = parse_extends_include(p);
                 nodes.push(Node::Extends(ws, file));
             }
+            Rule::import_macro_tag => nodes.push(parse_import_macro(p)),
             Rule::content => nodes.extend(parse_content(p)),
             Rule::comment_tag => (),
             Rule::EOI => (),

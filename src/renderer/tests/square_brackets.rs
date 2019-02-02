@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use context::Context;
-use tera::Tera;
+use crate::context::Context;
+use crate::tera::Tera;
 
 #[derive(Serialize)]
 struct Test {
@@ -40,7 +40,7 @@ fn var_access_by_square_brackets() {
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
-        assert_eq!(Tera::one_off(input, &context, true).unwrap(), expected);
+        assert_eq!(Tera::one_off(input, context.clone(), true).unwrap(), expected);
     }
 }
 
@@ -48,7 +48,7 @@ fn var_access_by_square_brackets() {
 fn var_access_by_square_brackets_errors() {
     let mut context = Context::new();
     context.insert("var", &Test { a: "hi".into(), b: "there".into(), c: vec![] });
-    let t = Tera::one_off("{{var[csd]}}", &context, true);
+    let t = Tera::one_off("{{var[csd]}}", context, true);
     assert!(t.is_err(), "Access of csd should be impossible");
 }
 
@@ -63,7 +63,7 @@ fn var_access_by_loop_index() {
 {{ ics[loop.index0] }}
 {% endfor %}
     "#,
-        &context,
+        context,
         true,
     );
     assert!(res.is_ok());
@@ -81,7 +81,7 @@ fn var_access_by_loop_index_with_set() {
     {{ ics[i] }}
 {% endfor %}
     "#,
-        &context,
+        context,
         true,
     );
     assert!(res.is_ok());

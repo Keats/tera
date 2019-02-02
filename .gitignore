@@ -11,3 +11,4 @@ public/
 *.css
 !examples/**/*.css
 callgrind.out.*
+*.zst

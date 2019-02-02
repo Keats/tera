@@ -1,8 +1,8 @@
-use errors::Result;
-use parser::ast::MacroDefinition;
+use crate::errors::{Error, Result};
+use crate::parser::ast::MacroDefinition;
+use crate::template::Template;
+use crate::tera::Tera;
 use std::collections::HashMap;
-use template::Template;
-use tera::Tera;
 
 // Types around Macros get complicated, simplify it a bit by using aliases
 
@@ -104,18 +104,16 @@ impl<'a> MacroCollection<'a> {
             if let Some(m) = macro_definition_map.get(macro_name).map(|md| (macro_template, md)) {
                 Ok(m)
             } else {
-                bail!(
+                Err(Error::msg(format!(
                     "Macro `{}::{}` not found in template `{}`",
-                    macro_namespace,
-                    macro_name,
-                    template_name
-                )
+                    macro_namespace, macro_name, template_name
+                )))
             }
         } else {
-            bail!(
-            "Macro namespace `{}` was not found in template `{}`. Have you maybe forgotten to import it, or misspelled it?",
-            macro_namespace, template_name
-            )
+            Err(Error::msg(format!(
+                "Macro namespace `{}` was not found in template `{}`. Have you maybe forgotten to import it, or misspelled it?",
+                macro_namespace, template_name
+            )))
         }
     }
 }

@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.0.0 (unreleased)
+
+### Breaking changes
+
+- Now requires Rust 1.31
+- Removed error-chain errors and added rich Error enum instead
+- Filter, Tester and Function are now traits and now take borrowed values instead of owned
+- Updated for 2018 edition
+- Split a `render/one_off` with `render_value/one_off_value`. `render/one_off` now takes
+a `Context` by value to avoid cloning and `render_value/one_off_value` takes something that implements
+`Serialize`
+- Require macros import to be at the top of the files along with `extends` as it is fairly cheap and
+the code already only really look there.
+
+
+### Others
+
+- Tests can now use `value is not defined` order for negation (https://github.com/Keats/tera/issues/308)
+- Add `nth` filter to get the nth value in an array
+- You can now use glob patterns in Tera::new
+- `default` filter now works on Null values
+
 ## 0.11.20 (2018-11-14)
 
 - Fix bugs in `filter` and `get` filters

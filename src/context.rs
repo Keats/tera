@@ -1,11 +1,8 @@
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
-use serde::ser::SerializeMap;
-use serde::Serializer;
-use serde_json::value::{to_value, Value};
-
-use errors::{Result as TeraResult, ResultExt};
+use serde_json::value::{to_value, Map, Value};
 
 /// The struct that holds the context of a template rendering.
 ///
@@ -22,15 +19,6 @@ impl Context {
         Context { data: BTreeMap::new() }
     }
 
-    #[doc(hidden)]
-    #[deprecated(
-        since = "0.11.15",
-        note = "Use `insert` instead to keep consistency with std collections"
-    )]
-    pub fn add<T: Serialize + ?Sized>(&mut self, key: &str, val: &T) {
-        self.data.insert(key.to_owned(), to_value(val).unwrap());
-    }
-
     /// Converts the `val` parameter to `Value` and insert it into the context
     ///
     /// ```rust,ignore
@@ -40,11 +28,6 @@ impl Context {
     /// ```
     pub fn insert<T: Serialize + ?Sized>(&mut self, key: &str, val: &T) {
         self.data.insert(key.to_owned(), to_value(val).unwrap());
-    }
-
-    #[doc(hidden)]
-    pub fn as_json(&self) -> TeraResult<Value> {
-        to_value(&self.data).chain_err(|| "Failed to convert data to JSON")
     }
 
     /// Appends the data of the `source` parameter to `self`, overwriting existing keys.
@@ -62,6 +45,15 @@ impl Context {
     pub fn extend(&mut self, mut source: Context) {
         self.data.append(&mut source.data);
     }
+
+    /// Converts the context to a `serde_json::Value` consuming the context
+    pub fn into_json(self) -> Value {
+        let mut m = Map::new();
+        for (key, value) in self.data {
+            m.insert(key, value);
+        }
+        Value::Object(m)
+    }
 }
 
 impl Default for Context {
@@ -70,29 +62,18 @@ impl Default for Context {
     }
 }
 
-impl Serialize for Context {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut map = serializer.serialize_map(Some(self.data.len()))?;
-        for (k, v) in &self.data {
-            map.serialize_key(&k)?;
-            map.serialize_value(&v)?;
-        }
-        map.end()
-    }
-}
-
 pub trait ValueRender {
-    fn render(&self) -> String;
+    fn render(&self) -> Cow<str>;
 }
 
 // Convert serde Value to String
 impl ValueRender for Value {
-    fn render(&self) -> String {
+    fn render(&self) -> Cow<str> {
         match *self {
-            Value::String(ref s) => s.clone(),
-            Value::Number(ref i) => i.to_string(),
-            Value::Bool(i) => i.to_string(),
-            Value::Null => "".to_owned(),
+            Value::String(ref s) => Cow::Borrowed(s),
+            Value::Number(ref i) => Cow::Owned(i.to_string()),
+            Value::Bool(i) => Cow::Owned(i.to_string()),
+            Value::Null => Cow::Owned(String::new()),
             Value::Array(ref a) => {
                 let mut buf = String::new();
                 buf.push('[');
@@ -103,9 +84,9 @@ impl ValueRender for Value {
                     buf.push_str(i.render().as_ref());
                 }
                 buf.push(']');
-                buf
+                Cow::Owned(buf)
             }
-            Value::Object(_) => "[object]".to_owned(),
+            Value::Object(_) => Cow::Owned("[object]".to_owned()),
         }
     }
 }

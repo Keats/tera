@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use errors::Result;
-use parser::ast::{Block, MacroDefinition, Node};
-use parser::{parse, remove_whitespace};
+use crate::errors::{Error, Result};
+use crate::parser::ast::{Block, MacroDefinition, Node};
+use crate::parser::{parse, remove_whitespace};
 
 /// This is the parsed equivalent of a template file.
 /// It also does some pre-processing to ensure it does as less as possible at runtime
@@ -55,7 +55,7 @@ impl Template {
                 match *node {
                     Node::Block(_, ref block, _) => {
                         if blocks.contains_key(&block.name) {
-                            bail!("Block `{}` is duplicated", block.name);
+                            return Err(Error::msg(format!("Block `{}` is duplicated", block.name)));
                         }
 
                         blocks.insert(block.name.to_string(), block.clone());
@@ -79,7 +79,7 @@ impl Template {
                 Node::Extends(_, ref name) => parent = Some(name.to_string()),
                 Node::MacroDefinition(_, ref macro_def, _) => {
                     if macros.contains_key(&macro_def.name) {
-                        bail!("Macro `{}` is duplicated", macro_def.name);
+                        return Err(Error::msg(format!("Macro `{}` is duplicated", macro_def.name)));
                     }
                     macros.insert(macro_def.name.clone(), macro_def.clone());
                 }

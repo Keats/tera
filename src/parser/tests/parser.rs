@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use parser::ast::*;
-use parser::parse;
+use crate::parser::ast::*;
+use crate::parser::parse;
 
 #[test]
 fn parse_empty_template() {
@@ -41,7 +41,7 @@ fn parse_comments_before_extends() {
 
 #[test]
 fn parse_import_macro() {
-    let ast = parse("{% import \"macros.html\" as macros -%}").unwrap();
+    let ast = parse("\n{% import \"macros.html\" as macros -%}").unwrap();
     assert_eq!(
         ast[0],
         Node::ImportMacro(
@@ -248,6 +248,21 @@ fn parse_variable_tag_simple_test() {
         ast[0],
         Node::VariableBlock(Expr::new(ExprVal::Test(Test {
             ident: "id".to_string(),
+            negated: false,
+            name: "defined".to_string(),
+            args: vec![],
+        },)))
+    );
+}
+
+#[test]
+fn parse_variable_tag_simple_negated_test() {
+    let ast = parse("{{ id is not defined }}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::new(ExprVal::Test(Test {
+            ident: "id".to_string(),
+            negated: true,
             name: "defined".to_string(),
             args: vec![],
         },)))
@@ -262,6 +277,7 @@ fn parse_variable_tag_test_as_expression() {
         Node::VariableBlock(Expr::new(ExprVal::Logic(LogicExpr {
             lhs: Box::new(Expr::new(ExprVal::Test(Test {
                 ident: "user".to_string(),
+                negated: false,
                 name: "defined".to_string(),
                 args: vec![],
             },))),

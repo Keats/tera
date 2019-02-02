@@ -3,9 +3,9 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use context::get_json_pointer;
-use renderer::for_loop::ForLoop;
-use template::Template;
+use crate::context::get_json_pointer;
+use crate::renderer::for_loop::ForLoop;
+use crate::template::Template;
 
 pub type Val<'a> = Cow<'a, Value>;
 pub type FrameContext<'a> = HashMap<&'a str, Val<'a>>;
@@ -13,11 +13,9 @@ pub type FrameContext<'a> = HashMap<&'a str, Val<'a>>;
 /// Gets a value within a value by pointer, keeping lifetime
 #[inline]
 pub fn value_by_pointer<'a>(pointer: &str, val: &Val<'a>) -> Option<Val<'a>> {
-    match val {
-        &Cow::Borrowed(r) => {
-            r.pointer(&get_json_pointer(pointer)).map(|found| Cow::Borrowed(found))
-        }
-        &Cow::Owned(ref r) => {
+    match *val {
+        Cow::Borrowed(r) => r.pointer(&get_json_pointer(pointer)).map(|found| Cow::Borrowed(found)),
+        Cow::Owned(ref r) => {
             r.pointer(&get_json_pointer(pointer)).map(|found| Cow::Owned(found.clone()))
         }
     }
