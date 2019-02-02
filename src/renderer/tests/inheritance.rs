@@ -159,6 +159,6 @@ fn render_inheritance_in_included_template() {
     ])
     .unwrap();
 
-    let result = tera.render("base", &Context::new());
+    let result = tera.render("base", Context::new());
     assert_eq!(result.unwrap(), "Base - Parent - Child".to_string());
 }
