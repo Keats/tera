@@ -105,7 +105,7 @@ pub struct Processor<'a> {
     /// Context of the processor, to share with included processors
     context: &'a Value,
     /// The call stack for processing
-    call_stack: CallStack<'a>,
+    call_stack: &'a mut CallStack<'a>,
     /// The macros organised by template and namespaces
     macros: MacroCollection<'a>,
     /// If set, rendering should be escaped
@@ -123,6 +123,7 @@ impl<'a> Processor<'a> {
         tera: &'a Tera,
         context: &'a Value,
         should_escape: bool,
+        call_stack: &'a mut CallStack<'a>
     ) -> Self {
         // Gets the root template if we are rendering something with inheritance or just return
         // the template we're dealing with otherwise
@@ -132,14 +133,12 @@ impl<'a> Processor<'a> {
             .map(|parent| tera.get_template(parent).unwrap())
             .unwrap_or(template);
 
-        let call_stack = CallStack::new(&context, template);
-
         Processor {
             template,
             template_root,
             tera,
-            call_stack,
             context,
+            call_stack,
             macros: MacroCollection::from_original_template(&template, &tera),
             should_escape,
             blocks: Vec::new(),
@@ -802,15 +801,19 @@ impl<'a> Processor<'a> {
             Node::Super => buffer.push_str(&self.do_super()?),
             Node::Include(_, ref tpl_name) => {
                 let template = self.tera.get_template(tpl_name)?;
+                self.macros.add_macros_from_template(&self.tera, template)?;
+                self.call_stack.push_include_frame(tpl_name, template);
                 let result = {
                     let mut processor = Processor::new(
                         template,
                         self.tera,
-                        &self.context,
-                        self.should_escape
+                        self.context,
+                        self.should_escape,
+                        &mut self.call_stack
                     );
                     processor.render()?
                 };
+                self.call_stack.pop();
                 buffer.push_str(&result);
             }
             // TODO: make that a compile time error
