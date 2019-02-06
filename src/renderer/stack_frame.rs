@@ -6,6 +6,7 @@ use serde_json::Value;
 use crate::context::get_json_pointer;
 use crate::renderer::for_loop::ForLoop;
 use crate::template::Template;
+use crate::renderer::call_stack::CallStack;
 
 pub type Val<'a> = Cow<'a, Value>;
 pub type FrameContext<'a> = HashMap<&'a str, Val<'a>>;
@@ -94,11 +95,19 @@ impl<'a> StackFrame<'a> {
         }
     }
 
-    pub fn new_include(name: &'a str, tpl: &'a Template) -> Self {
+    pub fn new_include(name: &'a str, tpl: &'a Template, stack: &'a CallStack) -> Self {
+        let mut ctx = FrameContext::new();
+
+        for frame in stack.frames() {
+            for (key, val) in &frame.context {
+                ctx.insert(key.clone(), Cow::Owned(val.clone().into_owned()));
+            }
+        }
+
         StackFrame {
             kind: FrameType::Include,
             name,
-            context: FrameContext::new(),
+            context: ctx,
             active_template: tpl,
             for_loop: None,
             macro_namespace: None,

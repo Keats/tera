@@ -11,7 +11,6 @@ mod stack_frame;
 use serde_json::value::Value;
 
 use self::processor::Processor;
-use self::call_stack::CallStack;
 use crate::errors::Result;
 use crate::template::Template;
 use crate::tera::Tera;
@@ -49,10 +48,7 @@ impl<'a> Renderer<'a> {
         let output;
 
         {
-            let mut call_stack = CallStack::new(&self.context, &self.template);
-            let mut processor =
-                Processor::new(self.template, self.tera, &self.context, self.should_escape, &mut call_stack);
-
+            let mut processor = Processor::new(self.template, self.tera, &self.context, self.should_escape, None);
             output = processor.render()?;
         }
 

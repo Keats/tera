@@ -64,8 +64,8 @@ impl<'a> CallStack<'a> {
         self.stack.push(StackFrame::new_macro(name, tpl, namespace, context));
     }
 
-    pub fn push_include_frame(&mut self, name: &'a str, tpl: &'a Template) {
-        self.stack.push(StackFrame::new_include(name, tpl));
+    pub fn push_include_frame(&mut self, name: &'a str, tpl: &'a Template, other: &'a Self) {
+        self.stack.push(StackFrame::new_include(name, tpl, other));
     }
 
     /// Returns mutable reference to global `StackFrame`
@@ -231,5 +231,9 @@ impl<'a> CallStack<'a> {
             }
             _ => unreachable!("Had a context that wasn't a map?!"),
         }
+    }
+
+    pub fn frames (&'a self) -> impl Iterator<Item = &'a StackFrame> {
+        self.stack.iter()
     }
 }
