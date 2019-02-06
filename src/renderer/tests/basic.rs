@@ -745,3 +745,16 @@ fn split_on_context_value() {
     let res = tera.render("split.html", context);
     assert_eq!(res.unwrap(), "[multi, ple, lines]");
 }
+
+#[test]
+fn include_frame_variables() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("base", "{% set a = 1  %}{{a}} {% include \"child\" %} {{a}}"),
+        ("child", "{{a}} {% set a = 2 %} {{a}}"),
+    ])
+    .unwrap();
+
+    let result = tera.render("base", Context::new());
+    assert_eq!(result.unwrap(), "1 1  2 1".to_string());
+}
