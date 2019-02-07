@@ -51,8 +51,12 @@ pub struct Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.kind {
-            ErrorKind::Msg(ref message) => write!(f, "{}", message),
+        let Error{ref kind, ref source} = self;
+        match kind {
+            ErrorKind::Msg(ref message) => match source {
+                Some(src) => write!(f, "{}: {}", message, src),
+                None => write!(f, "{}", message)
+            },
             ErrorKind::CircularExtend { ref tpl, ref inheritance_chain } => write!(
                 f,
                 "Circular extend detected for template '{}'. Inheritance chain: `{:?}`",
