@@ -1,0 +1,266 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+/// LITERALS
+int   = @{ "-" ? ~ ("0" | '1'..'9' ~ '0'..'9' * ) }
+float = @{
+    "-" ? ~
+    (
+        "0" ~ "." ~ '0'..'9' + |
+        '1'..'9' ~ '0'..'9' * ~ "." ~ '0'..'9' +
+    )
+}
+// matches anything between 2 double quotes
+double_quoted_string  = @{ "\"" ~ (!("\"") ~ ANY)* ~ "\""}
+// matches anything between 2 single quotes
+single_quoted_string  = @{ "\'" ~ (!("\'") ~ ANY)* ~ "\'"}
+// matches anything between 2 backquotes\backticks
+backquoted_quoted_string  = @{ "`" ~ (!("`") ~ ANY)* ~ "`"}
+
+string = @{
+    double_quoted_string |
+    single_quoted_string |
+    backquoted_quoted_string
+}
+
+boolean = { "true" | "false" | "True" | "False" }
+
+// -----------------------------------------------
+
+/// OPERATORS
+op_or        = @{ "or" ~ WHITESPACE }
+op_and       = @{ "and" ~ WHITESPACE }
+op_not       = @{ "not" ~ WHITESPACE }
+op_lte       = { "<=" }
+op_gte       = { ">=" }
+op_lt        = { "<" }
+op_gt        = { ">" }
+op_eq        = { "==" }
+op_ineq      = { "!=" }
+op_plus      = { "+" }
+op_minus     = { "-" }
+op_times     = { "*" }
+op_slash     = { "/" }
+op_modulo    = { "%" }
+
+// -------------------------------------------------
+
+/// Idents
+
+all_chars = _{'a'..'z' | 'A'..'Z' | "_" | '0'..'9'}
+// Used everywhere where an ident is used, except when accessing
+// data from the context.
+// Eg block name, argument name, macro name etc
+ident = @{
+    ('a'..'z' | 'A'..'Z' | "_") ~
+    all_chars*
+}
+
+// The context_ident used to get data from the context.
+// Same as ident but allows `.` in it
+dotted_ident = @{
+    ('a'..'z' | 'A'..'Z' | "_") ~
+    all_chars* ~
+    ("." ~ all_chars+)*
+}
+
+square_brackets = @{
+    "[" ~ (int | string | dotted_square_bracket_ident) ~ "]"
+}
+
+dotted_square_bracket_ident = @{
+    dotted_ident ~ ( ("." ~ all_chars+) | square_brackets )*
+}
+
+string_concat = { (fn_call | float | int | string | dotted_square_bracket_ident) ~ ("~" ~ (fn_call | float | int | string | dotted_square_bracket_ident))+ }
+
+// ----------------------------------------------------
+
+/// EXPRESSIONS
+/// We'll use precedence climbing on those in the parser phase
+
+// boolean first so they are not caught as identifiers
+basic_val  = _{ boolean | string_concat | test | macro_call | fn_call | dotted_square_bracket_ident | float | int | string }
+basic_op   = _{ op_plus | op_minus | op_times | op_slash | op_modulo }
+basic_expr = { ("(" ~ basic_expr ~ ")" | basic_val) ~ (basic_op ~ basic_val)* }
+basic_expr_filter = { basic_expr ~ filter* }
+
+comparison_val  = { basic_expr_filter ~ (basic_op ~ basic_expr_filter)* }
+comparison_op   = _{ op_lte | op_gte | op_gt | op_lt | op_eq | op_ineq }
+comparison_expr = { comparison_val ~ (comparison_op ~ comparison_val)* }
+
+logic_val  = { op_not? ~ comparison_expr }
+logic_expr = { logic_val ~ ((op_or | op_and) ~ logic_val)* }
+
+array = { "[" ~ (basic_expr_filter ~ ",")* ~ basic_expr_filter? ~ "]"}
+
+// ----------------------------------------------------
+
+/// FUNCTIONS & FILTERS
+
+// A keyword argument: something=10, something="a value", something=1+10 etc
+kwarg   = { ident ~ "=" ~ (logic_expr | array) }
+kwargs  = _{ kwarg ~ ("," ~ kwarg )* }
+fn_call = { ident ~ "(" ~ kwargs? ~ ")" }
+filter  = { "|" ~ (fn_call | ident) }
+
+
+// ------------------------------------------------------
+
+/// MACROS
+
+// A macro argument can have default value, only a literal though
+macro_def_arg   = ${ (ident ~ "=" ~ (boolean | string | float | int)) | ident }
+macro_def_args  = _{ macro_def_arg ~ ("," ~ macro_def_arg)* }
+macro_fn        = _{ ident ~ "(" ~ macro_def_args? ~ ")" }
+macro_call      = { ident ~ "::" ~ ident ~ "(" ~ kwargs? ~ ")" }
+
+
+// -------------------------------------------------------
+
+/// TESTS
+
+// It's a bit weird that tests are the only thing in Tera not using kwargs
+// but at the same time it's one arg most of the time so...
+test_arg  = { logic_expr }
+test_args = !{ test_arg ~ ("," ~ test_arg)* }
+test_call = !{ ident ~ ("(" ~ test_args ~ ")")? }
+test      = { dotted_ident ~ "is" ~ test_call }
+
+// -------------------------------------------------------
+
+/// TERA
+
+// All the blocks that Tera recognises
+variable_start = _{ "{{" }
+variable_end   = _{ "}}" }
+// whitespace control
+tag_start      = { "{%-" | "{%" }
+tag_end        = { "-%}" | "%}" }
+comment_start  = _{ "{#" }
+comment_end    = _{ "#}" }
+block_start    = _{ variable_start | tag_start | comment_start }
+
+
+// Actual tags
+include_tag      = !{ tag_start ~ "include" ~ string ~ tag_end }
+import_macro_tag = !{ tag_start ~ "import" ~ string ~ "as" ~ ident ~ tag_end}
+comment_tag      = !{ comment_start ~ (!comment_end ~ ANY)* ~ comment_end }
+block_tag        = !{ tag_start ~ "block" ~ ident ~ tag_end }
+macro_tag        = !{ tag_start ~ "macro" ~ macro_fn ~ tag_end }
+if_tag           = !{ tag_start ~ "if" ~ logic_expr ~ tag_end }
+elif_tag         = !{ tag_start ~ "elif" ~ logic_expr ~ tag_end }
+else_tag         = !{ tag_start ~ "else" ~ tag_end }
+for_tag          = !{ tag_start ~ "for" ~ ident ~ ("," ~ ident)? ~ "in" ~ (basic_expr_filter | array) ~ tag_end }
+filter_tag       = !{ tag_start ~ "filter" ~ (fn_call | ident) ~ tag_end }
+set_tag          = !{ tag_start ~ "set" ~ ident ~ "=" ~ (logic_expr | array) ~ tag_end }
+set_global_tag   = !{ tag_start ~ "set_global" ~ ident ~ "=" ~ (logic_expr | array) ~ tag_end }
+endblock_tag     = !{ tag_start ~ "endblock" ~ ident? ~ tag_end }
+endmacro_tag     = !{ tag_start ~ "endmacro" ~ ident? ~ tag_end }
+endif_tag        = !{ tag_start ~ "endif" ~ tag_end }
+endfor_tag       = !{ tag_start ~ "endfor" ~ tag_end }
+endfilter_tag    = !{ tag_start ~ "endfilter" ~ tag_end }
+break_tag        = !{ tag_start ~ "break" ~ tag_end }
+continue_tag     = !{ tag_start ~ "continue" ~ tag_end }
+
+variable_tag     = !{ variable_start ~ logic_expr ~ variable_end }
+super_tag        = !{ variable_start ~ "super()" ~ variable_end }
+
+text       = ${ (!(block_start) ~ ANY)+ }
+
+raw_tag    = { tag_start ~ "raw" ~ tag_end }
+endraw_tag = { tag_start ~ "endraw" ~ tag_end }
+raw_text   = { (!endraw_tag ~ ANY)* }
+raw        = !{ raw_tag ~ raw_text ~ endraw_tag }
+
+filter_section = !{ filter_tag ~ filter_section_content* ~ endfilter_tag }
+
+forloop = ${ for_tag ~ for_content* ~ endfor_tag }
+
+macro_if          = ${ if_tag ~ macro_content* ~ (elif_tag ~ macro_content*)* ~ (else_tag ~ macro_content*)? ~ endif_tag }
+block_if          = ${ if_tag ~ block_content* ~ (elif_tag ~ block_content*)* ~ (else_tag ~ block_content*)? ~ endif_tag }
+for_if            = ${ if_tag ~ for_content* ~ (elif_tag ~ for_content*)* ~ (else_tag ~ for_content*)? ~ endif_tag }
+filter_section_if = ${ if_tag ~ filter_section_content* ~ (elif_tag ~ filter_section_content*)* ~ (else_tag ~ filter_section_content*)? ~ endif_tag }
+content_if        = ${ if_tag ~ content* ~ (elif_tag ~ content*)* ~ (else_tag ~ content*)? ~ endif_tag }
+
+block            = ${ block_tag ~ block_content* ~ endblock_tag }
+macro_definition = ${ macro_tag ~ macro_content* ~ endmacro_tag }
+
+filter_section_content = @{
+    include_tag |
+    variable_tag |
+    comment_tag |
+    set_tag |
+    set_global_tag |
+    forloop |
+    filter_section_if |
+    raw |
+    filter_section |
+    text
+}
+
+// smaller sets of allowed content in macros
+macro_content = @{
+    include_tag |
+    variable_tag |
+    comment_tag |
+    set_tag |
+    set_global_tag |
+    macro_if |
+    forloop |
+    filter_section |
+    raw |
+    text
+}
+
+// smaller set of allowed content in block
+block_content = @{
+    include_tag |
+    super_tag |
+    variable_tag |
+    comment_tag |
+    set_tag |
+    set_global_tag |
+    block |
+    block_if |
+    forloop |
+    filter_section |
+    raw |
+    text
+}
+
+// set of allowed content inside for loops
+for_content = @{
+    include_tag |
+    variable_tag |
+    comment_tag |
+    set_tag |
+    set_global_tag |
+    for_if |
+    forloop |
+    break_tag |
+    continue_tag |
+    filter_section |
+    raw |
+    text
+}
+
+content = @{
+    include_tag |
+    import_macro_tag |
+    variable_tag |
+    comment_tag |
+    set_tag |
+    set_global_tag |
+    macro_definition |
+    block |
+    content_if |
+    forloop |
+    filter_section |
+    raw |
+    text
+}
+
+extends_tag = !{ tag_start ~ "extends" ~ string ~ tag_end }
+
+// top level rule
+template = ${ SOI ~ comment_tag* ~ extends_tag? ~ content* ~ EOI }

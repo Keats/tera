@@ -1,5 +1,162 @@
 # Changelog
 
+## 0.11.20 (2018-11-14)
+
+- Fix bugs in `filter` and `get` filters
+
+## 0.11.19 (2018-10-31)
+
+- Allow function calls in math expressions
+- Allow string concatenation to start with a number
+- Allow function calls in string concatenations
+- Add a `concat` filter to concat arrays or push an element to an array
+
+## 0.11.18 (2018-10-16)
+
+- Allow concatenation of strings and numbers
+
+## 0.11.17 (2018-10-09)
+
+- Clear local context on each forloop iteration
+- Fix variable lookup with `.` that was completely wrong
+- Now requires Rust 1.26 because of some dependencies update
+
+## 0.11.16 (2018-09-12)
+
+- Fix `set`/`set_global` not working correctly in macros
+- Deprecate `register_global_function` for `register_function`
+
+## 0.11.15 (2018-09-09)
+
+- Remove invalid `unreachable!` call causing panic in some combination or for loop and specific filters
+- Fix macros loading in parent templates and using them in child ones
+- Fix macros loading other macros not working when called in inheritance
+- Mark `Context::add` as deprecated and do not display it in the docs anymore (aka TIL the `deprecated` attribute)
+- Fix `__tera_context` not getting all the available context (`set`, `forloop` etc)
+- Better error message when variable indexing fails
+
+## 0.11.14 (2018-09-02)
+
+- Remove stray println
+
+## 0.11.13 (2018-09-02)
+
+- Add `as_str` filter
+- Way fewer allocations and significant speedup (2-5x) for templates with large objects/loops
+- Checks that all macro files are accounted for at compile time and errors if it's not the case
+
+## 0.11.12 (2018-08-04)
+
+- `filter` filter was not properly registered (╯°□°）╯︵ ┻━┻
+
+## 0.11.11 (2018-08-01)
+
+- `truncate` filter now works correctly on multichar graphemes
+
+## 0.11.10 (2018-08-01)
+
+- Add a `throw` global function to fail rendering from inside a template
+
+## 0.11.9 (2018-07-16)
+
+- Add a `matching` tester
+- Register `now` global function so it is available
+- Update `error-chain`
+
+## 0.11.8 (2018-06-20)
+
+- Add `True` and `False` as boolean values to match Python
+- Allow user to define their own escape function, if you want to generate JSON for example
+- Add `end` argument to the `truncate` filter to override the default ellipsis
+- Add a `group_by` filter
+- Add a `filter` filter
+- Add the `~` operator to concatenate strings
+- Add a `now` global function to get local and UTC datetimes
+- Add feature to enable the `preserve_order` feature of serde_json
+- Less confusing behaviour with math arithmetics
+
+## 0.11.7 (2018-04-24)
+
+- Add array literal instantiation from inside Tera for set, set_global, kwargs
+and for loop container
+- Fix panic on truncate filter
+
+## 0.11.6 (2018-03-25)
+
+- Add `break` and `continue` to forloops
+- Fix strings delimited by single quote and backtick not removing the delimiters
+
+
+## 0.11.5 (2018-03-01)
+
+- Re-export `serde_json::Number` as well
+
+## 0.11.4 (2018-02-28)
+
+- Re-export `serde_json::Map` as well
+- You can now access inside a variable using index notation: `{{ arr[0] }}`, `{{ arr[idx] }}` etc
+thanks to @bootandy
+- Add `Context::insert` identical to `Context::add` to mirror Rust HashMap/BTreeMap syntax
+
+
+## 0.11.3 (2018-02-15)
+
+- Add a `slice` filter for arrays
+- Fix macro files importing other macro files not loading properly
+- Fix forloop container being allowed logic expressions
+- Much improved parsing error messages
+
+## 0.11.2 (2018-02-01)
+
+- Fix regression when including templates that import macros
+- Fix `pluralize` filter for real this time!
+
+## 0.11.1 (2018-01-25)
+
+- Fix regression with expressions in comparisons
+
+## 0.11.0 (2018-01-22)
+
+### Breaking changes
+
+- Tests parentheses are now mandatory if there are arguments (`divisibleby 2` -> `divisibleby(2)`)
+- Tests can be only used on variables now, not on expressions
+- Escaping happens immediately now instead of waiting for the filters to be called, unless `safe` is first.
+If you want the old behaviour you will need to start the a chain of filters with `| safe` as the first one
+
+### Others
+
+- Tests, global functions calls and macro calls are now expressions and can be combined like so: `if x is divisibleby(2) and x > 10`
+- Add default arguments for macro arguments
+- Add whitespace management similar to Liquid and Jinja2
+- Add parentheses to expressions to remove ambiguities
+- Block & macro end tag name are no longer mandatory and it doesn't error on mismatched names between
+the start and end tag anymore
+- Filters can now be applied to expressions
+- Add modulo operator `%` for math expressions
+- Allow comment tags before the extend tag
+- Make `NaiveDateTime` work with the `date` filter
+- `pluralize` filter now returns the plural suffix for 0 thing as it's apparently what English does
+- Add a `set_global` tag that allows you to set something in the global context: meant to be used in forloops where
+the normal `set` would put the value into the loop context
+- Add `starting_with`, `ending_with` and `containing` tests
+- Add `json_encode`, `default` and `sort` filters
+- Strings can now also be contained in backticks and single quotes in templates
+
+## 0.10.10 (2017-08-24)
+
+- Add `Tera::parse` for some niche use-cases
+
+## 0.10.9 (2017-08-02)
+
+- Handle path to templates starting with "./"
+- Fix loop and macro context overlaps
+- Fix variables being escaped when given to `set` or as arguments to filters/macros/global fns
+
+## 0.10.8 (2017-06-24)
+
+- Update chrono
+
 ## 0.10.7 (2017-06-16)
 
 - Fix not being able to use variables starting with `or`, `and` and `not`
@@ -186,7 +343,7 @@ Thanks to @SergioBenitez and @andrelmartins for the contributions!
 - Added filters, see README for current list
 - Added tests, only `defined` for now
 
-Thanks to @SergioBenitez, @orhanbalci, @foophoof and @Peternator7 for the 
+Thanks to @SergioBenitez, @orhanbalci, @foophoof and @Peternator7 for the
 contribution!
 
 ## 0.1.3 (2016/08/14)

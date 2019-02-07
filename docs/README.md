@@ -1,8 +1,4 @@
 # Tera documentation
 
-Uses the latest version of Gutenberg
-
-## Setup
-```bash
-$ yarn install
-```
+Uses [Gutenberg](https://www.getgutenberg.io/), see `netlify.toml` for
+the exact version

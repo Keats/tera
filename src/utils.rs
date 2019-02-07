@@ -6,13 +6,15 @@
 /// significant in XML (&, <, >, ", '), the forward slash is included as it helps
 /// to end an HTML entity.
 ///
+/// ```text
 /// & --> &amp;
 /// < --> &lt;
 /// > --> &gt;
 /// " --> &quot;
 /// ' --> &#x27;     &apos; is not recommended
 /// / --> &#x2F;     forward slash is included as it helps end an HTML entity
-#[inline]
+/// ```
+#[inline] // TODO: check if the inline matters in benches
 pub fn escape_html(input: &str) -> String {
     let mut output = String::with_capacity(input.len() * 2);
     for c in input.chars() {
@@ -26,7 +28,7 @@ pub fn escape_html(input: &str) -> String {
             // Additional one for old IE (unpatched IE8 and below)
             // See https://github.com/OWASP/owasp-java-encoder/wiki/Grave-Accent-Issue
             '`' => output.push_str("&#96;"),
-            _ => output.push(c)
+            _ => output.push(c),
         }
     }
 
@@ -34,10 +36,9 @@ pub fn escape_html(input: &str) -> String {
     output
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::{escape_html};
+    use super::escape_html;
 
     #[test]
     fn test_escape_html() {

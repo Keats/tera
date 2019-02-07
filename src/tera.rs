@@ -1,20 +1,23 @@
 use std::collections::HashMap;
-use std::io::prelude::*;
-use std::fs::File;
 use std::fmt;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
 
 use glob::glob;
 use serde::Serialize;
 use serde_json::value::to_value;
 
-use template::Template;
-use filters::{FilterFn, string, array, common, number, object};
+use builtins::filters::{array, common, number, object, string, FilterFn};
+use builtins::functions::{self, GlobalFn};
+use builtins::testers::{self, TesterFn};
 use errors::{Result, ResultExt};
-use render::Renderer;
-use testers::{self, TesterFn};
-use global_functions::{self, GlobalFn};
+use renderer::Renderer;
+use template::Template;
+use utils::escape_html;
 
+/// The escape function type definition
+pub type EscapeFn = fn(&str) -> String;
 
 /// The main point of interaction in this library.
 pub struct Tera {
@@ -33,14 +36,42 @@ pub struct Tera {
     // Defaults to [".html", ".htm", ".xml"]
     #[doc(hidden)]
     pub autoescape_suffixes: Vec<&'static str>,
+    #[doc(hidden)]
+    escape_fn: EscapeFn,
 }
 
 impl Tera {
+    fn create(dir: &str, parse_only: bool) -> Result<Tera> {
+        if dir.find('*').is_none() {
+            bail!("Tera expects a glob as input, no * were found in `{}`", dir);
+        }
+
+        let mut tera = Tera {
+            glob: Some(dir.to_string()),
+            templates: HashMap::new(),
+            filters: HashMap::new(),
+            global_functions: HashMap::new(),
+            testers: HashMap::new(),
+            autoescape_suffixes: vec![".html", ".htm", ".xml"],
+            escape_fn: escape_html,
+        };
+
+        tera.load_from_glob()?;
+        if !parse_only {
+            tera.build_inheritance_chains()?;
+            tera.check_macro_files()?;
+        }
+        tera.register_tera_filters();
+        tera.register_tera_testers();
+        tera.register_tera_functions();
+        Ok(tera)
+    }
+
     /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
     ///
     /// The example below is what the [compile_templates](macro.compile_templates.html) macros expands to.
     ///
-    /// ```rust,ignore
+    ///```ignore
     ///match Tera::new("templates/**/*") {
     ///    Ok(t) => t,
     ///    Err(e) => {
@@ -48,28 +79,30 @@ impl Tera {
     ///        ::std::process::exit(1);
     ///    }
     ///}
-    /// ```
+    ///```
     pub fn new(dir: &str) -> Result<Tera> {
-        if dir.find('*').is_none() {
-            bail!("Tera expects a glob as input, no * were found in `{}`", dir);
-        }
-        let mut tera = Tera {
-            glob: Some(dir.to_string()),
-            templates: HashMap::new(),
-            filters: HashMap::new(),
-            global_functions: HashMap::new(),
-            testers: HashMap::new(),
-            autoescape_suffixes: vec![".html", ".htm", ".xml"]
-        };
-
-        tera.load_from_glob()?;
-        tera.build_inheritance_chains()?;
-        tera.register_tera_filters();
-        tera.register_tera_testers();
-        tera.register_tera_global_functions();
-        Ok(tera)
+        Self::create(dir, false)
     }
 
+    /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
+    /// The difference with `Tera::new` is that it won't build the inheritance chains automatically
+    /// so you are free to modify the templates if you need to.
+    /// You will NOT get a working Tera instance using `Tera::parse`, you will need to call
+    /// `tera.build_inheritance_chains()` to make it usable
+    ///
+    ///```ignore
+    ///let mut tera = match Tera::parse("templates/**/*") {
+    ///    Ok(t) => t,
+    ///    Err(e) => {
+    ///        println!("Parsing error(s): {}", e);
+    ///        ::std::process::exit(1);
+    ///    }
+    ///};
+    ///tera.build_inheritance_chains()?;
+    ///```
+    pub fn parse(dir: &str) -> Result<Tera> {
+        Self::create(dir, true)
+    }
 
     /// Loads all the templates found in the glob that was given to Tera::new
     fn load_from_glob(&mut self) -> Result<()> {
@@ -78,7 +111,8 @@ impl Tera {
         }
         // We want to preserve templates that have been added through
         // Tera::extend so we only keep those
-        self.templates = self.templates
+        self.templates = self
+            .templates
             .iter()
             .filter(|&(_, t)| t.from_extend)
             .map(|(n, t)| (n.clone(), t.clone())) // TODO: avoid that clone
@@ -94,9 +128,13 @@ impl Tera {
             if path.is_file() {
                 // We clean the filename by removing the dir given
                 // to Tera so users don't have to prefix everytime
-                let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
+                let mut parent_dir = dir.split_at(dir.find('*').unwrap()).0;
+                // Remove `./` from the glob if used as it would cause an error in strip_prefix
+                if parent_dir.starts_with("./") {
+                    parent_dir = &parent_dir[2..];
+                }
                 let filepath = path
-                    .strip_prefix(parent_dir)
+                    .strip_prefix(&parent_dir)
                     .unwrap()
                     .to_string_lossy()
                     // unify on forward slash
@@ -105,7 +143,7 @@ impl Tera {
                 if let Err(e) = self.add_file(Some(&filepath), path) {
                     errors += &format!("\n* {}", e);
                     for e in e.iter().skip(1) {
-                        errors += &format!("\n-- {}", e);
+                        errors += &format!("\n{}", e);
                     }
                 }
             }
@@ -123,14 +161,17 @@ impl Tera {
     // inheritance chains.
     fn add_file<P: AsRef<Path>>(&mut self, name: Option<&str>, path: P) -> Result<()> {
         let path = path.as_ref();
-        let tpl_name = if let Some(n) = name { n } else { path.to_str().unwrap() };
+        let tpl_name = name.unwrap_or_else(|| path.to_str().unwrap());
 
-        let mut f = File::open(path).chain_err(|| format!("Couldn't open template '{:?}'", path))?;
+        let mut f =
+            File::open(path).chain_err(|| format!("Couldn't open template '{:?}'", path))?;
+
         let mut input = String::new();
-        f.read_to_string(&mut input).chain_err(|| format!("Failed to read template '{:?}'", path))?;
+        f.read_to_string(&mut input)
+            .chain_err(|| format!("Failed to read template '{:?}'", path))?;
 
         let tpl = Template::new(tpl_name, Some(path.to_str().unwrap().to_string()), &input)
-            .chain_err(|| format!("Failed to parse '{:?}'", path))?;
+            .chain_err(|| format!("Failed to parse {:?}", path))?;
 
         self.templates.insert(tpl_name.to_string(), tpl);
         Ok(())
@@ -143,32 +184,36 @@ impl Tera {
     /// It also builds the block inheritance chain and detects when super() is called in a place
     /// where it can't possibly work
     ///
-    /// Only public for benchmark reasons, do not use
-    #[doc(hidden)]
+    /// You generally don't need to call that yourself, unless you used `Tera::parse`
     pub fn build_inheritance_chains(&mut self) -> Result<()> {
         // Recursive fn that finds all the parents and put them in an ordered Vec from closest to first parent
         // parent template
-        fn build_chain(templates: &HashMap<String, Template>, start: &Template, template: &Template, mut parents: Vec<String>) -> Result<Vec<String>> {
+        fn build_chain(
+            templates: &HashMap<String, Template>,
+            start: &Template,
+            template: &Template,
+            mut parents: Vec<String>,
+        ) -> Result<Vec<String>> {
             if !parents.is_empty() && start.name == template.name {
-                bail!("Circular extend detected for template '{}'. Inheritance chain: `{:?}`", start.name, parents);
+                bail!(
+                    "Circular extend detected for template '{}'. Inheritance chain: `{:?}`",
+                    start.name,
+                    parents,
+                );
             }
 
             match template.parent {
-                Some(ref p) => {
-                    match templates.get(p) {
-                        Some(parent) => {
-                            parents.push(parent.name.clone());
-                            build_chain(templates, start, parent, parents)
-                        },
-                        None => {
-                            bail!(
-                                "Template '{}' is inheriting from '{}', which doesn't exist or isn't loaded.",
-                                template.name, p
-                            );
-                        }
+                Some(ref p) => match templates.get(p) {
+                    Some(parent) => {
+                        parents.push(parent.name.clone());
+                        build_chain(templates, start, parent, parents)
                     }
+                    None => bail!(
+                        "Template '{}' is inheriting from '{}', which doesn't exist or isn't loaded.",
+                        template.name, p,
+                    ),
                 },
-                None => Ok(parents)
+                None => Ok(parents),
             }
         }
 
@@ -189,8 +234,12 @@ impl Tera {
 
                 // and then see if our parents have it
                 for parent in &parents {
-                    let t = self.get_template(parent)
-                        .chain_err(|| format!("Couldn't find template {} while building inheritance chains", parent))?;
+                    let t = self.get_template(parent).chain_err(|| {
+                        format!(
+                            "Couldn't find template {} while building inheritance chains",
+                            parent,
+                        )
+                    })?;
 
                     if let Some(b) = t.blocks.get(block_name) {
                         definitions.push((t.name.clone(), b.clone()));
@@ -221,6 +270,26 @@ impl Tera {
         Ok(())
     }
 
+    /// We keep track of macro files loaded in each Template so we can know whether one or them
+    /// is missing and error accordingly before the user tries to render a template.
+    ///
+    /// As with `self::build_inheritance_chains`, you don't usually need to call that yourself.
+    pub fn check_macro_files(&self) -> Result<()> {
+        for template in self.templates.values() {
+            for &(ref tpl_name, _) in &template.imported_macro_files {
+                if !self.templates.contains_key(tpl_name) {
+                    bail!(
+                        "Template `{}` loads macros from `{}` which isn't present in Tera",
+                        template.name,
+                        tpl_name
+                    );
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Renders a Tera template given an object that implements `Serialize`.
     ///
     /// To render a template with an empty context, simply pass a new `Context` object
@@ -230,7 +299,7 @@ impl Tera {
     /// ```rust,ignore
     /// // Rendering a template with a normal context
     /// let mut context = Context::new();
-    /// context.add("age", 18);
+    /// context.insert("age", 18);
     /// tera.render("hello.html", &context);
     /// // Rendering a template with a struct that impl `Serialize`
     /// tera.render("hello.html", &product);
@@ -248,7 +317,7 @@ impl Tera {
         }
 
         let template = self.get_template(template_name)?;
-        let mut renderer = Renderer::new(template, self, value);
+        let renderer = Renderer::new(template, self, value);
         renderer.render()
     }
 
@@ -262,7 +331,7 @@ impl Tera {
     ///
     /// ```rust,ignore
     /// let mut context = Context::new();
-    /// context.add("greeting", &"hello");
+    /// context.insert("greeting", &"hello");
     /// Tera::one_off("{{ greeting }} world", &context, true);
     /// // Or with a struct that impl Serialize
     /// Tera::one_off("{{ greeting }} world", &user, true);
@@ -300,6 +369,7 @@ impl Tera {
             .chain_err(|| format!("Failed to parse '{}'", name))?;
         self.templates.insert(name.to_string(), tpl);
         self.build_inheritance_chains()?;
+        self.check_macro_files()?;
         Ok(())
     }
 
@@ -314,16 +384,16 @@ impl Tera {
     ///     ("new2.html", "hello"),
     /// ]);
     /// ```
-    pub fn add_raw_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()>  {
+    pub fn add_raw_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()> {
         for (name, content) in templates {
             let tpl = Template::new(name, None, content)
                 .chain_err(|| format!("Failed to parse '{}'", name))?;
-            self.templates.insert(name.to_string(),tpl);
+            self.templates.insert(name.to_string(), tpl);
         }
         self.build_inheritance_chains()?;
+        self.check_macro_files()?;
         Ok(())
     }
-
 
     /// Add a single template from a path to the Tera instance. The default name for the template is
     /// the path given, but this can be renamed with the `name` parameter
@@ -341,6 +411,7 @@ impl Tera {
     pub fn add_template_file<P: AsRef<Path>>(&mut self, path: P, name: Option<&str>) -> Result<()> {
         self.add_file(name, path)?;
         self.build_inheritance_chains()?;
+        self.check_macro_files()?;
         Ok(())
     }
 
@@ -356,11 +427,15 @@ impl Tera {
     ///     (path2, Some("hey")), // this template will have `hey` as name
     /// ]);
     /// ```
-    pub fn add_template_files<P: AsRef<Path>>(&mut self, files: Vec<(P, Option<&str>)>) -> Result<()>  {
+    pub fn add_template_files<P: AsRef<Path>>(
+        &mut self,
+        files: Vec<(P, Option<&str>)>,
+    ) -> Result<()> {
         for (path, name) in files {
             self.add_file(name, path)?;
         }
         self.build_inheritance_chains()?;
+        self.check_macro_files()?;
         Ok(())
     }
 
@@ -406,6 +481,7 @@ impl Tera {
 
     #[doc(hidden)]
     #[inline]
+    #[deprecated(since = "0.11.16", note = "Use `get_function` instead")]
     pub fn get_global_function(&self, fn_name: &str) -> Result<&GlobalFn> {
         match self.global_functions.get(fn_name) {
             Some(t) => Ok(t),
@@ -413,6 +489,14 @@ impl Tera {
         }
     }
 
+    #[doc(hidden)]
+    #[inline]
+    pub fn get_function(&self, fn_name: &str) -> Result<&GlobalFn> {
+        match self.global_functions.get(fn_name) {
+            Some(t) => Ok(t),
+            None => bail!("Global function '{}' not found", fn_name),
+        }
+    }
     /// Register a global function with Tera.
     ///
     /// If a global function with that name already exists, it will be overwritten
@@ -420,7 +504,19 @@ impl Tera {
     /// ```rust,ignore
     /// tera.register_global_function("range", range);
     /// ```
+    #[deprecated(since = "0.11.16", note = "Use `register_function` instead")]
     pub fn register_global_function(&mut self, name: &str, function: GlobalFn) {
+        self.global_functions.insert(name.to_string(), function);
+    }
+
+    /// Register a function with Tera.
+    ///
+    /// If a function with that name already exists, it will be overwritten
+    ///
+    /// ```rust,ignore
+    /// tera.register_function("range", range);
+    /// ```
+    pub fn register_function(&mut self, name: &str, function: GlobalFn) {
         self.global_functions.insert(name.to_string(), function);
     }
 
@@ -438,10 +534,16 @@ impl Tera {
         self.register_filter("escape", string::escape_html);
         self.register_filter("slugify", string::slugify);
         self.register_filter("addslashes", string::addslashes);
+        self.register_filter("split", string::split);
 
         self.register_filter("first", array::first);
         self.register_filter("last", array::last);
         self.register_filter("join", array::join);
+        self.register_filter("sort", array::sort);
+        self.register_filter("slice", array::slice);
+        self.register_filter("group_by", array::group_by);
+        self.register_filter("filter", array::filter);
+        self.register_filter("concat", array::concat);
 
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
@@ -450,6 +552,8 @@ impl Tera {
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
         self.register_filter("date", common::date);
+        self.register_filter("json_encode", common::json_encode);
+        self.register_filter("as_str", common::as_str);
 
         self.register_filter("get", object::get);
     }
@@ -463,10 +567,16 @@ impl Tera {
         self.register_tester("number", testers::number);
         self.register_tester("divisibleby", testers::divisible_by);
         self.register_tester("iterable", testers::iterable);
+        self.register_tester("starting_with", testers::starting_with);
+        self.register_tester("ending_with", testers::ending_with);
+        self.register_tester("containing", testers::containing);
+        self.register_tester("matching", testers::matching);
     }
 
-    fn register_tera_global_functions(&mut self) {
-        self.register_global_function("range", global_functions::make_range_fn());
+    fn register_tera_functions(&mut self) {
+        self.register_function("range", functions::make_range_fn());
+        self.register_function("now", functions::make_now_fn());
+        self.register_function("throw", functions::make_throw_fn());
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on,
@@ -475,16 +585,44 @@ impl Tera {
     /// Only call this function if you wish to change the defaults.
     ///
     ///
-    /// ```rust,ignore
+    ///```ignore
     /// // escape only files ending with `.php.html`
     /// tera.autoescape_on(vec![".php.html"]);
     /// // disable autoescaping completely
     /// tera.autoescape_on(vec![]);
-    /// ```
+    ///```
     pub fn autoescape_on(&mut self, suffixes: Vec<&'static str>) {
         self.autoescape_suffixes = suffixes;
     }
 
+    #[doc(hidden)]
+    #[inline]
+    pub fn get_escape_fn(&self) -> &EscapeFn {
+        &self.escape_fn
+    }
+
+    /// Set user-defined function which applied to a rendered content.
+    ///
+    ///```rust,ignore
+    /// fn escape_c_string(input: &str) -> String { ... }
+    ///
+    /// // make valid C string literal
+    /// tera.set_escape_fn(escape_c_string);
+    /// tera.add_raw_template("foo", "\"{{ content }}\"").unwrap();
+    /// tera.autoescape_on(vec!["foo"]);
+    /// let mut context = Context::new();
+    /// context.insert("content", &"Hello\n\'world\"!");
+    /// let result = tera.render("foo", &context).unwrap();
+    /// assert_eq!(result, r#""Hello\n\'world\"!""#);
+    ///```
+    pub fn set_escape_fn(&mut self, function: EscapeFn) {
+        self.escape_fn = function;
+    }
+
+    /// Reset escape function to default `tera::escape_html`.
+    pub fn reset_escape_fn(&mut self) {
+        self.escape_fn = escape_html;
+    }
 
     /// Re-parse all templates found in the glob given to Tera
     /// Use this when you are watching a directory and want to reload everything,
@@ -499,18 +637,19 @@ impl Tera {
             bail!("Reloading is only available if you are using a glob");
         }
 
-        self.build_inheritance_chains()
+        self.build_inheritance_chains()?;
+        self.check_macro_files()
     }
 
     /// Use that method when you want to add a given Tera instance templates/filters/testers
     /// to your own. If a template/filter/tester with the same name already exists in your instance,
     /// it will not be overwritten.
     ///
-    /// ```rust,ignore
+    ///```rust,ignore
     /// // add all the templates from FRAMEWORK_TERA
     /// // except the ones that have an identical name to the ones in `my_tera`
     /// my_tera.extend(&FRAMEWORK_TERA);
-    /// ```
+    ///```
     pub fn extend(&mut self, other: &Tera) -> Result<()> {
         for (name, template) in &other.templates {
             if !self.templates.contains_key(name) {
@@ -532,7 +671,8 @@ impl Tera {
             }
         }
 
-        self.build_inheritance_chains()
+        self.build_inheritance_chains()?;
+        self.check_macro_files()
     }
 }
 
@@ -544,12 +684,13 @@ impl Default for Tera {
             filters: HashMap::new(),
             testers: HashMap::new(),
             global_functions: HashMap::new(),
-            autoescape_suffixes: vec![".html", ".htm", ".xml"]
+            autoescape_suffixes: vec![".html", ".htm", ".xml"],
+            escape_fn: escape_html,
         };
 
         tera.register_tera_filters();
         tera.register_tera_testers();
-        tera.register_tera_global_functions();
+        tera.register_tera_functions();
         tera
     }
 }
@@ -557,33 +698,33 @@ impl Default for Tera {
 // Needs a manual implementation since borrows in Fn's don't implement Debug.
 impl fmt::Debug for Tera {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Tera {}", "{")?;
-        write!(f, "\n\ttemplates: [\n")?;
+        write!(f, "Tera {{")?;
+        writeln!(f, "\n\ttemplates: [")?;
 
         for template in self.templates.keys() {
             writeln!(f, "\t\t{},", template)?;
         }
         write!(f, "\t]")?;
-        write!(f, "\n\tfilters: [\n")?;
+        writeln!(f, "\n\tfilters: [")?;
 
         for filter in self.filters.keys() {
             writeln!(f, "\t\t{},", filter)?;
         }
         write!(f, "\t]")?;
-        write!(f, "\n\ttesters: [\n")?;
+        writeln!(f, "\n\ttesters: [")?;
 
         for tester in self.testers.keys() {
             writeln!(f, "\t\t{},", tester)?;
         }
-        write!(f, "\t]\n")?;
+        writeln!(f, "\t]")?;
 
-        writeln!(f, "{}", "}")
+        writeln!(f, "}}")
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Tera};
+    use super::Tera;
     use context::Context;
     use serde_json::{Map as JsonObject, Value as JsonValue};
 
@@ -595,27 +736,19 @@ mod tests {
             ("b", "{% extends \"c\" %}"),
             ("c", "{% extends \"d\" %}"),
             ("d", ""),
-        ]).unwrap();
+        ])
+        .unwrap();
 
         assert_eq!(
             tera.get_template("a").unwrap().parents,
             vec!["b".to_string(), "c".to_string(), "d".to_string()]
         );
 
-        assert_eq!(
-            tera.get_template("b").unwrap().parents,
-            vec!["c".to_string(), "d".to_string()]
-        );
+        assert_eq!(tera.get_template("b").unwrap().parents, vec!["c".to_string(), "d".to_string()]);
 
-        assert_eq!(
-            tera.get_template("c").unwrap().parents,
-            vec!["d".to_string()]
-        );
+        assert_eq!(tera.get_template("c").unwrap().parents, vec!["d".to_string()]);
 
-        assert_eq!(
-            tera.get_template("d").unwrap().parents.len(),
-            0
-        );
+        assert_eq!(tera.get_template("d").unwrap().parents.len(), 0);
     }
 
     #[test]
@@ -630,10 +763,9 @@ mod tests {
     #[test]
     fn test_circular_extends() {
         let mut tera = Tera::default();
-        let err = tera.add_raw_templates(vec![
-            ("a", "{% extends \"b\" %}"),
-            ("b", "{% extends \"a\" %}"),
-        ]).unwrap_err();
+        let err = tera
+            .add_raw_templates(vec![("a", "{% extends \"b\" %}"), ("b", "{% extends \"a\" %}")])
+            .unwrap_err();
 
         assert!(err.description().contains("Circular extend detected for template"));
     }
@@ -642,14 +774,26 @@ mod tests {
     fn test_get_parent_blocks_definition() {
         let mut tera = Tera::default();
         tera.add_raw_templates(vec![
-            ("grandparent", "{% block hey %}hello{% endblock hey %} {% block ending %}sincerely{% endblock ending %}"),
-            ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }}{% endblock hey %}"),
-            ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
+            (
+                "grandparent",
+                "{% block hey %}hello{% endblock hey %} {% block ending %}sincerely{% endblock ending %}",
+            ),
+            (
+                "parent",
+                "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }}{% endblock hey %}",
+            ),
+            (
+                "child",
+                "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}",
+            ),
         ]).unwrap();
 
-        let hey_definitions = tera.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
+        let hey_definitions =
+            tera.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
         assert_eq!(hey_definitions.len(), 3);
-        let ending_definitions = tera.get_template("child").unwrap().blocks_definitions.get("ending").unwrap();
+
+        let ending_definitions =
+            tera.get_template("child").unwrap().blocks_definitions.get("ending").unwrap();
         assert_eq!(ending_definitions.len(), 2);
     }
 
@@ -658,21 +802,30 @@ mod tests {
         let mut tera = Tera::default();
         tera.add_raw_templates(vec![
             ("grandparent", "{% block hey %}hello{% endblock hey %}"),
-            ("parent", "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}"),
-            ("child", "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}"),
+            (
+                "parent",
+                "{% extends \"grandparent\" %}{% block hey %}hi and grandma says {{ super() }} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}",
+            ),
+            (
+                "child",
+                "{% extends \"parent\" %}{% block hey %}dad says {{ super() }}{% endblock hey %}{% block ending %}{{ super() }} with love{% endblock ending %}",
+            ),
         ]).unwrap();
 
-        let hey_definitions = tera.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
+        let hey_definitions =
+            tera.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
         assert_eq!(hey_definitions.len(), 3);
-        let ending_definitions = tera.get_template("parent").unwrap().blocks_definitions.get("ending").unwrap();
+
+        let ending_definitions =
+            tera.get_template("parent").unwrap().blocks_definitions.get("ending").unwrap();
         assert_eq!(ending_definitions.len(), 1);
     }
 
     #[test]
     fn test_can_autoescape_one_off_template() {
         let mut context = Context::new();
-        context.add("greeting", &"<p>");
-        let result = Tera::one_off("{{ greeting }} world",& context, true).unwrap();
+        context.insert("greeting", &"<p>");
+        let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "&lt;p&gt; world");
     }
@@ -680,10 +833,51 @@ mod tests {
     #[test]
     fn test_can_disable_autoescape_one_off_template() {
         let mut context = Context::new();
-        context.add("greeting", &"<p>");
+        context.insert("greeting", &"<p>");
         let result = Tera::one_off("{{ greeting }} world", &context, false).unwrap();
 
         assert_eq!(result, "<p> world");
+    }
+
+    #[test]
+    fn test_set_escape_function() {
+        let escape_c_string: super::EscapeFn = |input| {
+            let mut output = String::with_capacity(input.len() * 2);
+            for c in input.chars() {
+                match c {
+                    '\'' => output.push_str("\\'"),
+                    '\"' => output.push_str("\\\""),
+                    '\\' => output.push_str("\\\\"),
+                    '\n' => output.push_str("\\n"),
+                    '\r' => output.push_str("\\r"),
+                    '\t' => output.push_str("\\t"),
+                    _ => output.push(c),
+                }
+            }
+            output
+        };
+        let mut tera = Tera::default();
+        tera.add_raw_template("foo", "\"{{ content }}\"").unwrap();
+        tera.autoescape_on(vec!["foo"]);
+        tera.set_escape_fn(escape_c_string);
+        let mut context = Context::new();
+        context.insert("content", &"Hello\n\'world\"!");
+        let result = tera.render("foo", &context).unwrap();
+        assert_eq!(result, r#""Hello\n\'world\"!""#);
+    }
+
+    #[test]
+    fn test_reset_escape_function() {
+        let no_escape: super::EscapeFn = |input| input.to_string();
+        let mut tera = Tera::default();
+        tera.add_raw_template("foo", "{{ content }}").unwrap();
+        tera.autoescape_on(vec!["foo"]);
+        tera.set_escape_fn(no_escape);
+        tera.reset_escape_fn();
+        let mut context = Context::new();
+        context.insert("content", &"Hello\n\'world\"!");
+        let result = tera.render("foo", &context).unwrap();
+        assert_eq!(result, "Hello\n&#x27;world&quot;!");
     }
 
     #[test]
@@ -698,16 +892,16 @@ mod tests {
     #[test]
     fn test_extend_no_overlap() {
         let mut my_tera = Tera::default();
-        my_tera.add_raw_templates(vec![
-            ("one", "{% block hey %}1{% endblock hey %}"),
-            ("two", "{% block hey %}2{% endblock hey %}"),
-            ("three", "{% block hey %}3{% endblock hey %}"),
-        ]).unwrap();
+        my_tera
+            .add_raw_templates(vec![
+                ("one", "{% block hey %}1{% endblock hey %}"),
+                ("two", "{% block hey %}2{% endblock hey %}"),
+                ("three", "{% block hey %}3{% endblock hey %}"),
+            ])
+            .unwrap();
 
         let mut framework_tera = Tera::default();
-        framework_tera.add_raw_templates(vec![
-            ("four", "Framework X"),
-        ]).unwrap();
+        framework_tera.add_raw_templates(vec![("four", "Framework X")]).unwrap();
 
         my_tera.extend(&framework_tera).unwrap();
         assert_eq!(my_tera.templates.len(), 4);
@@ -718,17 +912,18 @@ mod tests {
     #[test]
     fn test_extend_with_overlap() {
         let mut my_tera = Tera::default();
-        my_tera.add_raw_templates(vec![
-            ("one", "MINE"),
-            ("two", "{% block hey %}2{% endblock hey %}"),
-            ("three", "{% block hey %}3{% endblock hey %}"),
-        ]).unwrap();
+        my_tera
+            .add_raw_templates(vec![
+                ("one", "MINE"),
+                ("two", "{% block hey %}2{% endblock hey %}"),
+                ("three", "{% block hey %}3{% endblock hey %}"),
+            ])
+            .unwrap();
 
         let mut framework_tera = Tera::default();
-        framework_tera.add_raw_templates(vec![
-            ("one", "FRAMEWORK"),
-            ("four", "Framework X"),
-        ]).unwrap();
+        framework_tera
+            .add_raw_templates(vec![("one", "FRAMEWORK"), ("four", "Framework X")])
+            .unwrap();
 
         my_tera.extend(&framework_tera).unwrap();
         assert_eq!(my_tera.templates.len(), 4);
@@ -745,7 +940,6 @@ mod tests {
         assert!(my_tera.filters.contains_key("hello"));
     }
 
-
     #[test]
     fn test_extend_new_tester() {
         let mut my_tera = Tera::default();
@@ -753,5 +947,48 @@ mod tests {
         framework_tera.register_tester("hello", my_tera.testers["divisibleby"]);
         my_tera.extend(&framework_tera).unwrap();
         assert!(my_tera.testers.contains_key("hello"));
+    }
+
+    #[test]
+    fn can_load_from_glob() {
+        let tera = Tera::new("examples/basic/templates/**/*").unwrap();
+        assert!(tera.get_template("base.html").is_ok());
+    }
+
+    #[test]
+    fn full_reload_with_glob() {
+        let mut tera = Tera::new("examples/basic/templates/**/*").unwrap();
+        tera.full_reload().unwrap();
+
+        assert!(tera.get_template("base.html").is_ok());
+    }
+
+    #[test]
+    fn full_reload_with_glob_after_extending() {
+        let mut tera = Tera::new("examples/basic/templates/**/*").unwrap();
+        let mut framework_tera = Tera::default();
+        framework_tera
+            .add_raw_templates(vec![("one", "FRAMEWORK"), ("four", "Framework X")])
+            .unwrap();
+        tera.extend(&framework_tera).unwrap();
+        tera.full_reload().unwrap();
+
+        assert!(tera.get_template("base.html").is_ok());
+        assert!(tera.get_template("one").is_ok());
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_can_only_parse_templates() {
+        let mut tera = Tera::parse("examples/basic/templates/**/*").unwrap();
+        for tpl in tera.templates.values_mut() {
+            tpl.name = format!("a-theme/templates/{}", tpl.name);
+            if let Some(ref parent) = tpl.parent.clone() {
+                tpl.parent = Some(format!("a-theme/templates/{}", parent));
+            }
+        }
+        // Will panic here as we changed the parent and it won't be able
+        // to build the inheritance chain in this case
+        tera.build_inheritance_chains().unwrap();
     }
 }

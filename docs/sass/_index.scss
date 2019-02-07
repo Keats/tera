@@ -1,33 +1,18 @@
+.index {
+  flex-grow: 1;
 
-.index-container {
-  clear: both;
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.hero {
-  padding: 50px;
-
-  &__content {
-    max-width: 900px;
-    margin: 0 auto;
-    text-align: center;
-
-    h1 {
-      font-size: 4rem;
-    }
+  &__highlights {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-gap: 2rem;
+    margin-bottom: 4rem;
   }
-}
 
-
-.pitch {
-  padding-bottom: 50px;
-
-  &__content {
-    max-width: 900px;
-    margin: 0 auto;
-    text-align: center;
-    font-size: 1.25rem;
+  .highlight {
+    h4 {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
   }
 }
