@@ -593,10 +593,37 @@ fn parse_block(pair: Pair<Rule>) -> Node {
     Node::Block(start_ws, Block { name: name.unwrap(), body }, end_ws)
 }
 
+
+fn parse_macro_fn(pair: Pair<Rule>) -> (String, HashMap<String, Option<Expr>>) {
+    let mut name = String::new();
+    let mut args = HashMap::new();
+
+    for p2 in pair.into_inner() {
+        match p2.as_rule() {
+            Rule::ident => name = p2.as_str().to_string(),
+            Rule::macro_def_arg => {
+                let mut arg_name = None;
+                let mut default_val = None;
+                for p3 in p2.into_inner() {
+                    match p3.as_rule() {
+                        Rule::ident => arg_name = Some(p3.as_str().to_string()),
+                        // no filters allowed on macro definition
+                        _ => default_val = Some(Expr::new(parse_basic_expression(p3))),
+                    };
+                }
+                args.insert(arg_name.unwrap(), default_val);
+            }
+            _ => continue,
+        }
+    }
+
+    (name, args)
+}
+
 fn parse_macro_definition(pair: Pair<Rule>) -> Node {
     let mut start_ws = WS::default();
     let mut end_ws = WS::default();
-    let mut name = None;
+    let mut name = String::new();
     let mut args = HashMap::new();
     let mut body = vec![];
 
@@ -607,18 +634,10 @@ fn parse_macro_definition(pair: Pair<Rule>) -> Node {
                     match p2.as_rule() {
                         Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
                         Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
-                        Rule::ident => name = Some(p2.as_str().to_string()),
-                        Rule::macro_def_arg => {
-                            let mut arg_name = None;
-                            let mut default_val = None;
-                            for p3 in p2.into_inner() {
-                                match p3.as_rule() {
-                                    Rule::ident => arg_name = Some(p3.as_str().to_string()),
-                                    // no filters allowed on macro definition
-                                    _ => default_val = Some(Expr::new(parse_basic_expression(p3))),
-                                };
-                            }
-                            args.insert(arg_name.unwrap(), default_val);
+                        Rule::macro_fn_wrapper => {
+                            let macro_fn = parse_macro_fn(p2);
+                            name = macro_fn.0;
+                            args = macro_fn.1;
                         }
                         _ => continue,
                     };
@@ -639,7 +658,7 @@ fn parse_macro_definition(pair: Pair<Rule>) -> Node {
         }
     }
 
-    Node::MacroDefinition(start_ws, MacroDefinition { name: name.unwrap(), args, body }, end_ws)
+    Node::MacroDefinition(start_ws, MacroDefinition { name, args, body }, end_ws)
 }
 
 fn parse_forloop(pair: Pair<Rule>) -> Node {
@@ -906,7 +925,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::test_call => "a test call".to_string(),
                     Rule::test_arg => "a test argument (any expressions)".to_string(),
                     Rule::test_args => "a list of test arguments (any expressions)".to_string(),
-                    Rule::macro_fn => "a macro function".to_string(),
+                    Rule::macro_fn | Rule::macro_fn_wrapper => "a macro function".to_string(),
                     Rule::macro_call => "a macro function call".to_string(),
                     Rule::macro_def_arg => {
                         "an argument name with an optional default literal value: `id`, `key=1`".to_string()

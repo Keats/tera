@@ -112,6 +112,7 @@ filter  = { "|" ~ (fn_call | ident) }
 macro_def_arg   = ${ (ident ~ "=" ~ (boolean | string | float | int)) | ident }
 macro_def_args  = _{ macro_def_arg ~ ("," ~ macro_def_arg)* }
 macro_fn        = _{ ident ~ "(" ~ macro_def_args? ~ ")" }
+macro_fn_wrapper = !{ macro_fn }
 macro_call      = { ident ~ "::" ~ ident ~ "(" ~ kwargs? ~ ")" }
 
 
@@ -146,7 +147,7 @@ block_start    = _{ variable_start | tag_start | comment_start }
 include_tag      = !{ tag_start ~ "include" ~ string ~ tag_end }
 comment_tag      = !{ comment_start ~ (!comment_end ~ ANY)* ~ comment_end }
 block_tag        = ${ tag_start ~ WHITESPACE* ~ "block" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ tag_end }
-macro_tag        = !{ tag_start ~ "macro" ~ macro_fn ~ tag_end }
+macro_tag        = ${ tag_start ~ WHITESPACE* ~ "macro" ~ WHITESPACE+ ~ macro_fn_wrapper ~ WHITESPACE* ~ tag_end }
 if_tag           = !{ tag_start ~ "if" ~ logic_expr ~ tag_end }
 elif_tag         = !{ tag_start ~ "elif" ~ logic_expr ~ tag_end }
 else_tag         = !{ tag_start ~ "else" ~ tag_end }
