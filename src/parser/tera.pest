@@ -88,10 +88,10 @@ comparison_val  = { basic_expr_filter ~ (basic_op ~ basic_expr_filter)* }
 comparison_op   = _{ op_lte | op_gte | op_gt | op_lt | op_eq | op_ineq }
 comparison_expr = { comparison_val ~ (comparison_op ~ comparison_val)* }
 
-logic_val  = { op_not? ~ comparison_expr }
-logic_expr = { logic_val ~ ((op_or | op_and) ~ logic_val)* }
+logic_val  = !{ op_not? ~ comparison_expr }
+logic_expr = !{ logic_val ~ ((op_or | op_and) ~ logic_val)* }
 
-array = { "[" ~ (basic_expr_filter ~ ",")* ~ basic_expr_filter? ~ "]"}
+array = !{ "[" ~ (basic_expr_filter ~ ",")* ~ basic_expr_filter? ~ "]"}
 
 // ----------------------------------------------------
 
@@ -153,8 +153,8 @@ elif_tag         = !{ tag_start ~ "elif" ~ logic_expr ~ tag_end }
 else_tag         = !{ tag_start ~ "else" ~ tag_end }
 for_tag          = !{ tag_start ~ "for" ~ ident ~ ("," ~ ident)? ~ "in" ~ (basic_expr_filter | array) ~ tag_end }
 filter_tag       = ${ tag_start ~ WHITESPACE* ~ "filter" ~ WHITESPACE+ ~ (fn_call | ident) ~ WHITESPACE* ~ tag_end }
-set_tag          = !{ tag_start ~ "set" ~ ident ~ "=" ~ (logic_expr | array) ~ tag_end }
-set_global_tag   = !{ tag_start ~ "set_global" ~ ident ~ "=" ~ (logic_expr | array) ~ tag_end }
+set_tag          = ${ tag_start ~ WHITESPACE* ~ "set" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ "=" ~ WHITESPACE* ~ (logic_expr | array) ~ WHITESPACE* ~ tag_end }
+set_global_tag   = ${ tag_start ~ WHITESPACE* ~ "set_global" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ "=" ~ WHITESPACE* ~ (logic_expr | array) ~ WHITESPACE* ~ tag_end }
 endblock_tag     = !{ tag_start ~ "endblock" ~ ident? ~ tag_end }
 endmacro_tag     = !{ tag_start ~ "endmacro" ~ ident? ~ tag_end }
 endif_tag        = !{ tag_start ~ "endif" ~ tag_end }
