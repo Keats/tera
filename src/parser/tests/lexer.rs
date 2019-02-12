@@ -586,6 +586,7 @@ fn lex_extends_with_imports() {
 // https://github.com/Keats/tera/issues/379
 #[test]
 fn lex_requires_whitespace_between_things() {
+    // All the ones below should fail parsing
     let inputs = vec![
         "{% filterupper %}hey{% endfilter %}",
         "{% blockhey %}{%endblock%}",
@@ -600,7 +601,8 @@ fn lex_requires_whitespace_between_things() {
         "{% for a,bin c %}{{a}}{% endfor %}",
         "{% for a,b inc %}{{a}}{% endfor %}",
         "{% ifi18n %}世界{% else %}world{% endif %}",
-        "{% ifi18n %}世界{% eliftrue %}world{% endif %}",
+        "{% if i18n %}世界{% eliftrue %}world{% endif %}",
+        "{% include'base.html' %}",
     ];
 
     for i in inputs {
