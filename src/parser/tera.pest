@@ -260,8 +260,16 @@ content = @{
     text
 }
 
-extends_tag = !{ WHITESPACE* ~ tag_start ~ "extends" ~ string ~ tag_end ~ WHITESPACE* }
-import_macro_tag = !{ WHITESPACE* ~ tag_start ~ "import" ~ string ~ "as" ~ ident ~ tag_end ~ WHITESPACE* }
+extends_tag = ${
+    WHITESPACE* ~ tag_start ~ WHITESPACE*
+    ~ "extends" ~ WHITESPACE+ ~ string
+    ~ WHITESPACE* ~ tag_end ~ WHITESPACE*
+}
+import_macro_tag = ${
+    WHITESPACE* ~ tag_start ~ WHITESPACE*
+    ~ "import" ~ WHITESPACE+ ~ string ~ WHITESPACE+ ~ "as" ~ WHITESPACE+ ~ ident
+    ~ WHITESPACE* ~ tag_end ~ WHITESPACE*
+}
 top_imports = _{
     (extends_tag ~ import_macro_tag*)
     |
