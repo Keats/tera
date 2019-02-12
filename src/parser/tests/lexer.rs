@@ -590,6 +590,8 @@ fn lex_requires_whitespace_between_things() {
         "{% filterupper %}hey{% endfilter %}",
         "{% fora in b %}{{a}}{% endfor %}",
         "{% for a inb %}{{a}}{% endfor %}",
+        "{% for a,bin c %}{{a}}{% endfor %}",
+        "{% for a,b inc %}{{a}}{% endfor %}",
         "{% ifi18n %}世界{% else %}world{% endif %}",
         "{% ifi18n %}世界{% eliftrue %}world{% endif %}",
         "{% blockhey %}{%endblock%}",
