@@ -144,12 +144,12 @@ block_start    = _{ variable_start | tag_start | comment_start }
 
 
 // Actual tags
-include_tag      = !{ tag_start ~ "include" ~ string ~ tag_end }
+include_tag      = ${ tag_start ~ WHITESPACE* ~ "include" ~ WHITESPACE+ ~ string ~ WHITESPACE* ~ tag_end }
 comment_tag      = !{ comment_start ~ (!comment_end ~ ANY)* ~ comment_end }
 block_tag        = ${ tag_start ~ WHITESPACE* ~ "block" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ tag_end }
 macro_tag        = ${ tag_start ~ WHITESPACE* ~ "macro" ~ WHITESPACE+ ~ macro_fn_wrapper ~ WHITESPACE* ~ tag_end }
-if_tag           = !{ tag_start ~ "if" ~ logic_expr ~ tag_end }
-elif_tag         = !{ tag_start ~ "elif" ~ logic_expr ~ tag_end }
+if_tag           = ${ tag_start ~ WHITESPACE* ~ "if" ~ WHITESPACE+ ~ logic_expr ~ WHITESPACE* ~ tag_end }
+elif_tag         = ${ tag_start ~ WHITESPACE* ~ "elif" ~ WHITESPACE+ ~ logic_expr ~ WHITESPACE* ~ tag_end }
 else_tag         = !{ tag_start ~ "else" ~ tag_end }
 for_tag          = ${
     tag_start ~ WHITESPACE*
