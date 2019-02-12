@@ -82,7 +82,7 @@ string_concat = { (fn_call | float | int | string | dotted_square_bracket_ident)
 basic_val  = _{ boolean | string_concat | test_not | test | macro_call | fn_call | dotted_square_bracket_ident | float | int | string }
 basic_op   = _{ op_plus | op_minus | op_times | op_slash | op_modulo }
 basic_expr = { ("(" ~ basic_expr ~ ")" | basic_val) ~ (basic_op ~ basic_val)* }
-basic_expr_filter = { basic_expr ~ filter* }
+basic_expr_filter = !{ basic_expr ~ filter* }
 
 comparison_val  = { basic_expr_filter ~ (basic_op ~ basic_expr_filter)* }
 comparison_op   = _{ op_lte | op_gte | op_gt | op_lt | op_eq | op_ineq }
@@ -151,10 +151,26 @@ macro_tag        = ${ tag_start ~ WHITESPACE* ~ "macro" ~ WHITESPACE+ ~ macro_fn
 if_tag           = !{ tag_start ~ "if" ~ logic_expr ~ tag_end }
 elif_tag         = !{ tag_start ~ "elif" ~ logic_expr ~ tag_end }
 else_tag         = !{ tag_start ~ "else" ~ tag_end }
-for_tag          = !{ tag_start ~ "for" ~ ident ~ ("," ~ ident)? ~ "in" ~ (basic_expr_filter | array) ~ tag_end }
-filter_tag       = ${ tag_start ~ WHITESPACE* ~ "filter" ~ WHITESPACE+ ~ (fn_call | ident) ~ WHITESPACE* ~ tag_end }
-set_tag          = ${ tag_start ~ WHITESPACE* ~ "set" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ "=" ~ WHITESPACE* ~ (logic_expr | array) ~ WHITESPACE* ~ tag_end }
-set_global_tag   = ${ tag_start ~ WHITESPACE* ~ "set_global" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ "=" ~ WHITESPACE* ~ (logic_expr | array) ~ WHITESPACE* ~ tag_end }
+for_tag          = ${
+    tag_start ~ WHITESPACE*
+    ~ "for"~ WHITESPACE+ ~ ident ~ ("," ~ WHITESPACE* ~ ident)? ~ WHITESPACE+ ~ "in" ~ WHITESPACE+ ~ (basic_expr_filter | array)
+    ~ WHITESPACE* ~ tag_end
+}
+filter_tag       = ${
+    tag_start ~ WHITESPACE*
+    ~ "filter" ~ WHITESPACE+ ~ (fn_call | ident)
+    ~ WHITESPACE* ~ tag_end
+}
+set_tag          = ${
+    tag_start ~ WHITESPACE*
+    ~ "set" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ "=" ~ WHITESPACE* ~ (logic_expr | array)
+    ~ WHITESPACE* ~ tag_end
+}
+set_global_tag   = ${
+    tag_start ~ WHITESPACE*
+    ~ "set_global" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ "=" ~ WHITESPACE* ~ (logic_expr | array)
+    ~ WHITESPACE* ~ tag_end
+}
 endblock_tag     = !{ tag_start ~ "endblock" ~ ident? ~ tag_end }
 endmacro_tag     = !{ tag_start ~ "endmacro" ~ ident? ~ tag_end }
 endif_tag        = !{ tag_start ~ "endif" ~ tag_end }
