@@ -582,3 +582,28 @@ fn lex_extends_with_imports() {
          "#;
     assert_lex_rule!(Rule::template, sample);
 }
+
+// https://github.com/Keats/tera/issues/379
+#[test]
+fn lex_requires_whitespace_between_things() {
+    let inputs = vec![
+        "{% filterupper %}hey{% endfilter %}",
+        "{% fora in b %}{{a}}{% endfor %}",
+        "{% for a inb %}{{a}}{% endfor %}",
+        "{% ifi18n %}世界{% else %}world{% endif %}",
+        "{% ifi18n %}世界{% eliftrue %}world{% endif %}",
+        "{% blockhey %}{%endblock%}",
+        "{% macrohey() %}{%endmacro%}",
+        "{% setident = 1 %}",
+        "{% set_globalident = 1 %}",
+        "{% extends'base.html' %}",
+        "{% import 'macros/image.html' asimage %}",
+        "{% import'macros/image.html' as image %}",
+    ];
+
+    for i in inputs {
+        let res = TeraParser::parse(Rule::template, i);
+        println!("{:?}", i);
+        assert!(res.is_err());
+    }
+}
