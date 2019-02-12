@@ -588,12 +588,6 @@ fn lex_extends_with_imports() {
 fn lex_requires_whitespace_between_things() {
     let inputs = vec![
         "{% filterupper %}hey{% endfilter %}",
-        "{% fora in b %}{{a}}{% endfor %}",
-        "{% for a inb %}{{a}}{% endfor %}",
-        "{% for a,bin c %}{{a}}{% endfor %}",
-        "{% for a,b inc %}{{a}}{% endfor %}",
-        "{% ifi18n %}世界{% else %}world{% endif %}",
-        "{% ifi18n %}世界{% eliftrue %}world{% endif %}",
         "{% blockhey %}{%endblock%}",
         "{% macrohey() %}{%endmacro%}",
         "{% setident = 1 %}",
@@ -601,6 +595,12 @@ fn lex_requires_whitespace_between_things() {
         "{% extends'base.html' %}",
         "{% import 'macros/image.html' asimage %}",
         "{% import'macros/image.html' as image %}",
+        "{% fora in b %}{{a}}{% endfor %}",
+        "{% for a inb %}{{a}}{% endfor %}",
+        "{% for a,bin c %}{{a}}{% endfor %}",
+        "{% for a,b inc %}{{a}}{% endfor %}",
+        "{% ifi18n %}世界{% else %}world{% endif %}",
+        "{% ifi18n %}世界{% eliftrue %}world{% endif %}",
     ];
 
     for i in inputs {

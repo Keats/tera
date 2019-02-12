@@ -145,7 +145,7 @@ block_start    = _{ variable_start | tag_start | comment_start }
 // Actual tags
 include_tag      = !{ tag_start ~ "include" ~ string ~ tag_end }
 comment_tag      = !{ comment_start ~ (!comment_end ~ ANY)* ~ comment_end }
-block_tag        = !{ tag_start ~ "block" ~ ident ~ tag_end }
+block_tag        = ${ tag_start ~ WHITESPACE* ~ "block" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ tag_end }
 macro_tag        = !{ tag_start ~ "macro" ~ macro_fn ~ tag_end }
 if_tag           = !{ tag_start ~ "if" ~ logic_expr ~ tag_end }
 elif_tag         = !{ tag_start ~ "elif" ~ logic_expr ~ tag_end }

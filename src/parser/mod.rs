@@ -518,7 +518,6 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
     let mut body = vec![];
 
     for p in pair.into_inner() {
-        println!("{:#?}", p);
         match p.as_rule() {
             Rule::filter_tag => {
                 for p2 in p.into_inner() {
@@ -555,7 +554,6 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
             _ => unreachable!("unexpected {:?} rule in parse_filter_section", p.as_rule()),
         };
     }
-    println!("{:?}", filter);
     Node::FilterSection(start_ws, FilterSection { filter: filter.unwrap(), body }, end_ws)
 }
 
