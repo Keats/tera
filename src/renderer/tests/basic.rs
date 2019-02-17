@@ -738,7 +738,7 @@ fn split_on_context_value() {
     let mut tera = Tera::default();
     tera.add_raw_template(
         "split.html",
-        "{{ body | split(pat='\n') }}",
+        r#"{{ body | split(pat="\n") }}"#,
     ).unwrap();
     let mut context = Context::new();
     context.insert("body", "multi\nple\nlines");
