@@ -12,7 +12,7 @@ categories = ["template-engine"]
 edition = "2018"
 
 [dependencies]
-globwalk = "0.6"
+globwalk = "0.7"
 serde = "1.0"
 serde_json = "1.0"
 pest = "2"
@@ -36,7 +36,7 @@ unic-segment = "0.8"
 
 [dev-dependencies]
 serde_derive = "1.0"
-pretty_assertions = "0.5"
+pretty_assertions = "0.6"
 tempfile = "3"
 
 [features]

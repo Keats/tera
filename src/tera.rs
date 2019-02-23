@@ -1023,4 +1023,15 @@ mod tests {
         let tera = Tera::new(&glob).expect("Couldn't build Tera instance");
         assert_eq!(tera.templates.len(), 2);
     }
+
+    #[test]
+    fn glob_work_with_absolute_paths_and_double_star() {
+        let tmp_dir = tempdir().expect("create temp dir");
+        let cwd = tmp_dir.path().canonicalize().unwrap();
+        File::create(cwd.join("hey.html")).expect("Failed to create a test file");
+        File::create(cwd.join("ho.html")).expect("Failed to create a test file");
+        let glob = cwd.join("**").join("*.html").into_os_string().into_string().unwrap();
+        let tera = Tera::new(&glob).expect("Couldn't build Tera instance");
+        assert_eq!(tera.templates.len(), 2);
+    }
 }
