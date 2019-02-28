@@ -545,7 +545,7 @@ Adds slashes before quotes.
 
 Example: `{{ value | addslashes }}`
 
-If value is "I'm using Tera", the output will be "I\'m using Tera".
+If value is "I'm using Tera", the output will be "I\\'m using Tera".
 
 #### slugify
 Transform a string into ASCII, lowercase it, trim it, converts spaces to hyphens and
@@ -580,7 +580,7 @@ Tries to remove HTML tags from input. Does not guarantee well formed output if i
 
 Example: `{{ value | striptags}}`
 
-If value is "<b>Joel</b>", the output will be "Joel".
+If value is "&lt;b&gt;Joel&lt;/b&gt;", the output will be "Joel".
 
 Note that if the template you using it in is automatically escaped, you will need to call the `safe` filter
 before `striptags`.
