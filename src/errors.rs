@@ -28,7 +28,7 @@ pub enum ErrorKind {
     FilterNotFound(String),
     /// A test wasn't found
     TestNotFound(String),
-    /// A macro was defined in a normal template
+    /// A macro was defined in the middle of a template
     InvalidMacroDefinition(String),
     /// A function wasn't found
     FunctionNotFound(String),

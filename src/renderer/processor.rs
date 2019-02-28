@@ -805,6 +805,9 @@ impl<'a> Processor<'a> {
                 self.call_stack.pop();
                 buffer.push_str(&result);
             }
+            Node::Extends(_, ref name) => {
+                return Err(Error::msg(format!("Inheritance in included templates is currently not supported")));
+            }
             // TODO: make that a compile time error
             Node::MacroDefinition(_, ref def, _) => {
                 return Err(Error::invalid_macro_def(&def.name));
