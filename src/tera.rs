@@ -386,10 +386,10 @@ impl Tera {
     ///
     /// This will error if the inheritance chain can't be built, such as adding a child
     /// template without the parent one.
-    /// If you want to add several templates, use [Tera::add_templates](struct.Tera.html#method.add_templates)
+    /// If you want to add several templates, use [Tera::add_templates](struct.Tera.html#method.add_raw_templates)
     ///
     /// ```rust,ignore
-    /// tera.add_template("new.html", "Blabla");
+    /// tera.add_raw_template("new.html", "Blabla");
     /// ```
     pub fn add_raw_template(&mut self, name: &str, content: &str) -> Result<()> {
         let tpl = Template::new(name, None, content)
