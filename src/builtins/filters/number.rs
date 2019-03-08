@@ -61,7 +61,7 @@ pub fn filesizeformat(value: &Value, _: &HashMap<String, Value>) -> Result<Value
             )))
         })
         .map(to_value)
-        .map(|x| x.unwrap())
+        .map(std::result::Result::unwrap)
 }
 
 #[cfg(test)]

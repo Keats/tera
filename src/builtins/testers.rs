@@ -135,7 +135,7 @@ pub fn iterable(value: Option<&Value>, params: &[Value]) -> Result<bool> {
 // Helper function to extract string from an Option<Value> to remove boilerplate
 // with tester error handling
 fn extract_string<'a>(tester_name: &str, part: &str, value: Option<&'a Value>) -> Result<&'a str> {
-    match value.and_then(|v| v.as_str()) {
+    match value.and_then(Value::as_str) {
         Some(s) => Ok(s),
         None => Err(Error::msg(format!(
             "Tester `{}` was called {} that isn't a string",

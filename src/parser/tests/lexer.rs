@@ -12,7 +12,7 @@ macro_rules! assert_lex_rule {
             panic!();
         }
         assert!(res.is_ok());
-        assert_eq!(res.unwrap().last().unwrap().into_span().end(), $input.len());
+        assert_eq!(res.unwrap().last().unwrap().as_span().end(), $input.len());
     };
 }
 
@@ -570,8 +570,7 @@ fn lex_template() {
 
 #[test]
 fn lex_extends_with_imports() {
-    let sample =
-        r#"
+    let sample = r#"
 {% extends "base.html" %}
 
 {% import "macros/image.html" as image %}

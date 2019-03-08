@@ -806,13 +806,15 @@ impl<'a> Processor<'a> {
                 buffer.push_str(&result);
             }
             Node::Extends(_, ref name) => {
-                return Err(Error::msg(format!("Inheritance in included templates is currently not supported")));
+                return Err(Error::msg(format!(
+                    "Inheritance in included templates is currently not supported: extended `{}`",
+                    name
+                )));
             }
             // TODO: make that a compile time error
             Node::MacroDefinition(_, ref def, _) => {
                 return Err(Error::invalid_macro_def(&def.name));
             }
-            _ => unreachable!("render_node -> unexpected node: {:?}", node),
         };
 
         Ok(())

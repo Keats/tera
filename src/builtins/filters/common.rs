@@ -40,7 +40,7 @@ pub fn reverse(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 // Encodes a value of any type into json, optionally `pretty`-printing it
 // `pretty` can be true to enable pretty-print, or omitted for compact printing
 pub fn json_encode(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
-    let pretty = args.get("pretty").and_then(|v| v.as_bool()).unwrap_or(false);
+    let pretty = args.get("pretty").and_then(Value::as_bool).unwrap_or(false);
 
     if pretty {
         to_string_pretty(&value).map(Value::String).map_err(Error::json)

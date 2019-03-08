@@ -199,13 +199,13 @@ pub fn split(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("split", "value", String, value);
 
     let pat = match args.get("pat") {
-        Some(pat) =>  {
+        Some(pat) => {
             let p = try_get_value!("split", "pat", String, pat);
             // When reading from a file, it will escape `\n` to `\\n` for example so we need
             // to replace double escape. In practice it might cause issues if someone wants to split
             // by `\\n` for real but that seems pretty unlikely
             p.replace("\\n", "\n").replace("\\t", "\t")
-        },
+        }
         None => return Err(Error::msg("Filter `split` expected an arg called `pat`")),
     };
 

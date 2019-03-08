@@ -54,7 +54,7 @@ pub fn join(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     };
 
     // Convert all the values to strings before we join them together.
-    let rendered = arr.iter().map(|val| val.render()).collect::<Vec<_>>();
+    let rendered = arr.iter().map(ValueRender::render).collect::<Vec<_>>();
     to_value(&rendered.join(&sep)).map_err(Error::json)
 }
 
@@ -102,7 +102,9 @@ pub fn group_by(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     let key = match args.get("attribute") {
         Some(val) => try_get_value!("group_by", "attribute", String, val),
-        None => return Err(Error::msg("The `group_by` filter has to have an `attribute` argument")),
+        None => {
+            return Err(Error::msg("The `group_by` filter has to have an `attribute` argument"))
+        }
     };
 
     let mut grouped = Map::new();
