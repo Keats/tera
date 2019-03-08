@@ -67,7 +67,9 @@ impl fmt::Display for Error {
             ErrorKind::FilterNotFound(ref name) => write!(f, "Filter '{}' not found", name),
             ErrorKind::TestNotFound(ref name) => write!(f, "Test '{}' not found", name),
             ErrorKind::FunctionNotFound(ref name) => write!(f, "Function '{}' not found", name),
-            ErrorKind::InvalidMacroDefinition(ref info) => write!(f, "Invalid macro definition: `{}`", info),
+            ErrorKind::InvalidMacroDefinition(ref info) => {
+                write!(f, "Invalid macro definition: `{}`", info)
+            }
             ErrorKind::Json(ref e) => write!(f, "{}", e),
             ErrorKind::__Nonexhaustive => write!(f, "Nonexhaustive"),
         }

@@ -133,7 +133,7 @@ impl Tera {
         }
 
         // We are parsing all the templates on instantiation
-        for entry in glob(&dir).unwrap().filter_map(|e| e.ok()) {
+        for entry in glob(&dir).unwrap().filter_map(std::result::Result::ok) {
             let mut path = entry.into_path();
             // We only care about actual files
             if path.is_file() {

@@ -736,10 +736,7 @@ fn stateful_global_fn() {
 #[test]
 fn split_on_context_value() {
     let mut tera = Tera::default();
-    tera.add_raw_template(
-        "split.html",
-        r#"{{ body | split(pat="\n") }}"#,
-    ).unwrap();
+    tera.add_raw_template("split.html", r#"{{ body | split(pat="\n") }}"#).unwrap();
     let mut context = Context::new();
     context.insert("body", "multi\nple\nlines");
     let res = tera.render("split.html", context);

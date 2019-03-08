@@ -62,7 +62,7 @@ fn parse_kwarg(pair: Pair<Rule>) -> (String, Expr) {
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::ident => name = Some(p.into_span().as_str().to_string()),
+            Rule::ident => name = Some(p.as_span().as_str().to_string()),
             Rule::logic_expr => val = Some(parse_logic_expr(p)),
             Rule::array => val = Some(Expr::new(parse_array(p))),
             _ => unreachable!("{:?} not supposed to get there (parse_kwarg)!", p.as_rule()),
@@ -78,7 +78,7 @@ fn parse_fn_call(pair: Pair<Rule>) -> FunctionCall {
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::ident => name = Some(p.into_span().as_str().to_string()),
+            Rule::ident => name = Some(p.as_span().as_str().to_string()),
             Rule::kwarg => {
                 let (name, val) = parse_kwarg(p);
                 args.insert(name, val);
@@ -95,7 +95,7 @@ fn parse_filter(pair: Pair<Rule>) -> FunctionCall {
     let mut args = HashMap::new();
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::ident => name = Some(p.into_span().as_str().to_string()),
+            Rule::ident => name = Some(p.as_span().as_str().to_string()),
             Rule::kwarg => {
                 let (name, val) = parse_kwarg(p);
                 args.insert(name, val);
@@ -116,7 +116,7 @@ fn parse_test_call(pair: Pair<Rule>) -> (String, Vec<Expr>) {
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::ident => name = Some(p.into_span().as_str().to_string()),
+            Rule::ident => name = Some(p.as_span().as_str().to_string()),
             Rule::test_args =>
             // iterate on the test_arg rule
             {
@@ -391,9 +391,9 @@ fn parse_macro_call(pair: Pair<Rule>) -> MacroCall {
             Rule::ident => {
                 // namespace comes first
                 if namespace.is_none() {
-                    namespace = Some(p.into_span().as_str().to_string());
+                    namespace = Some(p.as_span().as_str().to_string());
                 } else {
-                    name = Some(p.into_span().as_str().to_string());
+                    name = Some(p.as_span().as_str().to_string());
                 }
             }
             Rule::kwarg => {
@@ -420,12 +420,12 @@ fn parse_import_macro(pair: Pair<Rule>) -> Node {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::tag_start => {
-                ws.left = p.into_span().as_str() == "{%-";
+                ws.left = p.as_span().as_str() == "{%-";
             }
-            Rule::string => file = Some(replace_string_markers(p.into_span().as_str())),
-            Rule::ident => ident = Some(p.into_span().as_str().to_string()),
+            Rule::string => file = Some(replace_string_markers(p.as_span().as_str())),
+            Rule::ident => ident = Some(p.as_span().as_str().to_string()),
             Rule::tag_end => {
-                ws.right = p.into_span().as_str() == "-%}";
+                ws.right = p.as_span().as_str() == "-%}";
             }
             _ => unreachable!(),
         };
@@ -442,11 +442,11 @@ fn parse_extends_include(pair: Pair<Rule>) -> (WS, String) {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::tag_start => {
-                ws.left = p.into_span().as_str() == "{%-";
+                ws.left = p.as_span().as_str() == "{%-";
             }
-            Rule::string => file = Some(replace_string_markers(p.into_span().as_str())),
+            Rule::string => file = Some(replace_string_markers(p.as_span().as_str())),
             Rule::tag_end => {
-                ws.right = p.into_span().as_str() == "-%}";
+                ws.right = p.as_span().as_str() == "-%}";
             }
             _ => unreachable!(),
         };
@@ -463,10 +463,10 @@ fn parse_set_tag(pair: Pair<Rule>, global: bool) -> Node {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::tag_start => {
-                ws.left = p.into_span().as_str() == "{%-";
+                ws.left = p.as_span().as_str() == "{%-";
             }
             Rule::tag_end => {
-                ws.right = p.into_span().as_str() == "-%}";
+                ws.right = p.as_span().as_str() == "-%}";
             }
             Rule::ident => key = Some(p.as_str().to_string()),
             Rule::logic_expr => expr = Some(parse_logic_expr(p)),
@@ -488,8 +488,8 @@ fn parse_raw_tag(pair: Pair<Rule>) -> Node {
             Rule::raw_tag => {
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => start_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => start_ws.right = p2.as_span().as_str() == "-%}",
                         _ => unreachable!(),
                     }
                 }
@@ -498,8 +498,8 @@ fn parse_raw_tag(pair: Pair<Rule>) -> Node {
             Rule::endraw_tag => {
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
                         _ => unreachable!(),
                     }
                 }
@@ -522,8 +522,8 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
             Rule::filter_tag => {
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => start_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => start_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::fn_call => filter = Some(parse_fn_call(p2)),
                         Rule::ident => {
                             filter = Some(FunctionCall {
@@ -545,8 +545,8 @@ fn parse_filter_section(pair: Pair<Rule>) -> Node {
             Rule::endfilter_tag => {
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
                         _ => unreachable!(),
                     }
                 }
@@ -568,9 +568,9 @@ fn parse_block(pair: Pair<Rule>) -> Node {
             Rule::block_tag => {
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
-                        Rule::ident => name = Some(p2.into_span().as_str().to_string()),
+                        Rule::tag_start => start_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => start_ws.right = p2.as_span().as_str() == "-%}",
+                        Rule::ident => name = Some(p2.as_span().as_str().to_string()),
                         _ => unreachable!(),
                     };
                 }
@@ -579,8 +579,8 @@ fn parse_block(pair: Pair<Rule>) -> Node {
             Rule::endblock_tag => {
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::ident => (),
                         _ => unreachable!(),
                     };
@@ -592,7 +592,6 @@ fn parse_block(pair: Pair<Rule>) -> Node {
 
     Node::Block(start_ws, Block { name: name.unwrap(), body }, end_ws)
 }
-
 
 fn parse_macro_fn(pair: Pair<Rule>) -> (String, HashMap<String, Option<Expr>>) {
     let mut name = String::new();
@@ -632,8 +631,8 @@ fn parse_macro_definition(pair: Pair<Rule>) -> Node {
             Rule::macro_tag => {
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => start_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => start_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::macro_fn_wrapper => {
                             let macro_fn = parse_macro_fn(p2);
                             name = macro_fn.0;
@@ -647,8 +646,8 @@ fn parse_macro_definition(pair: Pair<Rule>) -> Node {
             Rule::endmacro_tag => {
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::ident => (),
                         _ => unreachable!(),
                     };
@@ -676,8 +675,8 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
                 let mut idents = vec![];
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => start_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => start_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => start_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => start_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::ident => idents.push(p2.as_str().to_string()),
                         Rule::basic_expr_filter => {
                             container = Some(parse_basic_expr_with_filters(p2));
@@ -704,8 +703,8 @@ fn parse_forloop(pair: Pair<Rule>) -> Node {
             Rule::endfor_tag => {
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::ident => (),
                         _ => unreachable!(),
                     };
@@ -728,10 +727,10 @@ fn parse_break_tag(pair: Pair<Rule>) -> Node {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::tag_start => {
-                ws.left = p.into_span().as_str() == "{%-";
+                ws.left = p.as_span().as_str() == "{%-";
             }
             Rule::tag_end => {
-                ws.right = p.into_span().as_str() == "-%}";
+                ws.right = p.as_span().as_str() == "-%}";
             }
             _ => unreachable!(),
         };
@@ -746,10 +745,10 @@ fn parse_continue_tag(pair: Pair<Rule>) -> Node {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::tag_start => {
-                ws.left = p.into_span().as_str() == "{%-";
+                ws.left = p.as_span().as_str() == "{%-";
             }
             Rule::tag_end => {
-                ws.right = p.into_span().as_str() == "-%}";
+                ws.right = p.as_span().as_str() == "-%}";
             }
             _ => unreachable!(),
         };
@@ -783,8 +782,8 @@ fn parse_if(pair: Pair<Rule>) -> Node {
 
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => current_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => current_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => current_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => current_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::logic_expr => expr = Some(parse_logic_expr(p2)),
                         _ => unreachable!(),
                     };
@@ -806,8 +805,8 @@ fn parse_if(pair: Pair<Rule>) -> Node {
                 in_else = true;
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => current_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => current_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => current_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => current_ws.right = p2.as_span().as_str() == "-%}",
                         _ => unreachable!(),
                     };
                 }
@@ -822,8 +821,8 @@ fn parse_if(pair: Pair<Rule>) -> Node {
 
                 for p2 in p.into_inner() {
                     match p2.as_rule() {
-                        Rule::tag_start => end_ws.left = p2.into_span().as_str() == "{%-",
-                        Rule::tag_end => end_ws.right = p2.into_span().as_str() == "-%}",
+                        Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
+                        Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
                         _ => unreachable!(),
                     };
                 }
@@ -862,7 +861,7 @@ fn parse_content(pair: Pair<Rule>) -> Vec<Node> {
             | Rule::for_if
             | Rule::filter_section_if => nodes.push(parse_if(p)),
             Rule::filter_section => nodes.push(parse_filter_section(p)),
-            Rule::text => nodes.push(Node::Text(p.into_span().as_str().to_string())),
+            Rule::text => nodes.push(Node::Text(p.as_span().as_str().to_string())),
             Rule::block => nodes.push(parse_block(p)),
             _ => unreachable!("unreachable content rule: {:?}", p.as_rule()),
         };

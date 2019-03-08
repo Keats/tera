@@ -225,7 +225,10 @@ fn errors_when_calling_macros_defined_in_file() {
     let mut context = Context::new();
     context.insert("hello", &true);
     let result = tera.render("tpl", context);
-    assert_eq!(result.unwrap_err().source().unwrap().to_string(), "Invalid macro definition: `path_item`");
+    assert_eq!(
+        result.unwrap_err().source().unwrap().to_string(),
+        "Invalid macro definition: `path_item`"
+    );
 }
 
 // https://github.com/Keats/tera/issues/385
@@ -244,6 +247,6 @@ fn errors_with_inheritance_in_included_template() {
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
-        "Inheritance in included templates is currently not supported"
+        "Inheritance in included templates is currently not supported: extended `parent`"
     );
 }
