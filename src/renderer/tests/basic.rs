@@ -52,7 +52,7 @@ fn render_variable_block_lit_expr() {
         ("{{ (2 + 1) * 2 }}", "6"),
         ("{{ 2 * 4 % 8 }}", "0"),
         ("{{ 2.8 * 2 | round }}", "6"),
-        ("{{ 0 / 0 }}", "NaN"),
+        ("{{ 1 / 0 }}", "NaN"),
         ("{{ true and 10 }}", "true"),
         ("{{ true and not 10 }}", "false"),
         ("{{ not true }}", "false"),

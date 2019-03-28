@@ -228,8 +228,8 @@ fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
     };
 
     match pair.as_rule() {
-        Rule::int => ExprVal::Int(pair.as_str().parse().unwrap()),
-        Rule::float => ExprVal::Float(pair.as_str().parse().unwrap()),
+        Rule::int => ExprVal::Int(pair.as_str().parse().unwrap_or(0)),
+        Rule::float => ExprVal::Float(pair.as_str().parse().unwrap_or(0.0)),
         Rule::boolean => match pair.as_str() {
             "true" => ExprVal::Bool(true),
             "True" => ExprVal::Bool(true),

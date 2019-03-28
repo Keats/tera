@@ -634,7 +634,7 @@ impl<'a> Processor<'a> {
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
-                            Some(Number::from_f64(ll * rr).unwrap())
+                            Number::from_f64(ll * rr)
                         }
                     }
                     MathOperator::Div => {
@@ -644,7 +644,7 @@ impl<'a> Processor<'a> {
                         if res.is_nan() {
                             None
                         } else {
-                            Some(Number::from_f64(res).unwrap())
+                            Number::from_f64(res)
                         }
                     }
                     MathOperator::Add => {
@@ -681,15 +681,21 @@ impl<'a> Processor<'a> {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
+                            if rr == 0 {
+                                return Err(Error::msg(format!("Tried to do a modulo by zero: {:?}/{:?}", lhs, rhs)));
+                            }
                             Some(Number::from(ll % rr))
                         } else if l.is_u64() && r.is_u64() {
                             let ll = l.as_u64().unwrap();
                             let rr = r.as_u64().unwrap();
+                            if rr == 0 {
+                                return Err(Error::msg(format!("Tried to do a modulo by zero: {:?}/{:?}", lhs, rhs)));
+                            }
                             Some(Number::from(ll % rr))
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
-                            Some(Number::from_f64(ll % rr).unwrap())
+                            Number::from_f64(ll % rr)
                         }
                     }
                 }
