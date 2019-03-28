@@ -1034,4 +1034,25 @@ mod tests {
         let tera = Tera::new(&glob).expect("Couldn't build Tera instance");
         assert_eq!(tera.templates.len(), 2);
     }
+
+    // https://github.com/Keats/tera/issues/396
+    #[test]
+    fn issues_found_fuzzing_are_fixed() {
+        let samples = vec![
+            // sample, expected result if it isn't an error
+            ("{{0%0}}", None),
+            ("{{W>W>vv}}{", None),
+            ("{{22220222222022222220}}", Some("0")),
+        ];
+
+        for (sample, expected_output) in samples {
+            let res = Tera::one_off(sample, Context::new(), true);
+            if let Some(output) = expected_output {
+                assert!(res.is_ok());
+                assert_eq!(res.unwrap(), output);
+            } else {
+                assert!(res.is_err());
+            }
+        }
+    }
 }

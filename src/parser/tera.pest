@@ -86,7 +86,7 @@ basic_expr_filter = !{ basic_expr ~ filter* }
 
 comparison_val  = { basic_expr_filter ~ (basic_op ~ basic_expr_filter)* }
 comparison_op   = _{ op_lte | op_gte | op_gt | op_lt | op_eq | op_ineq }
-comparison_expr = { comparison_val ~ (comparison_op ~ comparison_val)* }
+comparison_expr = { comparison_val ~ (comparison_op ~ comparison_val)? }
 
 logic_val  = !{ op_not? ~ comparison_expr }
 logic_expr = !{ logic_val ~ ((op_or | op_and) ~ logic_val)* }
