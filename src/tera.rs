@@ -8,6 +8,7 @@ use std::sync::Arc;
 use globwalk::glob;
 use serde::Serialize;
 use serde_json::value::to_value;
+use serde_json::Value;
 
 use crate::builtins::filters::{array, common, number, object, string, Filter};
 use crate::builtins::functions::{self, Function};
@@ -17,7 +18,6 @@ use crate::errors::{Error, Result};
 use crate::renderer::Renderer;
 use crate::template::Template;
 use crate::utils::escape_html;
-use serde_json::Value;
 
 /// The escape function type definition
 pub type EscapeFn = fn(&str) -> String;
