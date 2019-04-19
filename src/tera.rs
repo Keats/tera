@@ -17,6 +17,7 @@ use crate::errors::{Error, Result};
 use crate::renderer::Renderer;
 use crate::template::Template;
 use crate::utils::escape_html;
+use serde_json::Value;
 
 /// The escape function type definition
 pub type EscapeFn = fn(&str) -> String;
@@ -301,10 +302,9 @@ impl Tera {
     /// // Rendering a template with an empty context
     /// tera.render("hello.html", Context::new());
     /// ```
-    pub fn render(&self, template_name: &str, context: Context) -> Result<String> {
+    pub fn render<C: Into<Value>>(&self, template_name: &str, context: C) -> Result<String> {
         let template = self.get_template(template_name)?;
-        let renderer = Renderer::new(template, self, context.into_json());
-        renderer.render()
+        self.render_template(&template, context)
     }
 
     /// Renders a Tera template given an object that implements `Serialize`.
@@ -328,6 +328,37 @@ impl Tera {
         let template = self.get_template(template_name)?;
         let renderer = Renderer::new(template, self, value);
         renderer.render()
+    }
+
+    /// Renders a one off template (for example a template coming from a user input) given a `Context`
+    ///
+    /// ```rust,ignore
+    /// // Rendering a template with a normal context
+    /// let mut context = Context::new();
+    /// context.insert("subject", "world");
+    ///  let template = Template::new("one_off", None, contents).unwrap();
+    /// tera.render_template(&template, context);
+    /// ```
+    pub fn render_template<C: Into<Value>>(&self, template: &Template, context: C) -> Result<String> {
+        let render = Renderer::new(&template, self, context.into());
+        render.render()
+    }
+
+    /// Renders a one off string (for example a string template coming from a user input) given a `Context`
+    ///
+    /// Any errors will mention the `one_off` template: this is the name given to the template by
+    /// Tera
+    ///
+    /// ```rust,ignore
+    /// // Rendering a template with a normal context
+    /// let mut context = Context::new();
+    /// context.insert("subject", "world");
+    /// tera.render_one_off("Hello, {{ subject }}", context);
+    /// ```
+    pub fn render_string<C: Into<Value>>(&self, template_contents: &str, context: C) -> Result<String> {
+        let template = Template::new("one_off", None, template_contents)
+            .map_err(|e| Error::chain(format!("Failed to parse template string: '{}'", template_contents), e))?;
+        self.render_template(&template, context)
     }
 
     /// Renders a one off template (for example a template coming from a user input) given a `Context`
@@ -749,7 +780,7 @@ mod tests {
             ("c", "{% extends \"d\" %}"),
             ("d", ""),
         ])
-        .unwrap();
+            .unwrap();
 
         assert_eq!(
             tera.get_template("a").unwrap().parents,

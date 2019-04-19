@@ -132,6 +132,16 @@ impl ValueTruthy for Value {
     }
 }
 
+impl From<Context> for Value {
+    fn from(ctx: Context) -> Self {
+        let mut m = Map::new();
+        for (key, value) in ctx.data {
+            m.insert(key, value);
+        }
+        Value::Object(m)
+    }
+}
+
 /// Converts a dotted path to a json pointer one
 #[inline]
 pub fn get_json_pointer(key: &str) -> String {
