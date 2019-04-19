@@ -780,7 +780,7 @@ mod tests {
             ("c", "{% extends \"d\" %}"),
             ("d", ""),
         ])
-            .unwrap();
+        .unwrap();
 
         assert_eq!(
             tera.get_template("a").unwrap().parents,
