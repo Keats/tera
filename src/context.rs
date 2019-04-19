@@ -48,11 +48,7 @@ impl Context {
 
     /// Converts the context to a `serde_json::Value` consuming the context
     pub fn into_json(self) -> Value {
-        let mut m = Map::new();
-        for (key, value) in self.data {
-            m.insert(key, value);
-        }
-        Value::Object(m)
+        self.into()
     }
 }
 
