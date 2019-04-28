@@ -721,7 +721,9 @@ impl<'a> Processor<'a> {
             ExprVal::Bool(val) => {
                 return Err(Error::msg(format!("Tried to do math with a boolean: `{}`", val)));
             }
-            _ => unreachable!("unimplemented math expression for {:?}", expr),
+            _ => {
+                return Err(Error::msg(format!("Unimplemented math expression for `{:?}`", expr)));
+            },
         };
 
         Ok(result)
