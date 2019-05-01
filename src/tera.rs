@@ -1043,6 +1043,8 @@ mod tests {
             ("{{0%0}}", None),
             ("{{W>W>vv}}{", None),
             ("{{22220222222022222220}}", Some("0")),
+            ("{_{{W~1+11}}k{", None),
+            ("{{n~n<n.11}}}", None),
         ];
 
         for (sample, expected_output) in samples {

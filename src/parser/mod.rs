@@ -245,9 +245,7 @@ fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
         }
         Rule::fn_call => ExprVal::FunctionCall(parse_fn_call(pair)),
         Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)),
-        Rule::string => ExprVal::String(replace_string_markers(pair.as_str())),
         Rule::dotted_square_bracket_ident => ExprVal::Ident(pair.as_str().to_string()),
-        Rule::string_concat => parse_string_concat(pair),
         Rule::basic_expr => MATH_CLIMBER.climb(pair.into_inner(), primary, infix),
         _ => unreachable!("Got {:?} in parse_basic_expression", pair.as_rule()),
     }
@@ -255,21 +253,38 @@ fn parse_basic_expression(pair: Pair<Rule>) -> ExprVal {
 
 /// A basic expression with optional filters
 fn parse_basic_expr_with_filters(pair: Pair<Rule>) -> Expr {
-    let mut expr = None;
+    let mut expr_val = None;
     let mut filters = vec![];
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::basic_expr => expr = Some(parse_basic_expression(p)),
+            Rule::basic_expr => expr_val = Some(parse_basic_expression(p)),
             Rule::filter => filters.push(parse_filter(p)),
             _ => unreachable!("Got {:?}", p),
         };
     }
 
-    Expr { val: expr.unwrap(), negated: false, filters }
+    Expr { val: expr_val.unwrap(), negated: false, filters }
 }
 
-/// A basic expression with optional filters
+/// A string expression with optional filters
+fn parse_string_expr_with_filters(pair: Pair<Rule>) -> Expr {
+    let mut expr_val = None;
+    let mut filters = vec![];
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::string => expr_val = Some(ExprVal::String(replace_string_markers(p.as_str()))),
+            Rule::string_concat => expr_val = Some(parse_string_concat(p)),
+            Rule::filter => filters.push(parse_filter(p)),
+            _ => unreachable!("Got {:?}", p),
+        };
+    }
+
+    Expr { val: expr_val.unwrap(), negated: false, filters }
+}
+
+/// A basic expression with optional filters with prece
 fn parse_comparison_val(pair: Pair<Rule>) -> Expr {
     let primary = |pair| parse_comparison_val(pair);
 
@@ -330,6 +345,7 @@ fn parse_logic_val(pair: Pair<Rule>) -> Expr {
         match p.as_rule() {
             Rule::op_not => negated = true,
             Rule::comparison_expr => expr = Some(parse_comparison_expression(p)),
+            Rule::string_expr_filter => expr = Some(parse_string_expr_with_filters(p)),
             _ => unreachable!(),
         };
     }
@@ -371,8 +387,8 @@ fn parse_array(pair: Pair<Rule>) -> ExprVal {
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::basic_expr_filter => {
-                vals.push(parse_basic_expr_with_filters(p));
+            Rule::logic_val => {
+                vals.push(parse_logic_val(p));
             }
             _ => unreachable!("Got {:?} in parse_array", p.as_rule()),
         }
@@ -886,6 +902,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                         "a string".to_string()
                     }
                     Rule::string_concat => "a concatenation of strings".to_string(),
+                    Rule::string_expr_filter => "a string or a concatenation of strings".to_string(),
                     Rule::all_chars => "a character".to_string(),
                     Rule::array => "an array of values".to_string(),
                     Rule::basic_val => "a value".to_string(),
