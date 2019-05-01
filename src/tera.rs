@@ -574,6 +574,7 @@ impl Tera {
         self.register_tester("number", testers::number);
         self.register_tester("divisibleby", testers::divisible_by);
         self.register_tester("iterable", testers::iterable);
+        self.register_tester("object", testers::object);
         self.register_tester("starting_with", testers::starting_with);
         self.register_tester("ending_with", testers::ending_with);
         self.register_tester("containing", testers::containing);

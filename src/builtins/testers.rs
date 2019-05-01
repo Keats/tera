@@ -132,6 +132,15 @@ pub fn iterable(value: Option<&Value>, params: &[Value]) -> Result<bool> {
     Ok(value.unwrap().is_array())
 }
 
+/// Returns true if the given variable is an object (ie can be iterated over key, value).
+/// Otherwise, returns false.
+pub fn object(value: Option<&Value>, params: &[Value]) -> Result<bool> {
+    number_args_allowed("object", 0, params.len())?;
+    value_defined("object", value)?;
+
+    Ok(value.unwrap().is_object())
+}
+
 // Helper function to extract string from an Option<Value> to remove boilerplate
 // with tester error handling
 fn extract_string<'a>(tester_name: &str, part: &str, value: Option<&'a Value>) -> Result<&'a str> {
@@ -209,7 +218,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::{
-        containing, defined, divisible_by, ending_with, iterable, matching, starting_with, string,
+        containing, defined, divisible_by, ending_with, iterable, object, matching, starting_with, string,
     };
 
     use serde_json::value::to_value;
@@ -253,6 +262,15 @@ mod tests {
         assert_eq!(iterable(Some(&to_value(vec!["1"]).unwrap()), &[]).unwrap(), true);
         assert_eq!(iterable(Some(&to_value(1).unwrap()), &[]).unwrap(), false);
         assert_eq!(iterable(Some(&to_value("hello").unwrap()), &[]).unwrap(), false);
+    }
+
+    #[test]
+    fn test_object() {
+        let mut h = HashMap::new();
+        h.insert("a", 1);
+        assert_eq!(object(Some(&to_value(h).unwrap()), &[]).unwrap(), true);
+        assert_eq!(object(Some(&to_value(1).unwrap()), &[]).unwrap(), false);
+        assert_eq!(object(Some(&to_value("hello").unwrap()), &[]).unwrap(), false);
     }
 
     #[test]
