@@ -897,6 +897,9 @@ Example:
 #### iterable
 Returns true if the given variable can be iterated over in Tera (ie is an array/tuple).
 
+#### object
+Returns true if the given variable is an object (ie can be iterated over key, value).
+
 #### starting\_with
 Returns true if the given variable is a string starts with the arg given.
 
