@@ -26,7 +26,7 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Global function `range` received start={} but `start` can only be a number",
+                    "Function `range` received start={} but `start` can only be a number",
                     val
                 )));
             }
@@ -38,7 +38,7 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Global function `range` received step_by={} but `step` can only be a number",
+                    "Function `range` received step_by={} but `step` can only be a number",
                     val
                 )));
             }
@@ -50,18 +50,18 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Global function `range` received end={} but `end` can only be a number",
+                    "Function `range` received end={} but `end` can only be a number",
                     val
                 )));
             }
         },
         None => {
-            return Err(Error::msg("Global function `range` was called without a `end` argument"));
+            return Err(Error::msg("Function `range` was called without a `end` argument"));
         }
     };
 
     if start > end {
-        return Err(Error::msg("Global function `range` was called without a `start` argument greater than the `end` one"));
+        return Err(Error::msg("Function `range` was called without a `start` argument greater than the `end` one"));
     }
 
     let mut i = start;
@@ -79,7 +79,7 @@ pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Global function `now` received utc={} but `utc` can only be a boolean",
+                    "Function `now` received utc={} but `utc` can only be a boolean",
                     val
                 )));
             }
@@ -91,7 +91,7 @@ pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                "Global function `now` received timestamp={} but `timestamp` can only be a boolean",
+                "Function `now` received timestamp={} but `timestamp` can only be a boolean",
                 val
             )));
             }
@@ -119,11 +119,11 @@ pub fn throw(args: &HashMap<String, Value>) -> Result<Value> {
         Some(val) => match from_value::<String>(val.clone()) {
             Ok(v) => Err(Error::msg(v)),
             Err(_) => Err(Error::msg(format!(
-                "Global function `throw` received message={} but `message` can only be a string",
+                "Function `throw` received message={} but `message` can only be a string",
                 val
             ))),
         },
-        None => Err(Error::msg("Global function `throw` was called without a `message` argument")),
+        None => Err(Error::msg("Function `throw` was called without a `message` argument")),
     }
 }
 
