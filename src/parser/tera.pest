@@ -79,19 +79,20 @@ string_concat = { (fn_call | float | int | string | dotted_square_bracket_ident)
 /// We'll use precedence climbing on those in the parser phase
 
 // boolean first so they are not caught as identifiers
-basic_val  = _{ boolean | string_concat | test_not | test | macro_call | fn_call | dotted_square_bracket_ident | float | int | string }
+basic_val  = _{ boolean | test_not | test | macro_call | fn_call | dotted_square_bracket_ident | float | int }
 basic_op   = _{ op_plus | op_minus | op_times | op_slash | op_modulo }
 basic_expr = { ("(" ~ basic_expr ~ ")" | basic_val) ~ (basic_op ~ basic_val)* }
 basic_expr_filter = !{ basic_expr ~ filter* }
+string_expr_filter = !{ (string_concat | string) ~ filter* }
 
 comparison_val  = { basic_expr_filter ~ (basic_op ~ basic_expr_filter)* }
 comparison_op   = _{ op_lte | op_gte | op_gt | op_lt | op_eq | op_ineq }
 comparison_expr = { comparison_val ~ (comparison_op ~ comparison_val)? }
 
-logic_val  = !{ op_not? ~ comparison_expr }
+logic_val  = !{ op_not? ~ (string_expr_filter | comparison_expr) }
 logic_expr = !{ logic_val ~ ((op_or | op_and) ~ logic_val)* }
 
-array = !{ "[" ~ (basic_expr_filter ~ ",")* ~ basic_expr_filter? ~ "]"}
+array = !{ "[" ~ (logic_val ~ ",")* ~ logic_val? ~ "]"}
 
 // ----------------------------------------------------
 

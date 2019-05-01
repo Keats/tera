@@ -156,7 +156,6 @@ fn lex_basic_expr() {
         "true",
         "macros::something()",
         "something()",
-        r#""hey""#,
         "a is defined",
         "a is defined(2)",
         "1 + 1",
@@ -179,7 +178,6 @@ fn lex_basic_expr_with_filter() {
         "true | ho",
         "macros::something() | hey",
         "something() | hey",
-        r#""hey" | capitalize"#,
         "a is defined | ho",
         "a is defined(2) | ho",
         "1 + 1 | round",
@@ -196,6 +194,23 @@ fn lex_basic_expr_with_filter() {
 }
 
 #[test]
+fn lex_string_expr_with_filter() {
+    let inputs = vec![
+        r#""hey" | capitalize"#,
+        r#""hey""#,
+        r#""hey" ~ 'ho' | capitalize"#,
+        r#""hey" ~ ho | capitalize"#,
+        r#"ho ~ ho ~ ho | capitalize"#,
+        r#"ho ~ 'ho' ~ ho | capitalize"#,
+        r#"ho ~ 'ho' ~ ho"#,
+    ];
+
+    for i in inputs {
+        assert_lex_rule!(Rule::string_expr_filter, i);
+    }
+}
+
+#[test]
 fn lex_comparison_val() {
     let inputs = vec![
         // all the basic expr still work
@@ -203,7 +218,6 @@ fn lex_comparison_val() {
         "true",
         "macros::something()",
         "something()",
-        r#""hey""#,
         "a is defined",
         "a is defined(2)",
         "1 + 1",
