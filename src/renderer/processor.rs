@@ -626,11 +626,11 @@ impl<'a> Processor<'a> {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
-                            Some(Number::from(ll * rr))
+                            Some(Number::from(ll.wrapping_mul(rr)))
                         } else if l.is_u64() && r.is_u64() {
                             let ll = l.as_u64().unwrap();
                             let rr = r.as_u64().unwrap();
-                            Some(Number::from(ll * rr))
+                            Some(Number::from(ll.wrapping_mul(rr)))
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
@@ -651,11 +651,11 @@ impl<'a> Processor<'a> {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
-                            Some(Number::from(ll + rr))
+                            Some(Number::from(ll.wrapping_add(rr)))
                         } else if l.is_u64() && r.is_u64() {
                             let ll = l.as_u64().unwrap();
                             let rr = r.as_u64().unwrap();
-                            Some(Number::from(ll + rr))
+                            Some(Number::from(ll.wrapping_add(rr)))
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
@@ -666,11 +666,11 @@ impl<'a> Processor<'a> {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
-                            Some(Number::from(ll - rr))
+                            Some(Number::from(ll.wrapping_sub(rr)))
                         } else if l.is_u64() && r.is_u64() {
                             let ll = l.as_u64().unwrap();
                             let rr = r.as_u64().unwrap();
-                            Some(Number::from(ll - rr))
+                            Some(Number::from(ll.wrapping_sub(rr)))
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
