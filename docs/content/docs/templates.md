@@ -775,12 +775,15 @@ Takes an optional argument of characters that shouldn't be percent-encoded (`/` 
 So, to encode slashes as well, you can do `{{ value | urlencode(safe="") }}`.
 
 #### pluralize
-Returns a suffix if the value is greater or equal than 2. Suffix defaults to `s`
+Returns a plural suffix if the value is not equal to ±1, or a singular suffix otherwise. The plural suffix defaults to `s` and the
+singular suffix defaults to the empty string (i.e nothing).
 
-Example: `You have {{ num_messages }} message{{ num_messages|pluralize }}`
+Example: `You have {{ num_messages }} message{{ num_messages | pluralize }}`
 
-If num_messages is 1, the output will be You have 1 message. If num_messages is 2 the output will be You have 2 messages.
-You can specify the suffix as an argument that way: `{{ num_messages|pluralize(suffix="es") }}`
+If num_messages is 1, the output will be You have 1 message. If num_messages is 2 the output will be You have 2 messages. You can
+also customize the singular and plural suffixes with the `singular` and `plural` arguments to the filter:
+
+Example: `{{ num_categories }} categor{{ num_categories | pluralize(singular="y", plural="ies") }}`
 
 #### round
 Returns a number rounded following the method given. Default method is `common` which will round to the nearest integer.
