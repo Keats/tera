@@ -14,6 +14,7 @@ a `Context` by value to avoid cloning and `render_value/one_off_value` takes som
 - Require macros import to be at the top of the files along with `extends` as it is fairly cheap and
 the code already only really look there.
 - Enforce spacing in tags at the parser, before `ifsomething` was considered ok
+- Pluralize filter now uses `singular` and `plural` arguments instead of `suffix`
 
 ### Others
 

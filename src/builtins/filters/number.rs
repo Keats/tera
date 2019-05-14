@@ -6,19 +6,27 @@ use serde_json::value::{to_value, Value};
 
 use crate::errors::{Error, Result};
 
-/// Returns a suffix if the value is not equal to ±1. Suffix defaults to `s`
+/// Returns a plural suffix if the value is not equal to ±1, or a singular
+/// suffix otherwise. The plural suffix defaults to `s` and the singular suffix
+/// defaults to the empty string (i.e nothing).
 pub fn pluralize(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("pluralize", "value", f64, value);
-    let suffix = match args.get("suffix") {
-        Some(val) => try_get_value!("pluralize", "suffix", String, val),
+
+    let plural = match args.get("plural") {
+        Some(val) => try_get_value!("pluralize", "plural", String, val),
         None => "s".to_string(),
+    };
+
+    let singular = match args.get("singular") {
+        Some(val) => try_get_value!("pluralize", "singular", String, val),
+        None => "".to_string(),
     };
 
     // English uses plural when it isn't one
     if (num.abs() - 1.).abs() > ::std::f64::EPSILON {
-        Ok(to_value(&suffix).unwrap())
+        Ok(to_value(&plural).unwrap())
     } else {
-        Ok(to_value(&"").unwrap())
+        Ok(to_value(&singular).unwrap())
     }
 }
 
@@ -92,12 +100,21 @@ mod tests {
     }
 
     #[test]
-    fn test_pluralize_multiple_custom_suffix() {
+    fn test_pluralize_multiple_custom_plural() {
         let mut args = HashMap::new();
-        args.insert("suffix".to_string(), to_value("es").unwrap());
+        args.insert("plural".to_string(), to_value("es").unwrap());
         let result = pluralize(&to_value(2).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("es").unwrap());
+    }
+
+    #[test]
+    fn test_pluralize_multiple_custom_singular() {
+        let mut args = HashMap::new();
+        args.insert("singular".to_string(), to_value("y").unwrap());
+        let result = pluralize(&to_value(1).unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("y").unwrap());
     }
 
     #[test]
