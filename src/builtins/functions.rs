@@ -61,7 +61,9 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
     };
 
     if start > end {
-        return Err(Error::msg("Function `range` was called without a `start` argument greater than the `end` one"));
+        return Err(Error::msg(
+            "Function `range` was called without a `start` argument greater than the `end` one",
+        ));
     }
 
     let mut i = start;
@@ -91,9 +93,9 @@ pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                "Function `now` received timestamp={} but `timestamp` can only be a boolean",
-                val
-            )));
+                    "Function `now` received timestamp={} but `timestamp` can only be a boolean",
+                    val
+                )));
             }
         },
         None => false,

@@ -682,14 +682,20 @@ impl<'a> Processor<'a> {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
                             if rr == 0 {
-                                return Err(Error::msg(format!("Tried to do a modulo by zero: {:?}/{:?}", lhs, rhs)));
+                                return Err(Error::msg(format!(
+                                    "Tried to do a modulo by zero: {:?}/{:?}",
+                                    lhs, rhs
+                                )));
                             }
                             Some(Number::from(ll % rr))
                         } else if l.is_u64() && r.is_u64() {
                             let ll = l.as_u64().unwrap();
                             let rr = r.as_u64().unwrap();
                             if rr == 0 {
-                                return Err(Error::msg(format!("Tried to do a modulo by zero: {:?}/{:?}", lhs, rhs)));
+                                return Err(Error::msg(format!(
+                                    "Tried to do a modulo by zero: {:?}/{:?}",
+                                    lhs, rhs
+                                )));
                             }
                             Some(Number::from(ll % rr))
                         } else {

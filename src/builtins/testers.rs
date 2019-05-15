@@ -218,7 +218,8 @@ mod tests {
     use std::collections::HashMap;
 
     use super::{
-        containing, defined, divisible_by, ending_with, iterable, object, matching, starting_with, string,
+        containing, defined, divisible_by, ending_with, iterable, matching, object, starting_with,
+        string,
     };
 
     use serde_json::value::to_value;
