@@ -123,7 +123,7 @@ macro_call      = { ident ~ "::" ~ ident ~ "(" ~ kwargs? ~ ")" }
 
 // It's a bit weird that tests are the only thing in Tera not using kwargs
 // but at the same time it's one arg most of the time so...
-test_arg  = { logic_expr }
+test_arg  = { logic_expr | array }
 test_args = !{ test_arg ~ ("," ~ test_arg)* }
 test_call = !{ ident ~ ("(" ~ test_args ~ ")")? }
 test_not  = { dotted_ident ~ "is" ~ "not" ~ test_call }

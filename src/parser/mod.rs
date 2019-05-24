@@ -121,10 +121,14 @@ fn parse_test_call(pair: Pair<Rule>) -> TeraResult<(String, Vec<Expr>)> {
             // iterate on the test_arg rule
             {
                 for p2 in p.into_inner() {
-                    // only expressions allowed in the grammar so we skip the
-                    // matching
-                    for p3 in p2.into_inner() {
-                        args.push(parse_logic_expr(p3)?);
+                    match p2.as_rule() {
+                        Rule::logic_expr => {
+                            args.push(parse_logic_expr(p2)?);
+                        }
+                        Rule::array => {
+                            args.push(Expr::new(parse_array(p2)?));
+                        }
+                        _ => unreachable!("Invalid arg type for test {:?}", p2.as_rule()),
                     }
                 }
             }
@@ -959,8 +963,8 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::test => "a test".to_string(),
                     Rule::test_not => "a negated test".to_string(),
                     Rule::test_call => "a test call".to_string(),
-                    Rule::test_arg => "a test argument (any expressions)".to_string(),
-                    Rule::test_args => "a list of test arguments (any expressions)".to_string(),
+                    Rule::test_arg => "a test argument (any expressions including arrays)".to_string(),
+                    Rule::test_args => "a list of test arguments (any expression including arrayss)".to_string(),
                     Rule::macro_fn | Rule::macro_fn_wrapper => "a macro function".to_string(),
                     Rule::macro_call => "a macro function call".to_string(),
                     Rule::macro_def_arg => {

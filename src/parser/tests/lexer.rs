@@ -388,7 +388,8 @@ fn lex_macro_definition() {
 
 #[test]
 fn lex_test() {
-    let inputs = vec!["a is defined", "a is defined()", "a is divisibleby(2)"];
+    let inputs =
+        vec!["a is defined", "a is defined()", "a is divisibleby(2)", "a is in([1, 2, something])"];
     for i in inputs {
         // The () are not counted as tokens for some reasons so can't use the macro
         assert!(TeraParser::parse(Rule::test, i).is_ok());
