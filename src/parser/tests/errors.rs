@@ -257,7 +257,10 @@ fn invalid_block_missing_name() {
 
 #[test]
 fn unterminated_test() {
-    assert_err_msg(r#"{% if a is odd( %}"#, &["1:17", "expected a value that can be negated"]);
+    assert_err_msg(
+        r#"{% if a is odd( %}"#,
+        &["1:17", "a test argument (any expressions including arrays)"],
+    );
 }
 
 #[test]
