@@ -1039,14 +1039,14 @@ mod tests {
     // https://github.com/Keats/tera/issues/396
     #[test]
     fn issues_found_fuzzing_are_fixed() {
-        let samples = vec![
+        let samples: Vec<(&str, Option<&str>)> = vec![
             // sample, expected result if it isn't an error
             ("{{0%0}}", None),
             ("{{W>W>vv}}{", None),
             ("{{22220222222022222220}}", None),
             ("{_{{W~1+11}}k{", None),
             ("{{n~n<n.11}}}", None),
-            ("{{266314325266577770*4167}}7}}7", Some("29271489632564706307}}7")),
+            ("{{266314325266577770*4167}}7}}7", None),
             ("{{0~1~``~0~0~177777777777777777777~``~0~0~h}}", None),
         ];
 

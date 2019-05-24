@@ -626,11 +626,30 @@ impl<'a> Processor<'a> {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
-                            Some(Number::from(ll.wrapping_mul(rr)))
+                            let res = match ll.checked_mul(rr) {
+                                Some(s) => s,
+                                None => {
+                                    return Err(Error::msg(format!(
+                                        "{} x {} results in an out of bounds i64",
+                                        ll, rr
+                                    )));
+                                }
+                            };
+
+                            Some(Number::from(res))
                         } else if l.is_u64() && r.is_u64() {
                             let ll = l.as_u64().unwrap();
                             let rr = r.as_u64().unwrap();
-                            Some(Number::from(ll.wrapping_mul(rr)))
+                            let res = match ll.checked_mul(rr) {
+                                Some(s) => s,
+                                None => {
+                                    return Err(Error::msg(format!(
+                                        "{} x {} results in an out of bounds u64",
+                                        ll, rr
+                                    )));
+                                }
+                            };
+                            Some(Number::from(res))
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
@@ -651,11 +670,29 @@ impl<'a> Processor<'a> {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
-                            Some(Number::from(ll.wrapping_add(rr)))
+                            let res = match ll.checked_add(rr) {
+                                Some(s) => s,
+                                None => {
+                                    return Err(Error::msg(format!(
+                                        "{} + {} results in an out of bounds i64",
+                                        ll, rr
+                                    )));
+                                }
+                            };
+                            Some(Number::from(res))
                         } else if l.is_u64() && r.is_u64() {
                             let ll = l.as_u64().unwrap();
                             let rr = r.as_u64().unwrap();
-                            Some(Number::from(ll.wrapping_add(rr)))
+                            let res = match ll.checked_add(rr) {
+                                Some(s) => s,
+                                None => {
+                                    return Err(Error::msg(format!(
+                                        "{} + {} results in an out of bounds u64",
+                                        ll, rr
+                                    )));
+                                }
+                            };
+                            Some(Number::from(res))
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
@@ -666,11 +703,29 @@ impl<'a> Processor<'a> {
                         if l.is_i64() && r.is_i64() {
                             let ll = l.as_i64().unwrap();
                             let rr = r.as_i64().unwrap();
-                            Some(Number::from(ll.wrapping_sub(rr)))
+                            let res = match ll.checked_sub(rr) {
+                                Some(s) => s,
+                                None => {
+                                    return Err(Error::msg(format!(
+                                        "{} - {} results in an out of bounds i64",
+                                        ll, rr
+                                    )));
+                                }
+                            };
+                            Some(Number::from(res))
                         } else if l.is_u64() && r.is_u64() {
                             let ll = l.as_u64().unwrap();
                             let rr = r.as_u64().unwrap();
-                            Some(Number::from(ll.wrapping_sub(rr)))
+                            let res = match ll.checked_sub(rr) {
+                                Some(s) => s,
+                                None => {
+                                    return Err(Error::msg(format!(
+                                        "{} - {} results in an out of bounds u64",
+                                        ll, rr
+                                    )));
+                                }
+                            };
+                            Some(Number::from(res))
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();

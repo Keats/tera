@@ -120,8 +120,6 @@ The priority of operations is the following, from lowest to highest:
 - `+` and `-`
 - `*` and `/` and `%`
 
-All mathematical operations are wrapping: if the result of an expression goes over the limit for its type, it will not error 
-but instead wrap around.
 
 #### Comparisons
 
