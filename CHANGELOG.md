@@ -23,7 +23,7 @@ the code already only really look there.
 - Add `nth` filter to get the nth value in an array
 - You can now use glob patterns in Tera::new
 - `default` filter now works on Null values
-- Literal numbers in template overflowing i64/f64 will now be replaced by `0` instead of panicking
+- Literal numbers in template overflowing i64/f64 will now be an error instead of panicking
 - Allow arrays as test arguments
 
 ## 0.11.20 (2018-11-14)
