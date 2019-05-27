@@ -145,6 +145,10 @@ fn render_variable_block_logic_expr() {
         ("{{ not name }}", "false"),
         ("{{ not true }}", "false"),
         ("{{ not undefined }}", "true"),
+        ("{{ name == 'john' }}", "true"),
+        ("{{ name != 'john' }}", "false"),
+        ("{{ name == 'john' | capitalize }}", "false"),
+        ("{{ name != 'john' | capitalize }}", "true"),
     ];
 
     for (input, expected) in inputs {
