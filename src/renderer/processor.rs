@@ -280,6 +280,40 @@ impl<'a> Processor<'a> {
         }
     }
 
+    fn eval_in_condition(self: &mut Self, in_cond: &'a In) -> Result<bool> {
+        let lhs = self.eval_expression(&in_cond.lhs)?;
+        let rhs = self.eval_expression(&in_cond.rhs)?;
+
+        let present = match *rhs {
+            Value::Array(ref v) => v.contains(&lhs),
+            Value::String(ref s) => match *lhs {
+                Value::String(ref s2) => s.contains(s2),
+                _ => {
+                    return Err(Error::msg(format!(
+                        "Tried to check if {:?} is in a string, but it isn't a string",
+                        lhs
+                    )))
+                }
+            },
+            Value::Object(ref map) => match *lhs {
+                Value::String(ref s2) => map.contains_key(s2),
+                _ => {
+                    return Err(Error::msg(format!(
+                        "Tried to check if {:?} is in a object, but it isn't a string",
+                        lhs
+                    )))
+                }
+            },
+            _ => {
+                return Err(Error::msg(
+                    "The `in` operator only supports strings, arrays and objects.",
+                ))
+            }
+        };
+
+        Ok(if in_cond.negated { !present } else { present })
+    }
+
     fn eval_expression(self: &mut Self, expr: &'a Expr) -> Result<Val<'a>> {
         let mut needs_escape = false;
 
@@ -291,6 +325,7 @@ impl<'a> Processor<'a> {
                 }
                 Cow::Owned(Value::Array(values))
             }
+            ExprVal::In(ref in_cond) => Cow::Owned(Value::Bool(self.eval_in_condition(in_cond)?)),
             ExprVal::String(ref val) => {
                 needs_escape = true;
                 Cow::Owned(Value::String(val.to_string()))
@@ -566,7 +601,8 @@ impl<'a> Processor<'a> {
                     Err(_) => false,
                 }
             }
-            ExprVal::Test(ref test) => self.eval_test(test).unwrap_or(false),
+            ExprVal::In(ref in_cond) => self.eval_in_condition(&in_cond)?,
+            ExprVal::Test(ref test) => self.eval_test(test)?,
             ExprVal::Bool(val) => val,
             ExprVal::String(ref string) => !string.is_empty(),
             _ => unreachable!("unimplemented logic operation for {:?}", bool_expr),
@@ -783,7 +819,10 @@ impl<'a> Processor<'a> {
                 return Err(Error::msg(format!("Tried to do math with a boolean: `{}`", val)));
             }
             ExprVal::StringConcat(ref val) => {
-                return Err(Error::msg(format!("Tried to do math with a string concatenation: {}", val.to_template_string())));
+                return Err(Error::msg(format!(
+                    "Tried to do math with a string concatenation: {}",
+                    val.to_template_string()
+                )));
             }
             _ => unreachable!("unimplemented math expression for {:?}", expr),
         };

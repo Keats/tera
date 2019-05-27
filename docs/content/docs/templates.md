@@ -138,19 +138,32 @@ The priority of operations is the following, from lowest to highest:
 
 #### String concatenation
 
-You can concatenate several strings/idents using the `~` operator
+You can concatenate several strings/idents using the `~` operator.
 
 ```jinja2
-
 {{ "hello " ~ 'world' ~ `!` }}
 
 {{ an_ident ~ " and a string" ~ another_ident }}
 
 {{ an_ident ~ another_ident }}
-
 ```
 
 An ident resolving to something other than a string will raise an error.
+
+#### `in` checking
+
+You can check whether a left side is contained in a right side using the `in` operator.
+
+```jinja2
+{{ some_var in [1, 2, 3] }}
+
+{{ 'index' in page.path }}
+
+{{ an_ident not in  an_obj }}
+```
+
+Only literals/variables resulting in an array, a string and an object are supported in the right hand side: everything else
+will raise an error.
 
 
 ## Manipulating data

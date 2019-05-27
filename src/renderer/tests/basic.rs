@@ -134,6 +134,11 @@ fn render_variable_block_logic_expr() {
     context.insert("b", &3);
     context.insert("numbers", &vec![1, 2, 3]);
     context.insert("tuple_list", &vec![(1, 2, 3), (1, 2, 3)]);
+    let mut hashmap = HashMap::new();
+    hashmap.insert("a", 1);
+    hashmap.insert("b", 10);
+    hashmap.insert("john", 100);
+    context.insert("object", &hashmap);
 
     let inputs = vec![
         ("{{ (1.9 + a) | round > 10 }}", "false"),
@@ -149,6 +154,21 @@ fn render_variable_block_logic_expr() {
         ("{{ name != 'john' }}", "false"),
         ("{{ name == 'john' | capitalize }}", "false"),
         ("{{ name != 'john' | capitalize }}", "true"),
+        ("{{ 1 in numbers }}", "true"),
+        ("{{ 1 not in numbers }}", "false"),
+        ("{{ 40 not in numbers }}", "true"),
+        ("{{ 'e' in 'hello' }}", "true"),
+        ("{{ 'e' not in 'hello' }}", "false"),
+        ("{{ 'x' not in 'hello' }}", "true"),
+        ("{{ name in 'hello john' }}", "true"),
+        ("{{ name not in 'hello john' }}", "false"),
+        ("{{ name not in 'hello' }}", "true"),
+        ("{{ name in ['bob', 2, 'john'] }}", "true"),
+        ("{{ a in ['bob', 2, 'john'] }}", "true"),
+        ("{{ 'n' in name }}", "true"),
+        ("{{ '<' in malicious }}", "true"),
+        ("{{ 'a' in object }}", "true"),
+        ("{{ name in object }}", "true"),
     ];
 
     for (input, expected) in inputs {
@@ -298,6 +318,7 @@ fn render_if_elif_else() {
     context.insert("is_true", &true);
     context.insert("is_false", &false);
     context.insert("age", &18);
+    context.insert("name", &"john");
     context.insert("numbers", &vec![1, 2, 3]);
 
     let inputs = vec![
@@ -333,6 +354,10 @@ fn render_if_elif_else() {
         // doesn't fallthrough elifs
         // https://github.com/Keats/tera/issues/188
         ("{% if 1 < 4 %}a{% elif 2 < 4 %}b{% elif 3 < 4 %}c{% else %}d{% endif %}", "a"),
+        // with in operator
+        ("{% if 1 in numbers %}Admin{% elif 100 in numbers %}User{% else %}Hmm{% endif %}", "Admin"),
+        ("{% if 100 in numbers %}Admin{% elif 1 in numbers %}User{% else %}Hmm{% endif %}", "User"),
+        ("{% if 'n' in name %}Admin{% else %}Hmm{% endif %}", "Admin"),
     ];
 
     for (input, expected) in inputs {
