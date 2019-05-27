@@ -92,7 +92,6 @@ fn error_location_in_parent_in_macro() {
     ]).unwrap();
 
     let result = tera.render("child", Context::new());
-    println!("{:?}", result);
 
     assert_eq!(
         result.unwrap_err().to_string(),
@@ -122,7 +121,7 @@ fn error_unknown_index_variable() {
     let mut context = Context::new();
     context.insert("arr", &[1, 2, 3]);
 
-    let result = tera.render("tpl", Context::new());
+    let result = tera.render("tpl", context);
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -248,5 +247,20 @@ fn errors_with_inheritance_in_included_template() {
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
         "Inheritance in included templates is currently not supported: extended `parent`"
+    );
+}
+
+#[test]
+fn error_string_concat_math_logic() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![("tpl", "{{ 'ho' ~ name < 10 }}")]).unwrap();
+    let mut context = Context::new();
+    context.insert("name", &"john");
+
+    let result = tera.render("tpl", context);
+
+    assert_eq!(
+        result.unwrap_err().source().unwrap().to_string(),
+        "Tried to do math with a string concatenation: 'ho' ~ name"
     );
 }

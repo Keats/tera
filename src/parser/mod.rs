@@ -351,6 +351,7 @@ fn parse_comparison_expression(pair: Pair<Rule>) -> TeraResult<Expr> {
 
     let expr = match pair.as_rule() {
         Rule::comparison_val => parse_comparison_val(pair)?,
+        Rule::string_expr_filter => parse_string_expr_with_filters(pair)?,
         Rule::comparison_expr => {
             COMPARISON_EXPR_CLIMBER.climb(pair.into_inner(), primary, infix)?
         }

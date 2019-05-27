@@ -782,6 +782,9 @@ impl<'a> Processor<'a> {
             ExprVal::Bool(val) => {
                 return Err(Error::msg(format!("Tried to do math with a boolean: `{}`", val)));
             }
+            ExprVal::StringConcat(ref val) => {
+                return Err(Error::msg(format!("Tried to do math with a string concatenation: {}", val.to_template_string())));
+            }
             _ => unreachable!("unimplemented math expression for {:?}", expr),
         };
 
