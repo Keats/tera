@@ -357,6 +357,38 @@ fn parse_variable_tag_global_function() {
 }
 
 #[test]
+fn parse_in_condition() {
+    let ast = parse("{{ b in c }}").unwrap();
+    let mut args = HashMap::new();
+    args.insert("some".to_string(), Expr::new(ExprVal::Int(1)));
+
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::new(ExprVal::In(In {
+            lhs: Box::new(Expr::new(ExprVal::Ident("b".to_string()))),
+            rhs: Box::new(Expr::new(ExprVal::Ident("c".to_string()))),
+            negated: false,
+        })))
+    );
+}
+
+#[test]
+fn parse_negated_in_condition() {
+    let ast = parse("{{ b not in c }}").unwrap();
+    let mut args = HashMap::new();
+    args.insert("some".to_string(), Expr::new(ExprVal::Int(1)));
+
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::new(ExprVal::In(In {
+            lhs: Box::new(Expr::new(ExprVal::Ident("b".to_string()))),
+            rhs: Box::new(Expr::new(ExprVal::Ident("c".to_string()))),
+            negated: true,
+        })))
+    );
+}
+
+#[test]
 fn parse_variable_tag_global_function_with_filter() {
     let ast = parse("{{ get_time(some=1) | round | upper }}").unwrap();
     let mut args = HashMap::new();
