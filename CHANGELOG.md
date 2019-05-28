@@ -25,6 +25,7 @@ the code already only really look there.
 - `default` filter now works on Null values
 - Literal numbers in template overflowing i64/f64 will now be an error instead of panicking
 - Allow arrays as test arguments
+- Add the `in` operator to check if a left operand is contained in a right one. Also supports negation as `not in`
 
 ## 0.11.20 (2018-11-14)
 

@@ -132,13 +132,25 @@ impl StringConcat {
             match value {
                 ExprVal::String(ref s) => res.push(format!("'{}'", s)),
                 ExprVal::Ident(ref s) => res.push(s.to_string()),
-                _ => res.push("unknown".to_string())
+                _ => res.push("unknown".to_string()),
             }
         }
 
         res.join(" ~ ")
     }
 }
+
+/// Something that checks whether the left side is contained in the right side
+#[derive(Clone, Debug, PartialEq)]
+pub struct In {
+    /// The needle, a string or a basic expression/literal
+    pub lhs: Box<Expr>,
+    /// The haystack, can be a string, an array or an ident only currently
+    pub rhs: Box<Expr>,
+    /// Is it using `not` as in `b` not in `...`?
+    pub negated: bool,
+}
+
 /// An expression is the node found in variable block, kwargs and conditions.
 #[derive(Clone, Debug, PartialEq)]
 #[allow(missing_docs)]
@@ -157,6 +169,7 @@ pub enum ExprVal {
     // on values inside arrays
     Array(Vec<Expr>),
     StringConcat(StringConcat),
+    In(In),
 }
 
 /// An expression is a value that can be negated and followed by

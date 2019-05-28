@@ -303,6 +303,43 @@ fn parse_string_expr_with_filters(pair: Pair<Rule>) -> TeraResult<Expr> {
     Ok(Expr { val: expr_val.unwrap(), negated: false, filters })
 }
 
+fn parse_in_condition_container(pair: Pair<Rule>) -> TeraResult<Expr> {
+    let mut expr = None;
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::array => expr = Some(Expr::new(parse_array(p)?)),
+            Rule::dotted_square_bracket_ident => {
+                expr = Some(Expr::new(ExprVal::Ident(p.as_str().to_string())))
+            }
+            Rule::string_expr_filter => expr = Some(parse_string_expr_with_filters(p)?),
+            _ => unreachable!("Got {:?} in parse_in_condition_container", p),
+        };
+    }
+    Ok(expr.unwrap())
+}
+
+fn parse_in_condition(pair: Pair<Rule>, negated: bool) -> TeraResult<Expr> {
+    let mut lhs = None;
+    let mut rhs = None;
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            // lhs
+            Rule::string_expr_filter => lhs = Some(parse_string_expr_with_filters(p)?),
+            Rule::basic_expr_filter => lhs = Some(parse_basic_expr_with_filters(p)?),
+            // rhs
+            Rule::in_cond_container => rhs = Some(parse_in_condition_container(p)?),
+            _ => unreachable!("Got {:?} in parse_in_condition", p),
+        };
+    }
+
+    Ok(Expr::new(ExprVal::In(In {
+        lhs: Box::new(lhs.unwrap()),
+        rhs: Box::new(rhs.unwrap()),
+        negated,
+    })))
+}
+
 /// A basic expression with optional filters with prece
 fn parse_comparison_val(pair: Pair<Rule>) -> TeraResult<Expr> {
     let primary = |pair| parse_comparison_val(pair);
@@ -368,6 +405,8 @@ fn parse_logic_val(pair: Pair<Rule>) -> TeraResult<Expr> {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::op_not => negated = true,
+            Rule::in_cond => expr = Some(parse_in_condition(p, false)?),
+            Rule::in_not_cond => expr = Some(parse_in_condition(p, true)?),
             Rule::comparison_expr => expr = Some(parse_comparison_expression(p)?),
             Rule::string_expr_filter => expr = Some(parse_string_expr_with_filters(p)?),
             _ => unreachable!(),
@@ -1031,6 +1070,8 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::break_tag => "a break tag".to_string(),
                     Rule::continue_tag => "a continue tag".to_string(),
                     Rule::top_imports => "top imports".to_string(),
+                    Rule::in_cond | Rule::in_not_cond => "a `in` condition".to_string(),
+                    Rule::in_cond_container => "a `in` condition container: a string, an array or an ident".to_string(),
                 }
             });
             return Err(Error::msg(fancy_e));
