@@ -8,9 +8,6 @@
 - Removed error-chain errors and added rich Error enum instead
 - Filter, Tester and Function are now traits and now take borrowed values instead of owned
 - Updated for 2018 edition
-- Split a `render/one_off` with `render_value/one_off_value`. `render/one_off` now takes
-a `Context` by value to avoid cloning and `render_value/one_off_value` takes something that implements
-`Serialize`
 - Require macros import to be at the top of the files along with `extends` as it is fairly cheap and
 the code already only really look there.
 - Enforce spacing in tags at the parser, before `ifsomething` was considered ok
@@ -26,6 +23,8 @@ the code already only really look there.
 - Literal numbers in template overflowing i64/f64 will now be an error instead of panicking
 - Allow arrays as test arguments
 - Add the `in` operator to check if a left operand is contained in a right one. Also supports negation as `not in`
+- Add `Context::from_value` to instantiate a `Context` from a serde_json `Value`
+- Add `Context::from_serialize` to instantiate a `Context` from something that impl `Serialize`
 
 ## 0.11.20 (2018-11-14)
 
