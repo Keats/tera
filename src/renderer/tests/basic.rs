@@ -355,7 +355,10 @@ fn render_if_elif_else() {
         // https://github.com/Keats/tera/issues/188
         ("{% if 1 < 4 %}a{% elif 2 < 4 %}b{% elif 3 < 4 %}c{% else %}d{% endif %}", "a"),
         // with in operator
-        ("{% if 1 in numbers %}Admin{% elif 100 in numbers %}User{% else %}Hmm{% endif %}", "Admin"),
+        (
+            "{% if 1 in numbers %}Admin{% elif 100 in numbers %}User{% else %}Hmm{% endif %}",
+            "Admin",
+        ),
         ("{% if 100 in numbers %}Admin{% elif 1 in numbers %}User{% else %}Hmm{% endif %}", "User"),
         ("{% if 'n' in name %}Admin{% else %}Hmm{% endif %}", "Admin"),
     ];

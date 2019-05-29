@@ -70,6 +70,6 @@ pub use crate::parser::ast;
 pub mod helpers {
     /// Functions helping writing tests
     pub mod testers {
-        pub use crate::builtins::testers::{number_args_allowed, extract_string, value_defined};
+        pub use crate::builtins::testers::{extract_string, number_args_allowed, value_defined};
     }
 }

@@ -4,8 +4,7 @@ use std::collections::BTreeMap;
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
 
-use crate::errors::{Result as TeraResult, Error};
-
+use crate::errors::{Error, Result as TeraResult};
 
 /// The struct that holds the context of a template rendering.
 ///
@@ -67,8 +66,10 @@ impl Context {
                     data.insert(key, value);
                 }
                 Ok(Context { data })
-            },
-            _ => Err(Error::msg("Creating a Context from a Value/Serialize requires it being a JSON object"))
+            }
+            _ => Err(Error::msg(
+                "Creating a Context from a Value/Serialize requires it being a JSON object",
+            )),
         }
     }
 
@@ -167,8 +168,8 @@ pub fn get_json_pointer(key: &str) -> String {
 mod tests {
     use super::*;
 
-    use std::collections::HashMap;
     use serde_json::json;
+    use std::collections::HashMap;
 
     #[test]
     fn can_extend_context() {

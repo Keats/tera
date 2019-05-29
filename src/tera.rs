@@ -693,7 +693,7 @@ mod tests {
 
     use super::Tera;
     use crate::context::Context;
-    use serde_json::{Value as JsonValue, json};
+    use serde_json::{json, Value as JsonValue};
 
     #[test]
     fn test_get_inheritance_chain() {
@@ -852,7 +852,8 @@ mod tests {
         let m = json!({
             "greeting": "Good morning"
         });
-        let result = Tera::one_off("{{ greeting }} world", Context::from_value(m).unwrap(), true).unwrap();
+        let result =
+            Tera::one_off("{{ greeting }} world", Context::from_value(m).unwrap(), true).unwrap();
 
         assert_eq!(result, "Good morning world");
     }

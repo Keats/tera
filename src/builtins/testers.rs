@@ -51,7 +51,11 @@ pub fn value_defined(tester_name: &str, value: Option<&Value>) -> Result<()> {
 
 /// Helper function to extract string from an Option<Value> to remove boilerplate
 /// with tester error handling
-pub fn extract_string<'a>(tester_name: &str, part: &str, value: Option<&'a Value>) -> Result<&'a str> {
+pub fn extract_string<'a>(
+    tester_name: &str,
+    part: &str,
+    value: Option<&'a Value>,
+) -> Result<&'a str> {
     match value.and_then(Value::as_str) {
         Some(s) => Ok(s),
         None => Err(Error::msg(format!(
@@ -60,7 +64,6 @@ pub fn extract_string<'a>(tester_name: &str, part: &str, value: Option<&'a Value
         ))),
     }
 }
-
 
 /// Returns true if `value` is defined. Otherwise, returns false.
 pub fn defined(value: Option<&Value>, params: &[Value]) -> Result<bool> {
