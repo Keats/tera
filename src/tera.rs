@@ -6,8 +6,6 @@ use std::path::Path;
 use std::sync::Arc;
 
 use globwalk::glob;
-use serde::Serialize;
-use serde_json::value::to_value;
 
 use crate::builtins::filters::{array, common, number, object, string, Filter};
 use crate::builtins::functions::{self, Function};
@@ -307,29 +305,6 @@ impl Tera {
         renderer.render()
     }
 
-    /// Renders a Tera template given an object that implements `Serialize`.
-    ///
-    /// If `data` is serializing to an object, an error will be returned.
-    ///
-    /// ```rust,ignore
-    /// // Rendering a template with a struct that impl `Serialize`
-    /// tera.render_value("hello.html", &product);
-    /// ```
-    pub fn render_value<T: Serialize>(&self, template_name: &str, data: &T) -> Result<String> {
-        let value = to_value(data).map_err(Error::json)?;
-        if !value.is_object() {
-            return Err(Error::msg(format!(
-                "Failed to render '{}': context isn't a JSON object. \
-                The value passed needs to be a key-value object: context, struct, hashmap for example.",
-                template_name
-            )));
-        }
-
-        let template = self.get_template(template_name)?;
-        let renderer = Renderer::new(template, self, value);
-        renderer.render()
-    }
-
     /// Renders a one off template (for example a template coming from a user input) given a `Context`
     ///
     /// This creates a separate instance of Tera with no possibilities of adding custom filters
@@ -352,27 +327,6 @@ impl Tera {
         tera.render("one_off", context)
     }
 
-    /// Renders a one off template (for example a template coming from a user input) given an object
-    /// that implements `Serialize`.
-    ///
-    /// This creates a separate instance of Tera with no possibilities of adding custom filters
-    /// or testers, parses the template and render it immediately.
-    /// Any errors will mention the `one_off` template: this is the name given to the template by
-    /// Tera
-    ///
-    /// ```rust,ignore
-    /// // With a struct that impl Serialize
-    /// Tera::one_off("{{ greeting }} world", &user, true);
-    /// ```
-    pub fn one_off_value<T: Serialize>(input: &str, data: &T, autoescape: bool) -> Result<String> {
-        let mut tera = Tera::default();
-        tera.add_raw_template("one_off", input)?;
-        if autoescape {
-            tera.autoescape_on(vec!["one_off"]);
-        }
-
-        tera.render_value("one_off", data)
-    }
     #[doc(hidden)]
     #[inline]
     pub fn get_template(&self, template_name: &str) -> Result<&Template> {
@@ -739,7 +693,7 @@ mod tests {
 
     use super::Tera;
     use crate::context::Context;
-    use serde_json::{Map as JsonObject, Value as JsonValue};
+    use serde_json::{Value as JsonValue, json};
 
     #[test]
     fn test_get_inheritance_chain() {
@@ -895,9 +849,10 @@ mod tests {
 
     #[test]
     fn test_value_one_off_template() {
-        let mut context = JsonObject::new();
-        context.insert("greeting".to_string(), JsonValue::String("Good morning".to_string()));
-        let result = Tera::one_off_value("{{ greeting }} world", &context, true).unwrap();
+        let m = json!({
+            "greeting": "Good morning"
+        });
+        let result = Tera::one_off("{{ greeting }} world", Context::from_value(m).unwrap(), true).unwrap();
 
         assert_eq!(result, "Good morning world");
     }

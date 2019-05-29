@@ -78,19 +78,6 @@ fn test_error_render_iterate_non_array() {
 }
 
 #[test]
-fn test_error_render_serialize_non_object() {
-    let tera = Tera::new("tests/render-failures/**/*").unwrap();
-    let result = tera.render_value("value_render_non_object.html", &[1, 2, 3]);
-
-    assert_eq!(result.is_err(), true);
-    assert_eq!(
-        result.unwrap_err().to_string(),
-        "Failed to render \'value_render_non_object.html\': context isn\'t a JSON object. \
-         The value passed needs to be a key-value object: context, struct, hashmap for example."
-    );
-}
-
-#[test]
 fn test_error_wrong_args_macros() {
     let result = render_tpl("macro_wrong_args.html");
 
