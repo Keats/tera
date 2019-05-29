@@ -25,6 +25,7 @@ the code already only really look there.
 - Add the `in` operator to check if a left operand is contained in a right one. Also supports negation as `not in`
 - Add `Context::from_value` to instantiate a `Context` from a serde_json `Value`
 - Add `Context::from_serialize` to instantiate a `Context` from something that impl `Serialize`
+- Make tests helper fns `number_args_allowed`, `value_defined` and `extract_string` public
 
 ## 0.11.20 (2018-11-14)
 

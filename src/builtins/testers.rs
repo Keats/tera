@@ -18,8 +18,8 @@ where
     }
 }
 
-// Some helper functions to remove boilerplate with tester error handling
-fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result<()> {
+/// Check that the number of args match what was expected
+pub fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result<()> {
     if max == 0 && args_len > max {
         return Err(Error::msg(format!(
             "Tester `{}` was called with some args but this test doesn't take args",
@@ -37,8 +37,8 @@ fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result
     Ok(())
 }
 
-// Called to check if the Value is defined and return an Err if not
-fn value_defined(tester_name: &str, value: Option<&Value>) -> Result<()> {
+/// Called to check if the Value is defined and return an Err if not
+pub fn value_defined(tester_name: &str, value: Option<&Value>) -> Result<()> {
     if value.is_none() {
         return Err(Error::msg(format!(
             "Tester `{}` was called on an undefined variable",
@@ -48,6 +48,19 @@ fn value_defined(tester_name: &str, value: Option<&Value>) -> Result<()> {
 
     Ok(())
 }
+
+/// Helper function to extract string from an Option<Value> to remove boilerplate
+/// with tester error handling
+pub fn extract_string<'a>(tester_name: &str, part: &str, value: Option<&'a Value>) -> Result<&'a str> {
+    match value.and_then(Value::as_str) {
+        Some(s) => Ok(s),
+        None => Err(Error::msg(format!(
+            "Tester `{}` was called {} that isn't a string",
+            tester_name, part
+        ))),
+    }
+}
+
 
 /// Returns true if `value` is defined. Otherwise, returns false.
 pub fn defined(value: Option<&Value>, params: &[Value]) -> Result<bool> {
@@ -139,18 +152,6 @@ pub fn object(value: Option<&Value>, params: &[Value]) -> Result<bool> {
     value_defined("object", value)?;
 
     Ok(value.unwrap().is_object())
-}
-
-// Helper function to extract string from an Option<Value> to remove boilerplate
-// with tester error handling
-fn extract_string<'a>(tester_name: &str, part: &str, value: Option<&'a Value>) -> Result<&'a str> {
-    match value.and_then(Value::as_str) {
-        Some(s) => Ok(s),
-        None => Err(Error::msg(format!(
-            "Tester `{}` was called {} that isn't a string",
-            tester_name, part
-        ))),
-    }
 }
 
 /// Returns true if `value` starts with the given string. Otherwise, returns false.

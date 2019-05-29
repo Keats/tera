@@ -116,19 +116,19 @@ mod tests {
     use super::Template;
 
     #[test]
-    fn test_can_parse_ok_template() {
+    fn can_parse_ok_template() {
         Template::new("hello", None, "Hello {{ world }}.").unwrap();
     }
 
     #[test]
-    fn test_can_find_parent_template() {
+    fn can_find_parent_template() {
         let tpl = Template::new("hello", None, "{% extends \"base.html\" %}").unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
     }
 
     #[test]
-    fn test_can_find_blocks() {
+    fn can_find_blocks() {
         let tpl = Template::new(
             "hello",
             None,
@@ -141,7 +141,7 @@ mod tests {
     }
 
     #[test]
-    fn test_can_find_nested_blocks() {
+    fn can_find_nested_blocks() {
         let tpl = Template::new(
             "hello",
             None,
@@ -154,13 +154,13 @@ mod tests {
     }
 
     #[test]
-    fn test_can_find_macros() {
+    fn can_find_macros() {
         let tpl = Template::new("hello", None, "{% macro hey() %}{% endmacro hey %}").unwrap();
         assert_eq!(tpl.macros.contains_key("hey"), true);
     }
 
     #[test]
-    fn test_can_find_imported_macros() {
+    fn can_find_imported_macros() {
         let tpl = Template::new("hello", None, "{% import \"macros.html\" as macros %}").unwrap();
         assert_eq!(
             tpl.imported_macro_files,

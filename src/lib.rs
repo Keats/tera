@@ -65,3 +65,11 @@ pub use serde_json::value::{from_value, to_value, Map, Number, Value};
 // a breaking change so it isn't public
 #[doc(hidden)]
 pub use crate::parser::ast;
+
+/// Re-export some helper fns useful to write filters/fns/tests
+pub mod helpers {
+    /// Functions helping writing tests
+    pub mod testers {
+        pub use crate::builtins::testers::{number_args_allowed, extract_string, value_defined};
+    }
+}
