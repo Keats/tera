@@ -912,7 +912,7 @@ Example:
 ```
 
 #### iterable
-Returns true if the given variable can be iterated over in Tera (ie is an array/tuple).
+Returns true if the given variable can be iterated over in Tera (ie is an array/tuple or an object).
 
 #### object
 Returns true if the given variable is an object (ie can be iterated over key, value).
