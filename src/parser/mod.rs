@@ -110,6 +110,7 @@ fn parse_filter(pair: Pair<Rule>) -> TeraResult<FunctionCall> {
     Ok(FunctionCall { name: name.unwrap(), args })
 }
 
+
 fn parse_test_call(pair: Pair<Rule>) -> TeraResult<(String, Vec<Expr>)> {
     let mut name = None;
     let mut args = vec![];
@@ -117,7 +118,7 @@ fn parse_test_call(pair: Pair<Rule>) -> TeraResult<(String, Vec<Expr>)> {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::ident => name = Some(p.as_span().as_str().to_string()),
-            Rule::test_args =>
+            Rule::test_arg =>
             // iterate on the test_arg rule
             {
                 for p2 in p.into_inner() {

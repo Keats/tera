@@ -213,7 +213,7 @@ impl Expr {
 /// A test node `if my_var is odd`
 #[derive(Clone, Debug, PartialEq)]
 pub struct Test {
-    /// Which expression is evaluated
+    /// Which variable is evaluated
     pub ident: String,
     /// Is it using `not`?
     pub negated: bool,
