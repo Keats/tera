@@ -223,12 +223,15 @@ fn parse_variable_tag_simple_negated_expr() {
 #[test]
 fn parse_test() {
     let ast = parse("{{ a is divisibleby(2) }}").unwrap();
-    assert_eq!(ast[0], Node::VariableBlock(Expr::new(ExprVal::Test(Test {
-        ident: "a".to_string(),
-        negated: false,
-        name: "divisibleby".to_string(),
-        args: vec![Expr::new(ExprVal::Int(2))]
-    }))));
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(Expr::new(ExprVal::Test(Test {
+            ident: "a".to_string(),
+            negated: false,
+            name: "divisibleby".to_string(),
+            args: vec![Expr::new(ExprVal::Int(2))]
+        })))
+    );
 }
 
 #[test]

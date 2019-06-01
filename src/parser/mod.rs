@@ -110,7 +110,6 @@ fn parse_filter(pair: Pair<Rule>) -> TeraResult<FunctionCall> {
     Ok(FunctionCall { name: name.unwrap(), args })
 }
 
-
 fn parse_test_call(pair: Pair<Rule>) -> TeraResult<(String, Vec<Expr>)> {
     let mut name = None;
     let mut args = vec![];
