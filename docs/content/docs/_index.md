@@ -379,7 +379,7 @@ While filters can be used in math operations, they will have the lowest priority
 // This will do what you wanted initially
 {{ a | length + 1 }}
 ```
-Tera has many [built-in filters](./docs/templates.md#built-in-filters) that you can use.
+Tera has many [built-in filters](@/docs/_index.md#built-in-filters) that you can use.
 
 #### Filter sections
 
@@ -420,7 +420,7 @@ Tests are functions with the `fn(Option<Value>, Vec<Value>) -> Result<bool>` def
 tera.register_tester("odd", testers::odd);
 ```
 
-Tera has many [built-in tests](./docs/templates.md#built-in-tests) that you can use.
+Tera has many [built-in tests](@/docs/_index.md#built-in-tests) that you can use.
 
 ### Functions
 Functions are Rust code that return a `Result<Value>` from the given params.
@@ -461,7 +461,7 @@ Currently functions can be called in two places in templates:
 - variable block: `{{/* url_for(name="home") */}}`
 - for loop container: `{% for i in range(end=5) %}`
 
-Tera comes with some [built-in functions](./docs/templates.md#built-in-functions).
+Tera comes with some [built-in functions](@/docs/_index.md#built-in-functions).
 
 ## Control structures
 
@@ -583,7 +583,7 @@ They are defined as follows:
     </label>
 {% endmacro input %}
 ```
-As shown in the example above, macro arguments can have a default [literal](./docs/templates.md#literals) value.
+As shown in the example above, macro arguments can have a default [literal](@/docs/_index.md#literals) value.
 
 In order to use them, you need to import the file containing the macros:
 
