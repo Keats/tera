@@ -97,6 +97,12 @@
     color: $main-colour;
     padding-bottom: 2px;
   }
+
+  .zola-anchor {
+    display: inline-block;
+    margin-left: 1rem;
+    border-bottom: none;
+  }
 }
 
 @media only screen and (max-width: 700px)  {
