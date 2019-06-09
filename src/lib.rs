@@ -31,7 +31,6 @@ extern crate tempfile;
 #[macro_use]
 extern crate serde_derive;
 extern crate unic_segment;
-extern crate v_htmlescape;
 
 #[macro_use]
 mod macros;
