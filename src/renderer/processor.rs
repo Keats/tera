@@ -605,6 +605,18 @@ impl<'a> Processor<'a> {
             ExprVal::Test(ref test) => self.eval_test(test)?,
             ExprVal::Bool(val) => val,
             ExprVal::String(ref string) => !string.is_empty(),
+            ExprVal::FunctionCall(ref fn_call) => {
+                let v = self.eval_tera_fn_call(fn_call)?;
+                match v.as_bool() {
+                    Some(val) => val,
+                    None => {
+                        return Err(Error::msg(format!(
+                            "Function `{}` was used in a logic operation but is not returning a bool",
+                            fn_call.name,
+                        )));
+                    }
+                }
+            }
             _ => unreachable!("unimplemented logic operation for {:?}", bool_expr),
         };
 
