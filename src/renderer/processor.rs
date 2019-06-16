@@ -403,17 +403,6 @@ impl<'a> Processor<'a> {
             },
         };
 
-        // Checks if it's a string and we need to escape it (if the first filter is `safe` we don't)
-        if self.should_escape
-            && needs_escape
-            && res.is_string()
-            && expr.filters.first().map_or(true, |f| f.name != "safe")
-        {
-            res = Cow::Owned(
-                to_value(self.tera.get_escape_fn()(res.as_str().unwrap())).map_err(Error::json)?,
-            );
-        }
-
         for filter in &expr.filters {
             if filter.name == "safe" || filter.name == "default" {
                 continue;
@@ -424,6 +413,13 @@ impl<'a> Processor<'a> {
         // Lastly, we need to check if the expression is negated, thus turning it into a bool
         if expr.negated {
             return Ok(Cow::Owned(Value::Bool(!res.is_truthy())));
+        }
+
+        // Checks if it's a string and we need to escape it (if the last filter is `safe` we don't)
+        if self.should_escape && needs_escape && res.is_string() && !expr.is_marked_safe() {
+            res = Cow::Owned(
+                to_value(self.tera.get_escape_fn()(res.as_str().unwrap())).map_err(Error::json)?,
+            );
         }
 
         Ok(res)

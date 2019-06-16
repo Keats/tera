@@ -13,6 +13,8 @@ the code already only really look there.
 - Enforce spacing in tags at the parser, before `ifsomething` was considered ok
 - Pluralize filter now uses `singular` and `plural` arguments instead of `suffix`
 - Add a test for checking whether a variable is an object
+- Escaping now happens before inserting the final result of an expression: no need anymore to add `| safe` everywhere,
+only at the last position
 
 ### Others
 

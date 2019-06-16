@@ -986,8 +986,10 @@ Escapes a string's HTML. Specifically, it makes these replacements:
 
 #### safe
 Mark a variable as safe: HTML will not be escaped anymore.
-Currently the position of the safe filter does not matter, e.g.
-`{{ content | safe | replace(from="Robert", to="Bob") }}` and `{{ content | replace(from="Robert", to="Bob") | safe }}` will output the same thing.
+`safe` only works if it is the last filter of the expression:
+
+- `{{ content | replace(from="Robert", to="Bob") | safe }}` will not be escaped
+- `{{ content | safe | replace(from="Robert", to="Bob") }}` will be escaped
 
 #### get
 Access a value from an object when the key is not a Tera identifier.

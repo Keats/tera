@@ -368,7 +368,11 @@ mod tests {
                 None,
                 r#"https%3A//www.example.org/foo%3Fa%3Db%26c%3Dd"#,
             ),
-            (r#"https://www.example.org/apples-&-oranges/"#, None, r#"https%3A//www.example.org/apples-%26-oranges/"#),
+            (
+                r#"https://www.example.org/apples-&-oranges/"#,
+                None,
+                r#"https%3A//www.example.org/apples-%26-oranges/"#,
+            ),
             (r#"https://www.example.org/"#, Some(""), r#"https%3A%2F%2Fwww.example.org%2F"#),
             (r#"/test&"/me?/"#, None, r#"/test%26%22/me%3F/"#),
             (r#"escape/slash"#, Some(""), r#"escape%2Fslash"#),

@@ -208,6 +208,15 @@ impl Expr {
 
         self.filters[0].name == "default"
     }
+
+    /// Check if the last filter is `safe`
+    pub fn is_marked_safe(&self) -> bool {
+        if self.filters.is_empty() {
+            return false;
+        }
+
+        self.filters[self.filters.len() - 1].name == "safe"
+    }
 }
 
 /// A test node `if my_var is odd`

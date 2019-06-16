@@ -37,7 +37,6 @@ pub fn escape_html(input: &str) -> String {
     output
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::escape_html;

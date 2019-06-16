@@ -89,9 +89,9 @@ fn render_variable_block_ident() {
             r#"hangar new "Will Smoth <will_s@example.com>""#,
         ),
         ("{{ malicious | safe }}", "<html>"),
-        ("{{ malicious | upper }}", "&LT;HTML&GT;"), // everything upper eh
-        ("{{ malicious | upper | safe }}", "&LT;HTML&GT;"),
-        ("{{ malicious | safe | upper }}", "<HTML>"),
+        ("{{ malicious | upper }}", "&lt;HTML&gt;"),
+        ("{{ malicious | upper | safe }}", "<HTML>"),
+        ("{{ malicious | safe | upper }}", "&lt;HTML&gt;"),
         ("{{ review.paragraphs.1 }}", "B"),
         ("{{ numbers }}", "[1, 2, 3]"),
         ("{{ numbers.0 }}", "1"),
@@ -215,13 +215,30 @@ fn comments_are_ignored() {
 }
 
 #[test]
+fn escaping_happens_at_the_end() {
+    let inputs = vec![
+        ("{{ url | urlencode | safe }}", "https%3A//www.example.org/apples-%26-oranges/"),
+        ("{{ '<html>' }}", "&lt;html&gt;"),
+        ("{{ '<html>' | safe }}", "<html>"),
+        ("{{ 'hello' | safe | replace(from='h', to='&') }}", "&amp;ello"),
+        ("{{ 'hello' | replace(from='h', to='&') | safe }}", "&ello"),
+    ];
+
+    for (input, expected) in inputs {
+        let mut context = Context::new();
+        context.insert("url", "https://www.example.org/apples-&-oranges/");
+        assert_eq!(render_template(input, context.clone()).unwrap(), expected);
+    }
+}
+
+#[test]
 fn filter_args_are_not_escaped() {
     let mut context = Context::new();
     context.insert("my_var", &"hey");
     context.insert("to", &"&");
     let input = r#"{{ my_var | replace(from="h", to=to) }}"#;
 
-    assert_eq!(render_template(input, context).unwrap(), "&ey");
+    assert_eq!(render_template(input, context).unwrap(), "&amp;ey");
 }
 
 #[test]
