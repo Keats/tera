@@ -26,6 +26,7 @@ pub fn escape_html(input: &str) -> String {
             '\'' => output.push_str("&#x27;"),
             '/' => output.push_str("&#x2F;"),
             // Additional one for old IE (unpatched IE8 and below)
+            // TODO: do we still care about that? unpatched <=IE8, c'mon
             // See https://github.com/OWASP/owasp-java-encoder/wiki/Grave-Accent-Issue
             '`' => output.push_str("&#96;"),
             _ => output.push(c),
@@ -35,6 +36,7 @@ pub fn escape_html(input: &str) -> String {
     // Not using shrink_to_fit() on purpose
     output
 }
+
 
 #[cfg(test)]
 mod tests {
