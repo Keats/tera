@@ -181,9 +181,10 @@ fn error_when_using_variable_set_in_included_templates_outside() {
 #[test]
 fn error_when_iterating_over_undefined_container_unless_explicit_else_tag() {
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("forloop", r#"{% for a in undefined_container %}{{a}}{% endfor %}"#),
-    ])
+    tera.add_raw_templates(vec![(
+        "forloop",
+        r#"{% for a in undefined_container %}{{a}}{% endfor %}"#,
+    )])
     .unwrap();
     let result = tera.render("forloop", Context::new());
 

@@ -296,7 +296,7 @@ pub struct Forloop {
     /// What's in the forloop itself
     pub body: Vec<Node>,
     /// The body to execute in case of an empty object
-    pub empty_body: Option<Vec<Node>>
+    pub empty_body: Option<Vec<Node>>,
 }
 
 /// An if/elif/else condition with their respective body
