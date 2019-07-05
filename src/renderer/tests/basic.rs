@@ -493,7 +493,20 @@ fn render_for() {
         (
             "{% set start = 0 %}{% set end = start + 3 %}{% for i in range(start=start, end=end) %}{{ i }}{% endfor%}",
             "012"
-        )
+        ),
+        // https://github.com/Keats/tera/issues/395
+        (
+            "{% for a in [] %}{{a}}{% else %}hello{% endfor %}",
+            "hello"
+        ),
+        (
+            "{% for a in undefined_variable | default(value=[]) %}{{a}}{% else %}hello{% endfor %}",
+            "hello"
+        ),        
+        (
+            "{% for a in [] %}{{a}}{% else %}{% if 1 == 2 %}A{% else %}B{% endif %}{% endfor %}",
+            "B"
+        ),
     ];
 
     for (input, expected) in inputs {

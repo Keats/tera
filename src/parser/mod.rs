@@ -748,6 +748,7 @@ fn parse_forloop(pair: Pair<Rule>) -> TeraResult<Node> {
     let mut value = None;
     let mut container = None;
     let mut body = vec![];
+    let mut empty_body: Option<Vec<Node>> = None;
 
     for p in pair.into_inner() {
         match p.as_rule() {
@@ -778,7 +779,13 @@ fn parse_forloop(pair: Pair<Rule>) -> TeraResult<Node> {
             | Rule::block_content
             | Rule::filter_section_content
             | Rule::for_content => {
-                body.extend(parse_content(p)?);
+                match empty_body {
+                    Some(ref mut empty_body) => empty_body.extend(parse_content(p)?),
+                    None => body.extend(parse_content(p)?),
+                };
+            }
+            Rule::else_tag => {
+                empty_body = Some(vec![]);
             }
             Rule::endfor_tag => {
                 for p2 in p.into_inner() {
@@ -796,7 +803,7 @@ fn parse_forloop(pair: Pair<Rule>) -> TeraResult<Node> {
 
     Ok(Node::Forloop(
         start_ws,
-        Forloop { key, value: value.unwrap(), container: container.unwrap(), body },
+        Forloop { key, value: value.unwrap(), container: container.unwrap(), body, empty_body },
         end_ws,
     ))
 }

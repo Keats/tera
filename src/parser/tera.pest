@@ -197,7 +197,7 @@ raw        = !{ raw_tag ~ raw_text ~ endraw_tag }
 
 filter_section = !{ filter_tag ~ filter_section_content* ~ endfilter_tag }
 
-forloop = ${ for_tag ~ for_content* ~ endfor_tag }
+forloop = ${ for_tag ~ for_content* ~ (else_tag ~ for_content*)* ~ endfor_tag }
 
 macro_if          = ${ if_tag ~ macro_content* ~ (elif_tag ~ macro_content*)* ~ (else_tag ~ macro_content*)? ~ endif_tag }
 block_if          = ${ if_tag ~ block_content* ~ (elif_tag ~ block_content*)* ~ (else_tag ~ block_content*)? ~ endif_tag }

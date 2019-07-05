@@ -639,6 +639,7 @@ fn parse_value_forloop() {
                     vec![FunctionCall { name: "reverse".to_string(), args: HashMap::new() },],
                 ),
                 body: vec![Node::Text("A".to_string())],
+                empty_body: None,
             },
             end_ws,
         )
@@ -664,6 +665,7 @@ fn parse_key_value_forloop() {
                     args: HashMap::new(),
                 },)),
                 body: vec![Node::Text("A".to_string())],
+                empty_body: None,
             },
             end_ws,
         )
@@ -689,6 +691,33 @@ fn parse_value_forloop_array() {
                     Expr::new(ExprVal::Int(2)),
                 ])),
                 body: vec![Node::Text("A".to_string())],
+                empty_body: None,
+            },
+            end_ws,
+        )
+    );
+}
+
+#[test]
+fn parse_value_forloop_empty() {
+    let ast = parse("{% for item in [1,2,] %}A{% else %}B{%- endfor %}").unwrap();
+    let start_ws = WS::default();
+    let mut end_ws = WS::default();
+    end_ws.left = true;
+
+    assert_eq!(
+        ast[0],
+        Node::Forloop(
+            start_ws,
+            Forloop {
+                key: None,
+                value: "item".to_string(),
+                container: Expr::new(ExprVal::Array(vec![
+                    Expr::new(ExprVal::Int(1)),
+                    Expr::new(ExprVal::Int(2)),
+                ])),
+                body: vec![Node::Text("A".to_string())],
+                empty_body: Some(vec![Node::Text("B".to_string())]),
             },
             end_ws,
         )
@@ -748,6 +777,7 @@ fn parse_break() {
                 value: "item".to_string(),
                 container: Expr::new(ExprVal::Ident("items".to_string())),
                 body: vec![Node::Break(WS { left: false, right: true }),],
+                empty_body: None,
             },
             for_ws,
         )
@@ -767,6 +797,7 @@ fn parse_continue() {
                 value: "item".to_string(),
                 container: Expr::new(ExprVal::Ident("items".to_string())),
                 body: vec![Node::Continue(WS { left: false, right: true }),],
+                empty_body: None,
             },
             for_ws,
         )

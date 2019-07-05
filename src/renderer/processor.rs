@@ -168,10 +168,11 @@ impl<'a> Processor<'a> {
             ))),
         };
 
-        let container_val = self.safe_eval_expression(&for_loop.container)?;
-
         let for_loop_name = &for_loop.value;
         let for_loop_body = &for_loop.body;
+        let for_loop_empty_body = &for_loop.empty_body;
+
+        let container_val = self.safe_eval_expression(&for_loop.container)?;
 
         let for_loop = match *container_val {
             Value::Array(_) => {
@@ -210,22 +211,28 @@ impl<'a> Processor<'a> {
         };
 
         let len = for_loop.len();
-        self.call_stack.push_for_loop_frame(for_loop_name, for_loop);
+        match (len, for_loop_empty_body) {
+            (0, Some(empty_body)) => Ok(self.render_body(&empty_body)?),
+            (0, _) => Ok("".to_string()),
+            (_, _) => {
+                self.call_stack.push_for_loop_frame(for_loop_name, for_loop);
 
-        let mut output = String::with_capacity(len * 20);
-        for _ in 0..len {
-            output.push_str(&self.render_body(&for_loop_body)?);
+                let mut output = String::with_capacity(len * 20);
+                for _ in 0..len {
+                    output.push_str(&self.render_body(&for_loop_body)?);
 
-            if self.call_stack.should_break_for_loop() {
-                break;
+                    if self.call_stack.should_break_for_loop() {
+                        break;
+                    }
+
+                    self.call_stack.increment_for_loop()?;
+                }
+
+                self.call_stack.pop();
+
+                Ok(output)
             }
-
-            self.call_stack.increment_for_loop()?;
         }
-
-        self.call_stack.pop();
-
-        Ok(output)
     }
 
     fn render_if_node(self: &mut Self, if_node: &'a If) -> Result<String> {
