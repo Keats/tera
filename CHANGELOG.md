@@ -28,6 +28,7 @@ only at the last position
 - Add `Context::from_value` to instantiate a `Context` from a serde_json `Value`
 - Add `Context::from_serialize` to instantiate a `Context` from something that impl `Serialize`
 - Make tests helper fns `number_args_allowed`, `value_defined` and `extract_string` public
+- Add `else` clause to for loops
 
 ## 0.11.20 (2018-11-14)
 

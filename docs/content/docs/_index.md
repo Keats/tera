@@ -524,7 +524,7 @@ If you are iterating on an array, you can also apply filters to the container:
 {% endfor %}
 ```
 
-Lastly, you can iterate on array literals:
+You can also iterate on array literals:
 
 ```jinja2
 {% for a in [1,2,3,] %}
@@ -532,6 +532,16 @@ Lastly, you can iterate on array literals:
 {% endfor %}
 ```
 
+Lastly, you can set a default body to be rendered when the container is empty:
+
+
+```
+{% for product in products %}
+  {{loop.index}}. {{product.name}}
+{% else %}
+  No products.  
+{% endfor %}
+```
 
 #### Loop Controls
 
