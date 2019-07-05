@@ -172,6 +172,7 @@ impl<'a> Processor<'a> {
 
         let for_loop_name = &for_loop.value;
         let for_loop_body = &for_loop.body;
+        let for_loop_empty_body = &for_loop.empty_body;
 
         let for_loop = match *container_val {
             Value::Array(_) => {
@@ -210,6 +211,14 @@ impl<'a> Processor<'a> {
         };
 
         let len = for_loop.len();
+        if len == 0 {
+            if let Some(empty_body) = for_loop_empty_body {
+                return Ok(self.render_body(&empty_body)?);
+            } else {
+                return Ok("".to_string());
+            }
+        }
+
         self.call_stack.push_for_loop_frame(for_loop_name, for_loop);
 
         let mut output = String::with_capacity(len * 20);
