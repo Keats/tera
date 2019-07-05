@@ -500,9 +500,9 @@ fn render_for() {
             "hello"
         ),
         (
-            "{% for a in undefined_variable %}{{a}}{% else %}hello{% endfor %}",
+            "{% for a in undefined_variable | default(value=[]) %}{{a}}{% else %}hello{% endfor %}",
             "hello"
-        ),
+        ),        
         (
             "{% for a in [] %}{{a}}{% else %}{% if 1 == 2 %}A{% else %}B{% endif %}{% endfor %}",
             "B"
