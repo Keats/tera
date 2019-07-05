@@ -222,12 +222,10 @@ impl<'a> Processor<'a> {
         };
 
         let len = for_loop.len();
-        if len == 0 {
-            if let Some(empty_body) = for_loop_empty_body {
-                return Ok(self.render_body(&empty_body)?);
-            } else {
-                return Ok("".to_string());
-            }
+        match (len, for_loop_empty_body) {
+            (0, Some(empty_body)) => return Ok(self.render_body(&empty_body)?),
+            (0, _) => return Ok("".to_string()),
+            (_, _) => (),
         }
 
         self.call_stack.push_for_loop_frame(for_loop_name, for_loop);
