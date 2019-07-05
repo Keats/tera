@@ -168,11 +168,22 @@ impl<'a> Processor<'a> {
             ))),
         };
 
-        let container_val = self.safe_eval_expression(&for_loop.container)?;
-
         let for_loop_name = &for_loop.value;
         let for_loop_body = &for_loop.body;
         let for_loop_empty_body = &for_loop.empty_body;
+
+        let container_val = if let Ok(val) = self.safe_eval_expression(&for_loop.container) {
+            val
+        } else {
+            if let Some(empty_body) = for_loop_empty_body {
+                return Ok(self.render_body(&empty_body)?);
+            } else {
+                return Err(Error::msg(format!(
+                    "Tried to iterate undefined container `{}`. To treat undefined containers the same as empty ones, explicitly define an {{% else %}} block within the for loop",
+                    container_name,
+                )));
+            }
+        };
 
         let for_loop = match *container_val {
             Value::Array(_) => {

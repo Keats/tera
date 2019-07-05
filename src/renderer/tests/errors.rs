@@ -177,6 +177,22 @@ fn error_when_using_variable_set_in_included_templates_outside() {
     );
 }
 
+// https://github.com/Keats/tera/issues/395
+#[test]
+fn error_when_iterating_over_undefined_container_unless_explicit_else_tag() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("forloop", r#"{% for a in undefined_container %}{{a}}{% endfor %}"#),
+    ])
+    .unwrap();
+    let result = tera.render("forloop", Context::new());
+
+    assert_eq!(
+        result.unwrap_err().source().unwrap().to_string(),
+        "Tried to iterate undefined container `undefined_container`. To treat undefined containers the same as empty ones, explicitly define an {% else %} block within the for loop"
+    );
+}
+
 // https://github.com/Keats/tera/issues/344
 // Yes it is as silly as it sounds
 #[test]
