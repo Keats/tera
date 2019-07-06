@@ -594,8 +594,12 @@ impl<'a> Processor<'a> {
                     }
                 }
             }
-            ExprVal::Ident(ref ident) => {
-                self.lookup_ident(ident).map(|v| v.is_truthy()).unwrap_or(false)
+            ExprVal::Ident(_) => {
+                let mut res = self.eval_expression(&bool_expr).unwrap_or_else(|_| Cow::Owned(Value::Bool(false))).is_truthy();
+                if bool_expr.negated {
+                    res = !res;
+                }
+                res
             }
             ExprVal::Math(_) | ExprVal::Int(_) | ExprVal::Float(_) => {
                 match self.eval_as_number(&bool_expr.val) {

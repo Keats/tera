@@ -19,3 +19,8 @@ members = ["."]
 [[bin]]
 name = "fuzz_template"
 path = "fuzz_targets/fuzz_template.rs"
+
+
+[[bin]]
+name = "fuzz_expression"
+path = "fuzz_targets/fuzz_expression.rs"

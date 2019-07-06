@@ -842,3 +842,12 @@ fn split_on_context_value() {
     let res = tera.render("split.html", context);
     assert_eq!(res.unwrap(), "[multi, ple, lines]");
 }
+
+// https://github.com/Keats/tera/issues/422
+#[test]
+fn default_filter_works_in_condition() {
+    let mut tera = Tera::default();
+    tera.add_raw_template("test.html", r#"{% if frobnicate|default(value=True) %}here{% endif %}"#).unwrap();
+    let res = tera.render("test.html", Context::new());
+    assert_eq!(res.unwrap(), "here");
+}
