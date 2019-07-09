@@ -53,7 +53,8 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 // empty text nodes will be skipped
                 continue;
             }
-            Node::ImportMacro(ws, _, _)
+            Node::VariableBlock(ws, _)
+            | Node::ImportMacro(ws, _, _)
             | Node::Extends(ws, _)
             | Node::Include(ws, _)
             | Node::Set(ws, _)
@@ -170,7 +171,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 res.push(Node::If(If { conditions: new_conditions, otherwise }, end_ws));
                 continue;
             }
-            Node::Super | Node::VariableBlock(_) => (),
+            Node::Super => (),
         };
 
         // If we are there, that means it's not a text node and we didn't have to modify the node
