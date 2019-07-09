@@ -53,6 +53,12 @@ fn parse_import_macro() {
 }
 
 #[test]
+fn parse_variable_with_whitespace_trimming() {
+    let ast = parse("{{- id }}").unwrap();
+    assert_eq!(ast[0], Node::VariableBlock(WS { left: true, right: false }, Expr::new(ExprVal::Ident("id".to_string()))),);
+}
+
+#[test]
 fn parse_variable_tag_ident() {
     let ast = parse("{{ id }}").unwrap();
     assert_eq!(ast[0], Node::VariableBlock(WS::default(), Expr::new(ExprVal::Ident("id".to_string()))),);
