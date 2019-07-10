@@ -504,7 +504,7 @@ fn render_for() {
         (
             "{% for a in undefined_variable | default(value=[]) %}{{a}}{% else %}hello{% endfor %}",
             "hello"
-        ),        
+        ),
         (
             "{% for a in [] %}{{a}}{% else %}{% if 1 == 2 %}A{% else %}B{% endif %}{% endfor %}",
             "B"
@@ -849,7 +849,8 @@ fn split_on_context_value() {
 #[test]
 fn default_filter_works_in_condition() {
     let mut tera = Tera::default();
-    tera.add_raw_template("test.html", r#"{% if frobnicate|default(value=True) %}here{% endif %}"#).unwrap();
+    tera.add_raw_template("test.html", r#"{% if frobnicate|default(value=True) %}here{% endif %}"#)
+        .unwrap();
     let res = tera.render("test.html", Context::new());
     assert_eq!(res.unwrap(), "here");
 }

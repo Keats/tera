@@ -595,7 +595,10 @@ impl<'a> Processor<'a> {
                 }
             }
             ExprVal::Ident(_) => {
-                let mut res = self.eval_expression(&bool_expr).unwrap_or_else(|_| Cow::Owned(Value::Bool(false))).is_truthy();
+                let mut res = self
+                    .eval_expression(&bool_expr)
+                    .unwrap_or_else(|_| Cow::Owned(Value::Bool(false)))
+                    .is_truthy();
                 if bool_expr.negated {
                     res = !res;
                 }
@@ -905,7 +908,9 @@ impl<'a> Processor<'a> {
     fn render_node(&mut self, node: &'a Node, buffer: &mut String) -> Result<()> {
         match *node {
             Node::Text(ref s) | Node::Raw(_, ref s, _) => buffer.push_str(s),
-            Node::VariableBlock(_, ref expr) => buffer.push_str(&self.eval_expression(expr)?.render()),
+            Node::VariableBlock(_, ref expr) => {
+                buffer.push_str(&self.eval_expression(expr)?.render())
+            }
             Node::Set(_, ref set) => self.eval_set(set)?,
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
                 let body = self.render_body(body)?;
