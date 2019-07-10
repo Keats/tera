@@ -59,6 +59,7 @@ fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<S
     }
 
     Ok(new_key
+        .replace("/", "~1") // https://tools.ietf.org/html/rfc6901#section-3
         .replace("['", ".")
         .replace("[\"", ".")
         .replace("[", ".")
@@ -595,7 +596,10 @@ impl<'a> Processor<'a> {
                 }
             }
             ExprVal::Ident(_) => {
-                let mut res = self.eval_expression(&bool_expr).unwrap_or_else(|_| Cow::Owned(Value::Bool(false))).is_truthy();
+                let mut res = self
+                    .eval_expression(&bool_expr)
+                    .unwrap_or_else(|_| Cow::Owned(Value::Bool(false)))
+                    .is_truthy();
                 if bool_expr.negated {
                     res = !res;
                 }
