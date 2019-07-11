@@ -53,9 +53,24 @@ fn parse_import_macro() {
 }
 
 #[test]
+fn parse_variable_with_whitespace_trimming() {
+    let ast = parse("{{- id }}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(
+            WS { left: true, right: false },
+            Expr::new(ExprVal::Ident("id".to_string()))
+        ),
+    );
+}
+
+#[test]
 fn parse_variable_tag_ident() {
     let ast = parse("{{ id }}").unwrap();
-    assert_eq!(ast[0], Node::VariableBlock(Expr::new(ExprVal::Ident("id".to_string()))),);
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(WS::default(), Expr::new(ExprVal::Ident("id".to_string()))),
+    );
 }
 
 #[test]
@@ -66,23 +81,29 @@ fn parse_variable_tag_ident_with_simple_filters() {
 
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::with_filters(
-            ExprVal::Ident("arr".to_string()),
-            vec![
-                FunctionCall { name: "first".to_string(), args: HashMap::new() },
-                FunctionCall { name: "join".to_string(), args: join_args },
-            ],
-        ))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::with_filters(
+                ExprVal::Ident("arr".to_string()),
+                vec![
+                    FunctionCall { name: "first".to_string(), args: HashMap::new() },
+                    FunctionCall { name: "join".to_string(), args: join_args },
+                ],
+            )
+        )
     );
 }
 
 #[test]
 fn parse_variable_tag_lit() {
     let ast = parse("{{ 2 }}{{ 3.14 }}{{ \"hey\" }}{{ true }}").unwrap();
-    assert_eq!(ast[0], Node::VariableBlock(Expr::new(ExprVal::Int(2))));
-    assert_eq!(ast[1], Node::VariableBlock(Expr::new(ExprVal::Float(3.14))));
-    assert_eq!(ast[2], Node::VariableBlock(Expr::new(ExprVal::String("hey".to_string()))),);
-    assert_eq!(ast[3], Node::VariableBlock(Expr::new(ExprVal::Bool(true))));
+    assert_eq!(ast[0], Node::VariableBlock(WS::default(), Expr::new(ExprVal::Int(2))));
+    assert_eq!(ast[1], Node::VariableBlock(WS::default(), Expr::new(ExprVal::Float(3.14))));
+    assert_eq!(
+        ast[2],
+        Node::VariableBlock(WS::default(), Expr::new(ExprVal::String("hey".to_string()))),
+    );
+    assert_eq!(ast[3], Node::VariableBlock(WS::default(), Expr::new(ExprVal::Bool(true))));
 }
 
 #[test]
@@ -91,15 +112,18 @@ fn parse_variable_tag_lit_math_expression() {
 
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::Math(MathExpr {
-            lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
-            operator: MathOperator::Add,
-            rhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
-                lhs: Box::new(Expr::new(ExprVal::Int(1))),
-                operator: MathOperator::Mul,
-                rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
-            },))),
-        },))),
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Math(MathExpr {
+                lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
+                operator: MathOperator::Add,
+                rhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                    lhs: Box::new(Expr::new(ExprVal::Int(1))),
+                    operator: MathOperator::Mul,
+                    rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
+                },))),
+            },))
+        ),
     );
 }
 
@@ -108,15 +132,18 @@ fn parse_variable_tag_lit_math_expression_with_parentheses() {
     let ast = parse("{{ (count + 1) * 2.5 }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::Math(MathExpr {
-            lhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
-                lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
-                operator: MathOperator::Add,
-                rhs: Box::new(Expr::new(ExprVal::Int(1))),
-            },))),
-            operator: MathOperator::Mul,
-            rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
-        },)))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Math(MathExpr {
+                lhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                    lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
+                    operator: MathOperator::Add,
+                    rhs: Box::new(Expr::new(ExprVal::Int(1))),
+                },))),
+                operator: MathOperator::Mul,
+                rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
+            },))
+        )
     );
 }
 
@@ -125,18 +152,21 @@ fn parse_variable_tag_lit_math_expression_with_parentheses_and_filter() {
     let ast = parse("{{ (count + 1) * 2.5 | round }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::with_filters(
-            ExprVal::Math(MathExpr {
-                lhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
-                    lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
-                    operator: MathOperator::Add,
-                    rhs: Box::new(Expr::new(ExprVal::Int(1))),
-                },))),
-                operator: MathOperator::Mul,
-                rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
-            },),
-            vec![FunctionCall { name: "round".to_string(), args: HashMap::new() },],
-        ))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::with_filters(
+                ExprVal::Math(MathExpr {
+                    lhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                        lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
+                        operator: MathOperator::Add,
+                        rhs: Box::new(Expr::new(ExprVal::Int(1))),
+                    },))),
+                    operator: MathOperator::Mul,
+                    rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
+                },),
+                vec![FunctionCall { name: "round".to_string(), args: HashMap::new() },],
+            )
+        )
     );
 }
 
@@ -145,14 +175,17 @@ fn parse_variable_math_on_filter() {
     let ast = parse("{{ a | length - 1 }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::Math(MathExpr {
-            lhs: Box::new(Expr::with_filters(
-                ExprVal::Ident("a".to_string()),
-                vec![FunctionCall { name: "length".to_string(), args: HashMap::new() },],
-            )),
-            operator: MathOperator::Sub,
-            rhs: Box::new(Expr::new(ExprVal::Int(1))),
-        },)))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Math(MathExpr {
+                lhs: Box::new(Expr::with_filters(
+                    ExprVal::Ident("a".to_string()),
+                    vec![FunctionCall { name: "length".to_string(), args: HashMap::new() },],
+                )),
+                operator: MathOperator::Sub,
+                rhs: Box::new(Expr::new(ExprVal::Int(1))),
+            },))
+        )
     );
 }
 
@@ -161,11 +194,14 @@ fn parse_variable_tag_simple_logic_expression() {
     let ast = parse("{{ 1 > 2 }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::Logic(LogicExpr {
-            lhs: Box::new(Expr::new(ExprVal::Int(1))),
-            operator: LogicOperator::Gt,
-            rhs: Box::new(Expr::new(ExprVal::Int(2))),
-        },)))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Logic(LogicExpr {
+                lhs: Box::new(Expr::new(ExprVal::Int(1))),
+                operator: LogicOperator::Gt,
+                rhs: Box::new(Expr::new(ExprVal::Int(2))),
+            },))
+        )
     );
 }
 
@@ -174,19 +210,22 @@ fn parse_variable_tag_math_and_logic_expression() {
     let ast = parse("{{ count + 1 * 2.5 and admin }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::Logic(LogicExpr {
-            lhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
-                lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
-                operator: MathOperator::Add,
-                rhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
-                    lhs: Box::new(Expr::new(ExprVal::Int(1))),
-                    operator: MathOperator::Mul,
-                    rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Logic(LogicExpr {
+                lhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                    lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
+                    operator: MathOperator::Add,
+                    rhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                        lhs: Box::new(Expr::new(ExprVal::Int(1))),
+                        operator: MathOperator::Mul,
+                        rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
+                    },))),
                 },))),
-            },))),
-            operator: LogicOperator::And,
-            rhs: Box::new(Expr::new(ExprVal::Ident("admin".to_string()))),
-        },)))
+                operator: LogicOperator::And,
+                rhs: Box::new(Expr::new(ExprVal::Ident("admin".to_string()))),
+            },))
+        )
     );
 }
 
@@ -195,29 +234,35 @@ fn parse_variable_tag_math_with_filters_and_logic_expression() {
     let ast = parse("{{ count + 1 * 2.5 | round and admin }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::Logic(LogicExpr {
-            lhs: Box::new(Expr::with_filters(
-                ExprVal::Math(MathExpr {
-                    lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
-                    operator: MathOperator::Add,
-                    rhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
-                        lhs: Box::new(Expr::new(ExprVal::Int(1))),
-                        operator: MathOperator::Mul,
-                        rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
-                    },))),
-                },),
-                vec![FunctionCall { name: "round".to_string(), args: HashMap::new() },],
-            )),
-            operator: LogicOperator::And,
-            rhs: Box::new(Expr::new(ExprVal::Ident("admin".to_string()))),
-        },)))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Logic(LogicExpr {
+                lhs: Box::new(Expr::with_filters(
+                    ExprVal::Math(MathExpr {
+                        lhs: Box::new(Expr::new(ExprVal::Ident("count".to_string()))),
+                        operator: MathOperator::Add,
+                        rhs: Box::new(Expr::new(ExprVal::Math(MathExpr {
+                            lhs: Box::new(Expr::new(ExprVal::Int(1))),
+                            operator: MathOperator::Mul,
+                            rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
+                        },))),
+                    },),
+                    vec![FunctionCall { name: "round".to_string(), args: HashMap::new() },],
+                )),
+                operator: LogicOperator::And,
+                rhs: Box::new(Expr::new(ExprVal::Ident("admin".to_string()))),
+            },))
+        )
     );
 }
 
 #[test]
 fn parse_variable_tag_simple_negated_expr() {
     let ast = parse("{{ not id }}").unwrap();
-    assert_eq!(ast[0], Node::VariableBlock(Expr::new_negated(ExprVal::Ident("id".to_string()))));
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(WS::default(), Expr::new_negated(ExprVal::Ident("id".to_string())))
+    );
 }
 
 #[test]
@@ -225,12 +270,15 @@ fn parse_test() {
     let ast = parse("{{ a is divisibleby(2) }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::Test(Test {
-            ident: "a".to_string(),
-            negated: false,
-            name: "divisibleby".to_string(),
-            args: vec![Expr::new(ExprVal::Int(2))]
-        })))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Test(Test {
+                ident: "a".to_string(),
+                negated: false,
+                name: "divisibleby".to_string(),
+                args: vec![Expr::new(ExprVal::Int(2))]
+            }))
+        )
     );
 }
 
@@ -239,19 +287,22 @@ fn parse_variable_tag_negated_expr() {
     let ast = parse("{{ not id and not true and not 1 + 1 }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::Logic(LogicExpr {
-            lhs: Box::new(Expr::new(ExprVal::Logic(LogicExpr {
-                lhs: Box::new(Expr::new_negated(ExprVal::Ident("id".to_string()))),
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Logic(LogicExpr {
+                lhs: Box::new(Expr::new(ExprVal::Logic(LogicExpr {
+                    lhs: Box::new(Expr::new_negated(ExprVal::Ident("id".to_string()))),
+                    operator: LogicOperator::And,
+                    rhs: Box::new(Expr::new_negated(ExprVal::Bool(true))),
+                },))),
                 operator: LogicOperator::And,
-                rhs: Box::new(Expr::new_negated(ExprVal::Bool(true))),
-            },))),
-            operator: LogicOperator::And,
-            rhs: Box::new(Expr::new_negated(ExprVal::Math(MathExpr {
-                lhs: Box::new(Expr::new(ExprVal::Int(1))),
-                operator: MathOperator::Add,
-                rhs: Box::new(Expr::new(ExprVal::Int(1))),
-            },))),
-        },)))
+                rhs: Box::new(Expr::new_negated(ExprVal::Math(MathExpr {
+                    lhs: Box::new(Expr::new(ExprVal::Int(1))),
+                    operator: MathOperator::Add,
+                    rhs: Box::new(Expr::new(ExprVal::Int(1))),
+                },))),
+            },))
+        )
     );
 }
 
@@ -260,12 +311,15 @@ fn parse_variable_tag_simple_test() {
     let ast = parse("{{ id is defined }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::Test(Test {
-            ident: "id".to_string(),
-            negated: false,
-            name: "defined".to_string(),
-            args: vec![],
-        },)))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Test(Test {
+                ident: "id".to_string(),
+                negated: false,
+                name: "defined".to_string(),
+                args: vec![],
+            },))
+        )
     );
 }
 
@@ -274,12 +328,15 @@ fn parse_variable_tag_simple_negated_test() {
     let ast = parse("{{ id is not defined }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::Test(Test {
-            ident: "id".to_string(),
-            negated: true,
-            name: "defined".to_string(),
-            args: vec![],
-        },)))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Test(Test {
+                ident: "id".to_string(),
+                negated: true,
+                name: "defined".to_string(),
+                args: vec![],
+            },))
+        )
     );
 }
 
@@ -288,16 +345,19 @@ fn parse_variable_tag_test_as_expression() {
     let ast = parse("{{ user is defined and user.admin }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::Logic(LogicExpr {
-            lhs: Box::new(Expr::new(ExprVal::Test(Test {
-                ident: "user".to_string(),
-                negated: false,
-                name: "defined".to_string(),
-                args: vec![],
-            },))),
-            operator: LogicOperator::And,
-            rhs: Box::new(Expr::new(ExprVal::Ident("user.admin".to_string()))),
-        },)))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Logic(LogicExpr {
+                lhs: Box::new(Expr::new(ExprVal::Test(Test {
+                    ident: "user".to_string(),
+                    negated: false,
+                    name: "defined".to_string(),
+                    args: vec![],
+                },))),
+                operator: LogicOperator::And,
+                rhs: Box::new(Expr::new(ExprVal::Ident("user.admin".to_string()))),
+            },))
+        )
     );
 }
 
@@ -309,11 +369,14 @@ fn parse_variable_tag_macro_call() {
 
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::MacroCall(MacroCall {
-            namespace: "macros".to_string(),
-            name: "get_time".to_string(),
-            args,
-        },)))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::MacroCall(MacroCall {
+                namespace: "macros".to_string(),
+                name: "get_time".to_string(),
+                args,
+            },))
+        )
     );
 }
 
@@ -329,11 +392,14 @@ fn parse_variable_tag_macro_call_with_array() {
 
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::MacroCall(MacroCall {
-            namespace: "macros".to_string(),
-            name: "get_time".to_string(),
-            args,
-        },)))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::MacroCall(MacroCall {
+                namespace: "macros".to_string(),
+                name: "get_time".to_string(),
+                args,
+            },))
+        )
     );
 }
 #[test]
@@ -344,14 +410,17 @@ fn parse_variable_tag_macro_call_with_filter() {
 
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::with_filters(
-            ExprVal::MacroCall(MacroCall {
-                namespace: "macros".to_string(),
-                name: "get_time".to_string(),
-                args,
-            },),
-            vec![FunctionCall { name: "round".to_string(), args: HashMap::new() },],
-        ))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::with_filters(
+                ExprVal::MacroCall(MacroCall {
+                    namespace: "macros".to_string(),
+                    name: "get_time".to_string(),
+                    args,
+                },),
+                vec![FunctionCall { name: "round".to_string(), args: HashMap::new() },],
+            )
+        )
     );
 }
 
@@ -363,10 +432,10 @@ fn parse_variable_tag_global_function() {
 
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::FunctionCall(FunctionCall {
-            name: "get_time".to_string(),
-            args,
-        },)))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::FunctionCall(FunctionCall { name: "get_time".to_string(), args },))
+        )
     );
 }
 
@@ -378,11 +447,14 @@ fn parse_in_condition() {
 
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::In(In {
-            lhs: Box::new(Expr::new(ExprVal::Ident("b".to_string()))),
-            rhs: Box::new(Expr::new(ExprVal::Ident("c".to_string()))),
-            negated: false,
-        })))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::In(In {
+                lhs: Box::new(Expr::new(ExprVal::Ident("b".to_string()))),
+                rhs: Box::new(Expr::new(ExprVal::Ident("c".to_string()))),
+                negated: false,
+            }))
+        )
     );
 }
 
@@ -394,11 +466,14 @@ fn parse_negated_in_condition() {
 
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::In(In {
-            lhs: Box::new(Expr::new(ExprVal::Ident("b".to_string()))),
-            rhs: Box::new(Expr::new(ExprVal::Ident("c".to_string()))),
-            negated: true,
-        })))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::In(In {
+                lhs: Box::new(Expr::new(ExprVal::Ident("b".to_string()))),
+                rhs: Box::new(Expr::new(ExprVal::Ident("c".to_string()))),
+                negated: true,
+            }))
+        )
     );
 }
 
@@ -410,13 +485,16 @@ fn parse_variable_tag_global_function_with_filter() {
 
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::with_filters(
-            ExprVal::FunctionCall(FunctionCall { name: "get_time".to_string(), args },),
-            vec![
-                FunctionCall { name: "round".to_string(), args: HashMap::new() },
-                FunctionCall { name: "upper".to_string(), args: HashMap::new() },
-            ],
-        ))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::with_filters(
+                ExprVal::FunctionCall(FunctionCall { name: "get_time".to_string(), args },),
+                vec![
+                    FunctionCall { name: "round".to_string(), args: HashMap::new() },
+                    FunctionCall { name: "upper".to_string(), args: HashMap::new() },
+                ],
+            )
+        )
     );
 }
 
@@ -612,7 +690,7 @@ fn parse_simple_macro_definition() {
                 args,
                 body: vec![
                     Node::Text("A: ".to_string()),
-                    Node::VariableBlock(Expr::new(ExprVal::Ident("a".to_string()))),
+                    Node::VariableBlock(WS::default(), Expr::new(ExprVal::Ident("a".to_string()))),
                 ],
             },
             WS::default(),
@@ -807,16 +885,25 @@ fn parse_continue() {
 #[test]
 fn parse_string_concat_can_merge() {
     let ast = parse("{{ `hello` ~ 'hey' }}").unwrap();
-    assert_eq!(ast[0], Node::VariableBlock(Expr::new(ExprVal::String("hellohey".to_string()))),);
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(WS::default(), Expr::new(ExprVal::String("hellohey".to_string()))),
+    );
 }
 #[test]
 fn parse_string_concat() {
     let ast = parse("{{ `hello` ~ ident }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::StringConcat(StringConcat {
-            values: vec![ExprVal::String("hello".to_string()), ExprVal::Ident("ident".to_string()),]
-        }))),
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::StringConcat(StringConcat {
+                values: vec![
+                    ExprVal::String("hello".to_string()),
+                    ExprVal::Ident("ident".to_string()),
+                ]
+            }))
+        ),
     );
 }
 
@@ -825,12 +912,15 @@ fn parse_string_concat_multiple() {
     let ast = parse("{{ `hello` ~ ident ~ 'ho' }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(Expr::new(ExprVal::StringConcat(StringConcat {
-            values: vec![
-                ExprVal::String("hello".to_string()),
-                ExprVal::Ident("ident".to_string()),
-                ExprVal::String("ho".to_string()),
-            ]
-        }))),
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::StringConcat(StringConcat {
+                values: vec![
+                    ExprVal::String("hello".to_string()),
+                    ExprVal::Ident("ident".to_string()),
+                    ExprVal::String("ho".to_string()),
+                ]
+            }))
+        ),
     );
 }

@@ -19,7 +19,7 @@ fn invalid_number() {
         "{{ 1.2.2 }}",
         &[
             "1:7",
-            "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, or a filter"
+            "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, a filter, or a variable end (`}}`)"
         ],
     );
 }
@@ -35,7 +35,7 @@ fn wrong_start_block() {
         "{{ if true %}",
         &[
             "1:7",
-            "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, or a filter"
+            "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, a filter, or a variable end (`}}`)"
         ],
     );
 }
@@ -57,7 +57,7 @@ fn unterminated_variable_block() {
         "{{ hey",
         &[
             "1:7",
-            "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, or a filter"
+            "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, a filter, or a variable end (`}}`)"
         ],
     );
 }
@@ -155,7 +155,7 @@ fn invalid_operator() {
         "{{ hey =! }}",
         &[
             "1:8",
-            "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, or a filter"
+            "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, a filter, or a variable end (`}}`)"
         ],
     );
 }
@@ -212,7 +212,7 @@ fn invalid_macro_call() {
         "{{ my:macro() }}",
         &[
             "1:6",
-            "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, or a filter"
+            "expected `or`, `and`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, a filter, or a variable end (`}}`)"
         ],
     );
 }

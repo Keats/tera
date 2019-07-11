@@ -909,7 +909,9 @@ impl<'a> Processor<'a> {
     fn render_node(&mut self, node: &'a Node, buffer: &mut String) -> Result<()> {
         match *node {
             Node::Text(ref s) | Node::Raw(_, ref s, _) => buffer.push_str(s),
-            Node::VariableBlock(ref expr) => buffer.push_str(&self.eval_expression(expr)?.render()),
+            Node::VariableBlock(_, ref expr) => {
+                buffer.push_str(&self.eval_expression(expr)?.render())
+            }
             Node::Set(_, ref set) => self.eval_set(set)?,
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
                 let body = self.render_body(body)?;

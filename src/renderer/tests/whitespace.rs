@@ -19,6 +19,9 @@ fn can_remove_whitespace_basic() {
         ("  {% set var = 2 -%} {{var}}", "  2"),
         ("  {% raw -%}{{2}} {% endraw -%} ", "  {{2}}"),
         ("  {% filter upper -%} hey {%- endfilter -%} ", "  HEY"),
+        ("  {{ \"hello\" -}} ", "  hello"),
+        ("  {{- \"hello\" }} ", "hello "),
+        ("  {{- \"hello\" -}} ", "hello"),
     ];
 
     for (input, expected) in inputs {

@@ -317,7 +317,7 @@ pub enum Node {
     /// Some actual text
     Text(String),
     /// A `{{ }}` block
-    VariableBlock(Expr),
+    VariableBlock(WS, Expr),
     /// A `{% macro hello() %}...{% endmacro %}`
     MacroDefinition(WS, MacroDefinition, WS),
 
