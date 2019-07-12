@@ -30,6 +30,7 @@ only at the last position
 - Make tests helper fns `number_args_allowed`, `value_defined` and `extract_string` public
 - Add `else` clause to for loops
 - Filters are now evaluated when checking if/elif conditions
+- Allow `{{-` and `-}}` for whitespace management
 
 ## 0.11.20 (2018-11-14)
 
