@@ -676,10 +676,11 @@ fn parse_block() {
 
 #[test]
 fn parse_simple_macro_definition() {
-    let ast = parse("{% macro hello(a=1, b) %}A: {{a}}{% endmacro %}").unwrap();
+    let ast = parse("{% macro hello(a=1, b='hello', c) %}A: {{a}}{% endmacro %}").unwrap();
     let mut args = HashMap::new();
     args.insert("a".to_string(), Some(Expr::new(ExprVal::Int(1))));
-    args.insert("b".to_string(), None);
+    args.insert("b".to_string(), Some(Expr::new(ExprVal::String("hello".to_string()))));
+    args.insert("c".to_string(), None);
 
     assert_eq!(
         ast[0],

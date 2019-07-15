@@ -265,7 +265,7 @@ fn parse_basic_expression(pair: Pair<Rule>) -> TeraResult<ExprVal> {
         Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)?),
         Rule::dotted_square_bracket_ident => ExprVal::Ident(pair.as_str().to_string()),
         Rule::basic_expr => MATH_CLIMBER.climb(pair.into_inner(), primary, infix)?,
-        _ => unreachable!("Got {:?} in parse_basic_expression", pair.as_rule()),
+        _ => unreachable!("Got {:?} in parse_basic_expression: {}", pair.as_rule(), pair.as_str()),
     };
     Ok(expr)
 }
@@ -687,6 +687,32 @@ fn parse_block(pair: Pair<Rule>) -> TeraResult<Node> {
     Ok(Node::Block(start_ws, Block { name: name.unwrap(), body }, end_ws))
 }
 
+fn parse_macro_arg(p: Pair<Rule>) -> TeraResult<ExprVal> {
+    let val = match p.as_rule() {
+        Rule::int => Some(ExprVal::Int(
+            p.as_str()
+                .parse()
+                .map_err(|_| Error::msg(format!("Integer out of bounds: `{}`", p.as_str())))?,
+        )),
+        Rule::float => Some(ExprVal::Float(
+            p.as_str()
+                .parse()
+                .map_err(|_| Error::msg(format!("Float out of bounds: `{}`", p.as_str())))?,
+        )),
+        Rule::boolean => match p.as_str() {
+            "true" => Some(ExprVal::Bool(true)),
+            "True" => Some(ExprVal::Bool(true)),
+            "false" => Some(ExprVal::Bool(false)),
+            "False" => Some(ExprVal::Bool(false)),
+            _ => unreachable!(),
+        },
+        Rule::string => Some(ExprVal::String(replace_string_markers(&p.as_str()))),
+        _ => unreachable!("Got {:?} in parse_macro_arg: {}", p.as_rule(), p.as_str())
+    };
+
+    Ok(val.unwrap())
+}
+
 fn parse_macro_fn(pair: Pair<Rule>) -> TeraResult<(String, HashMap<String, Option<Expr>>)> {
     let mut name = String::new();
     let mut args = HashMap::new();
@@ -700,8 +726,7 @@ fn parse_macro_fn(pair: Pair<Rule>) -> TeraResult<(String, HashMap<String, Optio
                 for p3 in p2.into_inner() {
                     match p3.as_rule() {
                         Rule::ident => arg_name = Some(p3.as_str().to_string()),
-                        // no filters allowed on macro definition
-                        _ => default_val = Some(Expr::new(parse_basic_expression(p3)?)),
+                        _ => default_val = Some(Expr::new(parse_macro_arg(p3)?)),
                     };
                 }
                 args.insert(arg_name.unwrap(), default_val);
