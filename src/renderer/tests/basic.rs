@@ -75,6 +75,7 @@ fn render_variable_block_ident() {
     context.insert("numbers", &vec![1, 2, 3]);
     context.insert("tuple_list", &vec![(1, 2, 3), (1, 2, 3)]);
     context.insert("review", &Review::new());
+    context.insert("with_newline", &"Animal Alphabets\nB is for Bee-Eater");
 
     let inputs = vec![
         ("{{ name }}", "john"),
@@ -118,6 +119,8 @@ fn render_variable_block_ident() {
         ("{{ 1.9 + a | round - 1 }}", "3"),
         ("{{ 1.9 + a | round - 1.8 + a | round }}", "0"),
         ("{{ 1.9 + a | round - 1.8 + a | round - 1 }}", "-1"),
+        // https://github.com/Keats/tera/issues/435
+        ("{{ with_newline | replace(from='\n', to='<br>') | safe }}", "Animal Alphabets<br>B is for Bee-Eater"),
     ];
 
     for (input, expected) in inputs {
