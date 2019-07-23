@@ -306,6 +306,17 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("Goodbye world!").unwrap());
     }
 
+    // https://github.com/Keats/tera/issues/435
+    #[test]
+    fn test_replace_newline() {
+        let mut args = HashMap::new();
+        args.insert("from".to_string(), to_value(&"\n").unwrap());
+        args.insert("to".to_string(), to_value(&"<br>").unwrap());
+        let result = replace(&to_value(&"Animal Alphabets\nB is for Bee-Eater").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("Animal Alphabets<br>B is for Bee-Eater").unwrap());
+    }
+
     #[test]
     fn test_replace_missing_arg() {
         let mut args = HashMap::new();

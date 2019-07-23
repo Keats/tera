@@ -374,6 +374,7 @@ fn render_if_elif_else() {
     context.insert("is_false", &false);
     context.insert("age", &18);
     context.insert("name", &"john");
+    context.insert("empty_string", &"");
     context.insert("numbers", &vec![1, 2, 3]);
 
     let inputs = vec![
@@ -387,6 +388,13 @@ fn render_if_elif_else() {
         ("{% if 2 > 1 %}a{% endif %}", "a"),
         ("{% if 1 == 1 %}a{% endif %}", "a"),
         ("{% if 1 != 2 %}a{% endif %}", "a"),
+        // testing string conditions
+        ("{% if 'true' %}a{% endif %}", "a"),
+        ("{% if name %}a{% endif %}", "a"),
+        ("{% if '' %}a{% endif %}", ""),
+        ("{% if empty_string %}a{% endif %}", ""),
+        ("{% if '' ~ name %}a{% endif %}", "a"),
+        ("{% if '' ~ empty_string %}a{% endif %}", ""),
         // some not conditions
         ("{% if not is_false %}a{% endif %}", "a"),
         ("{% if not is_true %}a{% endif %}", ""),

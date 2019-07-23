@@ -628,6 +628,14 @@ impl<'a> Processor<'a> {
                     }
                 }
             }
+            ExprVal::StringConcat(_) => {
+                let res = self.eval_expression(bool_expr)?;
+                !res.as_str().unwrap().is_empty()
+            },
+            ExprVal::MacroCall(ref macro_call) => {
+                let res = self.eval_macro_call(&macro_call)?;
+                !res.is_empty()
+            }
             _ => unreachable!("unimplemented logic operation for {:?}", bool_expr),
         };
 
@@ -845,6 +853,12 @@ impl<'a> Processor<'a> {
                 return Err(Error::msg(format!(
                     "Tried to do math with a string concatenation: {}",
                     val.to_template_string()
+                )));
+            }
+            ExprVal::Test(ref test) => {
+                return Err(Error::msg(format!(
+                    "Tried to do math with a test: {}",
+                    test.name
                 )));
             }
             _ => unreachable!("unimplemented math expression for {:?}", expr),

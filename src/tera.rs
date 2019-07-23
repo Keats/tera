@@ -994,7 +994,7 @@ mod tests {
 
     // https://github.com/Keats/tera/issues/396
     #[test]
-    fn issues_found_fuzzing_are_fixed() {
+    fn issues_found_fuzzing_expressions_are_fixed() {
         let samples: Vec<(&str, Option<&str>)> = vec![
             // sample, expected result if it isn't an error
             ("{{0%0}}", None),
@@ -1008,6 +1008,28 @@ mod tests {
 
         for (sample, expected_output) in samples {
             let res = Tera::one_off(sample, Context::new(), true);
+            if let Some(output) = expected_output {
+                assert!(res.is_ok());
+                assert_eq!(res.unwrap(), output);
+            } else {
+                assert!(res.is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn issues_found_fuzzing_conditions_are_fixed() {
+        let samples: Vec<(&str, Option<&str>)> = vec![
+            // sample, expected result if it isn't an error
+            ("C~Q", None),
+            // The test error will count as falsy there, seems wrong somehow
+            ("s is V*0", Some("")),
+            ("x0x::N()", None),
+        ];
+
+        for (sample, expected_output) in samples {
+            println!("{}, {:?}", sample, expected_output);
+            let res = Tera::one_off(&format!("{{% if {} %}}true{{% endif %}}", sample), Context::new(), true);
             if let Some(output) = expected_output {
                 assert!(res.is_ok());
                 assert_eq!(res.unwrap(), output);
