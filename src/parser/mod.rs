@@ -318,9 +318,10 @@ fn parse_in_condition_container(pair: Pair<Rule>) -> TeraResult<Expr> {
     Ok(expr.unwrap())
 }
 
-fn parse_in_condition(pair: Pair<Rule>, negated: bool) -> TeraResult<Expr> {
+fn parse_in_condition(pair: Pair<Rule>) -> TeraResult<Expr> {
     let mut lhs = None;
     let mut rhs = None;
+    let mut negated = false;
 
     for p in pair.into_inner() {
         match p.as_rule() {
@@ -329,6 +330,7 @@ fn parse_in_condition(pair: Pair<Rule>, negated: bool) -> TeraResult<Expr> {
             Rule::basic_expr_filter => lhs = Some(parse_basic_expr_with_filters(p)?),
             // rhs
             Rule::in_cond_container => rhs = Some(parse_in_condition_container(p)?),
+            Rule::op_not => negated = true,
             _ => unreachable!("Got {:?} in parse_in_condition", p),
         };
     }
@@ -405,8 +407,7 @@ fn parse_logic_val(pair: Pair<Rule>) -> TeraResult<Expr> {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::op_not => negated = true,
-            Rule::in_cond => expr = Some(parse_in_condition(p, false)?),
-            Rule::in_not_cond => expr = Some(parse_in_condition(p, true)?),
+            Rule::in_cond => expr = Some(parse_in_condition(p)?),
             Rule::comparison_expr => expr = Some(parse_comparison_expression(p)?),
             Rule::string_expr_filter => expr = Some(parse_string_expr_with_filters(p)?),
             _ => unreachable!(),
@@ -1116,7 +1117,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::break_tag => "a break tag".to_string(),
                     Rule::continue_tag => "a continue tag".to_string(),
                     Rule::top_imports => "top imports".to_string(),
-                    Rule::in_cond | Rule::in_not_cond => "a `in` condition".to_string(),
+                    Rule::in_cond => "a `in` condition".to_string(),
                     Rule::in_cond_container => "a `in` condition container: a string, an array or an ident".to_string(),
                 }
             });

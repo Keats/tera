@@ -1025,6 +1025,8 @@ mod tests {
             // The test error will count as falsy there, seems wrong somehow
             ("s is V*0", Some("")),
             ("x0x::N()", None),
+            // this used to timeout
+            ("_(p=__(p=[_(p=__(p=[_(p=[_(p=[_1", None),
         ];
 
         for (sample, expected_output) in samples {
