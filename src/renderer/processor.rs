@@ -606,10 +606,9 @@ impl<'a> Processor<'a> {
                 res
             }
             ExprVal::Math(_) | ExprVal::Int(_) | ExprVal::Float(_) => {
-                match self.eval_as_number(&bool_expr.val) {
-                    Ok(Some(n)) => n.as_f64().unwrap() != 0.0,
-                    Ok(None) => false,
-                    Err(_) => false,
+                match self.eval_as_number(&bool_expr.val)? {
+                    Some(n) => n.as_f64().unwrap() != 0.0,
+                    None => false,
                 }
             }
             ExprVal::In(ref in_cond) => self.eval_in_condition(&in_cond)?,

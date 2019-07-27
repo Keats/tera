@@ -1020,10 +1020,9 @@ mod tests {
     #[test]
     fn issues_found_fuzzing_conditions_are_fixed() {
         let samples: Vec<(&str, Option<&str>)> = vec![
-            // sample, expected result if it isn't an error
+            // (sample, expected result if it isn't an error)
             ("C~Q", None),
-            // The test error will count as falsy there, seems wrong somehow
-            ("s is V*0", Some("")),
+            ("s is V*0", None),
             ("x0x::N()", None),
             // this used to timeout
             ("_(p=__(p=[_(p=__(p=[_(p=[_(p=[_1", None),
