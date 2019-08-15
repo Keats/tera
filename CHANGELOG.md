@@ -4,7 +4,7 @@
 
 ### Breaking changes
 
-- Now requires Rust 1.32
+- Now requires Rust 1.34
 - Removed error-chain errors and added rich Error enum instead
 - Filter, Tester and Function are now traits and now take borrowed values instead of owned
 - Updated for 2018 edition
