@@ -992,7 +992,15 @@ Escapes a string's HTML. Specifically, it makes these replacements:
 - `"` (double quote) is converted to `&quot;`
 - `'` (single quote) is converted to `&#x27;`
 - `/` is converted to `&#x2F;`
-- `` ` `` is converted to `&#96;`
+
+#### escape_xml
+Escapes XML special characters. Specifically, it makes these replacements:
+
+- `&` is converted to `&amp;`
+- `<` is converted to `&lt;`
+- `>` is converted to `&gt;`
+- `"` (double quote) is converted to `&quot;`
+- `'` (single quote) is converted to `&apos;`
 
 #### safe
 Mark a variable as safe: HTML will not be escaped anymore.

@@ -187,12 +187,31 @@ pub fn striptags(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(&STRIPTAGS_RE.replace_all(&s, "")).unwrap())
 }
 
-/// Returns the given text with ampersands, quotes and angle brackets encoded
-/// for use in HTML.
+/// Returns the given text with all special HTML characters encoded
 pub fn escape_html(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("escape_html", "value", String, value);
-    Ok(to_value(utils::escape_html(&s)).unwrap())
+    Ok(Value::String(utils::escape_html(&s)))
 }
+
+/// Returns the given text with all special XML characters encoded
+/// Very similar to `escape_html`, just a few characters less are encoded
+pub fn escape_xml(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("escape_html", "value", String, value);
+
+    let mut output = String::with_capacity(s.len() * 2);
+    for c in s.chars() {
+        match c {
+            '&' => output.push_str("&amp;"),
+            '<' => output.push_str("&lt;"),
+            '>' => output.push_str("&gt;"),
+            '"' => output.push_str("&quot;"),
+            '\'' => output.push_str("&apos;"),
+            _ => output.push(c),
+        }
+    }
+    Ok(Value::String(output))
+}
+
 
 /// Split the given string by the given pattern.
 pub fn split(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
@@ -468,6 +487,23 @@ mod tests {
             for (result, expected) in result.iter().zip(expected.iter()) {
                 assert_eq!(result, expected);
             }
+        }
+    }
+
+    #[test]
+    fn test_xml_escape() {
+        let tests = vec![
+            (r"hey-&-ho", "hey-&amp;-ho"),
+            (r"hey-'-ho", "hey-&apos;-ho"),
+            (r"hey-&'-ho", "hey-&amp;&apos;-ho"),
+            (r#"hey-&'"-ho"#, "hey-&amp;&apos;&quot;-ho"),
+            (r#"hey-&'"<-ho"#, "hey-&amp;&apos;&quot;&lt;-ho"),
+            (r#"hey-&'"<>-ho"#, "hey-&amp;&apos;&quot;&lt;&gt;-ho"),
+        ];
+        for (input, expected) in tests {
+            let result = escape_xml(&to_value(input).unwrap(), &HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
     }
 }

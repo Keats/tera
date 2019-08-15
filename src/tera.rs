@@ -492,6 +492,7 @@ impl Tera {
         self.register_filter("striptags", string::striptags);
         self.register_filter("urlencode", string::urlencode);
         self.register_filter("escape", string::escape_html);
+        self.register_filter("escape_xml", string::escape_xml);
         self.register_filter("slugify", string::slugify);
         self.register_filter("addslashes", string::addslashes);
         self.register_filter("split", string::split);
