@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::context::{get_json_pointer, ValueRender};
 use crate::errors::{Error, Result};
-use crate::sort_utils::get_sort_strategy_for_type;
+use crate::filter_utils::{get_sort_strategy_for_type, get_unique_strategy_for_type};
 use serde_json::value::{to_value, Map, Value};
 
 /// Returns the nth value of an array
@@ -89,6 +89,61 @@ pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let sorted = strategy.sort();
 
     Ok(sorted.into())
+}
+
+/// Remove duplicates from an array.
+/// Use the 'attribute' argument to define a field to filter on.
+/// For strings, use the 'case_sensitive' argument (defaults to false) to control the comparison.
+pub fn unique(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    use std::mem::discriminant;
+
+    let arr = try_get_value!("unique", "value", Vec<Value>, value);
+    if arr.is_empty() {
+        return Ok(arr.into());
+    }
+
+    let case_sensitive = match args.get("case_sensitive") {
+        Some(val) => try_get_value!("unique", "case_sensitive", bool, val),
+        None => false,
+    };
+
+    let attribute = match args.get("attribute") {
+        Some(val) => try_get_value!("unique", "attribute", String, val),
+        None => String::new(),
+    };
+    let ptr = match attribute.as_str() {
+        "" => "".to_string(),
+        s => get_json_pointer(s),
+    };
+
+    let first = arr[0].pointer(&ptr).ok_or_else(|| {
+        Error::msg(format!("attribute '{}' does not reference a field", attribute))
+    })?;
+
+    let disc = discriminant(first);
+    let mut strategy = get_unique_strategy_for_type(first, case_sensitive)?;
+
+    let arr = arr
+        .into_iter()
+        .filter_map(|v| match v.pointer(&ptr) {
+            Some(key) => {
+                if disc != discriminant(key) {
+                    return Some(Err(Error::msg("unique filter can't compare multiple types")));
+                }
+                match strategy.contains(key) {
+                    Ok(true) => None,
+                    Ok(false) => match strategy.insert(key) {
+                        Ok(_) => Some(Ok(v)),
+                        Err(e) => Some(Err(e)),
+                    },
+                    Err(e) => Some(Err(e)),
+                }
+            }
+            None => None,
+        })
+        .collect::<Result<Vec<_>>>();
+
+    Ok(to_value(arr?).unwrap())
 }
 
 /// Group the array values by the `attribute` given
@@ -227,7 +282,7 @@ pub fn concat(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_derive::Serialize;
+    use serde_derive::{Deserialize, Serialize};
     use serde_json::json;
     use serde_json::value::{to_value, Value};
     use std::collections::HashMap;
@@ -313,11 +368,11 @@ mod tests {
 
     #[test]
     fn test_sort() {
-        let v = to_value(vec![3, 1, 2, 5, 4]).unwrap();
+        let v = to_value(vec![3, -1, 2, 5, 4]).unwrap();
         let args = HashMap::new();
         let result = sort(&v, &args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(vec![1, 2, 3, 4, 5]).unwrap());
+        assert_eq!(result.unwrap(), to_value(vec![-1, 2, 3, 4, 5]).unwrap());
     }
 
     #[test]
@@ -329,7 +384,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value(Vec::<f64>::new()).unwrap());
     }
 
-    #[derive(Serialize)]
+    #[derive(Deserialize, Eq, Hash, PartialEq, Serialize)]
     struct Foo {
         a: i32,
         b: i32,
@@ -399,7 +454,7 @@ mod tests {
         assert_eq!(result.unwrap_err().to_string(), "Null is not a sortable value");
     }
 
-    #[derive(Serialize)]
+    #[derive(Deserialize, Eq, Hash, PartialEq, Serialize)]
     struct TupleStruct(i32, i32);
 
     #[test]
@@ -425,6 +480,116 @@ mod tests {
                 TupleStruct(18, 18),
             ])
             .unwrap()
+        );
+    }
+
+    #[test]
+    fn test_unique_numbers() {
+        let v = to_value(vec![3, -1, 3, 3, 5, 2, 5, 4]).unwrap();
+        let args = HashMap::new();
+        let result = unique(&v, &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(vec![3, -1, 5, 2, 4]).unwrap());
+    }
+
+    #[test]
+    fn test_unique_strings() {
+        let v = to_value(vec!["One", "Two", "Three", "one", "Two"]).unwrap();
+        let mut args = HashMap::new();
+        let result = unique(&v, &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(vec!["One", "Two", "Three"]).unwrap());
+
+        args.insert("case_sensitive".to_string(), to_value(true).unwrap());
+        let result = unique(&v, &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(vec!["One", "Two", "Three", "one"]).unwrap());
+    }
+
+    #[test]
+    fn test_unique_empty() {
+        let v = to_value(Vec::<f64>::new()).unwrap();
+        let args = HashMap::new();
+        let result = sort(&v, &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(Vec::<f64>::new()).unwrap());
+    }
+
+    #[test]
+    fn test_unique_attribute() {
+        let v = to_value(vec![
+            Foo { a: 1, b: 2 },
+            Foo { a: 3, b: 3 },
+            Foo { a: 1, b: 3 },
+            Foo { a: 0, b: 4 },
+        ])
+        .unwrap();
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value(&"a").unwrap());
+
+        let result = unique(&v, &args);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            to_value(vec![Foo { a: 1, b: 2 }, Foo { a: 3, b: 3 }, Foo { a: 0, b: 4 },]).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_unique_invalid_attribute() {
+        let v = to_value(vec![Foo { a: 3, b: 5 }]).unwrap();
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value(&"invalid_field").unwrap());
+
+        let result = unique(&v, &args);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "attribute 'invalid_field' does not reference a field"
+        );
+    }
+
+    #[test]
+    fn test_unique_multiple_types() {
+        let v = to_value(vec![Value::Number(12.into()), Value::Array(vec![])]).unwrap();
+        let args = HashMap::new();
+
+        let result = unique(&v, &args);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "unique filter can't compare multiple types");
+    }
+
+    #[test]
+    fn test_unique_non_finite_numbers() {
+        let v = to_value(vec![
+            ::std::f64::NEG_INFINITY, // NaN and friends get deserialized as Null by serde.
+            ::std::f64::NAN,
+        ])
+        .unwrap();
+        let args = HashMap::new();
+
+        let result = unique(&v, &args);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Null is not a unique value");
+    }
+
+    #[test]
+    fn test_unique_tuple() {
+        let v = to_value(vec![
+            TupleStruct(0, 1),
+            TupleStruct(-7, -1),
+            TupleStruct(-1, 1),
+            TupleStruct(18, 18),
+        ])
+        .unwrap();
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("1").unwrap());
+
+        let result = unique(&v, &args);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            to_value(vec![TupleStruct(0, 1), TupleStruct(-7, -1), TupleStruct(18, 18),]).unwrap()
         );
     }
 
