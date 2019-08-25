@@ -15,7 +15,7 @@ use crate::template::Template;
 use crate::tera::Tera;
 
 /// Special string indicating request to dump context
-static MAGICAL_DUMP_VAR: &'static str = "__tera_context";
+static MAGICAL_DUMP_VAR: &str = "__tera_context";
 
 /// This will convert a Tera variable to a json pointer if it is possible by replacing
 /// the index with their evaluated stringified value
@@ -630,7 +630,7 @@ impl<'a> Processor<'a> {
             ExprVal::StringConcat(_) => {
                 let res = self.eval_expression(bool_expr)?;
                 !res.as_str().unwrap().is_empty()
-            },
+            }
             ExprVal::MacroCall(ref macro_call) => {
                 let res = self.eval_macro_call(&macro_call)?;
                 !res.is_empty()
@@ -855,10 +855,7 @@ impl<'a> Processor<'a> {
                 )));
             }
             ExprVal::Test(ref test) => {
-                return Err(Error::msg(format!(
-                    "Tried to do math with a test: {}",
-                    test.name
-                )));
+                return Err(Error::msg(format!("Tried to do math with a test: {}", test.name)));
             }
             _ => unreachable!("unimplemented math expression for {:?}", expr),
         };

@@ -1031,7 +1031,11 @@ mod tests {
 
         for (sample, expected_output) in samples {
             println!("{}, {:?}", sample, expected_output);
-            let res = Tera::one_off(&format!("{{% if {} %}}true{{% endif %}}", sample), Context::new(), true);
+            let res = Tera::one_off(
+                &format!("{{% if {} %}}true{{% endif %}}", sample),
+                Context::new(),
+                true,
+            );
             if let Some(output) = expected_output {
                 assert!(res.is_ok());
                 assert_eq!(res.unwrap(), output);

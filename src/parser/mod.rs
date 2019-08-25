@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
+use lazy_static::lazy_static;
 use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
+use pest_derive::Parser;
 
 use crate::errors::{Error, Result as TeraResult};
 
@@ -708,7 +710,7 @@ fn parse_macro_arg(p: Pair<Rule>) -> TeraResult<ExprVal> {
             _ => unreachable!(),
         },
         Rule::string => Some(ExprVal::String(replace_string_markers(&p.as_str()))),
-        _ => unreachable!("Got {:?} in parse_macro_arg: {}", p.as_rule(), p.as_str())
+        _ => unreachable!("Got {:?} in parse_macro_arg: {}", p.as_rule(), p.as_str()),
     };
 
     Ok(val.unwrap())

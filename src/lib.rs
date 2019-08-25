@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/tera/0.11")]
+#![doc(html_root_url = "https://docs.rs/tera")]
 
 //! # Tera
 //! Tera is a template engine based on [Jinja2](http://jinja.pocoo.org/)
@@ -7,30 +7,6 @@
 //! See the [site](https://tera.netlify.com) for features and to get started.
 
 #![deny(missing_docs)]
-
-extern crate globwalk;
-extern crate pest;
-extern crate serde;
-#[cfg_attr(test, macro_use)]
-extern crate serde_json;
-#[macro_use]
-extern crate pest_derive;
-extern crate regex;
-extern crate slug;
-#[macro_use]
-extern crate lazy_static;
-extern crate chrono;
-extern crate humansize;
-extern crate url;
-#[cfg(test)]
-#[macro_use]
-extern crate pretty_assertions;
-#[cfg(test)]
-extern crate tempfile;
-#[cfg(test)]
-#[macro_use]
-extern crate serde_derive;
-extern crate unic_segment;
 
 #[macro_use]
 mod macros;

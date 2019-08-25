@@ -1,6 +1,7 @@
 /// Filters operating on string
 use std::collections::HashMap;
 
+use lazy_static::lazy_static;
 use regex::{Captures, Regex};
 use serde_json::value::{to_value, Value};
 use slug;
@@ -211,7 +212,6 @@ pub fn escape_xml(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     }
     Ok(Value::String(output))
 }
-
 
 /// Split the given string by the given pattern.
 pub fn split(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {

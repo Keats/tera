@@ -227,6 +227,8 @@ pub fn concat(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_derive::Serialize;
+    use serde_json::json;
     use serde_json::value::{to_value, Value};
     use std::collections::HashMap;
 

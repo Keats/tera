@@ -3,7 +3,9 @@ use std::error::Error;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use serde_json::Value;
+use lazy_static::lazy_static;
+use serde_derive::Serialize;
+use serde_json::{json, Value};
 
 use crate::builtins::functions::Function;
 use crate::context::Context;
@@ -120,7 +122,10 @@ fn render_variable_block_ident() {
         ("{{ 1.9 + a | round - 1.8 + a | round }}", "0"),
         ("{{ 1.9 + a | round - 1.8 + a | round - 1 }}", "-1"),
         // https://github.com/Keats/tera/issues/435
-        ("{{ with_newline | replace(from='\n', to='<br>') | safe }}", "Animal Alphabets<br>B is for Bee-Eater"),
+        (
+            "{{ with_newline | replace(from='\n', to='<br>') | safe }}",
+            "Animal Alphabets<br>B is for Bee-Eater",
+        ),
     ];
 
     for (input, expected) in inputs {
