@@ -2,15 +2,58 @@
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
+use percent_encoding::{percent_encode, AsciiSet};
 use regex::{Captures, Regex};
 use serde_json::value::{to_value, Value};
 use slug;
-use url::percent_encoding::{utf8_percent_encode, EncodeSet};
 
 use unic_segment::GraphemeIndices;
 
 use crate::errors::{Error, Result};
 use crate::utils;
+
+/// https://url.spec.whatwg.org/#fragment-percent-encode-set
+const FRAGMENT_ENCODE_SET: &AsciiSet =
+    &percent_encoding::CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
+
+/// https://url.spec.whatwg.org/#path-percent-encode-set
+const PATH_ENCODE_SET: &AsciiSet = &FRAGMENT_ENCODE_SET.add(b'#').add(b'?').add(b'{').add(b'}');
+
+/// https://url.spec.whatwg.org/#userinfo-percent-encode-set
+const USERINFO_ENCODE_SET: &AsciiSet = &PATH_ENCODE_SET
+    .add(b'/')
+    .add(b':')
+    .add(b';')
+    .add(b'=')
+    .add(b'@')
+    .add(b'[')
+    .add(b'\\')
+    .add(b']')
+    .add(b'^')
+    .add(b'|');
+
+/// Same as Python quote
+/// https://github.com/python/cpython/blob/da27d9b9dc44913ffee8f28d9638985eaaa03755/Lib/urllib/parse.py#L787
+/// with `/` not escaped
+const PYTHON_ENCODE_SET: &AsciiSet = &USERINFO_ENCODE_SET
+    .remove(b'/')
+    .add(b':')
+    .add(b'?')
+    .add(b'#')
+    .add(b'[')
+    .add(b']')
+    .add(b'@')
+    .add(b'!')
+    .add(b'$')
+    .add(b'&')
+    .add(b'\'')
+    .add(b'(')
+    .add(b')')
+    .add(b'*')
+    .add(b'+')
+    .add(b',')
+    .add(b';')
+    .add(b'=');
 
 lazy_static! {
     static ref STRIPTAGS_RE: Regex = Regex::new(r"(<!--.*?-->|<[^>]*>)").unwrap();
@@ -115,47 +158,11 @@ pub fn capitalize(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     }
 }
 
-#[derive(Clone)]
-struct UrlEncodeSet(String);
-
-impl UrlEncodeSet {
-    fn safe_bytes(&self) -> &[u8] {
-        let &UrlEncodeSet(ref safe) = self;
-        safe.as_bytes()
-    }
-}
-
-impl EncodeSet for UrlEncodeSet {
-    #[allow(clippy::if_same_then_else)]
-    fn contains(&self, byte: u8) -> bool {
-        if byte >= 48 && byte <= 57 {
-            // digit
-            false
-        } else if byte >= 65 && byte <= 90 {
-            // uppercase character
-            false
-        } else if byte >= 97 && byte <= 122 {
-            // lowercase character
-            false
-        } else if byte == 45 || byte == 46 || byte == 95 {
-            // -, . or _
-            false
-        } else {
-            !self.safe_bytes().contains(&byte)
-        }
-    }
-}
-
 /// Percent-encodes reserved URI characters
-pub fn urlencode(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+pub fn urlencode(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("urlencode", "value", String, value);
-    let safe = match args.get("safe") {
-        Some(l) => try_get_value!("urlencode", "safe", String, l),
-        None => "/".to_string(),
-    };
-
-    let encoded = utf8_percent_encode(s.as_str(), UrlEncodeSet(safe)).collect::<String>();
-    Ok(to_value(&encoded).unwrap())
+    let encoded = percent_encode(s.as_bytes(), &PYTHON_ENCODE_SET).to_string();
+    Ok(Value::String(encoded))
 }
 
 /// Escapes quote characters
@@ -395,23 +402,18 @@ mod tests {
         let tests = vec![
             (
                 r#"https://www.example.org/foo?a=b&c=d"#,
-                None,
                 r#"https%3A//www.example.org/foo%3Fa%3Db%26c%3Dd"#,
             ),
             (
                 r#"https://www.example.org/apples-&-oranges/"#,
-                None,
                 r#"https%3A//www.example.org/apples-%26-oranges/"#,
             ),
-            (r#"https://www.example.org/"#, Some(""), r#"https%3A%2F%2Fwww.example.org%2F"#),
-            (r#"/test&"/me?/"#, None, r#"/test%26%22/me%3F/"#),
-            (r#"escape/slash"#, Some(""), r#"escape%2Fslash"#),
+            (r#"https://www.example.org/"#, r#"https%3A//www.example.org/"#),
+            (r#"/test&"/me?/"#, r#"/test%26%22/me%3F/"#),
+            (r#"escape/slash"#, r#"escape/slash"#),
         ];
-        for (input, safe, expected) in tests {
-            let mut args = HashMap::new();
-            if let Some(safe) = safe {
-                args.insert("safe".to_string(), to_value(&safe).unwrap());
-            }
+        for (input, expected) in tests {
+            let args = HashMap::new();
             let result = urlencode(&to_value(input).unwrap(), &args);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected).unwrap());

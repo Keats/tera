@@ -947,10 +947,8 @@ Percent-encodes a string.
 
 Example: `{{ value | urlencode }}`
 
-If value is `/foo?a=b&c=d`, the output will be `/foo%3Fa%3Db%26c%3Dd`.
+If value is `/foo?a=b&c=d`, the output will be `/foo%3Fa%3Db%26c%3Dd`. `/` is not escaped.
 
-Takes an optional argument of characters that shouldn't be percent-encoded (`/` by default).
-So, to encode slashes as well, you can do `{{ value | urlencode(safe="") }}`.
 
 #### pluralize
 Returns a plural suffix if the value is not equal to ±1, or a singular suffix otherwise. The plural suffix defaults to `s` and the

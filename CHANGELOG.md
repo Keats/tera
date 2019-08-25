@@ -15,6 +15,7 @@ the code already only really look there.
 - Add a test for checking whether a variable is an object
 - Escaping now happens before inserting the final result of an expression: no need anymore to add `| safe` everywhere,
 only at the last position
+- Remove `safe` argument of the urlencode filter, `/` is still escaped by default
 
 ### Others
 
