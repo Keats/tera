@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use crate::errors::{Error, Result};
+#[cfg(feature = "builtins")]
+use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc};
 use serde_json::value::{to_value, Value};
 use serde_json::{to_string, to_string_pretty};
-
-use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc};
 
 use crate::context::ValueRender;
 
@@ -57,6 +57,7 @@ pub fn json_encode(value: &Value, args: &HashMap<String, Value>) -> Result<Value
 ///
 /// a full reference for the time formatting syntax is available
 /// on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html)
+#[cfg(feature = "builtins")]
 pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let format = match args.get("format") {
         Some(val) => try_get_value!("date", "format", String, val),
@@ -114,6 +115,7 @@ pub fn as_str(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "builtins")]
     use chrono::{DateTime, Local};
     use serde_json;
     use serde_json::value::to_value;
@@ -186,6 +188,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn date_default() {
         let args = HashMap::new();
@@ -194,6 +197,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("2016-12-26").unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn date_custom_format() {
         let mut args = HashMap::new();
@@ -203,6 +207,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("2016-12-26 02:47").unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn date_rfc3339() {
         let args = HashMap::new();
@@ -212,6 +217,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value(dt.format("%Y-%m-%d").to_string()).unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn date_rfc3339_preserves_timezone() {
         let mut args = HashMap::new();
@@ -221,6 +227,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("1996-12-19 -0800").unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn date_yyyy_mm_dd() {
         let mut args = HashMap::new();
@@ -230,6 +237,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00 +0000").unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn date_from_naive_datetime() {
         let mut args = HashMap::new();

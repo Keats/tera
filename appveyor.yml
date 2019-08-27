@@ -22,5 +22,6 @@ build: false
 
 test_script:
   - cargo test --verbose --all
+  - cargo test --no-default-features --verbose --all
   - cargo run --example basic
   - cd examples/actix && cargo build

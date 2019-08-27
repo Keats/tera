@@ -12,7 +12,8 @@ matrix:
       rust: nightly
 
 script:
-  - cargo test --verbose --all
+  - cargo test --verbose
+  - cargo test --no-default-features --verbose --all
   - cargo run --example basic
   - cd examples/actix && cargo build
 

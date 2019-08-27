@@ -5,11 +5,21 @@ insert_anchor_links = "right"
 
 # Getting started
 
-To use Tera in your Rust projects, simply add it to your `Config.toml`:
+To use Tera in your Rust projects, simply add it to your `Cargo.toml`:
 
 ```toml
 tera = "1"
 ```
+
+By default, Tera comes with some additional dependencies required for the `truncate`, `date`, `filesizeformat` `slugify` and `urlencode` filters as
+well as for the `now` function. You can disable them by setting the following in your `Cargo.toml`:
+
+```toml
+[dependencies.tera]
+version = "1"
+default-features = false
+```
+
 
 And add the following to your `lib.rs` or `main.rs` if you are not using Rust 2018:
 
@@ -737,6 +747,8 @@ Example: `{{ value | addslashes }}`
 If value is "I'm using Tera", the output will be "I\\'m using Tera".
 
 #### slugify
+Only available if the `builtins` feature is enabled.
+
 Transform a string into ASCII, lowercase it, trim it, converts spaces to hyphens and
 remove all characters that are not numbers, lowercase letters or hyphens.
 
@@ -755,6 +767,8 @@ If value is "foo  bar", the output will be "Foo  Bar".
 Remove leading and trailing whitespace if the variable is a string.
 
 #### truncate
+Only available if the `builtins` feature is enabled.
+
 Truncates a string to the indicated length. If the string has a smaller length than
 the `length` argument, the string is returned as is.
 
@@ -943,6 +957,8 @@ This filter can also be used to append a single value to an array if the value p
 The `with` attribute is mandatory.
 
 #### urlencode
+Only available if the `builtins` feature is enabled.
+
 Percent-encodes a string.
 
 Example: `{{ value | urlencode }}`
@@ -970,11 +986,15 @@ round to the nearest integer for the given method.
 Example: `{{ num | round }} {{ num | round(method="ceil", precision=2) }}`
 
 #### filesizeformat
+Only available if the `builtins` feature is enabled.
+
 Returns a human-readable file size (i.e. '110 MB') from an integer.
 
 Example: `{{ num | filesizeformat }}`
 
 #### date
+Only available if the `builtins` feature is enabled.
+
 Parse a timestamp into a date(time) string. Defaults to `YYYY-MM-DD` format.
 Time formatting syntax is inspired from strftime and a full reference is available
 on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html).
@@ -1151,6 +1171,7 @@ There are 3 arguments, all integers:
 
 
 #### now
+Only available if the `builtins` feature is enabled.
 
 Returns the local datetime as string or the timestamp as integer if requested.
 

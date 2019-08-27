@@ -34,6 +34,7 @@ only at the last position
 - Allow `{{-` and `-}}` for whitespace management
 - Adds a `xml_escape` filter
 - Grave accent is no longer escaped in HTML, not really needed anymore
+- Add a `builtins` default feature that gate all filters/functions requiring additional dependencies
 
 ## 0.11.20 (2018-11-14)
 

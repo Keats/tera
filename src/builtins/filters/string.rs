@@ -2,24 +2,30 @@
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
-use percent_encoding::{percent_encode, AsciiSet};
 use regex::{Captures, Regex};
 use serde_json::value::{to_value, Value};
-use slug;
 
+#[cfg(feature = "builtins")]
+use percent_encoding::{percent_encode, AsciiSet};
+#[cfg(feature = "builtins")]
+use slug;
+#[cfg(feature = "builtins")]
 use unic_segment::GraphemeIndices;
 
 use crate::errors::{Error, Result};
 use crate::utils;
 
 /// https://url.spec.whatwg.org/#fragment-percent-encode-set
+#[cfg(feature = "builtins")]
 const FRAGMENT_ENCODE_SET: &AsciiSet =
     &percent_encoding::CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 
 /// https://url.spec.whatwg.org/#path-percent-encode-set
+#[cfg(feature = "builtins")]
 const PATH_ENCODE_SET: &AsciiSet = &FRAGMENT_ENCODE_SET.add(b'#').add(b'?').add(b'{').add(b'}');
 
 /// https://url.spec.whatwg.org/#userinfo-percent-encode-set
+#[cfg(feature = "builtins")]
 const USERINFO_ENCODE_SET: &AsciiSet = &PATH_ENCODE_SET
     .add(b'/')
     .add(b':')
@@ -35,6 +41,7 @@ const USERINFO_ENCODE_SET: &AsciiSet = &PATH_ENCODE_SET
 /// Same as Python quote
 /// https://github.com/python/cpython/blob/da27d9b9dc44913ffee8f28d9638985eaaa03755/Lib/urllib/parse.py#L787
 /// with `/` not escaped
+#[cfg(feature = "builtins")]
 const PYTHON_ENCODE_SET: &AsciiSet = &USERINFO_ENCODE_SET
     .remove(b'/')
     .add(b':')
@@ -99,6 +106,7 @@ pub fn trim(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 /// The return value of this function might be longer than `length`: the `end`
 /// string is *added* after the truncation occurs.
 ///
+#[cfg(feature = "builtins")]
 pub fn truncate(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("truncate", "value", String, value);
     let length = match args.get("length") {
@@ -159,6 +167,7 @@ pub fn capitalize(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 }
 
 /// Percent-encodes reserved URI characters
+#[cfg(feature = "builtins")]
 pub fn urlencode(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("urlencode", "value", String, value);
     let encoded = percent_encode(s.as_bytes(), &PYTHON_ENCODE_SET).to_string();
@@ -172,6 +181,7 @@ pub fn addslashes(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 }
 
 /// Transform a string into a slug
+#[cfg(feature = "builtins")]
 pub fn slugify(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("slugify", "value", String, value);
     Ok(to_value(&slug::slugify(s)).unwrap())
@@ -270,6 +280,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("hello").unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn test_truncate_smaller_than_length() {
         let mut args = HashMap::new();
@@ -279,6 +290,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("hello").unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn test_truncate_when_required() {
         let mut args = HashMap::new();
@@ -288,6 +300,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("日本…").unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn test_truncate_custom_end() {
         let mut args = HashMap::new();
@@ -298,6 +311,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("日本").unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn test_truncate_multichar_grapheme() {
         let mut args = HashMap::new();
@@ -384,6 +398,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn test_slugify() {
         // slug crate already has tests for general slugification so we just
@@ -397,6 +412,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn test_urlencode() {
         let tests = vec![

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+#[cfg(feature = "builtins")]
 use chrono::prelude::*;
 use serde_json::value::{from_value, to_value, Value};
 
@@ -75,6 +76,7 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(res).unwrap())
 }
 
+#[cfg(feature = "builtins")]
 pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
     let utc = match args.get("utc") {
         Some(val) => match from_value::<bool>(val.clone()) {
@@ -175,6 +177,7 @@ mod tests {
         assert_eq!(res, to_value(vec![0, 2, 4, 6, 8]).unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn now_default() {
         let args = HashMap::new();
@@ -184,6 +187,7 @@ mod tests {
         assert!(res.as_str().unwrap().contains("T"));
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn now_datetime_utc() {
         let mut args = HashMap::new();
@@ -197,6 +201,7 @@ mod tests {
         assert!(val.contains("+00:00"));
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn now_timestamp() {
         let mut args = HashMap::new();

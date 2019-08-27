@@ -484,15 +484,18 @@ impl Tera {
         self.register_filter("upper", string::upper);
         self.register_filter("lower", string::lower);
         self.register_filter("trim", string::trim);
+        #[cfg(feature = "builtins")]
         self.register_filter("truncate", string::truncate);
         self.register_filter("wordcount", string::wordcount);
         self.register_filter("replace", string::replace);
         self.register_filter("capitalize", string::capitalize);
         self.register_filter("title", string::title);
         self.register_filter("striptags", string::striptags);
+        #[cfg(feature = "builtins")]
         self.register_filter("urlencode", string::urlencode);
         self.register_filter("escape", string::escape_html);
         self.register_filter("escape_xml", string::escape_xml);
+        #[cfg(feature = "builtins")]
         self.register_filter("slugify", string::slugify);
         self.register_filter("addslashes", string::addslashes);
         self.register_filter("split", string::split);
@@ -509,10 +512,13 @@ impl Tera {
 
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
+
+        #[cfg(feature = "builtins")]
         self.register_filter("filesizeformat", number::filesizeformat);
 
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
+        #[cfg(feature = "builtins")]
         self.register_filter("date", common::date);
         self.register_filter("json_encode", common::json_encode);
         self.register_filter("as_str", common::as_str);
@@ -538,6 +544,7 @@ impl Tera {
 
     fn register_tera_functions(&mut self) {
         self.register_function("range", functions::range);
+        #[cfg(feature = "builtins")]
         self.register_function("now", functions::now);
         self.register_function("throw", functions::throw);
     }
