@@ -127,16 +127,14 @@ pub fn unique(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         .into_iter()
         .filter_map(|v| match v.pointer(&ptr) {
             Some(key) => {
-                if disc != discriminant(key) {
-                    return Some(Err(Error::msg("unique filter can't compare multiple types")));
-                }
-                match strategy.contains(key) {
-                    Ok(true) => None,
-                    Ok(false) => match strategy.insert(key) {
-                        Ok(_) => Some(Ok(v)),
+                if disc == discriminant(key) {
+                    match strategy.insert(key) {
+                        Ok(false) => None,
+                        Ok(true) => Some(Ok(v)),
                         Err(e) => Some(Err(e)),
-                    },
-                    Err(e) => Some(Err(e)),
+                    }
+                } else {
+                    Some(Err(Error::msg("unique filter can't compare multiple types")))
                 }
             }
             None => None,

@@ -129,15 +129,10 @@ struct UniqueStrings {
 }
 
 pub trait UniqueStrategy {
-    fn contains(&self, val: &Value) -> Result<bool>;
     fn insert(&mut self, val: &Value) -> Result<bool>;
 }
 
 impl<K: GetValue + Eq + std::hash::Hash> UniqueStrategy for Unique<K> {
-    fn contains(&self, val: &Value) -> Result<bool> {
-        Ok(self.unique.contains(&K::get_value(val)?))
-    }
-
     fn insert(&mut self, val: &Value) -> Result<bool> {
         Ok(self.unique.insert(K::get_value(val)?))
     }
@@ -150,14 +145,6 @@ impl UniqueStrings {
 }
 
 impl UniqueStrategy for UniqueStrings {
-    fn contains(&self, val: &Value) -> Result<bool> {
-        let mut key = String::get_value(val)?;
-        if !self.case_sensitive {
-            key = key.to_lowercase()
-        }
-        Ok(self.u.unique.contains(&key))
-    }
-
     fn insert(&mut self, val: &Value) -> Result<bool> {
         let mut key = String::get_value(val)?;
         if !self.case_sensitive {
