@@ -505,6 +505,7 @@ impl Tera {
         self.register_filter("nth", array::nth);
         self.register_filter("join", array::join);
         self.register_filter("sort", array::sort);
+        self.register_filter("unique", array::unique);
         self.register_filter("slice", array::slice);
         self.register_filter("group_by", array::group_by);
         self.register_filter("filter", array::filter);

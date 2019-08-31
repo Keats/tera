@@ -853,6 +853,34 @@ or by age:
 {{ people | sort(attribute="age") }}
 ```
 
+#### unique
+Removes duplicate items from an array.  The `attribute` argument can be used to select items based on the values of an inner attribute.  For strings, the `case_sensitive` argument (default is false) can be used to control the comparison.
+
+Example:
+
+Given `people` is an array of Person
+
+```rust
+struct Name(String, String);
+
+struct Person {
+    name: Name,
+    age: u32,
+}
+```
+
+The `attribute` argument can be used to select one Person for each age:
+
+```jinja2
+{{ people | unique(attribute="age") }}
+```
+
+or by last name:
+
+```jinja2
+{{ people | unique(attribute="name.1", case_sensitive="true") }}
+```
+
 #### slice
 Slice an array by the given `start` and `end` parameter. Both parameters are
 optional and omitting them will return the same array.
