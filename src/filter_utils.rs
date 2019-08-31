@@ -140,7 +140,7 @@ impl<K: GetValue + Eq + std::hash::Hash> UniqueStrategy for Unique<K> {
 
 impl UniqueStrings {
     fn new(case_sensitive: bool) -> UniqueStrings {
-        UniqueStrings { u: Unique::<String>::default(), case_sensitive: case_sensitive }
+        UniqueStrings { u: Unique::<String>::default(), case_sensitive }
     }
 }
 
