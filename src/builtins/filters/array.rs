@@ -95,8 +95,6 @@ pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 /// Use the 'attribute' argument to define a field to filter on.
 /// For strings, use the 'case_sensitive' argument (defaults to false) to control the comparison.
 pub fn unique(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
-    use std::mem::discriminant;
-
     let arr = try_get_value!("unique", "value", Vec<Value>, value);
     if arr.is_empty() {
         return Ok(arr.into());
@@ -120,14 +118,14 @@ pub fn unique(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Error::msg(format!("attribute '{}' does not reference a field", attribute))
     })?;
 
-    let disc = discriminant(first);
+    let disc = std::mem::discriminant(first);
     let mut strategy = get_unique_strategy_for_type(first, case_sensitive)?;
 
     let arr = arr
         .into_iter()
         .filter_map(|v| match v.pointer(&ptr) {
             Some(key) => {
-                if disc == discriminant(key) {
+                if disc == std::mem::discriminant(key) {
                     match strategy.insert(key) {
                         Ok(false) => None,
                         Ok(true) => Some(Ok(v)),
