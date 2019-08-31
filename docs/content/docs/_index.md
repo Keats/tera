@@ -854,7 +854,7 @@ or by age:
 ```
 
 #### unique
-Removes duplicate items from an array.  The `attribute` argument can be used to select items based on the values of an inner attribute.  For strings, the `case_sensitive argument (default is false) can be used to control the comparison.
+Removes duplicate items from an array.  The `attribute` argument can be used to select items based on the values of an inner attribute.  For strings, the `case_sensitive` argument (default is false) can be used to control the comparison.
 
 Example:
 
@@ -869,7 +869,7 @@ struct Person {
 }
 ```
 
-The `attribute` argument can be used to selct one Person for each age:
+The `attribute` argument can be used to select one Person for each age:
 
 ```jinja2
 {{ people | unique(attribute="age") }}
