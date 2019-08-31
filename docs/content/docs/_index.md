@@ -965,6 +965,29 @@ or by author name:
 {{ posts | filter(attribute="author.name", value="Vincent") }}
 ```
 
+#### map
+
+Retrieves an attribute from each object in an array.  The `attribute` argument is mandatory and specifies what to extract.
+
+Example:
+
+Given `people` is an array of Person
+
+```rust
+struct Name(String, String);
+
+struct Person {
+    name: Name,
+    age: u32,
+}
+```
+
+The `attribute` argument is used to retrieve their ages.
+
+```jinja2
+{{ people | map(attribute="age") }}
+```
+
 #### concat
 Appends values to an array.
 

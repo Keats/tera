@@ -222,6 +222,31 @@ pub fn filter(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(arr).unwrap())
 }
 
+/// Map retrieves an attribute from a list of objects.
+/// The 'attribute' argument specifies what to retrieve.
+pub fn map(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let arr = try_get_value!("map", "value", Vec<Value>, value);
+    if arr.is_empty() {
+        return Ok(arr.into());
+    }
+
+    let attribute = match args.get("attribute") {
+        Some(val) => try_get_value!("map", "attribute", String, val),
+        None => return Err(Error::msg("The `map` filter has to have an `attribute` argument")),
+    };
+
+    let json_pointer = get_json_pointer(&attribute);
+    let arr = arr
+        .into_iter()
+        .filter_map(|v| match v.pointer(&json_pointer) {
+            Some(val) if !val.is_null() => Some(val.clone()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+
+    Ok(to_value(arr).unwrap())
+}
+
 /// Slice the array
 /// Use the `start` argument to define where to start (inclusive, default to `0`)
 /// and `end` argument to define where to stop (exclusive, default to the length of the array)
@@ -707,6 +732,38 @@ mod tests {
         ]);
 
         let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_map_empty() {
+        let res = map(&json!([]), &HashMap::new());
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), json!([]));
+    }
+
+    #[test]
+    fn test_map() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": true},
+            {"id": 3, "year": 2016.5},
+            {"id": 4, "year": "2017"},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": [1900, 1901]},
+            {"id": 8, "year": {"a": 2018, "b": 2019}},
+            {"id": 9},
+            {"id": 10, "year": null},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+
+        let expected =
+            json!([2015, true, 2016.5, "2017", 2017, 2017, [1900, 1901], {"a": 2018, "b": 2019}]);
+
+        let res = map(&input, &args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }
