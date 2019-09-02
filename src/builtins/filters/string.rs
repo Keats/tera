@@ -129,6 +129,57 @@ pub fn truncate(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(&result).unwrap())
 }
 
+/// Indents a string by the specified width.
+///
+/// # Arguments
+///
+/// * `value`   - The string to indent.
+/// * `args`    - A set of key/value arguments that can take the following
+///   keys.
+/// * `width`  - The number of spaces to indent.  The default value is 4.
+/// * `first`  - True indents the first line.  The default is false.
+/// * `blank`  - True indents blank lines.  The default is false.
+///
+pub fn indent(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("indent", "value", String, value);
+
+    let prefix = " ".repeat(match args.get("width") {
+        Some(w) => try_get_value!("indent", "width", usize, w),
+        None => 4,
+    });
+    let first = match args.get("first") {
+        Some(f) => try_get_value!("indent", "first", bool, f),
+        None => false,
+    };
+    let blank = match args.get("blank") {
+        Some(b) => try_get_value!("indent", "blank", bool, b),
+        None => false,
+    };
+
+    // Attempt to pre-allocate enough space to prevent additional allocations/copies
+    let mut out = String::with_capacity(
+        s.len() + (prefix.len() * (s.chars().filter(|&c| c == '\n').count() + 1)),
+    );
+    let mut first_pass = true;
+
+    for line in s.lines() {
+        if first_pass {
+            if first {
+                out.push_str(&prefix);
+            }
+            first_pass = false;
+        } else {
+            out.push('\n');
+            if blank || !line.trim_start().is_empty() {
+                out.push_str(&prefix);
+            }
+        }
+        out.push_str(line);
+    }
+
+    Ok(to_value(&out).unwrap())
+}
+
 /// Gets the number of words in a string.
 pub fn wordcount(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("wordcount", "value", String, value);
@@ -320,6 +371,25 @@ mod tests {
         let result = truncate(&to_value("👨‍👩‍👧‍👦 family").unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("👨‍👩‍👧‍👦 fam…").unwrap());
+    }
+
+    #[test]
+    fn test_indent_defaults() {
+        let args = HashMap::new();
+        let result = indent(&to_value("one\n\ntwo\nthree").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("one\n\n    two\n    three").unwrap());
+    }
+
+    #[test]
+    fn test_indent_args() {
+        let mut args = HashMap::new();
+        args.insert("first".to_string(), to_value(true).unwrap());
+        args.insert("width".to_string(), to_value(1).unwrap());
+        args.insert("blank".to_string(), to_value(true).unwrap());
+        let result = indent(&to_value("one\n\ntwo\nthree").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(" one\n \n two\n three").unwrap());
     }
 
     #[test]

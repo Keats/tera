@@ -778,6 +778,9 @@ By default, the filter will add an ellipsis at the end if the text was truncated
 change the string appended by setting the `end` argument.
 For example, `{{ value | truncate(length=10, end="") }}` will not append anything.
 
+#### indent
+Indents a string by injecting whitespace at the start of each line.  The `width` argument (default 4) specifies the number of spaces to insert per line.  If the `first` argument (default false) is set true spaces are inserted for the first line.  If the `blank` argument (default false) is set true spaces are inserted for blank/whitespace lines.
+
 #### striptags
 Tries to remove HTML tags from input. Does not guarantee well formed output if input is not valid HTML.
 
