@@ -1086,6 +1086,9 @@ Example: `{{ sections | get(key="posts/content") }}`
 Split a string into an array of strings, separated by a pattern given.
 Example: `{{ path | split(pat="/") }}`
 
+#### int
+Converts a value into an integer.  The `default` argument can be used to specify the value to return on error, and the `base` argument can be used to specify how to interpret the number.  Bases of 2, 8, and 16 understand the prefix 0b, 0o, 0x, respectively.
+
 #### json_encode
 Transforms any value into a JSON representation. This filter is better used together with `safe` or when automatic escape is disabled.
 

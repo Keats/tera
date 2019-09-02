@@ -248,6 +248,54 @@ pub fn split(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(s.split(&pat).collect::<Vec<_>>()).unwrap())
 }
 
+/// Convert the value to a signed integer number
+pub fn int(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let default = match args.get("default") {
+        Some(d) => try_get_value!("int", "default", i64, d),
+        None => 0,
+    };
+    let base = match args.get("base") {
+        Some(b) => try_get_value!("int", "base", u32, b),
+        None => 10,
+    };
+
+    let v = match value {
+        Value::String(s) => {
+            let s = s.trim();
+            let s = match base {
+                2 => s.trim_start_matches("0b"),
+                8 => s.trim_start_matches("0o"),
+                16 => s.trim_start_matches("0x"),
+                _ => s,
+            };
+
+            match i64::from_str_radix(s, base) {
+                Ok(v) => v,
+                Err(_) => {
+                    if s.contains('.') {
+                        match s.parse::<f64>() {
+                            Ok(f) => f as i64,
+                            Err(_) => default,
+                        }
+                    } else {
+                        default
+                    }
+                }
+            }
+        }
+        Value::Number(n) => match n.as_f64() {
+            Some(f) => f as i64,
+            None => match n.as_i64() {
+                Some(i) => i,
+                None => default,
+            },
+        },
+        _ => return Err(Error::msg("Filter `int` received an unexpected type")),
+    };
+
+    Ok(to_value(v).unwrap())
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -520,6 +568,75 @@ mod tests {
         ];
         for (input, expected) in tests {
             let result = escape_xml(&to_value(input).unwrap(), &HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_int_decimal_strings() {
+        let tests: Vec<(&str, i64)> = vec![
+            ("0", 0),
+            ("-5", -5),
+            ("9223372036854775807", i64::max_value()),
+            ("0b1010", 0),
+            ("1.23", 1),
+        ];
+        for (input, expected) in tests {
+            let args = HashMap::new();
+            let result = int(&to_value(input).unwrap(), &args);
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_int_others() {
+        let mut args = HashMap::new();
+
+        let result = int(&to_value(1.23).unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(1).unwrap());
+
+        let result = int(&to_value(-5).unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(-5).unwrap());
+
+        args.insert("default".to_string(), to_value(5).unwrap());
+        args.insert("base".to_string(), to_value(2).unwrap());
+        let tests: Vec<(&str, i64)> =
+            vec![("0", 0), ("-3", 5), ("1010", 10), ("0b1010", 10), ("0xF00", 5)];
+        for (input, expected) in tests {
+            let result = int(&to_value(input).unwrap(), &args);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
+
+        args.insert("default".to_string(), to_value(-4).unwrap());
+        args.insert("base".to_string(), to_value(8).unwrap());
+        let tests: Vec<(&str, i64)> =
+            vec![("21", 17), ("-3", -3), ("9OO", -4), ("0o567", 375), ("0b101", -4)];
+        for (input, expected) in tests {
+            let result = int(&to_value(input).unwrap(), &args);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
+
+        args.insert("default".to_string(), to_value(0).unwrap());
+        args.insert("base".to_string(), to_value(16).unwrap());
+        let tests: Vec<(&str, i64)> = vec![("1011", 4113), ("0xC3", 195)];
+        for (input, expected) in tests {
+            let result = int(&to_value(input).unwrap(), &args);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
+
+        args.insert("default".to_string(), to_value(0).unwrap());
+        args.insert("base".to_string(), to_value(5).unwrap());
+        let tests: Vec<(&str, i64)> = vec![("4321", 586), ("-100", -25), ("0b100", 0)];
+        for (input, expected) in tests {
+            let result = int(&to_value(input).unwrap(), &args);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
