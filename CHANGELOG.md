@@ -16,6 +16,7 @@ the code already only really look there.
 - Escaping now happens before inserting the final result of an expression: no need anymore to add `| safe` everywhere,
 only at the last position
 - Remove `safe` argument of the urlencode filter, `/` is still escaped by default
+- Add a Cargo feature, enabled by default, for the additional dependencies pulled by some filters/functions
 
 ### Others
 
