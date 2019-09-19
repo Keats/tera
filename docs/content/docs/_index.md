@@ -1052,6 +1052,16 @@ on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftim
 
 Example: `{{ ts | date }} {{ ts | date(format="%Y-%m-%d %H:%M") }}`
 
+If you are using ISO 8601 date strings you can optionally supply a timezone for the date to be rendered in:
+
+Example:
+
+```
+{{ "2019-09-19T13:18:48.731Z" | date(timezone="America/New_York") }}
+
+{{ "2019-09-19T13:18:48.731Z" | date(format="%Y-%m-%d %H:%M", timezone="Asia/Shanghai") }}
+```
+
 #### escape
 Escapes a string's HTML. Specifically, it makes these replacements:
 
