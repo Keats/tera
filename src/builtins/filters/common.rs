@@ -5,6 +5,7 @@ use std::iter::FromIterator;
 use crate::errors::{Error, Result};
 #[cfg(feature = "builtins")]
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc};
+#[cfg(feature = "builtins")]
 use chrono_tz::Tz;
 use serde_json::value::{to_value, Value};
 use serde_json::{to_string, to_string_pretty};
