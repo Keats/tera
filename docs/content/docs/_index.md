@@ -1052,7 +1052,7 @@ on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftim
 
 Example: `{{ ts | date }} {{ ts | date(format="%Y-%m-%d %H:%M") }}`
 
-If you are using ISO 8601 date strings you can optionally supply a timezone for the date to be rendered in:
+If you are using ISO 8601 date strings you can optionally supply a timezone for the date to be rendered in.
 
 Example:
 
