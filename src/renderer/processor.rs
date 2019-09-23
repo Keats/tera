@@ -611,7 +611,7 @@ impl<'a> Processor<'a> {
                         let ll = l.as_f64().unwrap();
                         let rr = r.as_f64().unwrap();
                         let res = ll / rr;
-                        if res.is_nan() {
+                        if res.is_nan() || res.is_infinite() {
                             None
                         } else {
                             Some(Number::from_f64(res).unwrap())
