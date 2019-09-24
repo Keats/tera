@@ -5,6 +5,8 @@ use std::iter::FromIterator;
 use crate::errors::{Error, Result};
 #[cfg(feature = "builtins")]
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc};
+#[cfg(feature = "builtins")]
+use chrono_tz::Tz;
 use serde_json::value::{to_value, Value};
 use serde_json::{to_string, to_string_pretty};
 
@@ -64,6 +66,19 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         None => "%Y-%m-%d".to_string(),
     };
 
+    let timezone = match args.get("timezone") {
+        Some(val) => {
+            let timezone = try_get_value!("date", "timezone", String, val);
+            match timezone.parse::<Tz>() {
+                Ok(timezone) => Some(timezone),
+                Err(_) => {
+                    return Err(Error::msg(format!("Error parsing `{}` as a timezone", timezone)))
+                }
+            }
+        }
+        None => None,
+    };
+
     let formatted = match value {
         Value::Number(n) => match n.as_i64() {
             Some(i) => NaiveDateTime::from_timestamp(i, 0).format(&format),
@@ -72,7 +87,10 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Value::String(s) => {
             if s.contains('T') {
                 match s.parse::<DateTime<FixedOffset>>() {
-                    Ok(val) => val.format(&format),
+                    Ok(val) => match timezone {
+                        Some(timezone) => val.with_timezone(&timezone).format(&format),
+                        None => val.format(&format),
+                    },
                     Err(_) => match s.parse::<NaiveDateTime>() {
                         Ok(val) => val.format(&format),
                         Err(_) => {
@@ -246,6 +264,26 @@ mod tests {
         println!("{:?}", result);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00").unwrap());
+    }
+
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn date_with_timezone() {
+        let mut args = HashMap::new();
+        args.insert("timezone".to_string(), to_value("America/New_York").unwrap());
+        let result = date(&to_value("2019-09-19T01:48:44.581Z").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("2019-09-18").unwrap());
+    }
+
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn date_with_invalid_timezone() {
+        let mut args = HashMap::new();
+        args.insert("timezone".to_string(), to_value("Narnia").unwrap());
+        let result = date(&to_value("2019-09-19T01:48:44.581Z").unwrap(), &args);
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap().to_string(), "Error parsing `Narnia` as a timezone");
     }
 
     #[test]
