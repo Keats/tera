@@ -919,13 +919,13 @@ struct Post {
 The `attribute` argument can be used to group posts by year:
 
 ```jinja2
-{{ posts | sort(attribute="year") }}
+{{ posts | group_by(attribute="year") }}
 ```
 
 or by author name:
 
 ```jinja2
-{{ posts | sort(attribute="author.name") }}
+{{ posts | group_by(attribute="author.name") }}
 ```
 
 #### filter
