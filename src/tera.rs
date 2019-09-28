@@ -434,7 +434,7 @@ impl Tera {
     /// If a filter with that name already exists, it will be overwritten
     ///
     /// ```rust,ignore
-    /// tera.register_filter("upper", &make_filter_fn(string::upper);
+    /// tera.register_filter("upper", string::upper);
     /// ```
     pub fn register_filter<F: Filter + 'static>(&mut self, name: &str, filter: F) {
         self.filters.insert(name.to_string(), Arc::new(filter));
