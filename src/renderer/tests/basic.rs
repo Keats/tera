@@ -350,7 +350,7 @@ fn render_tests() {
     map.insert(0, 1);
     context.insert("map", &map);
     context.insert("numbers", &vec![1, 2, 3]);
-    context.insert::<Option<usize>>("maybe", &None);
+    context.insert::<Option<usize>, _>("maybe", &None);
 
     let inputs = vec![
         ("{% if is_true is defined %}Admin{% endif %}", "Admin"),

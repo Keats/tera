@@ -15,6 +15,7 @@ use crate::errors::{Error, Result};
 use crate::renderer::Renderer;
 use crate::template::Template;
 use crate::utils::escape_html;
+use std::borrow::Borrow;
 
 /// The escape function type definition
 pub type EscapeFn = fn(&str) -> String;
@@ -299,9 +300,9 @@ impl Tera {
     /// // Rendering a template with an empty context
     /// tera.render("hello.html", Context::new());
     /// ```
-    pub fn render(&self, template_name: &str, context: Context) -> Result<String> {
+    pub fn render<C: Borrow<Context>>(&self, template_name: &str, context: C) -> Result<String> {
         let template = self.get_template(template_name)?;
-        let renderer = Renderer::new(template, self, context.into_json());
+        let renderer = Renderer::new(template, self, context.borrow());
         renderer.render()
     }
 
@@ -324,7 +325,7 @@ impl Tera {
             tera.autoescape_on(vec!["one_off"]);
         }
 
-        tera.render("one_off", context)
+        tera.render("one_off", &context)
     }
 
     #[doc(hidden)]

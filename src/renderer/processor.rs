@@ -13,6 +13,7 @@ use crate::renderer::square_brackets::pull_out_square_bracket;
 use crate::renderer::stack_frame::{FrameContext, FrameType, Val};
 use crate::template::Template;
 use crate::tera::Tera;
+use crate::Context;
 
 /// Special string indicating request to dump context
 static MAGICAL_DUMP_VAR: &str = "__tera_context";
@@ -120,7 +121,7 @@ impl<'a> Processor<'a> {
     pub fn new(
         template: &'a Template,
         tera: &'a Tera,
-        context: &'a Value,
+        context: &'a Context,
         should_escape: bool,
     ) -> Self {
         // Gets the root template if we are rendering something with inheritance or just return
