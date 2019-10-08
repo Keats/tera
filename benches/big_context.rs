@@ -73,9 +73,9 @@ fn bench_big_loop_big_object(b: &mut test::Bencher) {
     .unwrap();
     let mut context = Context::new();
     context.insert("objects", &objects);
-    let rendering = tera.render("big_loop.html", context.clone()).expect("Good render");
+    let rendering = tera.render("big_loop.html", &context).expect("Good render");
     assert_eq!(&rendering[..], "0123");
-    b.iter(|| tera.render("big_loop.html", context.clone()));
+    b.iter(|| tera.render("big_loop.html", &context));
 }
 
 #[bench]
@@ -95,10 +95,10 @@ fn bench_macro_big_object(b: &mut test::Bencher) {
     let mut context = Context::new();
     context.insert("big_object", &big_object);
     context.insert("iterations", &(0..500).collect::<Vec<usize>>());
-    let rendering = tera.render("big_loop.html", context.clone()).expect("Good render");
+    let rendering = tera.render("big_loop.html", &context).expect("Good render");
     assert_eq!(rendering.len(), 500);
     assert_eq!(rendering.chars().next().expect("Char"), '1');
-    b.iter(|| tera.render("big_loop.html", context.clone()));
+    b.iter(|| tera.render("big_loop.html", &context));
 }
 
 #[bench]
@@ -116,9 +116,9 @@ fn bench_macro_big_object_no_loop_with_set(b: &mut test::Bencher) {
     .unwrap();
     let mut context = Context::new();
     context.insert("two_fields", &TwoFields::new());
-    let rendering = tera.render("no_loop.html", context.clone()).expect("Good render");
+    let rendering = tera.render("no_loop.html", &context).expect("Good render");
     assert_eq!(&rendering[..], "\nA\nB\nC\n");
-    b.iter(|| tera.render("no_loop.html", context.clone()));
+    b.iter(|| tera.render("no_loop.html", &context));
 }
 
 #[bench]
@@ -142,9 +142,9 @@ fn bench_macro_big_object_no_loop_macro_call(b: &mut test::Bencher) {
     .unwrap();
     let mut context = Context::new();
     context.insert("two_fields", &TwoFields::new());
-    let rendering = tera.render("no_loop.html", context.clone()).expect("Good render");
+    let rendering = tera.render("no_loop.html", &context).expect("Good render");
     assert_eq!(&rendering[..], "A");
-    b.iter(|| tera.render("no_loop.html", context.clone()));
+    b.iter(|| tera.render("no_loop.html", &context));
 }
 
 #[derive(Serialize)]
