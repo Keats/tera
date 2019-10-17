@@ -584,7 +584,7 @@ impl Tera {
     /// tera.autoescape_on(vec!["foo"]);
     /// let mut context = Context::new();
     /// context.insert("content", &"Hello\n\'world\"!");
-    /// let result = tera.render("foo", context).unwrap();
+    /// let result = tera.render("foo", &context).unwrap();
     /// assert_eq!(result, r#""Hello\n\'world\"!""#);
     ///```
     pub fn set_escape_fn(&mut self, function: EscapeFn) {

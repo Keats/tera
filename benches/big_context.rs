@@ -5,7 +5,6 @@ extern crate test;
 #[macro_use]
 extern crate serde_derive;
 
-use serde_json::to_value;
 use tera::{Context, Tera};
 
 #[derive(Serialize)]

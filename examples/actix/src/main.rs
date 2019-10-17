@@ -26,7 +26,7 @@ fn p404(state: State<AppState>) -> Result<HttpResponse, Error> {
 fn render_template(state: State<AppState>, template: &str) -> Result<HttpResponse, Error> {
     let s = state
                 .template
-                .render(template, tera::Context::new())
+                .render(template, &tera::Context::new())
                 .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(s))
 }

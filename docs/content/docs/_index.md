@@ -91,14 +91,14 @@ use tera::Context;
 let mut context = Context::new();
 context.insert("product", &product);
 context.insert("vat_rate", &0.20);
-tera.render("products/product.html", context)?;
+tera.render("products/product.html", &context)?;
 
 #[derive(Serialize)]
 struct Product {
     name: String
 }
 // or a struct
-tera.render("products/product.html", Context::from_serialize(&product))?;
+tera.render("products/product.html", &Context::from_serialize(&product))?;
 ```
 
 ## Auto-escaping
