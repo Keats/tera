@@ -299,9 +299,9 @@ impl Tera {
     /// // Rendering a template with an empty context
     /// tera.render("hello.html", Context::new());
     /// ```
-    pub fn render(&self, template_name: &str, context: Context) -> Result<String> {
+    pub fn render(&self, template_name: &str, context: &Context) -> Result<String> {
         let template = self.get_template(template_name)?;
-        let renderer = Renderer::new(template, self, context.into_json());
+        let renderer = Renderer::new(template, self, context);
         renderer.render()
     }
 
@@ -324,7 +324,7 @@ impl Tera {
             tera.autoescape_on(vec!["one_off"]);
         }
 
-        tera.render("one_off", context)
+        tera.render("one_off", &context)
     }
 
     #[doc(hidden)]
@@ -839,7 +839,7 @@ mod tests {
         tera.set_escape_fn(escape_c_string);
         let mut context = Context::new();
         context.insert("content", &"Hello\n\'world\"!");
-        let result = tera.render("foo", context).unwrap();
+        let result = tera.render("foo", &context).unwrap();
         assert_eq!(result, r#""Hello\n\'world\"!""#);
     }
 
@@ -853,7 +853,7 @@ mod tests {
         tera.reset_escape_fn();
         let mut context = Context::new();
         context.insert("content", &"Hello\n\'world\"!");
-        let result = tera.render("foo", context).unwrap();
+        let result = tera.render("foo", &context).unwrap();
         assert_eq!(result, "Hello\n&#x27;world&quot;!");
     }
 
@@ -884,7 +884,7 @@ mod tests {
 
         my_tera.extend(&framework_tera).unwrap();
         assert_eq!(my_tera.templates.len(), 4);
-        let result = my_tera.render("four", Context::default()).unwrap();
+        let result = my_tera.render("four", &Context::default()).unwrap();
         assert_eq!(result, "Framework X");
     }
 
@@ -906,7 +906,7 @@ mod tests {
 
         my_tera.extend(&framework_tera).unwrap();
         assert_eq!(my_tera.templates.len(), 4);
-        let result = my_tera.render("one", Context::default()).unwrap();
+        let result = my_tera.render("one", &Context::default()).unwrap();
         assert_eq!(result, "MINE");
     }
 

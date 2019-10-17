@@ -28,8 +28,8 @@ impl Context {
     /// // user is an instance of a struct implementing `Serialize`
     /// context.insert("number_users", 42);
     /// ```
-    pub fn insert<T: Serialize + ?Sized>(&mut self, key: &str, val: &T) {
-        self.data.insert(key.to_owned(), to_value(val).unwrap());
+    pub fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) {
+        self.data.insert(key.into(), to_value(val).unwrap());
     }
 
     /// Appends the data of the `source` parameter to `self`, overwriting existing keys.
@@ -79,6 +79,10 @@ impl Context {
     pub fn from_serialize(value: impl Serialize) -> TeraResult<Self> {
         let obj = to_value(value).map_err(Error::json)?;
         Context::from_value(obj)
+    }
+
+    pub(crate) fn get(&self, index: &str) -> Option<&Value> {
+        self.data.get(index)
     }
 }
 

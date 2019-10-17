@@ -18,7 +18,7 @@ fn render_tpl(tpl_name: &str) -> Result<String> {
     context.insert("show_more", &true);
     context.insert("reviews", &vec![Review::new(), Review::new()]);
 
-    tera.render(tpl_name, context)
+    tera.render(tpl_name, &context)
 }
 
 #[test]
