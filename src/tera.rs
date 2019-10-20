@@ -315,9 +315,9 @@ impl Tera {
     /// ```rust,ignore
     /// let mut context = Context::new();
     /// context.insert("greeting", &"hello");
-    /// Tera::one_off("{{ greeting }} world", context, true);
+    /// Tera::one_off("{{ greeting }} world", &context, true);
     /// ```
-    pub fn one_off(input: &str, context: Context, autoescape: bool) -> Result<String> {
+    pub fn one_off(input: &str, context: &Context, autoescape: bool) -> Result<String> {
         let mut tera = Tera::default();
         tera.add_raw_template("one_off", input)?;
         if autoescape {
@@ -802,7 +802,7 @@ mod tests {
     fn test_can_autoescape_one_off_template() {
         let mut context = Context::new();
         context.insert("greeting", &"<p>");
-        let result = Tera::one_off("{{ greeting }} world", context, true).unwrap();
+        let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "&lt;p&gt; world");
     }
@@ -811,7 +811,7 @@ mod tests {
     fn test_can_disable_autoescape_one_off_template() {
         let mut context = Context::new();
         context.insert("greeting", &"<p>");
-        let result = Tera::one_off("{{ greeting }} world", context, false).unwrap();
+        let result = Tera::one_off("{{ greeting }} world", &context, false).unwrap();
 
         assert_eq!(result, "<p> world");
     }
@@ -863,7 +863,7 @@ mod tests {
             "greeting": "Good morning"
         });
         let result =
-            Tera::one_off("{{ greeting }} world", Context::from_value(m).unwrap(), true).unwrap();
+            Tera::one_off("{{ greeting }} world", &Context::from_value(m).unwrap(), true).unwrap();
 
         assert_eq!(result, "Good morning world");
     }
@@ -1017,7 +1017,7 @@ mod tests {
         ];
 
         for (sample, expected_output) in samples {
-            let res = Tera::one_off(sample, Context::new(), true);
+            let res = Tera::one_off(sample, &Context::new(), true);
             if let Some(output) = expected_output {
                 assert!(res.is_ok());
                 assert_eq!(res.unwrap(), output);
@@ -1042,7 +1042,7 @@ mod tests {
             println!("{}, {:?}", sample, expected_output);
             let res = Tera::one_off(
                 &format!("{{% if {} %}}true{{% endif %}}", sample),
-                Context::new(),
+                &Context::new(),
                 true,
             );
             if let Some(output) = expected_output {
