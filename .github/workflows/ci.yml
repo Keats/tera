@@ -40,3 +40,4 @@ jobs:
       run: cargo run --example basic
     - name: Build actix example
       run: cd examples/actix && cargo build
+      shell: bash
