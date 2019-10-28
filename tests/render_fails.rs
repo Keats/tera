@@ -142,3 +142,18 @@ fn test_error_in_macro_location() {
         "Failed to render 'error-location/error_in_macro.html': error while rendering macro `macros::cause_error`"
     );
 }
+
+#[test]
+fn test_error_is_send_and_sync() {
+    trait SendAndSyncTrait: Send + Sync {
+        fn very_useless_function();
+    }
+
+    impl SendAndSyncTrait for tera::Error {
+        fn very_useless_function() {
+            println!("Yay!");
+        }
+    }
+
+    tera::Error::very_useless_function();
+}
