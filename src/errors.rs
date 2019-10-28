@@ -160,3 +160,21 @@ impl From<serde_json::Error> for Error {
 }
 /// Convenient wrapper around std::Result.
 pub type Result<T> = ::std::result::Result<T, Error>;
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_error_is_send_and_sync() {
+        trait SendAndSyncTrait: Send + Sync {
+            fn very_useless_function();
+        }
+
+        impl SendAndSyncTrait for super::Error {
+            fn very_useless_function() {
+                println!("Yay!");
+            }
+        }
+
+        super::Error::very_useless_function();
+    }
+}
