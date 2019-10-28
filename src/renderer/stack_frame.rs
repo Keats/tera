@@ -132,7 +132,7 @@ impl<'a> StackFrame<'a> {
         if let Some(ref for_loop) = self.for_loop {
             // 1st case: the variable is the key of a KeyValue for loop
             if for_loop.is_key(key) {
-                return Some(Cow::Owned(Value::String(for_loop.get_current_key().to_string())));
+                return Some(Cow::Owned(Value::String(for_loop.get_current_key())));
             }
 
             let (real_key, tail) = if let Some(tail_pos) = key.find('.') {

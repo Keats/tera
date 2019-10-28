@@ -51,9 +51,9 @@ lazy_static! {
 /// We need to remove those before putting them in the AST
 fn replace_string_markers(input: &str) -> String {
     match input.chars().next().unwrap() {
-        '"' => input.replace('"', "").to_string(),
-        '\'' => input.replace('\'', "").to_string(),
-        '`' => input.replace('`', "").to_string(),
+        '"' => input.replace('"', ""),
+        '\'' => input.replace('\'', ""),
+        '`' => input.replace('`', ""),
         _ => unreachable!("How did you even get there"),
     }
 }
