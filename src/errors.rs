@@ -165,16 +165,8 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 mod tests {
     #[test]
     fn test_error_is_send_and_sync() {
-        trait SendAndSyncTrait: Send + Sync {
-            fn very_useless_function();
-        }
+        fn test_send_sync<T: Send + Sync>() {}
 
-        impl SendAndSyncTrait for super::Error {
-            fn very_useless_function() {
-                println!("Yay!");
-            }
-        }
-
-        super::Error::very_useless_function();
+        test_send_sync::<super::Error>();
     }
 }
