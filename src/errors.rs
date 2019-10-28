@@ -46,7 +46,7 @@ pub enum ErrorKind {
 pub struct Error {
     /// Kind of error
     pub kind: ErrorKind,
-    source: Option<Box<dyn StdError>>,
+    source: Option<Box<dyn StdError + Sync + Send>>,
 }
 
 impl fmt::Display for Error {
@@ -78,7 +78,7 @@ impl fmt::Display for Error {
 
 impl StdError for Error {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.source.as_ref().map(|c| &**c)
+        self.source.as_ref().map(|c| &**c as &(dyn StdError + 'static))
     }
 }
 
@@ -128,7 +128,7 @@ impl Error {
     }
 
     /// Creates generic error with a source
-    pub fn chain(value: impl ToString, source: impl Into<Box<dyn StdError>>) -> Self {
+    pub fn chain(value: impl ToString, source: impl Into<Box<dyn StdError + Send + Sync>>) -> Self {
         Self { kind: ErrorKind::Msg(value.to_string()), source: Some(source.into()) }
     }
 
