@@ -42,3 +42,6 @@ tempfile = "3"
 default = ["builtins"]
 builtins = ["slug", "percent-encoding", "humansize", "chrono", "chrono-tz", "unic-segment"]
 preserve_order = ["serde_json/preserve_order"]
+
+[badges]
+maintenance = { status = "actively-developed" }
