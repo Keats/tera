@@ -4,7 +4,7 @@ use std::iter::FromIterator;
 
 use crate::errors::{Error, Result};
 #[cfg(feature = "builtins")]
-use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc};
+use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc, format::{StrftimeItems, Item}};
 #[cfg(feature = "builtins")]
 use chrono_tz::Tz;
 use serde_json::value::{to_value, Value};
@@ -66,6 +66,16 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         None => "%Y-%m-%d".to_string(),
     };
 
+    let items: Vec<Item> = StrftimeItems::new(&format)
+        .filter_map(|item| match item {
+            Item::Error => Some(item),
+            _ => None,
+        })
+        .collect();
+    if !items.is_empty() {
+        return Err(Error::msg(format!("Invalid date format `{}`", format)))
+    }
+
     let timezone = match args.get("timezone") {
         Some(val) => {
             let timezone = try_get_value!("date", "timezone", String, val);
@@ -121,6 +131,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
             )));
         }
     };
+    println!("{:?}", formatted);
 
     to_value(&formatted.to_string()).map_err(Error::json)
 }
@@ -223,6 +234,17 @@ mod tests {
         let result = date(&to_value(1482720453).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("2016-12-26 02:47").unwrap());
+    }
+
+    // https://zola.discourse.group/t/can-i-generate-a-random-number-within-a-range/238?u=keats
+    // https://github.com/chronotope/chrono/issues/47
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn date_errors_on_incorrect_format() {
+        let mut args = HashMap::new();
+        args.insert("format".to_string(), to_value("%2f").unwrap());
+        let result = date(&to_value(1482720453).unwrap(), &args);
+        assert!(result.is_err());
     }
 
     #[cfg(feature = "builtins")]

@@ -722,11 +722,8 @@ mod tests {
             tera.get_template("a").unwrap().parents,
             vec!["b".to_string(), "c".to_string(), "d".to_string()]
         );
-
         assert_eq!(tera.get_template("b").unwrap().parents, vec!["c".to_string(), "d".to_string()]);
-
         assert_eq!(tera.get_template("c").unwrap().parents, vec!["d".to_string()]);
-
         assert_eq!(tera.get_template("d").unwrap().parents.len(), 0);
     }
 

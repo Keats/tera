@@ -208,7 +208,7 @@ fn bench_huge_loop(b: &mut test::Bencher) {
     let mut context = Context::new();
     context.insert("rows", &rows);
 
-    b.iter(|| tera.render("huge.html", &context));
+    b.iter(|| tera.render("huge.html", &context.clone()));
 }
 
 fn deep_object() -> Value {
