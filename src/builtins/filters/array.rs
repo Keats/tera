@@ -79,7 +79,8 @@ pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Error::msg(format!("attribute '{}' does not reference a field", attribute))
     })?;
 
-    let mut strategy = get_sort_strategy_for_type(first)?;
+    let deunicoded = args.get("deunicode").and_then(Value::as_bool).unwrap_or(false);
+    let mut strategy = get_sort_strategy_for_type(first, deunicoded)?;
     for v in &arr {
         let key = v.pointer(&ptr).ok_or_else(|| {
             Error::msg(format!("attribute '{}' does not reference a field", attribute))
@@ -502,6 +503,25 @@ mod tests {
             ])
             .unwrap()
         );
+    }
+
+    #[test]
+    fn test_sort_deunicode() {
+        let v = to_value(vec!["zola", "écriture", "abc"]).unwrap();
+        let mut args = HashMap::new();
+        args.insert("deunicode".to_string(), to_value(true).unwrap());
+        let result = sort(&v, &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(vec!["abc", "écriture", "zola"]).unwrap());
+    }
+
+    #[test]
+    fn test_sort_no_deunicode() {
+        let v = to_value(vec!["zola", "écriture", "abc"]).unwrap();
+        let args = HashMap::new();
+        let result = sort(&v, &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(vec!["abc", "zola", "écriture"]).unwrap());
     }
 
     #[test]

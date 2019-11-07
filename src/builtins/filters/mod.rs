@@ -8,6 +8,8 @@ pub mod common;
 pub mod number;
 pub mod object;
 pub mod string;
+#[cfg(feature = "builtins")]
+pub mod stringdeunicode;
 
 /// The filter function type definition
 pub trait Filter: Sync + Send {

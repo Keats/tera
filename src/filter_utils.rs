@@ -1,3 +1,5 @@
+#[cfg(feature = "builtins")]
+use crate::builtins::filters::stringdeunicode::SortStringsDeunicode;
 use crate::errors::{Error, Result};
 use serde_json::Value;
 use std::cmp::Ordering;
@@ -104,13 +106,27 @@ impl<K: GetValue> SortStrategy for SortPairs<K> {
     }
 }
 
-pub fn get_sort_strategy_for_type(ty: &Value) -> Result<Box<dyn SortStrategy>> {
+#[cfg(feature = "builtins")]
+fn get_string_sort_strategy(deunicode: bool) -> Box<dyn SortStrategy> {
+    if deunicode {
+        Box::new(SortStringsDeunicode::default())
+    } else {
+        Box::new(SortStrings::default())
+    }
+}
+
+#[cfg(not(feature = "builtins"))]
+fn get_string_sort_strategy(deunicode: bool) -> Result<Box<dyn SortStrategy>> {
+    Box::new(SortStrings::default())
+}
+
+pub fn get_sort_strategy_for_type(ty: &Value, deunicode: bool) -> Result<Box<dyn SortStrategy>> {
     use crate::Value::*;
     match *ty {
         Null => Err(Error::msg("Null is not a sortable value")),
         Bool(_) => Ok(Box::new(SortBools::default())),
         Number(_) => Ok(Box::new(SortNumbers::default())),
-        String(_) => Ok(Box::new(SortStrings::default())),
+        String(_) => Ok(get_string_sort_strategy(deunicode)),
         Array(_) => Ok(Box::new(SortArrays::default())),
         Object(_) => Err(Error::msg("Object is not a sortable value")),
     }
