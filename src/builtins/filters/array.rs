@@ -505,6 +505,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn test_sort_deunicode() {
         let v = to_value(vec!["zola", "écriture", "abc"]).unwrap();
@@ -515,6 +516,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value(vec!["abc", "écriture", "zola"]).unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn test_sort_no_deunicode() {
         let v = to_value(vec!["zola", "écriture", "abc"]).unwrap();

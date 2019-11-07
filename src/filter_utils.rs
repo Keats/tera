@@ -116,7 +116,7 @@ fn get_string_sort_strategy(deunicode: bool) -> Box<dyn SortStrategy> {
 }
 
 #[cfg(not(feature = "builtins"))]
-fn get_string_sort_strategy(deunicode: bool) -> Result<Box<dyn SortStrategy>> {
+fn get_string_sort_strategy(_deunicode: bool) -> Box<dyn SortStrategy> {
     Box::new(SortStrings::default())
 }
 
