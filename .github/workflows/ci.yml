@@ -19,7 +19,7 @@ jobs:
           os: ubuntu-18.04
           rust: nightly
         - build: macos
-          os: macOS-10.14
+          os: macOS-latest
           rust: stable
         - build: win-msvc
           os: windows-2019
