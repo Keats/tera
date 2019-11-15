@@ -387,7 +387,7 @@ impl Tera {
     /// // Use path as name
     /// tera.add_template_file(path, None);
     /// // Rename
-    /// tera.add_template_file(path, Some("index");
+    /// tera.add_template_file(path, Some("index"));
     /// ```
     pub fn add_template_file<P: AsRef<Path>>(&mut self, path: P, name: Option<&str>) -> Result<()> {
         self.add_file(name, path)?;
