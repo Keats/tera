@@ -5,8 +5,8 @@ use crate::parser::ast::{Block, MacroDefinition, Node};
 use crate::parser::{parse, remove_whitespace};
 
 /// This is the parsed equivalent of a template file.
-/// It also does some pre-processing to ensure it does as less as possible at runtime
-/// Not mean to be used directly.
+/// It also does some pre-processing to ensure it does as little as possible at runtime
+/// Not meant to be used directly.
 #[derive(Debug, Clone)]
 pub struct Template {
     /// Name of the template, usually very similar to the path
