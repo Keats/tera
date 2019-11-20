@@ -710,8 +710,7 @@ fn does_render_owned_for_loop_with_objects_string_keys() {
     ]);
     context.insert("something", &data);
 
-    let tpl =
-        r#"{% for group, things in something | group_by(attribute="group") %}{{group}},{% endfor %}"#;
+    let tpl = r#"{% for group, things in something | group_by(attribute="group") %}{{group}},{% endfor %}"#;
     let expected = "a,b,c,";
     assert_eq!(render_template(tpl, &context).unwrap(), expected);
 }

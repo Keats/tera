@@ -32,6 +32,8 @@ chrono = {version = "0.4", optional = true}
 chrono-tz = {version = "0.5", optional = true}
 # used in truncate filter
 unic-segment = {version = "0.9", optional = true}
+# used in get_random function
+rand = {version = "0.7", optional = true}
 
 [dev-dependencies]
 serde_derive = "1.0"
@@ -40,7 +42,7 @@ tempfile = "3"
 
 [features]
 default = ["builtins"]
-builtins = ["slug", "percent-encoding", "humansize", "chrono", "chrono-tz", "unic-segment"]
+builtins = ["slug", "percent-encoding", "humansize", "chrono", "chrono-tz", "unic-segment", "rand"]
 preserve_order = ["serde_json/preserve_order"]
 
 [badges]

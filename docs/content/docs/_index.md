@@ -1251,9 +1251,16 @@ Formatting is not built-in the global function but you can use the `date` filter
 wanted to get the current year.
 
 #### throw
-
 The template rendering will error with the given message when encountered.
 
 There is only one string argument:
 
 - `message`: the message to display as the error
+
+#### get_random
+Only available if the `builtins` feature is enabled.
+
+Returns a random integer in the given range. There are 2 arguments, both integers:
+
+- `start`: defaults to 0 if not present
+- `end`: required

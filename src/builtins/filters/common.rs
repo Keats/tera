@@ -4,7 +4,10 @@ use std::iter::FromIterator;
 
 use crate::errors::{Error, Result};
 #[cfg(feature = "builtins")]
-use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc, format::{StrftimeItems, Item}};
+use chrono::{
+    format::{Item, StrftimeItems},
+    DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc,
+};
 #[cfg(feature = "builtins")]
 use chrono_tz::Tz;
 use serde_json::value::{to_value, Value};
@@ -73,7 +76,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         })
         .collect();
     if !items.is_empty() {
-        return Err(Error::msg(format!("Invalid date format `{}`", format)))
+        return Err(Error::msg(format!("Invalid date format `{}`", format)));
     }
 
     let timezone = match args.get("timezone") {

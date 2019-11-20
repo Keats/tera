@@ -551,6 +551,8 @@ impl Tera {
         #[cfg(feature = "builtins")]
         self.register_function("now", functions::now);
         self.register_function("throw", functions::throw);
+        #[cfg(feature = "builtins")]
+        self.register_function("get_random", functions::get_random);
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on,
@@ -1033,8 +1035,8 @@ mod tests {
             ("C~Q", None),
             ("s is V*0", None),
             ("x0x::N()", None),
-            // this used to timeout
-            ("_(p=__(p=[_(p=__(p=[_(p=[_(p=[_1", None),
+            // this is an issue in pest itself: https://github.com/pest-parser/pest/issues/402
+            //            ("_(p=__(p=[_(p=__(p=[_(p=[_(p=[_1", None),
         ];
 
         for (sample, expected_output) in samples {

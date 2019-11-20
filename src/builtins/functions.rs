@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 #[cfg(feature = "builtins")]
 use chrono::prelude::*;
+#[cfg(feature = "builtins")]
+use rand::Rng;
 use serde_json::value::{from_value, to_value, Value};
 
 use crate::errors::{Error, Result};
@@ -131,6 +133,39 @@ pub fn throw(args: &HashMap<String, Value>) -> Result<Value> {
     }
 }
 
+#[cfg(feature = "builtins")]
+pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
+    let start = match args.get("start") {
+        Some(val) => match from_value::<i32>(val.clone()) {
+            Ok(v) => v,
+            Err(_) => {
+                return Err(Error::msg(format!(
+                    "Function `get_random` received start={} but `start` can only be a boolean",
+                    val
+                )));
+            }
+        },
+        None => 0,
+    };
+
+    let end = match args.get("end") {
+        Some(val) => match from_value::<i32>(val.clone()) {
+            Ok(v) => v,
+            Err(_) => {
+                return Err(Error::msg(format!(
+                    "Function `get_random` received end={} but `end` can only be a boolean",
+                    val
+                )));
+            }
+        },
+        None => return Err(Error::msg("Function `get_random` didn't receive an `end` argument")),
+    };
+    let mut rng = rand::thread_rng();
+    let res = rng.gen_range(start, end);
+
+    Ok(Value::Number(res.into()))
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -220,5 +255,28 @@ mod tests {
         assert!(res.is_err());
         let err = res.unwrap_err();
         assert_eq!(err.to_string(), "Hello");
+    }
+
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn get_random_no_start() {
+        let mut args = HashMap::new();
+        args.insert("end".to_string(), to_value(10).unwrap());
+        let res = get_random(&args).unwrap();
+        assert!(res.is_number());
+        assert!(res.as_i64().unwrap() > 0);
+        assert!(res.as_i64().unwrap() < 10);
+    }
+
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn get_random_with_start() {
+        let mut args = HashMap::new();
+        args.insert("start".to_string(), to_value(5).unwrap());
+        args.insert("end".to_string(), to_value(10).unwrap());
+        let res = get_random(&args).unwrap();
+        assert!(res.is_number());
+        assert!(res.as_i64().unwrap() > 5);
+        assert!(res.as_i64().unwrap() < 10);
     }
 }
