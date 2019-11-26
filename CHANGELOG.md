@@ -39,6 +39,7 @@ only at the last position
 - Add `unique` and `map` filter
 - Add a `timezone` attribute to the `date` filter
 - Add a `get_random` function to get a random number in a range
+- Add a `get_env` function to get the value of an environment variable
 
 ## 0.11.20 (2018-11-14)
 

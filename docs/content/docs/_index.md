@@ -1264,3 +1264,14 @@ Returns a random integer in the given range. There are 2 arguments, both integer
 
 - `start`: defaults to 0 if not present
 - `end`: required
+
+`start` is inclusive (i.e. can be returned) and `end` is exclusive.
+
+#### get_env
+Returns the environment variable value for the name given. It will error if the environment variable is not found
+but the call can also take a default value instead.
+
+- `name`: the name of the environment variable to look for, required
+- `default`: a default value in case the environment variable is not found
+
+If the environment variable is found, it will always be a string while your default could be of any type.
