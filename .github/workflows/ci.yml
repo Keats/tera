@@ -42,6 +42,3 @@ jobs:
       run: cargo test --no-default-features
     - name: Run basic example
       run: cargo run --example basic
-    - name: Build actix example
-      run: cd examples/actix && cargo build
-      shell: bash
