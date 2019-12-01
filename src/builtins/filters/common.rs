@@ -134,7 +134,6 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
             )));
         }
     };
-    println!("{:?}", formatted);
 
     to_value(&formatted.to_string()).map_err(Error::json)
 }
