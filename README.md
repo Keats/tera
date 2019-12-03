@@ -16,6 +16,8 @@ Tera is a template engine inspired by [Jinja2](http://jinja.pocoo.org/) and the 
 </ul>
 ```
 
+It does not aim to be compatible with them but has many of the Jinja2/Django filters and testers.
+
 ## Documentation
 API documentation is available on [docs.rs](https://docs.rs/crate/tera/).
 

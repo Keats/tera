@@ -16,13 +16,12 @@ the code already only really look there.
 - Escaping now happens before inserting the final result of an expression: no need anymore to add `| safe` everywhere,
 only at the last position
 - Remove `safe` argument of the urlencode filter, `/` is still escaped by default
-- Add a Cargo feature, enabled by default, for the additional dependencies pulled by some filters/functions
 
 ### Others
 
 - Tests can now use `value is not defined` order for negation (https://github.com/Keats/tera/issues/308)
 - Add `nth` filter to get the nth value in an array
-- You can now use glob patterns in Tera::new
+- You can now use glob patterns in `Tera::new`
 - `default` filter now works on Null values
 - Literal numbers in template overflowing i64/f64 will now be an error instead of panicking
 - Allow arrays as test arguments
@@ -34,7 +33,7 @@ only at the last position
 - Filters are now evaluated when checking if/elif conditions
 - Allow `{{-` and `-}}` for whitespace management
 - Add `xml_escape` filter
-- Grave accent is no longer escaped in HTML, not really needed anymore
+- Grave accent is no longer escaped in HTML, it is not really needed anymore
 - Add a `builtins` default feature that gate all filters/functions requiring additional dependencies
 - Add `unique` and `map` filter
 - Add a `timezone` attribute to the `date` filter
