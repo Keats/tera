@@ -20,6 +20,7 @@ use crate::utils::escape_html;
 pub type EscapeFn = fn(&str) -> String;
 
 /// The main point of interaction in this library.
+#[derive(Clone)]
 pub struct Tera {
     // The glob used in `Tera::new`, None if Tera was instantiated differently
     #[doc(hidden)]
