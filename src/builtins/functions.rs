@@ -319,7 +319,7 @@ mod tests {
     #[test]
     fn get_env_non_existing_no_default() {
         let mut args = HashMap::new();
-        args.insert("name".to_string(), to_value("TERA_TEST").unwrap());
+        args.insert("name".to_string(), to_value("UNKNOWN_VAR").unwrap());
         let res = get_env(&args);
         assert!(res.is_err());
     }
@@ -327,7 +327,7 @@ mod tests {
     #[test]
     fn get_env_non_existing_with_default() {
         let mut args = HashMap::new();
-        args.insert("name".to_string(), to_value("TERA_TEST").unwrap());
+        args.insert("name".to_string(), to_value("UNKNOWN_VAR").unwrap());
         args.insert("default".to_string(), to_value("false").unwrap());
         let res = get_env(&args).unwrap();
         assert!(res.is_string());
