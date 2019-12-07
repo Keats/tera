@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/tera/0.11")]
+#![doc(html_root_url = "https://docs.rs/tera")]
 
 //! # Tera
 //! Tera is a template engine based on [Jinja2](http://jinja.pocoo.org/)
@@ -8,38 +8,14 @@
 
 #![deny(missing_docs)]
 
-extern crate glob;
-extern crate pest;
-extern crate serde;
-#[cfg_attr(test, macro_use)]
-extern crate serde_json;
-#[macro_use]
-extern crate pest_derive;
-#[macro_use]
-extern crate error_chain;
-extern crate regex;
-extern crate slug;
-#[macro_use]
-extern crate lazy_static;
-extern crate chrono;
-extern crate humansize;
-extern crate url;
-#[cfg(test)]
-#[macro_use]
-extern crate pretty_assertions;
-#[cfg(test)]
-#[macro_use]
-extern crate serde_derive;
-extern crate unic_segment;
-
 #[macro_use]
 mod macros;
 mod builtins;
 mod context;
 mod errors;
+mod filter_utils;
 mod parser;
 mod renderer;
-mod sort_utils;
 mod template;
 mod tera;
 mod utils;
@@ -47,20 +23,28 @@ mod utils;
 // Library exports.
 
 // Template is meant to be used internally only but is exported for test/bench.
-pub use builtins::filters::FilterFn;
-pub use builtins::functions::GlobalFn;
-pub use builtins::testers::TesterFn;
-pub use context::Context;
-pub use errors::{Error, ErrorKind, Result};
+pub use crate::builtins::filters::Filter;
+pub use crate::builtins::functions::Function;
+pub use crate::builtins::testers::Test;
+pub use crate::context::Context;
+pub use crate::errors::{Error, ErrorKind, Result};
+#[doc(hidden)]
+pub use crate::template::Template;
+pub use crate::tera::Tera;
+pub use crate::utils::escape_html;
 /// Re-export Value and other useful things from serde
 /// so apps/tools can encode data in Tera types
 pub use serde_json::value::{from_value, to_value, Map, Number, Value};
-#[doc(hidden)]
-pub use template::Template;
-pub use tera::Tera;
-pub use utils::escape_html;
 
 // Exposes the AST if one needs it but changing the AST is not considered
 // a breaking change so it isn't public
 #[doc(hidden)]
-pub use parser::ast;
+pub use crate::parser::ast;
+
+/// Re-export some helper fns useful to write filters/fns/tests
+pub mod helpers {
+    /// Functions helping writing tests
+    pub mod tests {
+        pub use crate::builtins::testers::{extract_string, number_args_allowed, value_defined};
+    }
+}

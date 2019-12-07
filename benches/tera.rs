@@ -5,7 +5,7 @@ extern crate test;
 extern crate serde_derive;
 extern crate serde_json;
 
-use tera::{escape_html, Context, Template, Tera, Value};
+use tera::{Context, Template, Tera, Value};
 
 static VARIABLE_ONLY: &'static str = "{{product.name}}";
 
@@ -186,11 +186,6 @@ fn bench_build_inheritance_chains(b: &mut test::Bencher) {
 }
 
 #[bench]
-fn bench_escape_html(b: &mut test::Bencher) {
-    b.iter(|| escape_html(r#"Hello word <script></script>"#));
-}
-
-#[bench]
 fn bench_huge_loop(b: &mut test::Bencher) {
     #[derive(Serialize)]
     struct DataWrapper {
@@ -213,7 +208,7 @@ fn bench_huge_loop(b: &mut test::Bencher) {
     let mut context = Context::new();
     context.insert("rows", &rows);
 
-    b.iter(|| tera.render("huge.html", &context));
+    b.iter(|| tera.render("huge.html", &context.clone()));
 }
 
 fn deep_object() -> Value {

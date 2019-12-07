@@ -1,11 +1,10 @@
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use serde::ser::Serialize;
-use serde::ser::SerializeMap;
-use serde::Serializer;
-use serde_json::value::{to_value, Value};
+use serde_json::value::{to_value, Map, Value};
 
-use errors::{Result as TeraResult, ResultExt};
+use crate::errors::{Error, Result as TeraResult};
 
 /// The struct that holds the context of a template rendering.
 ///
@@ -18,17 +17,8 @@ pub struct Context {
 
 impl Context {
     /// Initializes an empty context
-    pub fn new() -> Context {
+    pub fn new() -> Self {
         Context { data: BTreeMap::new() }
-    }
-
-    #[doc(hidden)]
-    #[deprecated(
-        since = "0.11.15",
-        note = "Use `insert` instead to keep consistency with std collections"
-    )]
-    pub fn add<T: Serialize + ?Sized>(&mut self, key: &str, val: &T) {
-        self.data.insert(key.to_owned(), to_value(val).unwrap());
     }
 
     /// Converts the `val` parameter to `Value` and insert it into the context
@@ -38,13 +28,8 @@ impl Context {
     /// // user is an instance of a struct implementing `Serialize`
     /// context.insert("number_users", 42);
     /// ```
-    pub fn insert<T: Serialize + ?Sized>(&mut self, key: &str, val: &T) {
-        self.data.insert(key.to_owned(), to_value(val).unwrap());
-    }
-
-    #[doc(hidden)]
-    pub fn as_json(&self) -> TeraResult<Value> {
-        to_value(&self.data).chain_err(|| "Failed to convert data to JSON")
+    pub fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) {
+        self.data.insert(key.into(), to_value(val).unwrap());
     }
 
     /// Appends the data of the `source` parameter to `self`, overwriting existing keys.
@@ -62,6 +47,43 @@ impl Context {
     pub fn extend(&mut self, mut source: Context) {
         self.data.append(&mut source.data);
     }
+
+    /// Converts the context to a `serde_json::Value` consuming the context
+    pub fn into_json(self) -> Value {
+        let mut m = Map::new();
+        for (key, value) in self.data {
+            m.insert(key, value);
+        }
+        Value::Object(m)
+    }
+
+    /// Takes a serde-json `Value` and convert it into a `Context` with no overhead/cloning
+    pub fn from_value(obj: Value) -> TeraResult<Self> {
+        match obj {
+            Value::Object(m) => {
+                let mut data = BTreeMap::new();
+                for (key, value) in m {
+                    data.insert(key, value);
+                }
+                Ok(Context { data })
+            }
+            _ => Err(Error::msg(
+                "Creating a Context from a Value/Serialize requires it being a JSON object",
+            )),
+        }
+    }
+
+    /// Takes something that impl Serialize and create a context with it.
+    /// Meant to be used if you have a hashmap or a struct and don't want to insert values
+    /// one by one in the context
+    pub fn from_serialize(value: impl Serialize) -> TeraResult<Self> {
+        let obj = to_value(value).map_err(Error::json)?;
+        Context::from_value(obj)
+    }
+
+    pub(crate) fn get(&self, index: &str) -> Option<&Value> {
+        self.data.get(index)
+    }
 }
 
 impl Default for Context {
@@ -70,29 +92,18 @@ impl Default for Context {
     }
 }
 
-impl Serialize for Context {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut map = serializer.serialize_map(Some(self.data.len()))?;
-        for (k, v) in &self.data {
-            map.serialize_key(&k)?;
-            map.serialize_value(&v)?;
-        }
-        map.end()
-    }
-}
-
 pub trait ValueRender {
-    fn render(&self) -> String;
+    fn render(&self) -> Cow<str>;
 }
 
 // Convert serde Value to String
 impl ValueRender for Value {
-    fn render(&self) -> String {
+    fn render(&self) -> Cow<str> {
         match *self {
-            Value::String(ref s) => s.clone(),
-            Value::Number(ref i) => i.to_string(),
-            Value::Bool(i) => i.to_string(),
-            Value::Null => "".to_owned(),
+            Value::String(ref s) => Cow::Borrowed(s),
+            Value::Number(ref i) => Cow::Owned(i.to_string()),
+            Value::Bool(i) => Cow::Owned(i.to_string()),
+            Value::Null => Cow::Owned(String::new()),
             Value::Array(ref a) => {
                 let mut buf = String::new();
                 buf.push('[');
@@ -103,9 +114,9 @@ impl ValueRender for Value {
                     buf.push_str(i.render().as_ref());
                 }
                 buf.push(']');
-                buf
+                Cow::Owned(buf)
             }
-            Value::Object(_) => "[object]".to_owned(),
+            Value::Object(_) => Cow::Owned("[object]".to_owned()),
         }
     }
 }
@@ -161,8 +172,11 @@ pub fn get_json_pointer(key: &str) -> String {
 mod tests {
     use super::*;
 
+    use serde_json::json;
+    use std::collections::HashMap;
+
     #[test]
-    fn test_extend() {
+    fn can_extend_context() {
         let mut target = Context::new();
         target.insert("a", &1);
         target.insert("b", &2);
@@ -173,5 +187,30 @@ mod tests {
         assert_eq!(*target.data.get("a").unwrap(), to_value(1).unwrap());
         assert_eq!(*target.data.get("b").unwrap(), to_value(3).unwrap());
         assert_eq!(*target.data.get("c").unwrap(), to_value(4).unwrap());
+    }
+
+    #[test]
+    fn can_create_context_from_value() {
+        let obj = json!({
+            "name": "bob",
+            "age": 25
+        });
+        let context_from_value = Context::from_value(obj).unwrap();
+        let mut context = Context::new();
+        context.insert("name", "bob");
+        context.insert("age", &25);
+        assert_eq!(context_from_value, context);
+    }
+
+    #[test]
+    fn can_create_context_from_impl_serialize() {
+        let mut map = HashMap::new();
+        map.insert("name", "bob");
+        map.insert("last_name", "something");
+        let context_from_serialize = Context::from_serialize(&map).unwrap();
+        let mut context = Context::new();
+        context.insert("name", "bob");
+        context.insert("last_name", "something");
+        assert_eq!(context_from_serialize, context);
     }
 }

@@ -1,7 +1,6 @@
 # Tera
 
-[![Build Status](https://travis-ci.org/Keats/tera.svg)](https://travis-ci.org/Keats/tera)
-[![Build status](https://ci.appveyor.com/api/projects/status/omd2auu2e9qc8ukd?svg=true)](https://ci.appveyor.com/project/Keats/tera)
+![](https://github.com/Keats/tera/workflows/.github/workflows/ci.yml/badge.svg)
 [![Crates.io](https://img.shields.io/crates/v/tera.svg)](https://crates.io/crates/tera)
 [![Docs](https://docs.rs/tera/badge.svg)](https://docs.rs/crate/tera/)
 
@@ -16,6 +15,8 @@ Tera is a template engine inspired by [Jinja2](http://jinja.pocoo.org/) and the 
 </ul>
 ```
 
+It does not aim to be 100% compatible with them but has many of the Jinja2/Django filters and testers.
+
 ## Documentation
 API documentation is available on [docs.rs](https://docs.rs/crate/tera/).
 
@@ -23,4 +24,4 @@ Tera documentation is available on its [site](https://tera.netlify.com/docs/inst
 
 ## SemVer
 This project follows SemVer only for the public API, public API here meaning functions appearing in the docs.
-Some features, like accessing the AST, are also available but breaking changes in them can happen in minor versions.
+Some features, like accessing the AST, are also available but breaking changes in them can happen in any versions.

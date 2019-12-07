@@ -1,10 +1,10 @@
-use parser::ast::*;
+use crate::parser::ast::*;
 
 macro_rules! trim_right_previous {
     ($vec: expr) => {
         if let Some(last) = $vec.pop() {
             if let Node::Text(mut s) = last {
-                s = s.trim_right().to_string();
+                s = s.trim_end().to_string();
                 if !s.is_empty() {
                     $vec.push(Node::Text(s));
                 }
@@ -46,14 +46,15 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 }
                 trim_left_next = false;
 
-                let new_val = s.trim_left();
+                let new_val = s.trim_start();
                 if !new_val.is_empty() {
                     res.push(Node::Text(new_val.to_string()));
                 }
                 // empty text nodes will be skipped
                 continue;
             }
-            Node::ImportMacro(ws, _, _)
+            Node::VariableBlock(ws, _)
+            | Node::ImportMacro(ws, _, _)
             | Node::Extends(ws, _)
             | Node::Include(ws, _)
             | Node::Set(ws, _)
@@ -71,9 +72,9 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                     let val = if start_ws.right && end_ws.left {
                         s.trim()
                     } else if start_ws.right {
-                        s.trim_left()
+                        s.trim_start()
                     } else {
-                        s.trim_right()
+                        s.trim_end()
                     };
 
                     res.push(Node::Raw(start_ws, val.to_string(), end_ws));
@@ -170,7 +171,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 res.push(Node::If(If { conditions: new_conditions, otherwise }, end_ws));
                 continue;
             }
-            Node::Super | Node::VariableBlock(_) => (),
+            Node::Super => (),
         };
 
         // If we are there, that means it's not a text node and we didn't have to modify the node

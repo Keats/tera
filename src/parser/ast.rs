@@ -125,6 +125,32 @@ pub struct StringConcat {
     pub values: Vec<ExprVal>,
 }
 
+impl StringConcat {
+    pub(crate) fn to_template_string(&self) -> String {
+        let mut res = Vec::new();
+        for value in &self.values {
+            match value {
+                ExprVal::String(ref s) => res.push(format!("'{}'", s)),
+                ExprVal::Ident(ref s) => res.push(s.to_string()),
+                _ => res.push("unknown".to_string()),
+            }
+        }
+
+        res.join(" ~ ")
+    }
+}
+
+/// Something that checks whether the left side is contained in the right side
+#[derive(Clone, Debug, PartialEq)]
+pub struct In {
+    /// The needle, a string or a basic expression/literal
+    pub lhs: Box<Expr>,
+    /// The haystack, can be a string, an array or an ident only currently
+    pub rhs: Box<Expr>,
+    /// Is it using `not` as in `b` not in `...`?
+    pub negated: bool,
+}
+
 /// An expression is the node found in variable block, kwargs and conditions.
 #[derive(Clone, Debug, PartialEq)]
 #[allow(missing_docs)]
@@ -143,6 +169,7 @@ pub enum ExprVal {
     // on values inside arrays
     Array(Vec<Expr>),
     StringConcat(StringConcat),
+    In(In),
 }
 
 /// An expression is a value that can be negated and followed by
@@ -181,13 +208,24 @@ impl Expr {
 
         self.filters[0].name == "default"
     }
+
+    /// Check if the last filter is `safe`
+    pub fn is_marked_safe(&self) -> bool {
+        if self.filters.is_empty() {
+            return false;
+        }
+
+        self.filters[self.filters.len() - 1].name == "safe"
+    }
 }
 
 /// A test node `if my_var is odd`
 #[derive(Clone, Debug, PartialEq)]
 pub struct Test {
-    /// Which expression is evaluated
+    /// Which variable is evaluated
     pub ident: String,
+    /// Is it using `not`?
+    pub negated: bool,
     /// Name of the test
     pub name: String,
     /// Any optional arg given to the test
@@ -257,6 +295,8 @@ pub struct Forloop {
     pub container: Expr,
     /// What's in the forloop itself
     pub body: Vec<Node>,
+    /// The body to execute in case of an empty object
+    pub empty_body: Option<Vec<Node>>,
 }
 
 /// An if/elif/else condition with their respective body
@@ -277,7 +317,7 @@ pub enum Node {
     /// Some actual text
     Text(String),
     /// A `{{ }}` block
-    VariableBlock(Expr),
+    VariableBlock(WS, Expr),
     /// A `{% macro hello() %}...{% endmacro %}`
     MacroDefinition(WS, MacroDefinition, WS),
 

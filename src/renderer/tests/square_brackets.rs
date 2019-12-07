@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use context::Context;
-use tera::Tera;
+use crate::context::Context;
+use crate::tera::Tera;
+use serde_derive::Serialize;
 
 #[derive(Serialize)]
 struct Test {
@@ -23,8 +24,11 @@ fn var_access_by_square_brackets() {
     let mut map = HashMap::new();
     map.insert("true", "yes");
     map.insert("false", "no");
+    map.insert("with space", "works");
+    map.insert("with/slash", "works");
     let mut deep_map = HashMap::new();
     deep_map.insert("inner_map", &map);
+    context.insert("map", &map);
     context.insert("deep_map", &deep_map);
     context.insert("bool_vec", &vec!["true", "false"]);
 
@@ -35,6 +39,8 @@ fn var_access_by_square_brackets() {
         ("{{var['c'][0]}}", "fred"),
         ("{{var['c'][zero]}}", "fred"),
         ("{{var[a]}}", "i_am_actually_b"),
+        ("{{map['with space']}}", "works"),
+        ("{{map['with/slash']}}", "works"),
         ("{{deep_map['inner_map'][bool_vec[zero]]}}", "yes"),
     ];
 

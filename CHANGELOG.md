@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.0.0 (2019-12-07)
+
+### Breaking changes
+
+- Now requires Rust 1.34
+- Removed error-chain errors and added rich Error enum instead
+- Filter, Tester and Function are now traits and now take borrowed values instead of owned
+- Updated for 2018 edition
+- Require macros import to be at the top of the files along with `extends` as it is fairly cheap and
+the code already only really look there.
+- Enforce spacing in tags at the parser, before `ifsomething` was considered ok
+- Pluralize filter now uses `singular` and `plural` arguments instead of `suffix`
+- Add a test for checking whether a variable is an object
+- Escaping now happens before inserting the final result of an expression: no need anymore to add `| safe` everywhere,
+only at the last position
+- Remove `safe` argument of the urlencode filter, `/` is still escaped by default
+
+### Others
+
+- Tests can now use `value is not defined` order for negation (https://github.com/Keats/tera/issues/308)
+- Add `nth` filter to get the nth value in an array
+- You can now use glob patterns in `Tera::new`
+- `default` filter now works on Null values
+- Literal numbers in template overflowing i64/f64 will now be an error instead of panicking
+- Allow arrays as test arguments
+- Add the `in` operator to check if a left operand is contained in a right one. Also supports negation as `not in`
+- Add `Context::from_value` to instantiate a `Context` from a serde_json `Value`
+- Add `Context::from_serialize` to instantiate a `Context` from something that impl `Serialize`
+- Make tests helper fns `number_args_allowed`, `value_defined` and `extract_string` public
+- Add `else` clause to for loops
+- Filters are now evaluated when checking if/elif conditions
+- Allow `{{-` and `-}}` for whitespace management
+- Add `xml_escape` filter
+- Grave accent is no longer escaped in HTML, it is not really needed anymore
+- Add a `builtins` default feature that gate all filters/functions requiring additional dependencies
+- Add `unique` and `map` filter
+- Add a `timezone` attribute to the `date` filter
+- Add a `get_random` function to get a random number in a range
+- Add a `get_env` function to get the value of an environment variable
+
 ## 0.11.20 (2018-11-14)
 
 - Fix bugs in `filter` and `get` filters

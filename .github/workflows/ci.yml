@@ -1,0 +1,44 @@
+name: ci
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  test:
+    name: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        build: [pinned, stable, nightly, macos, win-msvc]
+        include:
+        - build: pinned
+          os: ubuntu-18.04
+          rust: 1.34.0
+        - build: stable
+          os: ubuntu-18.04
+          rust: stable
+        - build: nightly
+          os: ubuntu-18.04
+          rust: nightly
+        - build: macos
+          os: macOS-latest
+          rust: stable
+        - build: win-msvc
+          os: windows-2019
+          rust: stable
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Rust
+      uses: hecrj/setup-rust-action@v1
+      with:
+        rust-version: ${{ matrix.rust }}
+    - name: Build System Info
+      run: rustc --version
+    - name: tests with default feature
+      run: cargo test
+    - name: tests without the default feature
+      run: cargo test --no-default-features
+    - name: Run basic example
+      run: cargo run --example basic

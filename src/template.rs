@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use errors::Result;
-use parser::ast::{Block, MacroDefinition, Node};
-use parser::{parse, remove_whitespace};
+use crate::errors::{Error, Result};
+use crate::parser::ast::{Block, MacroDefinition, Node};
+use crate::parser::{parse, remove_whitespace};
 
 /// This is the parsed equivalent of a template file.
-/// It also does some pre-processing to ensure it does as less as possible at runtime
-/// Not mean to be used directly.
+/// It also does some pre-processing to ensure it does as little as possible at runtime
+/// Not meant to be used directly.
 #[derive(Debug, Clone)]
 pub struct Template {
     /// Name of the template, usually very similar to the path
@@ -55,7 +55,10 @@ impl Template {
                 match *node {
                     Node::Block(_, ref block, _) => {
                         if blocks.contains_key(&block.name) {
-                            bail!("Block `{}` is duplicated", block.name);
+                            return Err(Error::msg(format!(
+                                "Block `{}` is duplicated",
+                                block.name
+                            )));
                         }
 
                         blocks.insert(block.name.to_string(), block.clone());
@@ -79,7 +82,10 @@ impl Template {
                 Node::Extends(_, ref name) => parent = Some(name.to_string()),
                 Node::MacroDefinition(_, ref macro_def, _) => {
                     if macros.contains_key(&macro_def.name) {
-                        bail!("Macro `{}` is duplicated", macro_def.name);
+                        return Err(Error::msg(format!(
+                            "Macro `{}` is duplicated",
+                            macro_def.name
+                        )));
                     }
                     macros.insert(macro_def.name.clone(), macro_def.clone());
                 }
@@ -110,19 +116,19 @@ mod tests {
     use super::Template;
 
     #[test]
-    fn test_can_parse_ok_template() {
+    fn can_parse_ok_template() {
         Template::new("hello", None, "Hello {{ world }}.").unwrap();
     }
 
     #[test]
-    fn test_can_find_parent_template() {
+    fn can_find_parent_template() {
         let tpl = Template::new("hello", None, "{% extends \"base.html\" %}").unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
     }
 
     #[test]
-    fn test_can_find_blocks() {
+    fn can_find_blocks() {
         let tpl = Template::new(
             "hello",
             None,
@@ -135,7 +141,7 @@ mod tests {
     }
 
     #[test]
-    fn test_can_find_nested_blocks() {
+    fn can_find_nested_blocks() {
         let tpl = Template::new(
             "hello",
             None,
@@ -148,13 +154,13 @@ mod tests {
     }
 
     #[test]
-    fn test_can_find_macros() {
+    fn can_find_macros() {
         let tpl = Template::new("hello", None, "{% macro hey() %}{% endmacro hey %}").unwrap();
         assert_eq!(tpl.macros.contains_key("hey"), true);
     }
 
     #[test]
-    fn test_can_find_imported_macros() {
+    fn can_find_imported_macros() {
         let tpl = Template::new("hello", None, "{% import \"macros.html\" as macros %}").unwrap();
         assert_eq!(
             tpl.imported_macro_files,

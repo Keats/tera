@@ -15,15 +15,15 @@
             <div class="container">
                 <nav>
                     <a href="{{ config.base_url }}">Tera</a>
-                    <a href="{{ get_url(path="./docs/_index.md") }}" class="nav-link">Documentation</a>
+                    <a href="{{ get_url(path="@/docs/_index.md") }}" class="nav-link">Documentation</a>
                     <a href="https://docs.rs/tera" class="nav-link">API Docs</a>
                 </nav>
 
                 {% block hero %}
                     <div class="hero">
                         <h1>A powerful, easy to use template engine for Rust</h1>
-                        <h2>Based on Jinja2 and Django templates</h2>
-                        <a href="{{ get_url(path="./docs/_index.md") }}" class="button">Get started</a>
+                        <h2>Inspired by Jinja2 and Django templates</h2>
+                        <a href="{{ get_url(path="@/docs/_index.md") }}" class="button">Get started</a>
                     </div>
                 {% endblock hero %}
             </div>
@@ -59,7 +59,7 @@
 
         <footer>
             <div class="container">
-                © 2017 Vincent Prouillet
+                © 2017-2019 Vincent Prouillet
             </div>
         </footer>
     </body>

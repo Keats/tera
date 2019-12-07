@@ -1,3 +1,5 @@
+use serde_derive::Serialize;
+
 mod basic;
 mod errors;
 mod inheritance;

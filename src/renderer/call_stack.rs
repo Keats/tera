@@ -3,22 +3,23 @@ use std::collections::HashMap;
 
 use serde_json::{to_value, Value};
 
-use context::get_json_pointer;
-use errors::Result;
-use renderer::for_loop::{ForLoop, ForLoopState};
-use renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
-use template::Template;
+use crate::context::get_json_pointer;
+use crate::errors::{Error, Result};
+use crate::renderer::for_loop::{ForLoop, ForLoopState};
+use crate::renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
+use crate::template::Template;
+use crate::Context;
 
 /// Contains the user data and allows no mutation
 #[derive(Debug)]
 pub struct UserContext<'a> {
     /// Read-only context
-    inner: &'a Value,
+    inner: &'a Context,
 }
 
 impl<'a> UserContext<'a> {
     /// Create an immutable user context to be used in the call stack
-    pub fn new(context: &'a Value) -> Self {
+    pub fn new(context: &'a Context) -> Self {
         UserContext { inner: context }
     }
 
@@ -27,7 +28,10 @@ impl<'a> UserContext<'a> {
     }
 
     pub fn find_value_by_pointer(self: &Self, pointer: &str) -> Option<&'a Value> {
-        self.inner.pointer(pointer)
+        assert!(pointer.starts_with('/'));
+        let root = pointer.split('/').nth(1).unwrap().replace("~1", "/").replace("~0", "~");
+        let rest = &pointer[root.len() + 1..];
+        self.inner.get(&root).and_then(|val| val.pointer(rest))
     }
 }
 
@@ -42,7 +46,7 @@ pub struct CallStack<'a> {
 
 impl<'a> CallStack<'a> {
     /// Create the initial call stack
-    pub fn new(context: &'a Value, template: &'a Template) -> CallStack<'a> {
+    pub fn new(context: &'a Context, template: &'a Template) -> CallStack<'a> {
         CallStack {
             stack: vec![StackFrame::new(FrameType::Origin, "ORIGIN", template)],
             context: UserContext::new(context),
@@ -143,7 +147,7 @@ impl<'a> CallStack<'a> {
                 for_loop.break_loop();
                 Ok(())
             }
-            None => bail!("Attempted `break` while not in `for loop`"),
+            None => Err(Error::msg("Attempted `break` while not in `for loop`")),
         }
     }
 
@@ -156,7 +160,7 @@ impl<'a> CallStack<'a> {
                 for_loop.increment();
                 Ok(())
             }
-            None => bail!("Attempted `increment` while not in `for loop`"),
+            None => Err(Error::msg("Attempted `increment` while not in `for loop`")),
         }
     }
 
@@ -167,7 +171,7 @@ impl<'a> CallStack<'a> {
                 for_loop.continue_loop();
                 Ok(())
             }
-            None => bail!("Attempted `continue` while not in `for loop`"),
+            None => Err(Error::msg("Attempted `continue` while not in `for loop`")),
         }
     }
 
@@ -221,15 +225,10 @@ impl<'a> CallStack<'a> {
         // If we are here we take the user context
         // and add the values found in the stack to it.
         // We do it this way as we can override global variable temporarily in forloops
-        match self.context.inner.clone() {
-            Value::Object(mut m) => {
-                for (key, val) in context {
-                    m.insert(key.to_string(), val);
-                }
-
-                Value::Object(m)
-            }
-            _ => unreachable!("Had a context that wasn't a map?!"),
+        let mut new_ctx = self.context.inner.clone();
+        for (key, val) in context {
+            new_ctx.insert(key, &val)
         }
+        new_ctx.into_json()
     }
 }

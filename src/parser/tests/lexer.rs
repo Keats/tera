@@ -1,6 +1,6 @@
 use pest::Parser;
 
-use parser::{Rule, TeraParser};
+use crate::parser::{Rule, TeraParser};
 
 macro_rules! assert_lex_rule {
     ($rule: expr, $input: expr) => {
@@ -12,7 +12,7 @@ macro_rules! assert_lex_rule {
             panic!();
         }
         assert!(res.is_ok());
-        assert_eq!(res.unwrap().last().unwrap().into_span().end(), $input.len());
+        assert_eq!(res.unwrap().last().unwrap().as_span().end(), $input.len());
     };
 }
 
@@ -156,7 +156,6 @@ fn lex_basic_expr() {
         "true",
         "macros::something()",
         "something()",
-        r#""hey""#,
         "a is defined",
         "a is defined(2)",
         "1 + 1",
@@ -179,7 +178,6 @@ fn lex_basic_expr_with_filter() {
         "true | ho",
         "macros::something() | hey",
         "something() | hey",
-        r#""hey" | capitalize"#,
         "a is defined | ho",
         "a is defined(2) | ho",
         "1 + 1 | round",
@@ -196,6 +194,23 @@ fn lex_basic_expr_with_filter() {
 }
 
 #[test]
+fn lex_string_expr_with_filter() {
+    let inputs = vec![
+        r#""hey" | capitalize"#,
+        r#""hey""#,
+        r#""hey" ~ 'ho' | capitalize"#,
+        r#""hey" ~ ho | capitalize"#,
+        r#"ho ~ ho ~ ho | capitalize"#,
+        r#"ho ~ 'ho' ~ ho | capitalize"#,
+        r#"ho ~ 'ho' ~ ho"#,
+    ];
+
+    for i in inputs {
+        assert_lex_rule!(Rule::string_expr_filter, i);
+    }
+}
+
+#[test]
 fn lex_comparison_val() {
     let inputs = vec![
         // all the basic expr still work
@@ -203,7 +218,6 @@ fn lex_comparison_val() {
         "true",
         "macros::something()",
         "something()",
-        r#""hey""#,
         "a is defined",
         "a is defined(2)",
         "1 + 1",
@@ -230,6 +244,29 @@ fn lex_comparison_val() {
 }
 
 #[test]
+fn lex_in_cond() {
+    let inputs = vec![
+        "a in b",
+        "1 in b",
+        "'b' in b",
+        "'b' in b",
+        "a in request.path",
+        "'index.html' in request.build_absolute_uri",
+        "a in [1, 2, 3]",
+        "a | capitalize in [1, 2, 3]",
+        "a | capitalize in [1, 'hey']",
+        "a | capitalize in [ho, 1, 'hey']",
+        "'e' in 'hello'",
+        "'e' in 'hello' | capitalize",
+        "e in 'hello'",
+    ];
+
+    for i in inputs {
+        assert_lex_rule!(Rule::in_cond, i);
+    }
+}
+
+#[test]
 fn lex_comparison_expr() {
     let inputs = vec![
         "1.5 + a | round(var=2) > 10",
@@ -238,6 +275,10 @@ fn lex_comparison_expr() {
         "a + 1 == b",
         "a != b",
         "a % 2 == 0",
+        "a == 'admin'",
+        "a != 'admin'",
+        "a == 'admin' | capitalize",
+        "a != 'admin' | capitalize",
         "a > b",
         "a >= b",
         "a < b",
@@ -261,6 +302,7 @@ fn lex_logic_val() {
         r#""hey""#,
         "a is defined",
         "a is defined(2)",
+        "a is not defined",
         "1 + 1",
         "1 + counts",
         "1 + counts.first",
@@ -373,7 +415,8 @@ fn lex_macro_definition() {
 
 #[test]
 fn lex_test() {
-    let inputs = vec!["a is defined", "a is defined()", "a is divisibleby(2)"];
+    let inputs =
+        vec!["a is defined", "a is defined()", "a is divisibleby(2)", "a is in([1, 2, something])"];
     for i in inputs {
         // The () are not counted as tokens for some reasons so can't use the macro
         assert!(TeraParser::parse(Rule::test, i).is_ok());
@@ -565,4 +608,47 @@ fn lex_template() {
             {% endfor %}",
     )
     .is_ok());
+}
+
+#[test]
+fn lex_extends_with_imports() {
+    let sample = r#"
+{% extends "base.html" %}
+
+{% import "macros/image.html" as image %}
+{% import "macros/masonry.html" as masonry %}
+{% import "macros/breadcrumb.html" as breadcrumb %}
+{% import "macros/ul_links.html" as ul_links %}
+{% import "macros/location.html" as location %}
+         "#;
+    assert_lex_rule!(Rule::template, sample);
+}
+
+// https://github.com/Keats/tera/issues/379
+#[test]
+fn lex_requires_whitespace_between_things() {
+    // All the ones below should fail parsing
+    let inputs = vec![
+        "{% filterupper %}hey{% endfilter %}",
+        "{% blockhey %}{%endblock%}",
+        "{% macrohey() %}{%endmacro%}",
+        "{% setident = 1 %}",
+        "{% set_globalident = 1 %}",
+        "{% extends'base.html' %}",
+        "{% import 'macros/image.html' asimage %}",
+        "{% import'macros/image.html' as image %}",
+        "{% fora in b %}{{a}}{% endfor %}",
+        "{% for a inb %}{{a}}{% endfor %}",
+        "{% for a,bin c %}{{a}}{% endfor %}",
+        "{% for a,b inc %}{{a}}{% endfor %}",
+        "{% ifi18n %}世界{% else %}world{% endif %}",
+        "{% if i18n %}世界{% eliftrue %}world{% endif %}",
+        "{% include'base.html' %}",
+    ];
+
+    for i in inputs {
+        let res = TeraParser::parse(Rule::template, i);
+        println!("{:?}", i);
+        assert!(res.is_err());
+    }
 }

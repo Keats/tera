@@ -8,12 +8,11 @@ mod macros;
 mod processor;
 mod stack_frame;
 
-use serde_json::value::Value;
-
 use self::processor::Processor;
-use errors::Result;
-use template::Template;
-use tera::Tera;
+use crate::errors::Result;
+use crate::template::Template;
+use crate::tera::Tera;
+use crate::Context;
 
 /// Given a `Tera` and reference to `Template` and a `Context`, renders text
 #[derive(Debug)]
@@ -23,7 +22,7 @@ pub struct Renderer<'a> {
     /// Houses other templates, filters, global functions, etc
     tera: &'a Tera,
     /// Read-only context to be bound to template˝
-    context: Value,
+    context: &'a Context,
     /// If set rendering should be escaped
     should_escape: bool,
 }
@@ -31,7 +30,7 @@ pub struct Renderer<'a> {
 impl<'a> Renderer<'a> {
     /// Create a new `Renderer`
     #[inline]
-    pub fn new(template: &'a Template, tera: &'a Tera, context: Value) -> Renderer<'a> {
+    pub fn new(template: &'a Template, tera: &'a Tera, context: &'a Context) -> Renderer<'a> {
         let should_escape = tera.autoescape_suffixes.iter().any(|ext| {
             // We prefer a `path` if set, otherwise use the `name`
             if let Some(ref p) = template.path {

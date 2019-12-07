@@ -1,18 +1,27 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
+use std::error::Error;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
-use serde_json::Value;
+use lazy_static::lazy_static;
+use serde_derive::Serialize;
+use serde_json::{json, Value};
 
-use context::Context;
-use errors::Result;
-use tera::Tera;
+use crate::builtins::functions::Function;
+use crate::context::Context;
+use crate::errors::Result;
+use crate::tera::Tera;
 
 use super::Review;
 
 fn render_template(content: &str, context: &Context) -> Result<String> {
     let mut tera = Tera::default();
     tera.add_raw_template("hello.html", content).unwrap();
-    tera.register_function("get_number", Box::new(|_| Ok(Value::Number(10.into()))));
-    tera.register_function("get_string", Box::new(|_| Ok(Value::String("Hello".to_string()))));
+    tera.register_function("get_number", |_: &HashMap<String, Value>| Ok(Value::Number(10.into())));
+    tera.register_function("get_true", |_: &HashMap<String, Value>| Ok(Value::Bool(true.into())));
+    tera.register_function("get_string", |_: &HashMap<String, Value>| {
+        Ok(Value::String("Hello".to_string()))
+    });
 
     tera.render("hello.html", context)
 }
@@ -46,7 +55,7 @@ fn render_variable_block_lit_expr() {
         ("{{ (2 + 1) * 2 }}", "6"),
         ("{{ 2 * 4 % 8 }}", "0"),
         ("{{ 2.8 * 2 | round }}", "6"),
-        ("{{ 0 / 0 }}", "NaN"),
+        ("{{ 1 / 0 }}", "NaN"),
         ("{{ true and 10 }}", "true"),
         ("{{ true and not 10 }}", "false"),
         ("{{ not true }}", "false"),
@@ -68,6 +77,7 @@ fn render_variable_block_ident() {
     context.insert("numbers", &vec![1, 2, 3]);
     context.insert("tuple_list", &vec![(1, 2, 3), (1, 2, 3)]);
     context.insert("review", &Review::new());
+    context.insert("with_newline", &"Animal Alphabets\nB is for Bee-Eater");
 
     let inputs = vec![
         ("{{ name }}", "john"),
@@ -82,9 +92,9 @@ fn render_variable_block_ident() {
             r#"hangar new "Will Smoth <will_s@example.com>""#,
         ),
         ("{{ malicious | safe }}", "<html>"),
-        ("{{ malicious | upper }}", "&LT;HTML&GT;"), // everything upper eh
-        ("{{ malicious | upper | safe }}", "&LT;HTML&GT;"),
-        ("{{ malicious | safe | upper }}", "<HTML>"),
+        ("{{ malicious | upper }}", "&lt;HTML&gt;"),
+        ("{{ malicious | upper | safe }}", "<HTML>"),
+        ("{{ malicious | safe | upper }}", "&lt;HTML&gt;"),
         ("{{ review.paragraphs.1 }}", "B"),
         ("{{ numbers }}", "[1, 2, 3]"),
         ("{{ numbers.0 }}", "1"),
@@ -93,6 +103,8 @@ fn render_variable_block_ident() {
         ("{{ name | length }}", "4"),
         ("{{ name is defined }}", "true"),
         ("{{ not name is defined }}", "false"),
+        ("{{ name is not defined }}", "false"),
+        ("{{ not name is not defined }}", "true"),
         ("{{ a is odd }}", "false"),
         ("{{ a is odd or b is odd  }}", "true"),
         ("{{ range(start=1, end=4) }}", "[1, 2, 3]"),
@@ -109,6 +121,11 @@ fn render_variable_block_ident() {
         ("{{ 1.9 + a | round - 1 }}", "3"),
         ("{{ 1.9 + a | round - 1.8 + a | round }}", "0"),
         ("{{ 1.9 + a | round - 1.8 + a | round - 1 }}", "-1"),
+        // https://github.com/Keats/tera/issues/435
+        (
+            "{{ with_newline | replace(from='\n', to='<br>') | safe }}",
+            "Animal Alphabets<br>B is for Bee-Eater",
+        ),
     ];
 
     for (input, expected) in inputs {
@@ -126,6 +143,11 @@ fn render_variable_block_logic_expr() {
     context.insert("b", &3);
     context.insert("numbers", &vec![1, 2, 3]);
     context.insert("tuple_list", &vec![(1, 2, 3), (1, 2, 3)]);
+    let mut hashmap = HashMap::new();
+    hashmap.insert("a", 1);
+    hashmap.insert("b", 10);
+    hashmap.insert("john", 100);
+    context.insert("object", &hashmap);
 
     let inputs = vec![
         ("{{ (1.9 + a) | round > 10 }}", "false"),
@@ -137,6 +159,25 @@ fn render_variable_block_logic_expr() {
         ("{{ not name }}", "false"),
         ("{{ not true }}", "false"),
         ("{{ not undefined }}", "true"),
+        ("{{ name == 'john' }}", "true"),
+        ("{{ name != 'john' }}", "false"),
+        ("{{ name == 'john' | capitalize }}", "false"),
+        ("{{ name != 'john' | capitalize }}", "true"),
+        ("{{ 1 in numbers }}", "true"),
+        ("{{ 1 not in numbers }}", "false"),
+        ("{{ 40 not in numbers }}", "true"),
+        ("{{ 'e' in 'hello' }}", "true"),
+        ("{{ 'e' not in 'hello' }}", "false"),
+        ("{{ 'x' not in 'hello' }}", "true"),
+        ("{{ name in 'hello john' }}", "true"),
+        ("{{ name not in 'hello john' }}", "false"),
+        ("{{ name not in 'hello' }}", "true"),
+        ("{{ name in ['bob', 2, 'john'] }}", "true"),
+        ("{{ a in ['bob', 2, 'john'] }}", "true"),
+        ("{{ 'n' in name }}", "true"),
+        ("{{ '<' in malicious }}", "true"),
+        ("{{ 'a' in object }}", "true"),
+        ("{{ name in object }}", "true"),
     ];
 
     for (input, expected) in inputs {
@@ -182,13 +223,31 @@ fn comments_are_ignored() {
 }
 
 #[test]
+fn escaping_happens_at_the_end() {
+    let inputs = vec![
+        #[cfg(feature = "builtins")]
+        ("{{ url | urlencode | safe }}", "https%3A//www.example.org/apples-%26-oranges/"),
+        ("{{ '<html>' }}", "&lt;html&gt;"),
+        ("{{ '<html>' | safe }}", "<html>"),
+        ("{{ 'hello' | safe | replace(from='h', to='&') }}", "&amp;ello"),
+        ("{{ 'hello' | replace(from='h', to='&') | safe }}", "&ello"),
+    ];
+
+    for (input, expected) in inputs {
+        let mut context = Context::new();
+        context.insert("url", "https://www.example.org/apples-&-oranges/");
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
+}
+
+#[test]
 fn filter_args_are_not_escaped() {
     let mut context = Context::new();
     context.insert("my_var", &"hey");
     context.insert("to", &"&");
     let input = r#"{{ my_var | replace(from="h", to=to) }}"#;
 
-    assert_eq!(render_template(input, &context).unwrap(), "&ey");
+    assert_eq!(render_template(input, &context).unwrap(), "&amp;ey");
 }
 
 #[test]
@@ -281,11 +340,50 @@ fn render_filter_section() {
 }
 
 #[test]
+fn render_tests() {
+    let mut context = Context::new();
+    context.insert("is_true", &true);
+    context.insert("is_false", &false);
+    context.insert("age", &18);
+    context.insert("name", &"john");
+    let mut map = HashMap::new();
+    map.insert(0, 1);
+    context.insert("map", &map);
+    context.insert("numbers", &vec![1, 2, 3]);
+    context.insert::<Option<usize>, _>("maybe", &None);
+
+    let inputs = vec![
+        ("{% if is_true is defined %}Admin{% endif %}", "Admin"),
+        ("{% if hello is undefined %}Admin{% endif %}", "Admin"),
+        ("{% if name is string %}Admin{% endif %}", "Admin"),
+        ("{% if age is number %}Admin{% endif %}", "Admin"),
+        ("{% if age is even %}Admin{% endif %}", "Admin"),
+        ("{% if age is odd %}Admin{%else%}even{% endif %}", "even"),
+        ("{% if age is divisibleby(2) %}Admin{% endif %}", "Admin"),
+        ("{% if numbers is iterable %}Admin{% endif %}", "Admin"),
+        ("{% if map is iterable %}Admin{% endif %}", "Admin"),
+        ("{% if map is object %}Admin{% endif %}", "Admin"),
+        ("{% if name is starting_with('j') %}Admin{% endif %}", "Admin"),
+        ("{% if name is ending_with('n') %}Admin{% endif %}", "Admin"),
+        ("{% if numbers is containing(2) %}Admin{% endif %}", "Admin"),
+        ("{% if name is matching('^j.*') %}Admin{% endif %}", "Admin"),
+        ("{% if maybe is defined %}Admin{% endif %}", "Admin"),
+    ];
+
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
+}
+
+#[test]
 fn render_if_elif_else() {
     let mut context = Context::new();
     context.insert("is_true", &true);
     context.insert("is_false", &false);
     context.insert("age", &18);
+    context.insert("name", &"john");
+    context.insert("empty_string", &"");
     context.insert("numbers", &vec![1, 2, 3]);
 
     let inputs = vec![
@@ -299,6 +397,13 @@ fn render_if_elif_else() {
         ("{% if 2 > 1 %}a{% endif %}", "a"),
         ("{% if 1 == 1 %}a{% endif %}", "a"),
         ("{% if 1 != 2 %}a{% endif %}", "a"),
+        // testing string conditions
+        ("{% if 'true' %}a{% endif %}", "a"),
+        ("{% if name %}a{% endif %}", "a"),
+        ("{% if '' %}a{% endif %}", ""),
+        ("{% if empty_string %}a{% endif %}", ""),
+        ("{% if '' ~ name %}a{% endif %}", "a"),
+        ("{% if '' ~ empty_string %}a{% endif %}", ""),
         // some not conditions
         ("{% if not is_false %}a{% endif %}", "a"),
         ("{% if not is_true %}a{% endif %}", ""),
@@ -321,6 +426,15 @@ fn render_if_elif_else() {
         // doesn't fallthrough elifs
         // https://github.com/Keats/tera/issues/188
         ("{% if 1 < 4 %}a{% elif 2 < 4 %}b{% elif 3 < 4 %}c{% else %}d{% endif %}", "a"),
+        // with in operator
+        (
+            "{% if 1 in numbers %}Admin{% elif 100 in numbers %}User{% else %}Hmm{% endif %}",
+            "Admin",
+        ),
+        ("{% if 100 in numbers %}Admin{% elif 1 in numbers %}User{% else %}Hmm{% endif %}", "User"),
+        ("{% if 'n' in name %}Admin{% else %}Hmm{% endif %}", "Admin"),
+        // function in if
+        ("{% if get_true() %}Truth{% endif %}", "Truth"),
     ];
 
     for (input, expected) in inputs {
@@ -398,7 +512,20 @@ fn render_for() {
         (
             "{% set start = 0 %}{% set end = start + 3 %}{% for i in range(start=start, end=end) %}{{ i }}{% endfor%}",
             "012"
-        )
+        ),
+        // https://github.com/Keats/tera/issues/395
+        (
+            "{% for a in [] %}{{a}}{% else %}hello{% endfor %}",
+            "hello"
+        ),
+        (
+            "{% for a in undefined_variable | default(value=[]) %}{{a}}{% else %}hello{% endfor %}",
+            "hello"
+        ),
+        (
+            "{% for a in [] %}{{a}}{% else %}{% if 1 == 2 %}A{% else %}B{% endif %}{% endfor %}",
+            "B"
+        ),
     ];
 
     for (input, expected) in inputs {
@@ -462,7 +589,9 @@ fn can_set_variable_in_global_context_in_forloop() {
 #[test]
 fn default_filter_works() {
     let mut context = Context::new();
+    let i: Option<usize> = None;
     context.insert("existing", "hello");
+    context.insert("null", &i);
 
     let inputs = vec![
         (r#"{{ existing | default(value="hey") }}"#, "hello"),
@@ -472,6 +601,8 @@ fn default_filter_works() {
         (r#"{{ obj.val | default(value="hey") | capitalize }}"#, "Hey"),
         (r#"{{ not admin | default(value=false) }}"#, "true"),
         (r#"{{ not admin | default(value=true) }}"#, "false"),
+        (r#"{{ null | default(value=true) }}"#, "true"),
+        (r#"{{ null | default(value="hey") | capitalize }}"#, "Hey"),
     ];
 
     for (input, expected) in inputs {
@@ -538,28 +669,49 @@ fn can_fail_rendering_from_template() {
     );
     assert!(res.is_err());
     let err = res.unwrap_err();
-    assert_eq!(err.iter().nth(1).unwrap().description(), "Error: hello did not include a summary");
+    assert_eq!(err.source().unwrap().to_string(), "Error: hello did not include a summary");
 }
 
 #[test]
 fn does_render_owned_for_loop_with_objects() {
     let mut context = Context::new();
     let data = json!([
-            {"id": 1, "year": 2015},
-            {"id": 2, "year": 2015},
-            {"id": 3, "year": 2016},
-            {"id": 4, "year": 2017},
-            {"id": 5, "year": 2017},
-            {"id": 6, "year": 2017},
-            {"id": 7, "year": 2018},
-            {"id": 8},
-            {"id": 9, "year": null},
-        ]);
+        {"id": 1, "year": 2015},
+        {"id": 2, "year": 2015},
+        {"id": 3, "year": 2016},
+        {"id": 4, "year": 2017},
+        {"id": 5, "year": 2017},
+        {"id": 6, "year": 2017},
+        {"id": 7, "year": 2018},
+        {"id": 8},
+        {"id": 9, "year": null},
+    ]);
     context.insert("something", &data);
 
     let tpl =
         r#"{% for year, things in something | group_by(attribute="year") %}{{year}},{% endfor %}"#;
     let expected = "2015,2016,2017,2018,";
+    assert_eq!(render_template(tpl, &context).unwrap(), expected);
+}
+
+#[test]
+fn does_render_owned_for_loop_with_objects_string_keys() {
+    let mut context = Context::new();
+    let data = json!([
+        {"id": 1, "group": "a"},
+        {"id": 2, "group": "b"},
+        {"id": 3, "group": "c"},
+        {"id": 4, "group": "a"},
+        {"id": 5, "group": "b"},
+        {"id": 6, "group": "c"},
+        {"id": 7, "group": "a"},
+        {"id": 8},
+        {"id": 9, "year": null},
+    ]);
+    context.insert("something", &data);
+
+    let tpl = r#"{% for group, things in something | group_by(attribute="group") %}{{group}},{% endfor %}"#;
+    let expected = "a,b,c,";
     assert_eq!(render_template(tpl, &context).unwrap(), expected);
 }
 
@@ -650,4 +802,71 @@ fn can_use_concat_to_push_to_array() {
     let result = tera.render("tpl", &context);
 
     assert_eq!(result.unwrap(), "[0, 1, 2, 3, 4]");
+}
+
+struct Next(AtomicUsize);
+
+impl Function for Next {
+    fn call(&self, _args: &HashMap<String, Value>) -> Result<Value> {
+        Ok(Value::Number(self.0.fetch_add(1, Ordering::Relaxed).into()))
+    }
+}
+
+#[derive(Clone)]
+struct SharedNext(Arc<Next>);
+
+impl Function for SharedNext {
+    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
+        self.0.call(args)
+    }
+}
+
+lazy_static! {
+    static ref NEXT_GLOBAL: SharedNext = SharedNext(Arc::new(Next(AtomicUsize::new(1))));
+}
+
+#[test]
+fn stateful_global_fn() {
+    fn make_tera() -> Tera {
+        let mut tera = Tera::default();
+        tera.add_raw_template(
+            "fn.html",
+            "<h1>{{ get_next() }}, {{ get_next_shared() }}, {{ get_next() }}...</h1>",
+        )
+        .unwrap();
+
+        tera.register_function("get_next", Next(AtomicUsize::new(1)));
+        tera.register_function("get_next_shared", NEXT_GLOBAL.clone());
+        tera
+    }
+
+    assert_eq!(
+        make_tera().render("fn.html", &Context::new()).unwrap(),
+        "<h1>1, 1, 2...</h1>".to_owned()
+    );
+    assert_eq!(
+        make_tera().render("fn.html", &Context::new()).unwrap(),
+        "<h1>1, 2, 2...</h1>".to_owned()
+    );
+}
+
+// https://github.com/Keats/tera/issues/373
+#[test]
+fn split_on_context_value() {
+    let mut tera = Tera::default();
+    tera.add_raw_template("split.html", r#"{{ body | split(pat="\n") }}"#).unwrap();
+    let mut context = Context::new();
+    context.insert("body", "multi\nple\nlines");
+    let res = tera.render("split.html", &context);
+    assert_eq!(res.unwrap(), "[multi, ple, lines]");
+}
+
+// https://github.com/Keats/tera/issues/422
+#[test]
+fn default_filter_works_in_condition() {
+    let mut tera = Tera::default();
+    tera.add_raw_template("test.html", r#"{% if frobnicate|default(value=True) %}here{% endif %}"#)
+        .unwrap();
+    let res = tera.render("test.html", &Context::new());
+    assert_eq!(res.unwrap(), "here");
 }

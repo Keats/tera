@@ -1,5 +1,5 @@
-use context::Context;
-use tera::Tera;
+use crate::context::Context;
+use crate::tera::Tera;
 
 #[test]
 fn can_remove_whitespace_basic() {
@@ -19,6 +19,9 @@ fn can_remove_whitespace_basic() {
         ("  {% set var = 2 -%} {{var}}", "  2"),
         ("  {% raw -%}{{2}} {% endraw -%} ", "  {{2}}"),
         ("  {% filter upper -%} hey {%- endfilter -%} ", "  HEY"),
+        ("  {{ \"hello\" -}} ", "  hello"),
+        ("  {{- \"hello\" }} ", "hello "),
+        ("  {{- \"hello\" -}} ", "hello"),
     ];
 
     for (input, expected) in inputs {
@@ -53,7 +56,7 @@ fn can_remove_whitespace_macros() {
 
     let inputs = vec![
         (r#" {%- import "macros" as macros -%} {{macros::hey()}}"#, "Hey!"),
-        (r#" {% import "macros" as macros %} {{macros::hey()}}"#, "  Hey!"),
+        (r#" {% import "macros" as macros %} {{macros::hey()}}"#, "Hey!"),
         (r#" {%- import "macros" as macros %} {%- set hey = macros::hey() -%} {{hey}}"#, "Hey!"),
     ];
 

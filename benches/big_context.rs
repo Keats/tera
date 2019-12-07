@@ -5,7 +5,6 @@ extern crate test;
 #[macro_use]
 extern crate serde_derive;
 
-use serde_json::to_value;
 use tera::{Context, Tera};
 
 #[derive(Serialize)]
@@ -75,7 +74,8 @@ fn bench_big_loop_big_object(b: &mut test::Bencher) {
     context.insert("objects", &objects);
     let rendering = tera.render("big_loop.html", &context).expect("Good render");
     assert_eq!(&rendering[..], "0123");
-    b.iter(|| tera.render("big_loop.html", &context));
+    // cloning as making the context is the bottleneck part
+    b.iter(|| tera.render("big_loop.html", &context.clone()));
 }
 
 #[bench]
@@ -98,7 +98,8 @@ fn bench_macro_big_object(b: &mut test::Bencher) {
     let rendering = tera.render("big_loop.html", &context).expect("Good render");
     assert_eq!(rendering.len(), 500);
     assert_eq!(rendering.chars().next().expect("Char"), '1');
-    b.iter(|| tera.render("big_loop.html", &context));
+    // cloning as making the context is the bottleneck part
+    b.iter(|| tera.render("big_loop.html", &context.clone()));
 }
 
 #[bench]
@@ -116,10 +117,10 @@ fn bench_macro_big_object_no_loop_with_set(b: &mut test::Bencher) {
     .unwrap();
     let mut context = Context::new();
     context.insert("two_fields", &TwoFields::new());
-    let context = to_value(context).unwrap();
     let rendering = tera.render("no_loop.html", &context).expect("Good render");
     assert_eq!(&rendering[..], "\nA\nB\nC\n");
-    b.iter(|| tera.render("no_loop.html", &context));
+    // cloning as making the context is the bottleneck part
+    b.iter(|| tera.render("no_loop.html", &context.clone()));
 }
 
 #[bench]
@@ -143,10 +144,10 @@ fn bench_macro_big_object_no_loop_macro_call(b: &mut test::Bencher) {
     .unwrap();
     let mut context = Context::new();
     context.insert("two_fields", &TwoFields::new());
-    let context = to_value(context).unwrap();
     let rendering = tera.render("no_loop.html", &context).expect("Good render");
     assert_eq!(&rendering[..], "A");
-    b.iter(|| tera.render("no_loop.html", &context));
+    // cloning as making the context is the bottleneck part
+    b.iter(|| tera.render("no_loop.html", &context.clone()));
 }
 
 #[derive(Serialize)]

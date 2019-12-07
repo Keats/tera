@@ -3,23 +3,24 @@ use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::sync::Arc;
 
-use glob::glob;
-use serde::Serialize;
-use serde_json::value::to_value;
+use globwalk::glob;
 
-use builtins::filters::{array, common, number, object, string, FilterFn};
-use builtins::functions::{self, GlobalFn};
-use builtins::testers::{self, TesterFn};
-use errors::{Result, ResultExt};
-use renderer::Renderer;
-use template::Template;
-use utils::escape_html;
+use crate::builtins::filters::{array, common, number, object, string, Filter};
+use crate::builtins::functions::{self, Function};
+use crate::builtins::testers::{self, Test};
+use crate::context::Context;
+use crate::errors::{Error, Result};
+use crate::renderer::Renderer;
+use crate::template::Template;
+use crate::utils::escape_html;
 
 /// The escape function type definition
 pub type EscapeFn = fn(&str) -> String;
 
 /// The main point of interaction in this library.
+#[derive(Clone)]
 pub struct Tera {
     // The glob used in `Tera::new`, None if Tera was instantiated differently
     #[doc(hidden)]
@@ -27,11 +28,11 @@ pub struct Tera {
     #[doc(hidden)]
     pub templates: HashMap<String, Template>,
     #[doc(hidden)]
-    pub filters: HashMap<String, FilterFn>,
+    pub filters: HashMap<String, Arc<dyn Filter>>,
     #[doc(hidden)]
-    pub testers: HashMap<String, TesterFn>,
+    pub testers: HashMap<String, Arc<dyn Test>>,
     #[doc(hidden)]
-    pub global_functions: HashMap<String, GlobalFn>,
+    pub functions: HashMap<String, Arc<dyn Function>>,
     // Which extensions does Tera automatically autoescape on.
     // Defaults to [".html", ".htm", ".xml"]
     #[doc(hidden)]
@@ -43,14 +44,17 @@ pub struct Tera {
 impl Tera {
     fn create(dir: &str, parse_only: bool) -> Result<Tera> {
         if dir.find('*').is_none() {
-            bail!("Tera expects a glob as input, no * were found in `{}`", dir);
+            return Err(Error::msg(format!(
+                "Tera expects a glob as input, no * were found in `{}`",
+                dir
+            )));
         }
 
         let mut tera = Tera {
             glob: Some(dir.to_string()),
             templates: HashMap::new(),
             filters: HashMap::new(),
-            global_functions: HashMap::new(),
+            functions: HashMap::new(),
             testers: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
             escape_fn: escape_html,
@@ -68,8 +72,6 @@ impl Tera {
     }
 
     /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
-    ///
-    /// The example below is what the [compile_templates](macro.compile_templates.html) macros expands to.
     ///
     ///```ignore
     ///match Tera::new("templates/**/*") {
@@ -107,7 +109,7 @@ impl Tera {
     /// Loads all the templates found in the glob that was given to Tera::new
     fn load_from_glob(&mut self) -> Result<()> {
         if self.glob.is_none() {
-            bail!("Tera can only load from glob if a glob is provided");
+            return Err(Error::msg("Tera can only load from glob if a glob is provided"));
         }
         // We want to preserve templates that have been added through
         // Tera::extend so we only keep those
@@ -121,18 +123,23 @@ impl Tera {
         let mut errors = String::new();
 
         let dir = self.glob.clone().unwrap();
+        // We clean the filename by removing the dir given
+        // to Tera so users don't have to prefix everytime
+        let mut parent_dir = dir.split_at(dir.find('*').unwrap()).0;
+        // Remove `./` from the glob if used as it would cause an error in strip_prefix
+        if parent_dir.starts_with("./") {
+            parent_dir = &parent_dir[2..];
+        }
+
         // We are parsing all the templates on instantiation
-        for entry in glob(&dir).unwrap().filter_map(|e| e.ok()) {
-            let path = entry.as_path();
+        for entry in glob(&dir).unwrap().filter_map(std::result::Result::ok) {
+            let mut path = entry.into_path();
             // We only care about actual files
             if path.is_file() {
-                // We clean the filename by removing the dir given
-                // to Tera so users don't have to prefix everytime
-                let mut parent_dir = dir.split_at(dir.find('*').unwrap()).0;
-                // Remove `./` from the glob if used as it would cause an error in strip_prefix
-                if parent_dir.starts_with("./") {
-                    parent_dir = &parent_dir[2..];
+                if path.starts_with("./") {
+                    path = path.strip_prefix("./").unwrap().to_path_buf();
                 }
+
                 let filepath = path
                     .strip_prefix(&parent_dir)
                     .unwrap()
@@ -141,16 +148,20 @@ impl Tera {
                     .replace("\\", "/");
 
                 if let Err(e) = self.add_file(Some(&filepath), path) {
+                    use std::error::Error;
+
                     errors += &format!("\n* {}", e);
-                    for e in e.iter().skip(1) {
+                    let mut cause = e.source();
+                    while let Some(e) = cause {
                         errors += &format!("\n{}", e);
+                        cause = e.source();
                     }
                 }
             }
         }
 
         if !errors.is_empty() {
-            bail!(errors);
+            return Err(Error::msg(errors));
         }
 
         Ok(())
@@ -163,15 +174,15 @@ impl Tera {
         let path = path.as_ref();
         let tpl_name = name.unwrap_or_else(|| path.to_str().unwrap());
 
-        let mut f =
-            File::open(path).chain_err(|| format!("Couldn't open template '{:?}'", path))?;
+        let mut f = File::open(path)
+            .map_err(|e| Error::chain(format!("Couldn't open template '{:?}'", path), e))?;
 
         let mut input = String::new();
         f.read_to_string(&mut input)
-            .chain_err(|| format!("Failed to read template '{:?}'", path))?;
+            .map_err(|e| Error::chain(format!("Failed to read template '{:?}'", path), e))?;
 
         let tpl = Template::new(tpl_name, Some(path.to_str().unwrap().to_string()), &input)
-            .chain_err(|| format!("Failed to parse {:?}", path))?;
+            .map_err(|e| Error::chain(format!("Failed to parse {:?}", path), e))?;
 
         self.templates.insert(tpl_name.to_string(), tpl);
         Ok(())
@@ -195,11 +206,7 @@ impl Tera {
             mut parents: Vec<String>,
         ) -> Result<Vec<String>> {
             if !parents.is_empty() && start.name == template.name {
-                bail!(
-                    "Circular extend detected for template '{}'. Inheritance chain: `{:?}`",
-                    start.name,
-                    parents,
-                );
+                return Err(Error::circular_extend(&start.name, parents));
             }
 
             match template.parent {
@@ -208,10 +215,7 @@ impl Tera {
                         parents.push(parent.name.clone());
                         build_chain(templates, start, parent, parents)
                     }
-                    None => bail!(
-                        "Template '{}' is inheriting from '{}', which doesn't exist or isn't loaded.",
-                        template.name, p,
-                    ),
+                    None => Err(Error::missing_parent(&template.name, &p)),
                 },
                 None => Ok(parents),
             }
@@ -234,12 +238,7 @@ impl Tera {
 
                 // and then see if our parents have it
                 for parent in &parents {
-                    let t = self.get_template(parent).chain_err(|| {
-                        format!(
-                            "Couldn't find template {} while building inheritance chains",
-                            parent,
-                        )
-                    })?;
+                    let t = self.get_template(parent)?;
 
                     if let Some(b) = t.blocks.get(block_name) {
                         definitions.push((t.name.clone(), b.clone()));
@@ -278,11 +277,10 @@ impl Tera {
         for template in self.templates.values() {
             for &(ref tpl_name, _) in &template.imported_macro_files {
                 if !self.templates.contains_key(tpl_name) {
-                    bail!(
+                    return Err(Error::msg(format!(
                         "Template `{}` loads macros from `{}` which isn't present in Tera",
-                        template.name,
-                        tpl_name
-                    );
+                        template.name, tpl_name
+                    )));
                 }
             }
         }
@@ -290,39 +288,25 @@ impl Tera {
         Ok(())
     }
 
-    /// Renders a Tera template given an object that implements `Serialize`.
+    /// Renders a Tera template given a `tera::Context`,
     ///
-    /// To render a template with an empty context, simply pass a new `Context` object
-    ///
-    /// If `data` is serializing to an object, an error will be returned.
+    /// To render a template with an empty context, simply pass a new `tera::Context` object
     ///
     /// ```rust,ignore
     /// // Rendering a template with a normal context
     /// let mut context = Context::new();
     /// context.insert("age", 18);
-    /// tera.render("hello.html", &context);
-    /// // Rendering a template with a struct that impl `Serialize`
-    /// tera.render("hello.html", &product);
+    /// tera.render("hello.html", context);
     /// // Rendering a template with an empty context
-    /// tera.render("hello.html", &Context::new());
+    /// tera.render("hello.html", Context::new());
     /// ```
-    pub fn render<T: Serialize>(&self, template_name: &str, data: &T) -> Result<String> {
-        let value = to_value(data)?;
-        if !value.is_object() {
-            bail!(
-                "Failed to render '{}': context isn't a JSON object. \
-                The value passed needs to be a key-value object: context, struct, hashmap for example.",
-                template_name
-            );
-        }
-
+    pub fn render(&self, template_name: &str, context: &Context) -> Result<String> {
         let template = self.get_template(template_name)?;
-        let renderer = Renderer::new(template, self, value);
+        let renderer = Renderer::new(template, self, context);
         renderer.render()
     }
 
     /// Renders a one off template (for example a template coming from a user input) given a `Context`
-    /// or an object that implements `Serialize`.
     ///
     /// This creates a separate instance of Tera with no possibilities of adding custom filters
     /// or testers, parses the template and render it immediately.
@@ -333,17 +317,15 @@ impl Tera {
     /// let mut context = Context::new();
     /// context.insert("greeting", &"hello");
     /// Tera::one_off("{{ greeting }} world", &context, true);
-    /// // Or with a struct that impl Serialize
-    /// Tera::one_off("{{ greeting }} world", &user, true);
     /// ```
-    pub fn one_off<T: Serialize>(input: &str, data: &T, autoescape: bool) -> Result<String> {
+    pub fn one_off(input: &str, context: &Context, autoescape: bool) -> Result<String> {
         let mut tera = Tera::default();
         tera.add_raw_template("one_off", input)?;
         if autoescape {
             tera.autoescape_on(vec!["one_off"]);
         }
 
-        tera.render("one_off", data)
+        tera.render("one_off", &context)
     }
 
     #[doc(hidden)]
@@ -351,7 +333,7 @@ impl Tera {
     pub fn get_template(&self, template_name: &str) -> Result<&Template> {
         match self.templates.get(template_name) {
             Some(tpl) => Ok(tpl),
-            None => bail!("Template '{}' not found", template_name),
+            None => Err(Error::template_not_found(template_name)),
         }
     }
 
@@ -359,14 +341,14 @@ impl Tera {
     ///
     /// This will error if the inheritance chain can't be built, such as adding a child
     /// template without the parent one.
-    /// If you want to add several templates, use [Tera::add_templates](struct.Tera.html#method.add_templates)
+    /// If you want to add several templates, use [Tera::add_templates](struct.Tera.html#method.add_raw_templates)
     ///
     /// ```rust,ignore
-    /// tera.add_template("new.html", "Blabla");
+    /// tera.add_raw_template("new.html", "Blabla");
     /// ```
     pub fn add_raw_template(&mut self, name: &str, content: &str) -> Result<()> {
         let tpl = Template::new(name, None, content)
-            .chain_err(|| format!("Failed to parse '{}'", name))?;
+            .map_err(|e| Error::chain(format!("Failed to parse '{}'", name), e))?;
         self.templates.insert(name.to_string(), tpl);
         self.build_inheritance_chains()?;
         self.check_macro_files()?;
@@ -387,7 +369,7 @@ impl Tera {
     pub fn add_raw_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()> {
         for (name, content) in templates {
             let tpl = Template::new(name, None, content)
-                .chain_err(|| format!("Failed to parse '{}'", name))?;
+                .map_err(|e| Error::chain(format!("Failed to parse '{}'", name), e))?;
             self.templates.insert(name.to_string(), tpl);
         }
         self.build_inheritance_chains()?;
@@ -406,7 +388,7 @@ impl Tera {
     /// // Use path as name
     /// tera.add_template_file(path, None);
     /// // Rename
-    /// tera.add_template_file(path, Some("index");
+    /// tera.add_template_file(path, Some("index"));
     /// ```
     pub fn add_template_file<P: AsRef<Path>>(&mut self, path: P, name: Option<&str>) -> Result<()> {
         self.add_file(name, path)?;
@@ -441,10 +423,10 @@ impl Tera {
 
     #[doc(hidden)]
     #[inline]
-    pub fn get_filter(&self, filter_name: &str) -> Result<&FilterFn> {
+    pub fn get_filter(&self, filter_name: &str) -> Result<&dyn Filter> {
         match self.filters.get(filter_name) {
-            Some(fil) => Ok(fil),
-            None => bail!("Filter '{}' not found", filter_name),
+            Some(fil) => Ok(&**fil),
+            None => Err(Error::filter_not_found(filter_name)),
         }
     }
 
@@ -455,16 +437,16 @@ impl Tera {
     /// ```rust,ignore
     /// tera.register_filter("upper", string::upper);
     /// ```
-    pub fn register_filter(&mut self, name: &str, filter: FilterFn) {
-        self.filters.insert(name.to_string(), filter);
+    pub fn register_filter<F: Filter + 'static>(&mut self, name: &str, filter: F) {
+        self.filters.insert(name.to_string(), Arc::new(filter));
     }
 
     #[doc(hidden)]
     #[inline]
-    pub fn get_tester(&self, tester_name: &str) -> Result<&TesterFn> {
+    pub fn get_tester(&self, tester_name: &str) -> Result<&dyn Test> {
         match self.testers.get(tester_name) {
-            Some(t) => Ok(t),
-            None => bail!("Tester '{}' not found", tester_name),
+            Some(t) => Ok(&**t),
+            None => Err(Error::test_not_found(tester_name)),
         }
     }
 
@@ -475,38 +457,17 @@ impl Tera {
     /// ```rust,ignore
     /// tera.register_tester("odd", testers::odd);
     /// ```
-    pub fn register_tester(&mut self, name: &str, tester: TesterFn) {
-        self.testers.insert(name.to_string(), tester);
+    pub fn register_tester<T: Test + 'static>(&mut self, name: &str, tester: T) {
+        self.testers.insert(name.to_string(), Arc::new(tester));
     }
 
     #[doc(hidden)]
     #[inline]
-    #[deprecated(since = "0.11.16", note = "Use `get_function` instead")]
-    pub fn get_global_function(&self, fn_name: &str) -> Result<&GlobalFn> {
-        match self.global_functions.get(fn_name) {
-            Some(t) => Ok(t),
-            None => bail!("Global function '{}' not found", fn_name),
+    pub fn get_function(&self, fn_name: &str) -> Result<&dyn Function> {
+        match self.functions.get(fn_name) {
+            Some(t) => Ok(&**t),
+            None => Err(Error::function_not_found(fn_name)),
         }
-    }
-
-    #[doc(hidden)]
-    #[inline]
-    pub fn get_function(&self, fn_name: &str) -> Result<&GlobalFn> {
-        match self.global_functions.get(fn_name) {
-            Some(t) => Ok(t),
-            None => bail!("Global function '{}' not found", fn_name),
-        }
-    }
-    /// Register a global function with Tera.
-    ///
-    /// If a global function with that name already exists, it will be overwritten
-    ///
-    /// ```rust,ignore
-    /// tera.register_global_function("range", range);
-    /// ```
-    #[deprecated(since = "0.11.16", note = "Use `register_function` instead")]
-    pub fn register_global_function(&mut self, name: &str, function: GlobalFn) {
-        self.global_functions.insert(name.to_string(), function);
     }
 
     /// Register a function with Tera.
@@ -516,41 +477,53 @@ impl Tera {
     /// ```rust,ignore
     /// tera.register_function("range", range);
     /// ```
-    pub fn register_function(&mut self, name: &str, function: GlobalFn) {
-        self.global_functions.insert(name.to_string(), function);
+    pub fn register_function<F: Function + 'static>(&mut self, name: &str, function: F) {
+        self.functions.insert(name.to_string(), Arc::new(function));
     }
 
     fn register_tera_filters(&mut self) {
         self.register_filter("upper", string::upper);
         self.register_filter("lower", string::lower);
         self.register_filter("trim", string::trim);
+        #[cfg(feature = "builtins")]
         self.register_filter("truncate", string::truncate);
         self.register_filter("wordcount", string::wordcount);
         self.register_filter("replace", string::replace);
         self.register_filter("capitalize", string::capitalize);
         self.register_filter("title", string::title);
         self.register_filter("striptags", string::striptags);
+        #[cfg(feature = "builtins")]
         self.register_filter("urlencode", string::urlencode);
         self.register_filter("escape", string::escape_html);
+        self.register_filter("escape_xml", string::escape_xml);
+        #[cfg(feature = "builtins")]
         self.register_filter("slugify", string::slugify);
         self.register_filter("addslashes", string::addslashes);
         self.register_filter("split", string::split);
+        self.register_filter("int", string::int);
+        self.register_filter("float", string::float);
 
         self.register_filter("first", array::first);
         self.register_filter("last", array::last);
+        self.register_filter("nth", array::nth);
         self.register_filter("join", array::join);
         self.register_filter("sort", array::sort);
+        self.register_filter("unique", array::unique);
         self.register_filter("slice", array::slice);
         self.register_filter("group_by", array::group_by);
         self.register_filter("filter", array::filter);
+        self.register_filter("map", array::map);
         self.register_filter("concat", array::concat);
 
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
+
+        #[cfg(feature = "builtins")]
         self.register_filter("filesizeformat", number::filesizeformat);
 
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
+        #[cfg(feature = "builtins")]
         self.register_filter("date", common::date);
         self.register_filter("json_encode", common::json_encode);
         self.register_filter("as_str", common::as_str);
@@ -567,6 +540,7 @@ impl Tera {
         self.register_tester("number", testers::number);
         self.register_tester("divisibleby", testers::divisible_by);
         self.register_tester("iterable", testers::iterable);
+        self.register_tester("object", testers::object);
         self.register_tester("starting_with", testers::starting_with);
         self.register_tester("ending_with", testers::ending_with);
         self.register_tester("containing", testers::containing);
@@ -574,9 +548,13 @@ impl Tera {
     }
 
     fn register_tera_functions(&mut self) {
-        self.register_function("range", functions::make_range_fn());
-        self.register_function("now", functions::make_now_fn());
-        self.register_function("throw", functions::make_throw_fn());
+        self.register_function("range", functions::range);
+        #[cfg(feature = "builtins")]
+        self.register_function("now", functions::now);
+        self.register_function("throw", functions::throw);
+        #[cfg(feature = "builtins")]
+        self.register_function("get_random", functions::get_random);
+        self.register_function("get_env", functions::get_env);
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on,
@@ -634,7 +612,7 @@ impl Tera {
         if self.glob.is_some() {
             self.load_from_glob()?;
         } else {
-            bail!("Reloading is only available if you are using a glob");
+            return Err(Error::msg("Reloading is only available if you are using a glob"));
         }
 
         self.build_inheritance_chains()?;
@@ -661,13 +639,13 @@ impl Tera {
 
         for (name, filter) in &other.filters {
             if !self.filters.contains_key(name) {
-                self.filters.insert(name.to_string(), *filter);
+                self.filters.insert(name.to_string(), filter.clone());
             }
         }
 
         for (name, tester) in &other.testers {
             if !self.testers.contains_key(name) {
-                self.testers.insert(name.to_string(), *tester);
+                self.testers.insert(name.to_string(), tester.clone());
             }
         }
 
@@ -683,7 +661,7 @@ impl Default for Tera {
             templates: HashMap::new(),
             filters: HashMap::new(),
             testers: HashMap::new(),
-            global_functions: HashMap::new(),
+            functions: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
             escape_fn: escape_html,
         };
@@ -724,9 +702,14 @@ impl fmt::Debug for Tera {
 
 #[cfg(test)]
 mod tests {
+    use tempfile::tempdir;
+
+    use std::collections::HashMap;
+    use std::fs::File;
+
     use super::Tera;
-    use context::Context;
-    use serde_json::{Map as JsonObject, Value as JsonValue};
+    use crate::context::Context;
+    use serde_json::{json, Value as JsonValue};
 
     #[test]
     fn test_get_inheritance_chain() {
@@ -743,11 +726,8 @@ mod tests {
             tera.get_template("a").unwrap().parents,
             vec!["b".to_string(), "c".to_string(), "d".to_string()]
         );
-
         assert_eq!(tera.get_template("b").unwrap().parents, vec!["c".to_string(), "d".to_string()]);
-
         assert_eq!(tera.get_template("c").unwrap().parents, vec!["d".to_string()]);
-
         assert_eq!(tera.get_template("d").unwrap().parents.len(), 0);
     }
 
@@ -755,7 +735,7 @@ mod tests {
     fn test_missing_parent_template() {
         let mut tera = Tera::default();
         assert_eq!(
-            tera.add_raw_template("a", "{% extends \"b\" %}").unwrap_err().description(),
+            tera.add_raw_template("a", "{% extends \"b\" %}").unwrap_err().to_string(),
             "Template \'a\' is inheriting from \'b\', which doesn\'t exist or isn\'t loaded."
         );
     }
@@ -767,7 +747,7 @@ mod tests {
             .add_raw_templates(vec![("a", "{% extends \"b\" %}"), ("b", "{% extends \"a\" %}")])
             .unwrap_err();
 
-        assert!(err.description().contains("Circular extend detected for template"));
+        assert!(err.to_string().contains("Circular extend detected for template"));
     }
 
     #[test]
@@ -882,9 +862,11 @@ mod tests {
 
     #[test]
     fn test_value_one_off_template() {
-        let mut context = JsonObject::new();
-        context.insert("greeting".to_string(), JsonValue::String("Good morning".to_string()));
-        let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
+        let m = json!({
+            "greeting": "Good morning"
+        });
+        let result =
+            Tera::one_off("{{ greeting }} world", &Context::from_value(m).unwrap(), true).unwrap();
 
         assert_eq!(result, "Good morning world");
     }
@@ -935,7 +917,9 @@ mod tests {
     fn test_extend_new_filter() {
         let mut my_tera = Tera::default();
         let mut framework_tera = Tera::default();
-        framework_tera.register_filter("hello", my_tera.filters["first"]);
+        framework_tera.register_filter("hello", |_: &JsonValue, _: &HashMap<String, JsonValue>| {
+            Ok(JsonValue::Number(10.into()))
+        });
         my_tera.extend(&framework_tera).unwrap();
         assert!(my_tera.filters.contains_key("hello"));
     }
@@ -944,7 +928,7 @@ mod tests {
     fn test_extend_new_tester() {
         let mut my_tera = Tera::default();
         let mut framework_tera = Tera::default();
-        framework_tera.register_tester("hello", my_tera.testers["divisibleby"]);
+        framework_tera.register_tester("hello", |_: Option<&JsonValue>, _: &[JsonValue]| Ok(true));
         my_tera.extend(&framework_tera).unwrap();
         assert!(my_tera.testers.contains_key("hello"));
     }
@@ -952,6 +936,12 @@ mod tests {
     #[test]
     fn can_load_from_glob() {
         let tera = Tera::new("examples/basic/templates/**/*").unwrap();
+        assert!(tera.get_template("base.html").is_ok());
+    }
+
+    #[test]
+    fn can_load_from_glob_with_patterns() {
+        let tera = Tera::new("examples/basic/templates/**/*.{html, xml}").unwrap();
         assert!(tera.get_template("base.html").is_ok());
     }
 
@@ -990,5 +980,80 @@ mod tests {
         // Will panic here as we changed the parent and it won't be able
         // to build the inheritance chain in this case
         tera.build_inheritance_chains().unwrap();
+    }
+
+    // https://github.com/Keats/tera/issues/380
+    #[test]
+    fn glob_work_with_absolute_paths() {
+        let tmp_dir = tempdir().expect("create temp dir");
+        let cwd = tmp_dir.path().canonicalize().unwrap();
+        File::create(cwd.join("hey.html")).expect("Failed to create a test file");
+        File::create(cwd.join("ho.html")).expect("Failed to create a test file");
+        let glob = cwd.join("*.html").into_os_string().into_string().unwrap();
+        let tera = Tera::new(&glob).expect("Couldn't build Tera instance");
+        assert_eq!(tera.templates.len(), 2);
+    }
+
+    #[test]
+    fn glob_work_with_absolute_paths_and_double_star() {
+        let tmp_dir = tempdir().expect("create temp dir");
+        let cwd = tmp_dir.path().canonicalize().unwrap();
+        File::create(cwd.join("hey.html")).expect("Failed to create a test file");
+        File::create(cwd.join("ho.html")).expect("Failed to create a test file");
+        let glob = cwd.join("**").join("*.html").into_os_string().into_string().unwrap();
+        let tera = Tera::new(&glob).expect("Couldn't build Tera instance");
+        assert_eq!(tera.templates.len(), 2);
+    }
+
+    // https://github.com/Keats/tera/issues/396
+    #[test]
+    fn issues_found_fuzzing_expressions_are_fixed() {
+        let samples: Vec<(&str, Option<&str>)> = vec![
+            // sample, expected result if it isn't an error
+            ("{{0%0}}", None),
+            ("{{W>W>vv}}{", None),
+            ("{{22220222222022222220}}", None),
+            ("{_{{W~1+11}}k{", None),
+            ("{{n~n<n.11}}}", None),
+            ("{{266314325266577770*4167}}7}}7", None),
+            ("{{0~1~``~0~0~177777777777777777777~``~0~0~h}}", None),
+        ];
+
+        for (sample, expected_output) in samples {
+            let res = Tera::one_off(sample, &Context::new(), true);
+            if let Some(output) = expected_output {
+                assert!(res.is_ok());
+                assert_eq!(res.unwrap(), output);
+            } else {
+                assert!(res.is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn issues_found_fuzzing_conditions_are_fixed() {
+        let samples: Vec<(&str, Option<&str>)> = vec![
+            // (sample, expected result if it isn't an error)
+            ("C~Q", None),
+            ("s is V*0", None),
+            ("x0x::N()", None),
+            // this is an issue in pest itself: https://github.com/pest-parser/pest/issues/402
+            //            ("_(p=__(p=[_(p=__(p=[_(p=[_(p=[_1", None),
+        ];
+
+        for (sample, expected_output) in samples {
+            println!("{}, {:?}", sample, expected_output);
+            let res = Tera::one_off(
+                &format!("{{% if {} %}}true{{% endif %}}", sample),
+                &Context::new(),
+                true,
+            );
+            if let Some(output) = expected_output {
+                assert!(res.is_ok());
+                assert_eq!(res.unwrap(), output);
+            } else {
+                assert!(res.is_err());
+            }
+        }
     }
 }
