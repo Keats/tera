@@ -1,6 +1,6 @@
 # Tera
 
-![](https://github.com/Keats/tera/workflows/.github/workflows/ci.yml/badge.svg)
+[![Actions Status](https://github.com/Keats/tera/workflows/ci/badge.svg)](https://github.com/Keats/tera/actions)
 [![Crates.io](https://img.shields.io/crates/v/tera.svg)](https://crates.io/crates/tera)
 [![Docs](https://docs.rs/tera/badge.svg)](https://docs.rs/crate/tera/)
 
