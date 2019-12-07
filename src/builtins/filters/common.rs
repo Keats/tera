@@ -70,9 +70,9 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     };
 
     let items: Vec<Item> = StrftimeItems::new(&format)
-        .filter_map(|item| match item {
-            Item::Error => Some(item),
-            _ => None,
+        .filter(|item| match item {
+            Item::Error => true,
+            _ => false,
         })
         .collect();
     if !items.is_empty() {

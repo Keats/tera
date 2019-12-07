@@ -194,7 +194,7 @@ impl<'a> StackFrame<'a> {
         let mut context = HashMap::new();
 
         for (key, val) in &self.context {
-            context.insert(key.to_string(), val.clone().into_owned());
+            context.insert((*key).to_string(), val.clone().into_owned());
         }
 
         context
