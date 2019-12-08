@@ -50,7 +50,7 @@ Assuming the Rust file is at the same level as the `templates` folder, we can ge
 use tera::Tera;
 
 // Use globbing
-let tera = match Tera::new("templates/**/*.htmnl") {
+let tera = match Tera::new("templates/**/*.html") {
     Ok(t) => t,
     Err(e) => {
         println!("Parsing error(s): {}", e);
