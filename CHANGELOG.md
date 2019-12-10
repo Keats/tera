@@ -16,6 +16,7 @@ the code already only really look there.
 - Escaping now happens before inserting the final result of an expression: no need anymore to add `| safe` everywhere,
 only at the last position
 - Remove `safe` argument of the urlencode filter, `/` is still escaped by default
+- The `compile_templates!` macro has been removed
 
 ### Others
 
