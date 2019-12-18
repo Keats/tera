@@ -62,7 +62,7 @@ pub fn round(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 /// Returns a human-readable file size (i.e. '110 MB') from an integer
 #[cfg(feature = "builtins")]
 pub fn filesizeformat(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
-    let num = try_get_value!("filesizeformat", "value", i64, value);
+    let num = try_get_value!("filesizeformat", "value", usize, value);
     num.file_size(file_size_opts::CONVENTIONAL)
         .or_else(|_| {
             Err(Error::msg(format!(
