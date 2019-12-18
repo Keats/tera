@@ -194,7 +194,7 @@ endraw_tag = { tag_start ~ "endraw" ~ tag_end }
 raw_text   = { (!endraw_tag ~ ANY)* }
 raw        = !{ raw_tag ~ raw_text ~ endraw_tag }
 
-filter_section = !{ filter_tag ~ filter_section_content* ~ endfilter_tag }
+filter_section = ${ filter_tag ~ filter_section_content* ~ endfilter_tag }
 
 forloop = ${ for_tag ~ for_content* ~ (else_tag ~ for_content*)* ~ endfor_tag }
 
