@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 (2019-12-18)
+
+- Fix filter sections not keeping whitespaces
+- The filesizeformat filter now takes a usize instead of a i64: no changes to behaviour
+
 ## 1.0.0 (2019-12-07)
 
 ### Breaking changes
