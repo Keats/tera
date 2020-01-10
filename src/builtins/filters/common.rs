@@ -15,11 +15,12 @@ use serde_json::{to_string, to_string_pretty};
 
 use crate::context::ValueRender;
 
-// Returns the number of items in an array or the number of characters in a string.
-// Returns 0 if not an array or string.
+// Returns the number of items in an array or an object, or the number of characters in a string.
+// Returns 0 for other types.
 pub fn length(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     match value {
         Value::Array(arr) => Ok(to_value(&arr.len()).unwrap()),
+        Value::Object(m) => Ok(to_value(&m.len()).unwrap()),
         Value::String(s) => Ok(to_value(&s.chars().count()).unwrap()),
         _ => Ok(to_value(0).unwrap()),
     }
