@@ -177,6 +177,15 @@ mod tests {
     }
 
     #[test]
+    fn length_object() {
+        let mut map: HashMap<String, String> = HashMap::new();
+        map.insert("foo".to_string(), "bar".to_string());
+        let result = length(&to_value(&map).unwrap(), &HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(&1).unwrap());
+    }
+
+    #[test]
     fn length_str() {
         let result = length(&to_value(&"Hello World").unwrap(), &HashMap::new());
         assert!(result.is_ok());
@@ -193,8 +202,7 @@ mod tests {
     #[test]
     fn length_num() {
         let result = length(&to_value(&15).unwrap(), &HashMap::new());
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&0).unwrap());
+        assert!(result.is_err());
     }
 
     #[test]
