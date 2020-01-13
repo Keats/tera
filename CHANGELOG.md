@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2 (2020-01-13)
+
+- Length filter now errors for things other than array, objects and strings. The fact that it was returning 0 before
+for other types was something that should have been fixed before 1.0 but got forgotten and was considered a bug.
+
+
 ## 1.0.1 (2019-12-18)
 
 - Fix filter sections not keeping whitespaces
