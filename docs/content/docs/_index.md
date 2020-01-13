@@ -811,7 +811,7 @@ Example: `{{ value | join(sep=" // ") }}`
 If value is the array `['a', 'b', 'c']`, the output will be the string "a // b // c".
 
 #### length
-Returns the length of an array or a string, 0 if the value is not an array.
+Returns the length of an array, an object, or a string.
 
 #### reverse
 Returns a reversed string or array.

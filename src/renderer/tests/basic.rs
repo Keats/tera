@@ -95,6 +95,7 @@ fn render_variable_block_ident() {
         ("{{ malicious | upper }}", "&lt;HTML&gt;"),
         ("{{ malicious | upper | safe }}", "<HTML>"),
         ("{{ malicious | safe | upper }}", "&lt;HTML&gt;"),
+        ("{{ review | length }}", "2"),
         ("{{ review.paragraphs.1 }}", "B"),
         ("{{ numbers }}", "[1, 2, 3]"),
         ("{{ numbers.0 }}", "1"),
