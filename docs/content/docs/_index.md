@@ -98,7 +98,7 @@ struct Product {
     name: String
 }
 // or a struct
-tera.render("products/product.html", &Context::from_serialize(&product))?;
+tera.render("products/product.html", &Context::from_serialize(&product)?)?;
 ```
 
 ## Auto-escaping
