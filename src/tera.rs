@@ -16,6 +16,9 @@ use crate::renderer::Renderer;
 use crate::template::Template;
 use crate::utils::escape_html;
 
+/// The of the the template used for `Tera::render_str` and `Tera::one_off`.
+const ONE_OFF_TEMPLATE_NAME: &str = "__tera_one_off";
+
 /// The escape function type definition
 pub type EscapeFn = fn(&str) -> String;
 
@@ -306,11 +309,31 @@ impl Tera {
         renderer.render()
     }
 
+    /// Renders a one off template (for example a template coming from a user
+    /// input) given a `Context` and an instance of Tera. This allows you to
+    /// render templates using custom filters or functions.
+    ///
+    /// Any errors will mention the `__tera_one_off` template: this is the name
+    /// given to the template by Tera.
+    ///
+    /// ```rust,ignore
+    /// let mut context = Context::new();
+    /// context.insert("greeting", &"Hello");
+    /// let string = tera.render_str("{{ greeting }} World!", &context)?;
+    /// assert_eq!(string, "Hello World!");
+    /// ```
+    pub fn render_str(&mut self, input: &str, context: &Context) -> Result<String> {
+        self.add_raw_template(ONE_OFF_TEMPLATE_NAME, input)?;
+        let string = self.render(ONE_OFF_TEMPLATE_NAME, &context)?;
+        self.templates.remove(ONE_OFF_TEMPLATE_NAME);
+        Ok(string)
+    }
+
     /// Renders a one off template (for example a template coming from a user input) given a `Context`
     ///
     /// This creates a separate instance of Tera with no possibilities of adding custom filters
     /// or testers, parses the template and render it immediately.
-    /// Any errors will mention the `one_off` template: this is the name given to the template by
+    /// Any errors will mention the `__tera_one_off` template: this is the name given to the template by
     /// Tera
     ///
     /// ```rust,ignore
@@ -320,12 +343,12 @@ impl Tera {
     /// ```
     pub fn one_off(input: &str, context: &Context, autoescape: bool) -> Result<String> {
         let mut tera = Tera::default();
-        tera.add_raw_template("one_off", input)?;
+
         if autoescape {
-            tera.autoescape_on(vec!["one_off"]);
+            tera.autoescape_on(vec![ONE_OFF_TEMPLATE_NAME]);
         }
 
-        tera.render("one_off", &context)
+        tera.render_str(input, context)
     }
 
     #[doc(hidden)]
@@ -869,6 +892,19 @@ mod tests {
             Tera::one_off("{{ greeting }} world", &Context::from_value(m).unwrap(), true).unwrap();
 
         assert_eq!(result, "Good morning world");
+    }
+
+    #[test]
+    fn test_render_str_with_custom_function() {
+        let mut tera = Tera::default();
+        tera.register_function("echo", |args: &HashMap<_, JsonValue>| {
+            Ok(args.get("greeting").map(JsonValue::to_owned).unwrap())
+        });
+
+        let result =
+            tera.render_str("{{ echo(greeting='Hello') }} world", &Context::default()).unwrap();
+
+        assert_eq!(result, "Hello world");
     }
 
     #[test]
