@@ -324,9 +324,9 @@ impl Tera {
     /// ```
     pub fn render_str(&mut self, input: &str, context: &Context) -> Result<String> {
         self.add_raw_template(ONE_OFF_TEMPLATE_NAME, input)?;
-        let string = self.render(ONE_OFF_TEMPLATE_NAME, &context)?;
+        let result = self.render(ONE_OFF_TEMPLATE_NAME, &context);
         self.templates.remove(ONE_OFF_TEMPLATE_NAME);
-        Ok(string)
+        result
     }
 
     /// Renders a one off template (for example a template coming from a user input) given a `Context`
