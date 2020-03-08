@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0 (2020-03-08)
+
+- Add Tera::render_str, like Tera::one_off but can use an existing Tera instance
+
 ## 1.0.2 (2020-01-13)
 
 - Length filter now errors for things other than array, objects and strings. The fact that it was returning 0 before
