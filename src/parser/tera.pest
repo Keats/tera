@@ -213,7 +213,7 @@ filter_section_content = @{
     comment_tag |
     set_tag |
     set_global_tag |
-     block |
+    block |
     forloop |
     filter_section_if |
     raw |
