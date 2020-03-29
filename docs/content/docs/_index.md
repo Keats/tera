@@ -404,6 +404,15 @@ tags where `name` is the name of the filter:
 
 This example transforms the text `Hello` in all upper-case (`HELLO`).
 
+Filter sections can also contain [`block` sections](@/docs/_index.md#inheritance) like this:
+```jinja2
+{% filter upper %}
+  {% block content_to_be_upper_cased %}
+    This will be upper-cased
+  {% endblock content_to_be_upper_cased %} 
+{% endfilter %}
+```
+
 ### Tests
 
 Tests can be used against an expression to check some condition on it and

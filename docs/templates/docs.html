@@ -7,7 +7,7 @@
     <div class="container">
         <nav class="docs__sidebar">
             <ul>
-                {% for h1 in toc %}
+                {% for h1 in section.toc %}
                     {% set index = loop.index %}
                     <li>
                         <a href="{{ h1.permalink }}">{{ h1.title }}</a>
