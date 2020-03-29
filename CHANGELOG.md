@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 (2020-03-29)
+
+- Add `trim_start`, `trim_end`, `trim_start_matches` and `trim_end_matches` filters
+- Allow blocks in filter sections
+
 ## 1.1.0 (2020-03-08)
 
 - Add Tera::render_str, like Tera::one_off but can use an existing Tera instance
