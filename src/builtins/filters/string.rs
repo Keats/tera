@@ -88,6 +88,56 @@ pub fn trim(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(&s.trim()).unwrap())
 }
 
+/// Strip leading whitespace.
+pub fn trim_start(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("trim_start", "value", String, value);
+
+    Ok(to_value(&s.trim_start()).unwrap())
+}
+
+/// Strip trailing whitespace.
+pub fn trim_end(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("trim_end", "value", String, value);
+
+    Ok(to_value(&s.trim_end()).unwrap())
+}
+
+/// Strip leading characters that match the given pattern.
+pub fn trim_start_matches(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("trim_start_matches", "value", String, value);
+
+    let pat = match args.get("pat") {
+        Some(pat) => {
+            let p = try_get_value!("trim_start_matches", "pat", String, pat);
+            // When reading from a file, it will escape `\n` to `\\n` for example so we need
+            // to replace double escape. In practice it might cause issues if someone wants to split
+            // by `\\n` for real but that seems pretty unlikely
+            p.replace("\\n", "\n").replace("\\t", "\t")
+        }
+        None => return Err(Error::msg("Filter `trim_start_matches` expected an arg called `pat`")),
+    };
+
+    Ok(to_value(s.trim_start_matches(&pat)).unwrap())
+}
+
+/// Strip trailing characters that match the given pattern.
+pub fn trim_end_matches(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("trim_end_matches", "value", String, value);
+
+    let pat = match args.get("pat") {
+        Some(pat) => {
+            let p = try_get_value!("trim_end_matches", "pat", String, pat);
+            // When reading from a file, it will escape `\n` to `\\n` for example so we need
+            // to replace double escape. In practice it might cause issues if someone wants to split
+            // by `\\n` for real but that seems pretty unlikely
+            p.replace("\\n", "\n").replace("\\t", "\t")
+        }
+        None => return Err(Error::msg("Filter `trim_end_matches` expected an arg called `pat`")),
+    };
+
+    Ok(to_value(s.trim_end_matches(&pat)).unwrap())
+}
+
 /// Truncates a string to the indicated length.
 ///
 /// # Arguments
@@ -351,6 +401,52 @@ mod tests {
         let result = trim(&to_value("  hello  ").unwrap(), &HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("hello").unwrap());
+    }
+
+    #[test]
+    fn test_trim_start() {
+        let result = trim_start(&to_value("  hello  ").unwrap(), &HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("hello  ").unwrap());
+    }
+
+    #[test]
+    fn test_trim_end() {
+        let result = trim_end(&to_value("  hello  ").unwrap(), &HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("  hello").unwrap());
+    }
+
+    #[test]
+    fn test_trim_start_matches() {
+        let tests: Vec<(_, _, _)> = vec![
+            ("/a/b/cde/", "/", "a/b/cde/"),
+            ("\nhello\nworld\n", "\n", "hello\nworld\n"),
+            (", hello, world, ", ", ", "hello, world, "),
+        ];
+        for (input, pat, expected) in tests {
+            let mut args = HashMap::new();
+            args.insert("pat".to_string(), to_value(pat).unwrap());
+            let result = trim_start_matches(&to_value(input).unwrap(), &args);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_trim_end_matches() {
+        let tests: Vec<(_, _, _)> = vec![
+            ("/a/b/cde/", "/", "/a/b/cde"),
+            ("\nhello\nworld\n", "\n", "\nhello\nworld"),
+            (", hello, world, ", ", ", ", hello, world"),
+        ];
+        for (input, pat, expected) in tests {
+            let mut args = HashMap::new();
+            args.insert("pat".to_string(), to_value(pat).unwrap());
+            let result = trim_end_matches(&to_value(input).unwrap(), &args);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
     }
 
     #[cfg(feature = "builtins")]

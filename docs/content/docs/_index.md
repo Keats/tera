@@ -766,6 +766,26 @@ If value is "foo  bar", the output will be "Foo  Bar".
 #### trim
 Remove leading and trailing whitespace if the variable is a string.
 
+#### trim_start
+Remove leading whitespace if the variable is a string.
+
+#### trim_end
+Remove trailing whitespace if the variable is a string.
+
+#### trim_start_matches
+Remove leading characters that match the given pattern if the variable is a string.
+
+Example: `{{ value | trim_start_matches(pat="//") }}`
+
+If value is "//a/b/c//", the output will be "a/b/c//".
+
+#### trim_end_matches
+Remove trailing characters that match the given pattern if the variable is a string.
+
+Example: `{{ value | trim_end_matches(pat="//") }}`
+
+If value is "//a/b/c//", the output will be "//a/b/c".
+
 #### truncate
 Only available if the `builtins` feature is enabled.
 
