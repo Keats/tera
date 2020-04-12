@@ -12,7 +12,7 @@ categories = ["template-engine"]
 edition = "2018"
 
 [dependencies]
-globwalk = "0.8"
+globwalk = {version = "0.8", optional = true}
 serde = "1.0"
 serde_json = "1.0"
 pest = "2"
@@ -41,9 +41,10 @@ pretty_assertions = "0.6"
 tempfile = "3"
 
 [features]
-default = ["builtins"]
+default = ["builtins", "globs"]
 builtins = ["slug", "percent-encoding", "humansize", "chrono", "chrono-tz", "unic-segment", "rand"]
 preserve_order = ["serde_json/preserve_order"]
+globs = ["globwalk"]
 
 [badges]
 maintenance = { status = "actively-developed" }

@@ -5,6 +5,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
 
+#[cfg(feature = "globs")]
 use globwalk::glob;
 
 use crate::builtins::filters::{array, common, number, object, string, Filter};
@@ -134,6 +135,7 @@ impl Tera {
             parent_dir = &parent_dir[2..];
         }
 
+        #[cfg(feature = "globs")]
         // We are parsing all the templates on instantiation
         for entry in glob(&dir).unwrap().filter_map(std::result::Result::ok) {
             let mut path = entry.into_path();
