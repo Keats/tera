@@ -65,7 +65,7 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
 
     if start > end {
         return Err(Error::msg(
-            "Function `range` was called without a `start` argument greater than the `end` one",
+            "Function `range` was called with a `start` argument greater than the `end` one",
         ));
     }
 
