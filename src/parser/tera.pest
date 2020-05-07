@@ -90,20 +90,21 @@ comparison_op   = _{ op_lte | op_gte | op_gt | op_lt | op_eq | op_ineq }
 comparison_expr = { (string_expr_filter | comparison_val) ~ (comparison_op ~ (string_expr_filter | comparison_val))? }
 
 // The `in` operator
-in_cond_container = {string_expr_filter | array | dotted_square_bracket_ident}
+in_cond_container = {string_expr_filter | array_filter | dotted_square_bracket_ident}
 in_cond = !{ (string_expr_filter | basic_expr_filter) ~ op_not? ~ "in" ~ in_cond_container }
 
 logic_val  = !{ op_not? ~ (in_cond | comparison_expr) }
 logic_expr = !{ logic_val ~ ((op_or | op_and) ~ logic_val)* }
 
 array = !{ "[" ~ (logic_val ~ ",")* ~ logic_val? ~ "]"}
+array_filter = !{ array ~ filter* }
 
 // ----------------------------------------------------
 
 /// FUNCTIONS & FILTERS
 
 // A keyword argument: something=10, something="a value", something=1+10 etc
-kwarg   = { ident ~ "=" ~ (logic_expr | array) }
+kwarg   = { ident ~ "=" ~ (logic_expr | array_filter) }
 kwargs  = _{ kwarg ~ ("," ~ kwarg )* }
 fn_call = { ident ~ "(" ~ kwargs? ~ ")" }
 filter  = { "|" ~ (fn_call | ident) }
@@ -127,7 +128,7 @@ macro_call      = { ident ~ "::" ~ ident ~ "(" ~ kwargs? ~ ")" }
 
 // It's a bit weird that tests are the only thing in Tera not using kwargs
 // but at the same time it's one arg most of the time so...
-test_arg  = { logic_expr | array }
+test_arg  = { logic_expr | array_filter }
 test_args = _{ test_arg ~ ("," ~ test_arg)* }
 test_call = !{ ident ~ ("(" ~ test_args ~ ")")? }
 test_not  = { dotted_ident ~ "is" ~ "not" ~ test_call }
@@ -158,7 +159,7 @@ elif_tag         = ${ tag_start ~ WHITESPACE* ~ "elif" ~ WHITESPACE+ ~ logic_exp
 else_tag         = !{ tag_start ~ "else" ~ tag_end }
 for_tag          = ${
     tag_start ~ WHITESPACE*
-    ~ "for"~ WHITESPACE+ ~ ident ~ ("," ~ WHITESPACE* ~ ident)? ~ WHITESPACE+ ~ "in" ~ WHITESPACE+ ~ (basic_expr_filter | array)
+    ~ "for"~ WHITESPACE+ ~ ident ~ ("," ~ WHITESPACE* ~ ident)? ~ WHITESPACE+ ~ "in" ~ WHITESPACE+ ~ (basic_expr_filter | array_filter)
     ~ WHITESPACE* ~ tag_end
 }
 filter_tag       = ${
@@ -168,12 +169,12 @@ filter_tag       = ${
 }
 set_tag          = ${
     tag_start ~ WHITESPACE*
-    ~ "set" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ "=" ~ WHITESPACE* ~ (logic_expr | array)
+    ~ "set" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ "=" ~ WHITESPACE* ~ (logic_expr | array_filter)
     ~ WHITESPACE* ~ tag_end
 }
 set_global_tag   = ${
     tag_start ~ WHITESPACE*
-    ~ "set_global" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ "=" ~ WHITESPACE* ~ (logic_expr | array)
+    ~ "set_global" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ "=" ~ WHITESPACE* ~ (logic_expr | array_filter)
     ~ WHITESPACE* ~ tag_end
 }
 endblock_tag     = !{ tag_start ~ "endblock" ~ ident? ~ tag_end }
