@@ -1039,7 +1039,9 @@ The `with` attribute is mandatory.
 #### urlencode
 Only available if the `builtins` feature is enabled.
 
-Percent-encodes a string.
+Percent-encodes all the characters in a string which are not included in
+unreserved chars(according to [RFC3986](https://tools.ietf.org/html/rfc3986)) with the exception of forward
+slash(`/`).
 
 Example: `{{ value | urlencode }}`
 
@@ -1048,11 +1050,12 @@ If value is `/foo?a=b&c=d`, the output will be `/foo%3Fa%3Db%26c%3Dd`. `/` is no
 #### urlencode_strict
 Only available if the `builtins` feature is enabled.
 
-Similar to `urlencode` filter, percent-encodes all non-alphanumeric characters in a string.
+Similar to `urlencode` filter but encodes all non-alphanumeric characters in a string including forward slashes (`/`).
 
 Example: `{{ value | urlencode_strict }}`
 
-If value is `/foo?a=b&c=d`, the output will be `%2Ffoo%3Fa%3Db%26c%3Dd`.
+If value is `/foo?a=b&c=d`, the output will be `%2Ffoo%3Fa%3Db%26c%3Dd`. `/` is
+also encoded.
 
 
 #### pluralize
