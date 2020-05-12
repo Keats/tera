@@ -519,6 +519,7 @@ fn parse_variable_tag(pair: Pair<Rule>) -> TeraResult<Node> {
                 ws.right = p.as_span().as_str() == "-}}";
             }
             Rule::logic_expr => expr = Some(parse_logic_expr(p)?),
+            Rule::array_filter => expr = Some(parse_array_with_filters(p)?),
             _ => unreachable!("unexpected {:?} rule in parse_variable_tag", p.as_rule()),
         }
     }

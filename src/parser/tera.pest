@@ -185,7 +185,7 @@ endfilter_tag    = !{ tag_start ~ "endfilter" ~ tag_end }
 break_tag        = !{ tag_start ~ "break" ~ tag_end }
 continue_tag     = !{ tag_start ~ "continue" ~ tag_end }
 
-variable_tag     = !{ variable_start ~ logic_expr ~ variable_end }
+variable_tag     = !{ variable_start ~ (logic_expr | array_filter) ~ variable_end }
 super_tag        = !{ variable_start ~ "super()" ~ variable_end }
 
 text       = ${ (!(block_start) ~ ANY)+ }

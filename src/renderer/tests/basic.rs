@@ -59,6 +59,7 @@ fn render_variable_block_lit_expr() {
         ("{{ true and 10 }}", "true"),
         ("{{ true and not 10 }}", "false"),
         ("{{ not true }}", "false"),
+        ("{{ [1, 2, 3] }}", "[1, 2, 3]"),
     ];
 
     for (input, expected) in inputs {
@@ -639,6 +640,7 @@ fn filter_on_array_literal_works() {
     context.insert("null", &i);
 
     let inputs = vec![
+        (r#"{{ [1, 2, 3] | length }}"#, "3"),
         (r#"{% set a = [1, 2, 3] | length %}{{ a }}"#, "3"),
         (r#"{% for a in [1, 2, 3] | slice(start=1) %}{{ a }}{% endfor %}"#, "23"),
     ];
