@@ -6,7 +6,7 @@ use regex::{Captures, Regex};
 use serde_json::value::{to_value, Value};
 
 #[cfg(feature = "builtins")]
-use percent_encoding::{percent_encode, AsciiSet};
+use percent_encoding::{percent_encode, AsciiSet, NON_ALPHANUMERIC};
 #[cfg(feature = "builtins")]
 use slug;
 #[cfg(feature = "builtins")]
@@ -221,6 +221,14 @@ pub fn capitalize(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 pub fn urlencode(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("urlencode", "value", String, value);
     let encoded = percent_encode(s.as_bytes(), &PYTHON_ENCODE_SET).to_string();
+    Ok(Value::String(encoded))
+}
+
+/// Percent-encodes all non-alphanumeric characters
+#[cfg(feature = "builtins")]
+pub fn urlencode_strict(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("urlencode_strict", "value", String, value);
+    let encoded = percent_encode(s.as_bytes(), &NON_ALPHANUMERIC).to_string();
     Ok(Value::String(encoded))
 }
 
@@ -600,6 +608,30 @@ mod tests {
         for (input, expected) in tests {
             let args = HashMap::new();
             let result = urlencode(&to_value(input).unwrap(), &args);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
+    }
+
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn test_urlencode_strict() {
+        let tests = vec![
+            (
+                r#"https://www.example.org/foo?a=b&c=d"#,
+                r#"https%3A%2F%2Fwww%2Eexample%2Eorg%2Ffoo%3Fa%3Db%26c%3Dd"#,
+            ),
+            (
+                r#"https://www.example.org/apples-&-oranges/"#,
+                r#"https%3A%2F%2Fwww%2Eexample%2Eorg%2Fapples%2D%26%2Doranges%2F"#,
+            ),
+            (r#"https://www.example.org/"#, r#"https%3A%2F%2Fwww%2Eexample%2Eorg%2F"#),
+            (r#"/test&"/me?/"#, r#"%2Ftest%26%22%2Fme%3F%2F"#),
+            (r#"escape/slash"#, r#"escape%2Fslash"#),
+        ];
+        for (input, expected) in tests {
+            let args = HashMap::new();
+            let result = urlencode_strict(&to_value(input).unwrap(), &args);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }

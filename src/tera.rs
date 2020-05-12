@@ -521,6 +521,8 @@ impl Tera {
         self.register_filter("striptags", string::striptags);
         #[cfg(feature = "builtins")]
         self.register_filter("urlencode", string::urlencode);
+        #[cfg(feature = "builtins")]
+        self.register_filter("urlencode_strict", string::urlencode_strict);
         self.register_filter("escape", string::escape_html);
         self.register_filter("escape_xml", string::escape_xml);
         #[cfg(feature = "builtins")]
