@@ -962,7 +962,7 @@ or by author name:
 Filter the array values, returning only the values where the `attribute` is equal to the `value`.
 Values with missing `attribute` or where `attribute` is null will be discarded.
 
-Both `attribute` and `value` are mandatory.
+`attribute` is mandatory.
 
 
 Example:
@@ -993,6 +993,8 @@ or by author name:
 ```jinja2
 {{ posts | filter(attribute="author.name", value="Vincent") }}
 ```
+
+If `value` is not passed, it will drop any elements where the attribute is `null`.
 
 #### map
 

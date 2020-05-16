@@ -116,9 +116,11 @@ fn parse_variable_tag_array_lit() {
         ast[0],
         Node::VariableBlock(
             WS::default(),
-            Expr::new(
-                ExprVal::Array(vec![Expr::new(ExprVal::Int(1)), Expr::new(ExprVal::Int(2)), Expr::new(ExprVal::Int(3))]),
-            )
+            Expr::new(ExprVal::Array(vec![
+                Expr::new(ExprVal::Int(1)),
+                Expr::new(ExprVal::Int(2)),
+                Expr::new(ExprVal::Int(3))
+            ]),)
         )
     );
 }
@@ -134,7 +136,11 @@ fn parse_variable_tag_array_lit_with_filter() {
         Node::VariableBlock(
             WS::default(),
             Expr::with_filters(
-                ExprVal::Array(vec![Expr::new(ExprVal::Int(1)), Expr::new(ExprVal::Int(2)), Expr::new(ExprVal::Int(3))]),
+                ExprVal::Array(vec![
+                    Expr::new(ExprVal::Int(1)),
+                    Expr::new(ExprVal::Int(2)),
+                    Expr::new(ExprVal::Int(3))
+                ]),
                 vec![FunctionCall { name: "length".to_string(), args: HashMap::new() },],
             )
         )
@@ -472,7 +478,7 @@ fn parse_variable_tag_macro_call_with_array_with_filters() {
         "some".to_string(),
         Expr::with_filters(
             ExprVal::Array(vec![Expr::new(ExprVal::Int(1)), Expr::new(ExprVal::Int(2))]),
-            vec![FunctionCall { name: "reverse".to_string(), args: HashMap::new() },],
+            vec![FunctionCall { name: "reverse".to_string(), args: HashMap::new() }],
         ),
     );
 
@@ -675,12 +681,13 @@ fn parse_set_array_with_filter() {
             WS::default(),
             Set {
                 key: "hello".to_string(),
-                value: Expr::with_filters(ExprVal::Array(vec![
-                    Expr::new(ExprVal::Int(1)),
-                    Expr::new(ExprVal::Bool(true)),
-                    Expr::new(ExprVal::String("hello".to_string())),
-                ]),
-                vec![FunctionCall { name: "length".to_string(), args: HashMap::new() },],
+                value: Expr::with_filters(
+                    ExprVal::Array(vec![
+                        Expr::new(ExprVal::Int(1)),
+                        Expr::new(ExprVal::Bool(true)),
+                        Expr::new(ExprVal::String("hello".to_string())),
+                    ]),
+                    vec![FunctionCall { name: "length".to_string(), args: HashMap::new() },],
                 ),
                 global: false,
             },
@@ -776,7 +783,8 @@ fn parse_filter_section_preserves_ws() {
                 body: vec![
                     Node::Text("  ".to_string()),
                     Node::VariableBlock(WS::default(), Expr::new(ExprVal::Ident("a".to_string()))),
-                    Node::Text("  B  ".to_string())]
+                    Node::Text("  B  ".to_string())
+                ]
             },
             WS::default(),
         )
@@ -920,10 +928,8 @@ fn parse_value_forloop_array_with_filter() {
             Forloop {
                 key: None,
                 value: "item".to_string(),
-                container: Expr::with_filters(ExprVal::Array(vec![
-                    Expr::new(ExprVal::Int(1)),
-                    Expr::new(ExprVal::Int(2)),
-                ]),
+                container: Expr::with_filters(
+                    ExprVal::Array(vec![Expr::new(ExprVal::Int(1)), Expr::new(ExprVal::Int(2)),]),
                     vec![FunctionCall { name: "reverse".to_string(), args: HashMap::new() },],
                 ),
                 body: vec![Node::Text("A".to_string())],

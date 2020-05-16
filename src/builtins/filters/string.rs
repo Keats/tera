@@ -8,8 +8,6 @@ use serde_json::value::{to_value, Value};
 #[cfg(feature = "builtins")]
 use percent_encoding::{percent_encode, AsciiSet, NON_ALPHANUMERIC};
 #[cfg(feature = "builtins")]
-use slug;
-#[cfg(feature = "builtins")]
 use unic_segment::GraphemeIndices;
 
 use crate::errors::{Error, Result};

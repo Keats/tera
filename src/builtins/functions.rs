@@ -184,8 +184,8 @@ pub fn get_env(args: &HashMap<String, Value>) -> Result<Value> {
         Some(res) => Ok(Value::String(res)),
         None => match args.get("default") {
             Some(default) => Ok(default.clone()),
-            None => Err(Error::msg(format!("Environment variable `{}` not found", &name)))
-        }
+            None => Err(Error::msg(format!("Environment variable `{}` not found", &name))),
+        },
     }
 }
 

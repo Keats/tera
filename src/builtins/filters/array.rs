@@ -186,6 +186,7 @@ pub fn group_by(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
 /// Filter the array values, returning only the values where the `attribute` is equal to the `value`
 /// Values without the `attribute` or with a null `attribute` are discarded
+/// If the `value` is not passed, discard all elements where the attribute is null.
 pub fn filter(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("filter", "value", Vec<Value>, value);
     if arr.is_empty() {
@@ -196,23 +197,17 @@ pub fn filter(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Some(val) => try_get_value!("filter", "attribute", String, val),
         None => return Err(Error::msg("The `filter` filter has to have an `attribute` argument")),
     };
-    let value = match args.get("value") {
-        Some(val) => val,
-        None => return Err(Error::msg("The `filter` filter has to have a `value` argument")),
-    };
+    let value = args.get("value").unwrap_or(&Value::Null);
 
     let json_pointer = get_json_pointer(&key);
     arr = arr
         .into_iter()
         .filter(|v| {
-            if let Some(val) = v.pointer(&json_pointer) {
-                if val.is_null() {
-                    false
-                } else {
-                    val == value
-                }
+            let val = v.pointer(&json_pointer).unwrap_or(&Value::Null);
+            if value.is_null() {
+                !val.is_null()
             } else {
-                false
+                val == value
             }
         })
         .collect::<Vec<_>>();
@@ -727,6 +722,37 @@ mod tests {
         let expected = json!([
             {"id": 1, "year": 2015},
             {"id": 2, "year": 2015},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_filter_no_value() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2017},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": 2018},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2017},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": 2018},
         ]);
 
         let res = filter(&input, &args);
