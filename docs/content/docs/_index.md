@@ -1146,11 +1146,11 @@ Converts a value into a float.  The `default` argument can be used to specify th
 #### json_encode
 Transforms any value into a JSON representation. This filter is better used together with `safe` or when automatic escape is disabled.
 
-Example: `{{ value | safe | json_encode() }}`
+Example: `{{ value | json_encode() | safe }}`
 
 It accepts a parameter `pretty` (boolean) to print a formatted JSON instead of a one-liner.
 
-Example: `{{ value | safe | json_encode(pretty=true) }}`
+Example: `{{ value | json_encode(pretty=true) | safe }}`
 
 #### as_str
 Returns a string representation of the given value.
