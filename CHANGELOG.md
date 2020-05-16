@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0 (2020-05-16)
+
+- Add a `urlencode_strict` filter
+- Add more array literals feature in templates
+- Make `filter` filter value argument optional
+
 ## 1.2.0 (2020-03-29)
 
 - Add `trim_start`, `trim_end`, `trim_start_matches` and `trim_end_matches` filters

@@ -92,3 +92,13 @@ fn can_remove_whitespace_inheritance() {
         assert_eq!(tera.render("tpl", &context).unwrap(), expected);
     }
 }
+
+// https://github.com/Keats/tera/issues/475
+#[test]
+fn works_with_filter_section() {
+    let mut context = Context::new();
+    context.insert("d", "d");
+    let input = r#"{% filter upper %}  {{ "c" }}   d{% endfilter %}"#;
+    let res = Tera::one_off(input, &context, true).unwrap();
+    assert_eq!(res, "  C   D");
+}

@@ -962,7 +962,7 @@ or by author name:
 Filter the array values, returning only the values where the `attribute` is equal to the `value`.
 Values with missing `attribute` or where `attribute` is null will be discarded.
 
-Both `attribute` and `value` are mandatory.
+`attribute` is mandatory.
 
 
 Example:
@@ -993,6 +993,8 @@ or by author name:
 ```jinja2
 {{ posts | filter(attribute="author.name", value="Vincent") }}
 ```
+
+If `value` is not passed, it will drop any elements where the attribute is `null`.
 
 #### map
 
@@ -1146,11 +1148,11 @@ Converts a value into a float.  The `default` argument can be used to specify th
 #### json_encode
 Transforms any value into a JSON representation. This filter is better used together with `safe` or when automatic escape is disabled.
 
-Example: `{{ value | safe | json_encode() }}`
+Example: `{{ value | json_encode() | safe }}`
 
 It accepts a parameter `pretty` (boolean) to print a formatted JSON instead of a one-liner.
 
-Example: `{{ value | safe | json_encode(pretty=true) }}`
+Example: `{{ value | json_encode(pretty=true) | safe }}`
 
 #### as_str
 Returns a string representation of the given value.
