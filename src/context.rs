@@ -116,7 +116,7 @@ impl ValueRender for Value {
                 buf.push(']');
                 Cow::Owned(buf)
             }
-            Value::Object(_) => Cow::Owned("[object]".to_owned()),
+            Value::Object(_) => Cow::Borrowed("[object]"),
         }
     }
 }

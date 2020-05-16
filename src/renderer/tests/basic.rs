@@ -41,6 +41,7 @@ fn render_variable_block_lit_expr() {
         (r#"{{ "{{ hey }}" }}"#, "{{ hey }}"),
         ("{{ true }}", "true"),
         ("{{ false }}", "false"),
+        ("{{ false and true or true }}", "true"),
         ("{{ 1 + 1 }}", "2"),
         ("{{ 1 + 1.1 }}", "2.1"),
         ("{{ 3 - 1 }}", "2"),
