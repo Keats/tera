@@ -66,7 +66,7 @@ fn parse_kwarg(pair: Pair<Rule>) -> TeraResult<(String, Expr)> {
         match p.as_rule() {
             Rule::ident => name = Some(p.as_span().as_str().to_string()),
             Rule::logic_expr => val = Some(parse_logic_expr(p)?),
-            Rule::array => val = Some(Expr::new(parse_array(p)?)),
+            Rule::array_filter => val = Some(parse_array_with_filters(p)?),
             _ => unreachable!("{:?} not supposed to get there (parse_kwarg)!", p.as_rule()),
         };
     }
@@ -305,11 +305,27 @@ fn parse_string_expr_with_filters(pair: Pair<Rule>) -> TeraResult<Expr> {
     Ok(Expr { val: expr_val.unwrap(), negated: false, filters })
 }
 
+/// An array with optional filters
+fn parse_array_with_filters(pair: Pair<Rule>) -> TeraResult<Expr> {
+    let mut array = None;
+    let mut filters = vec![];
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::array => array = Some(parse_array(p)?),
+            Rule::filter => filters.push(parse_filter(p)?),
+            _ => unreachable!("Got {:?}", p),
+        };
+    }
+
+    Ok(Expr { val: array.unwrap(), negated: false, filters })
+}
+
 fn parse_in_condition_container(pair: Pair<Rule>) -> TeraResult<Expr> {
     let mut expr = None;
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::array => expr = Some(Expr::new(parse_array(p)?)),
+            Rule::array_filter => expr = Some(parse_array_with_filters(p)?),
             Rule::dotted_square_bracket_ident => {
                 expr = Some(Expr::new(ExprVal::Ident(p.as_str().to_string())))
             }
@@ -503,6 +519,7 @@ fn parse_variable_tag(pair: Pair<Rule>) -> TeraResult<Node> {
                 ws.right = p.as_span().as_str() == "-}}";
             }
             Rule::logic_expr => expr = Some(parse_logic_expr(p)?),
+            Rule::array_filter => expr = Some(parse_array_with_filters(p)?),
             _ => unreachable!("unexpected {:?} rule in parse_variable_tag", p.as_rule()),
         }
     }
@@ -567,7 +584,7 @@ fn parse_set_tag(pair: Pair<Rule>, global: bool) -> TeraResult<Node> {
             }
             Rule::ident => key = Some(p.as_str().to_string()),
             Rule::logic_expr => expr = Some(parse_logic_expr(p)?),
-            Rule::array => expr = Some(Expr::new(parse_array(p)?)),
+            Rule::array_filter => expr = Some(parse_array_with_filters(p)?),
             _ => unreachable!("unexpected {:?} rule in parse_set_tag", p.as_rule()),
         }
     }
@@ -804,7 +821,7 @@ fn parse_forloop(pair: Pair<Rule>) -> TeraResult<Node> {
                         Rule::basic_expr_filter => {
                             container = Some(parse_basic_expr_with_filters(p2)?);
                         }
-                        Rule::array => container = Some(Expr::new(parse_array(p2)?)),
+                        Rule::array_filter => container = Some(parse_array_with_filters(p2)?),
                         _ => unreachable!(),
                     };
                 }
@@ -1018,6 +1035,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::string_expr_filter => "a string or a concatenation of strings".to_string(),
                     Rule::all_chars => "a character".to_string(),
                     Rule::array => "an array of values".to_string(),
+                    Rule::array_filter => "an array of values with an optional filter".to_string(),
                     Rule::basic_val => "a value".to_string(),
                     Rule::basic_op => "a mathematical operator".to_string(),
                     Rule::comparison_op => "a comparison operator".to_string(),

@@ -107,6 +107,41 @@ fn parse_variable_tag_lit() {
 }
 
 #[test]
+fn parse_variable_tag_array_lit() {
+    let ast = parse("{{ [1, 2, 3] }}").unwrap();
+    let mut join_args = HashMap::new();
+    join_args.insert("n".to_string(), Expr::new(ExprVal::Int(2)));
+
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(
+                ExprVal::Array(vec![Expr::new(ExprVal::Int(1)), Expr::new(ExprVal::Int(2)), Expr::new(ExprVal::Int(3))]),
+            )
+        )
+    );
+}
+
+#[test]
+fn parse_variable_tag_array_lit_with_filter() {
+    let ast = parse("{{ [1, 2, 3] | length }}").unwrap();
+    let mut join_args = HashMap::new();
+    join_args.insert("n".to_string(), Expr::new(ExprVal::Int(2)));
+
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(
+            WS::default(),
+            Expr::with_filters(
+                ExprVal::Array(vec![Expr::new(ExprVal::Int(1)), Expr::new(ExprVal::Int(2)), Expr::new(ExprVal::Int(3))]),
+                vec![FunctionCall { name: "length".to_string(), args: HashMap::new() },],
+            )
+        )
+    );
+}
+
+#[test]
 fn parse_variable_tag_lit_math_expression() {
     let ast = parse("{{ count + 1 * 2.5 }}").unwrap();
 
@@ -427,6 +462,33 @@ fn parse_variable_tag_macro_call_with_array() {
         )
     );
 }
+
+// smoke test for array in kwargs
+#[test]
+fn parse_variable_tag_macro_call_with_array_with_filters() {
+    let ast = parse("{{ macros::get_time(some=[1, 2] | reverse) }}").unwrap();
+    let mut args = HashMap::new();
+    args.insert(
+        "some".to_string(),
+        Expr::with_filters(
+            ExprVal::Array(vec![Expr::new(ExprVal::Int(1)), Expr::new(ExprVal::Int(2))]),
+            vec![FunctionCall { name: "reverse".to_string(), args: HashMap::new() },],
+        ),
+    );
+
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::MacroCall(MacroCall {
+                namespace: "macros".to_string(),
+                name: "get_time".to_string(),
+                args,
+            },))
+        )
+    );
+}
+
 #[test]
 fn parse_variable_tag_macro_call_with_filter() {
     let ast = parse("{{ macros::get_time(some=1) | round }}").unwrap();
@@ -598,6 +660,28 @@ fn parse_set_array() {
                     Expr::new(ExprVal::Bool(true)),
                     Expr::new(ExprVal::String("hello".to_string())),
                 ])),
+                global: false,
+            },
+        )
+    );
+}
+
+#[test]
+fn parse_set_array_with_filter() {
+    let ast = parse("{% set hello = [1, true, 'hello'] | length %}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::Set(
+            WS::default(),
+            Set {
+                key: "hello".to_string(),
+                value: Expr::with_filters(ExprVal::Array(vec![
+                    Expr::new(ExprVal::Int(1)),
+                    Expr::new(ExprVal::Bool(true)),
+                    Expr::new(ExprVal::String("hello".to_string())),
+                ]),
+                vec![FunctionCall { name: "length".to_string(), args: HashMap::new() },],
+                ),
                 global: false,
             },
         )
@@ -814,6 +898,34 @@ fn parse_value_forloop_array() {
                     Expr::new(ExprVal::Int(1)),
                     Expr::new(ExprVal::Int(2)),
                 ])),
+                body: vec![Node::Text("A".to_string())],
+                empty_body: None,
+            },
+            end_ws,
+        )
+    );
+}
+
+#[test]
+fn parse_value_forloop_array_with_filter() {
+    let ast = parse("{% for item in [1,2,] | reverse %}A{%- endfor %}").unwrap();
+    let start_ws = WS::default();
+    let mut end_ws = WS::default();
+    end_ws.left = true;
+
+    assert_eq!(
+        ast[0],
+        Node::Forloop(
+            start_ws,
+            Forloop {
+                key: None,
+                value: "item".to_string(),
+                container: Expr::with_filters(ExprVal::Array(vec![
+                    Expr::new(ExprVal::Int(1)),
+                    Expr::new(ExprVal::Int(2)),
+                ]),
+                    vec![FunctionCall { name: "reverse".to_string(), args: HashMap::new() },],
+                ),
                 body: vec![Node::Text("A".to_string())],
                 empty_body: None,
             },

@@ -59,6 +59,7 @@ fn render_variable_block_lit_expr() {
         ("{{ true and 10 }}", "true"),
         ("{{ true and not 10 }}", "false"),
         ("{{ not true }}", "false"),
+        ("{{ [1, 2, 3] }}", "[1, 2, 3]"),
     ];
 
     for (input, expected) in inputs {
@@ -624,6 +625,25 @@ fn filter_filter_works() {
 
     let inputs =
         vec![(r#"{{ authors | filter(attribute="id", value=1) | first | get(key="id") }}"#, "1")];
+
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
+}
+
+#[test]
+fn filter_on_array_literal_works() {
+    let mut context = Context::new();
+    let i: Option<usize> = None;
+    context.insert("existing", "hello");
+    context.insert("null", &i);
+
+    let inputs = vec![
+        (r#"{{ [1, 2, 3] | length }}"#, "3"),
+        (r#"{% set a = [1, 2, 3] | length %}{{ a }}"#, "3"),
+        (r#"{% for a in [1, 2, 3] | slice(start=1) %}{{ a }}{% endfor %}"#, "23"),
+    ];
 
     for (input, expected) in inputs {
         println!("{:?} -> {:?}", input, expected);
