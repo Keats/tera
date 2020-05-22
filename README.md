@@ -3,6 +3,7 @@
 [![Actions Status](https://github.com/Keats/tera/workflows/ci/badge.svg)](https://github.com/Keats/tera/actions)
 [![Crates.io](https://img.shields.io/crates/v/tera.svg)](https://crates.io/crates/tera)
 [![Docs](https://docs.rs/tera/badge.svg)](https://docs.rs/crate/tera/)
+[![Gitter](https://badges.gitter.im/Tera-templates/community.svg)](https://gitter.im/Tera-templates/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 Tera is a template engine inspired by [Jinja2](http://jinja.pocoo.org/) and the [Django template language](https://docs.djangoproject.com/en/1.9/topics/templates/).
 
@@ -21,6 +22,9 @@ It does not aim to be 100% compatible with them but has many of the Jinja2/Djang
 API documentation is available on [docs.rs](https://docs.rs/crate/tera/).
 
 Tera documentation is available on its [site](https://tera.netlify.com/docs).
+
+## Community
+There's a gitter community chat: https://gitter.im/Tera-templates/community
 
 ## SemVer
 This project follows SemVer only for the public API, public API here meaning functions appearing in the docs.
