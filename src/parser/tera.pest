@@ -190,10 +190,10 @@ super_tag        = !{ variable_start ~ "super()" ~ variable_end }
 
 text       = ${ (!(block_start) ~ ANY)+ }
 
-raw_tag    = { tag_start ~ "raw" ~ tag_end }
-endraw_tag = { tag_start ~ "endraw" ~ tag_end }
-raw_text   = { (!endraw_tag ~ ANY)* }
-raw        = !{ raw_tag ~ raw_text ~ endraw_tag }
+raw_tag    = !{ tag_start ~ "raw" ~ tag_end }
+endraw_tag = !{ tag_start ~ "endraw" ~ tag_end }
+raw_text   = ${ (!endraw_tag ~ ANY)* }
+raw        = ${ raw_tag ~ raw_text ~ endraw_tag }
 
 filter_section = ${ filter_tag ~ filter_section_content* ~ endfilter_tag }
 
