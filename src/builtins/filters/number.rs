@@ -74,6 +74,105 @@ pub fn filesizeformat(value: &Value, _: &HashMap<String, Value>) -> Result<Value
         .map(std::result::Result::unwrap)
 }
 
+/// Formats integers using the `fmt` string given
+///
+/// Formatting options (All options passed via `format(fmt="<option>")`:
+///     * `:X` Upper hex (`42` => `2A`)
+///     * `:x` Lower hex (`42` => `2a`)
+///     * `:o` Octal (`42` => `52`)
+///     * `:b` Binary (`42` => `101010`)
+///     * `:E` Upper exponent (`42.0` => `4.2E1`)
+///     * `:e` Lower exponent (`42.0` => `4.2e1`)
+///
+/// Additionally, the `#` modifier can be passed to some formatters as well:
+///     * `:#X` Upper hex (`42` => `0x2A`)
+///     * `:#x` Lower hex (`42` => `0x2a`)
+///     * `:#o` Octal (`42` => `0o52`)
+///     * `:#b` Binary (`42` => `0b101010`)
+pub fn format(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let fmt = if let Some(fmt) = args.get("fmt") {
+        try_get_value!("format", "fmt", String, fmt)
+    } else {
+        return Err(Error::msg("Filter `format` expected an arg called `fmt`"));
+    };
+    let mut chars = fmt.chars();
+
+    if !matches!(chars.next(), Some(':')) {
+        return Err(Error::msg("Format specifiers for the `format` filter must start with `:`"));
+    }
+
+    let mut spec = chars.next().ok_or_else(|| {
+        Error::msg("Format specifiers for the `format` filter must have more than one character")
+    })?;
+
+    let alternative = if spec == '#' {
+        spec = chars.next().ok_or_else(|| {
+            Error::msg("Format strings for the `format` filter with a modifier must have a format specifier")
+        })?;
+        true
+    } else {
+        false
+    };
+
+    macro_rules! unwrap_integers {
+        ($val:expr, if $alt:ident { $alt_fmt:expr } else { $fmt:expr }, $err:expr) => {
+            if let Some(uint) = $val.as_u64() {
+                if $alt {
+                    format!($alt_fmt, uint)
+                } else {
+                    format!($fmt, uint)
+                }
+            } else if let Some(int) = $val.as_i64() {
+                if $alt {
+                    format!($alt_fmt, int)
+                } else {
+                    format!($fmt, int)
+                }
+            } else {
+                return Err($err);
+            }
+        };
+    }
+
+    let value = match spec {
+        'X' => unwrap_integers!(
+            value,
+            if alternative { "{:#X}" } else { "{:X}" },
+            Error::msg("`:X` only takes integer values")
+        ),
+        'x' => unwrap_integers!(
+            value,
+            if alternative { "{:#x}" } else { "{:x}" },
+            Error::msg("`:x` only takes integer values")
+        ),
+        'o' => unwrap_integers!(
+            value,
+            if alternative { "{:#o}" } else { "{:o}" },
+            Error::msg("`:o` only takes integer values")
+        ),
+        'b' => unwrap_integers!(
+            value,
+            if alternative { "{:#b}" } else { "{:b}" },
+            Error::msg("`:b` only takes integer values")
+        ),
+
+        'E' => {
+            let float = try_get_value!("format", "value", f64, value);
+            format!("{:E}", float)
+        }
+        'e' => {
+            let float = try_get_value!("format", "value", f64, value);
+            format!("{:e}", float)
+        }
+
+        unrecognized => {
+            return Err(Error::msg(format!("Unrecognized format specifier: `:{}`", unrecognized)))
+        }
+    };
+
+    Ok(Value::String(value))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
