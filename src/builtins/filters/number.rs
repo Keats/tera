@@ -176,7 +176,7 @@ pub fn format(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::value::to_value;
+    use serde_json::{json, value::to_value};
     use std::collections::HashMap;
 
     #[test]
@@ -279,5 +279,44 @@ mod tests {
         let result = filesizeformat(&to_value(123456789).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("117.74 MB").unwrap());
+    }
+
+    #[test]
+    fn formatting() {
+        let values = [
+            (json!(42), ":X", "2A"),
+            (json!(42), ":x", "2a"),
+            (json!(42), ":o", "52"),
+            (json!(42), ":b", "101010"),
+            (json!(42.0), ":E", "4.2E1"),
+            (json!(42.0), ":e", "4.2e1"),
+            (json!(42), ":#X", "0x2A"),
+            (json!(42), ":#x", "0x2a"),
+            (json!(42), ":#o", "0o52"),
+            (json!(42), ":#b", "0b101010"),
+        ];
+        let mut args = HashMap::new();
+
+        for (value, fmt, expected) in values.iter() {
+            args.insert(String::from("fmt"), json!(fmt));
+
+            let result = format(value, &args);
+            assert!(result.is_ok());
+            assert_eq!(json!(expected), result.unwrap());
+        }
+    }
+
+    #[test]
+    fn fmt_required() {
+        let args = HashMap::new();
+        assert!(format(&json!("It don't matter"), &args).is_err());
+    }
+
+    #[test]
+    fn unrecognized_formatter() {
+        let mut args = HashMap::new();
+        args.insert(String::from("fmt"), json!("I do not exist"));
+
+        assert!(format(&json!("It don't matter"), &args).is_err());
     }
 }
