@@ -683,15 +683,21 @@ fn can_do_string_concat() {
 
 #[test]
 fn can_fail_rendering_from_template() {
+
     let mut context = Context::new();
     context.insert("title", "hello");
+
     let res = render_template(
         r#"{{ throw(message="Error: " ~ title ~ " did not include a summary") }}"#,
         &context,
     );
-    assert!(res.is_err());
-    let err = res.unwrap_err();
-    assert_eq!(err.source().unwrap().to_string(), "Error: hello did not include a summary");
+
+    let err = res.expect_err("This should always fail to render");
+    let source = err.source().expect("Must have a source");
+    assert_eq!(source.to_string(), "Function call 'throw' failed");
+
+    let source = source.source().expect("Should have a nested error");
+    assert_eq!(source.to_string(), "Error: hello did not include a summary");
 }
 
 #[test]

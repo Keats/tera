@@ -33,6 +33,12 @@ pub enum ErrorKind {
     FunctionNotFound(String),
     /// An error happened while serializing JSON
     Json(serde_json::Error),
+    /// An error occured while executing a function.
+    CallFunction(String),
+    /// An error occured while executing a filter.
+    CallFilter(String),
+    /// An error occured while executing a test.
+    CallTest(String),
     /// This enum may grow additional variants, so this makes sure clients
     /// don't count on exhaustive matching. (Otherwise, adding a new variant
     /// could break existing code.)
@@ -70,6 +76,9 @@ impl fmt::Display for Error {
                 write!(f, "Invalid macro definition: `{}`", info)
             }
             ErrorKind::Json(ref e) => write!(f, "{}", e),
+            ErrorKind::CallFunction(ref name) => write!(f, "Function call '{}' failed", name),
+            ErrorKind::CallFilter(ref name) => write!(f, "Filter call '{}' failed", name),
+            ErrorKind::CallTest(ref name) => write!(f, "Test call '{}' failed", name),
             ErrorKind::__Nonexhaustive => write!(f, "Nonexhaustive"),
         }
     }
@@ -129,6 +138,21 @@ impl Error {
     /// Creates generic error with a source
     pub fn chain(value: impl ToString, source: impl Into<Box<dyn StdError + Send + Sync>>) -> Self {
         Self { kind: ErrorKind::Msg(value.to_string()), source: Some(source.into()) }
+    }
+
+    /// Creates an error wrapping a failed function call.
+    pub fn call_function(name: impl ToString, source: impl Into<Box<dyn StdError + Send + Sync>>) -> Self {
+        Self { kind: ErrorKind::CallFunction(name.to_string()), source: Some(source.into()) }
+    }
+
+    /// Creates an error wrapping a failed filter call.
+    pub fn call_filter(name: impl ToString, source: impl Into<Box<dyn StdError + Send + Sync>>) -> Self {
+        Self { kind: ErrorKind::CallFilter(name.to_string()), source: Some(source.into()) }
+    }
+
+    /// Creates an error wrapping a failed test call.
+    pub fn call_test(name: impl ToString, source: impl Into<Box<dyn StdError + Send + Sync>>) -> Self {
+        Self { kind: ErrorKind::CallTest(name.to_string()), source: Some(source.into()) }
     }
 
     /// Creates JSON error
