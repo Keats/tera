@@ -103,7 +103,6 @@ fn works_with_filter_section() {
     assert_eq!(res, "  C   D");
 }
 
-
 #[test]
 fn make_sure_not_to_deleting_whitespaces() {
     let mut context = Context::new();
