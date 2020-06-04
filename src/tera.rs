@@ -389,9 +389,15 @@ impl Tera {
     ///     ("new2.html", "hello"),
     /// ]);
     /// ```
-    pub fn add_raw_templates(&mut self, templates: Vec<(&str, &str)>) -> Result<()> {
+    pub fn add_raw_templates<I, N, C>(&mut self, templates: I) -> Result<()>
+    where
+        I: IntoIterator<Item = (N, C)>,
+        N: AsRef<str>,
+        C: AsRef<str>,
+    {
         for (name, content) in templates {
-            let tpl = Template::new(name, None, content)
+            let name = name.as_ref();
+            let tpl = Template::new(name, None, content.as_ref())
                 .map_err(|e| Error::chain(format!("Failed to parse '{}'", name), e))?;
             self.templates.insert(name.to_string(), tpl);
         }
@@ -432,12 +438,14 @@ impl Tera {
     ///     (path2, Some("hey")), // this template will have `hey` as name
     /// ]);
     /// ```
-    pub fn add_template_files<P: AsRef<Path>>(
-        &mut self,
-        files: Vec<(P, Option<&str>)>,
-    ) -> Result<()> {
+    pub fn add_template_files<I, P, N>(&mut self, files: I) -> Result<()>
+    where
+        I: IntoIterator<Item = (P, Option<N>)>,
+        P: AsRef<Path>,
+        N: AsRef<str>,
+    {
         for (path, name) in files {
-            self.add_file(name, path)?;
+            self.add_file(name.as_ref().map(AsRef::as_ref), path)?;
         }
         self.build_inheritance_chains()?;
         self.check_macro_files()?;
