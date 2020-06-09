@@ -58,10 +58,17 @@ fn test_error_render_non_math() {
 #[test]
 fn test_error_render_filter_section_invalid() {
     let result = render_tpl("filter_section_invalid.html");
-
     assert_eq!(result.is_err(), true);
+    let err = result.unwrap_err();
+    let source = err.source().unwrap();
+
     assert_eq!(
-        result.unwrap_err().source().unwrap().to_string(),
+        source.to_string(),
+        "Filter call \'round\' failed"
+    );
+    let source2 = source.source().unwrap();
+    assert_eq!(
+        source2.to_string(),
         "Filter `round` was called on an incorrect value: got `\"hello\"` but expected a f64"
     );
 }

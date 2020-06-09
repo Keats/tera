@@ -1,8 +1,10 @@
 # Changelog
 
-## 1.3.1 (unreleased)
+## 1.3.1 (2020-06-09)
 
 - Fix `raw` tag swallowing all whitespace at beginning and end
+- Make batch template sources generic
+- Automatically add function/test/filter function name to their error message
 
 ## 1.3.0 (2020-05-16)
 
