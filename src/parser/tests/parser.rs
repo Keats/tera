@@ -725,6 +725,17 @@ fn parse_raw_tag() {
     assert_eq!(ast[0], Node::Raw(start_ws, "{{hey}}".to_string(), end_ws));
 }
 
+// https://github.com/Keats/tera/issues/513
+#[test]
+fn parse_raw_tag_with_ws() {
+    // println!("{}", parse("{% raw %}    yaml_test:     {% endraw %}").unwrap_err());
+    let ast = parse("{% raw %}    yaml_test:     {% endraw %}").unwrap();
+    let start_ws = WS::default();
+    let end_ws = WS::default();
+
+    assert_eq!(ast[0], Node::Raw(start_ws, "    yaml_test:     ".to_string(), end_ws));
+}
+
 #[test]
 fn parse_filter_section_without_args() {
     let ast = parse("{% filter upper -%}A{%- endfilter %}").unwrap();
