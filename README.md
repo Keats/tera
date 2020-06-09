@@ -24,7 +24,7 @@ API documentation is available on [docs.rs](https://docs.rs/crate/tera/).
 Tera documentation is available on its [site](https://tera.netlify.com/docs).
 
 ## Community
-There's a gitter community chat: https://gitter.im/Tera-templates/community
+There's a gitter community chat (not managed/used by @Keats): https://gitter.im/Tera-templates/community
 
 ## SemVer
 This project follows SemVer only for the public API, public API here meaning functions appearing in the docs.

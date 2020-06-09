@@ -17,7 +17,7 @@ fn can_remove_whitespace_basic() {
         ("  {%- if false -%}\n {{numbers}}\n {% elif false -%} Nope {% else %} else {%- endif -%} ", " else"),
         ("  {%- set var = 2 -%} {{var}}", "2"),
         ("  {% set var = 2 -%} {{var}}", "  2"),
-        ("  {% raw -%}{{2}} {% endraw -%} ", "  {{2}}"),
+        (" {% raw -%} {{2}} {% endraw -%} ", " {{2}} "),
         ("  {% filter upper -%} hey {%- endfilter -%} ", "  HEY"),
         ("  {{ \"hello\" -}} ", "  hello"),
         ("  {{- \"hello\" }} ", "hello "),

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1 (unreleased)
+
+- Fix `raw` tag swallowing all whitespace at beginning and end
+
 ## 1.3.0 (2020-05-16)
 
 - Add a `urlencode_strict` filter
