@@ -452,15 +452,16 @@ impl<'a> Processor<'a> {
 
     fn eval_test(self: &mut Self, test: &'a Test) -> Result<bool> {
         let tester_fn = self.tera.get_tester(&test.name)?;
+        let err_wrap = |e| Error::call_test(&test.name, e);
 
         let mut tester_args = vec![];
         for arg in &test.args {
-            tester_args.push(self.safe_eval_expression(arg)?.clone().into_owned());
+            tester_args.push(self.safe_eval_expression(arg).map_err(err_wrap)?.clone().into_owned());
         }
 
         let found = self.lookup_ident(&test.ident).map(|found| found.clone().into_owned()).ok();
 
-        let result = tester_fn.test(found.as_ref(), &tester_args)?;
+        let result = tester_fn.test(found.as_ref(), &tester_args).map_err(err_wrap)?;
         if test.negated {
             Ok(!result)
         } else {
@@ -470,16 +471,17 @@ impl<'a> Processor<'a> {
 
     fn eval_tera_fn_call(self: &mut Self, function_call: &'a FunctionCall) -> Result<Val<'a>> {
         let tera_fn = self.tera.get_function(&function_call.name)?;
+        let err_wrap = |e| Error::call_function(&function_call.name, e);
 
         let mut args = HashMap::new();
         for (arg_name, expr) in &function_call.args {
             args.insert(
                 arg_name.to_string(),
-                self.safe_eval_expression(expr)?.clone().into_owned(),
+                self.safe_eval_expression(expr).map_err(err_wrap)?.clone().into_owned(),
             );
         }
 
-        Ok(Cow::Owned(tera_fn.call(&args)?))
+        Ok(Cow::Owned(tera_fn.call(&args).map_err(err_wrap)?))
     }
 
     fn eval_macro_call(self: &mut Self, macro_call: &'a MacroCall) -> Result<String> {
@@ -532,16 +534,17 @@ impl<'a> Processor<'a> {
 
     fn eval_filter(&mut self, value: &Val<'a>, fn_call: &'a FunctionCall) -> Result<Val<'a>> {
         let filter_fn = self.tera.get_filter(&fn_call.name)?;
+        let err_wrap = |e| Error::call_filter(&fn_call.name, e);
 
         let mut args = HashMap::new();
         for (arg_name, expr) in &fn_call.args {
             args.insert(
                 arg_name.to_string(),
-                self.safe_eval_expression(expr)?.clone().into_owned(),
+                self.safe_eval_expression(expr).map_err(err_wrap)?.clone().into_owned(),
             );
         }
 
-        Ok(Cow::Owned(filter_fn.filter(&value, &args)?))
+        Ok(Cow::Owned(filter_fn.filter(&value, &args).map_err(err_wrap)?))
     }
 
     fn eval_as_bool(&mut self, bool_expr: &'a Expr) -> Result<bool> {
