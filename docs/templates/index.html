@@ -7,7 +7,7 @@
         <meta name="description" content="{% block description %}{{ config.description }}{% endblock description %}">
         <meta name="author" content="{{ config.extra.author }}">
         <title>{% block title %}{{ config.title }}{% endblock title %}</title>
-        <link rel="stylesheet" href="{{ get_url(path="app.css", cachebust=true) }}"/>
+        <link rel="stylesheet" href="{{ get_url(path="app.css") }}"/>
     </head>
     <body>
 
