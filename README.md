@@ -21,7 +21,7 @@ It does not aim to be 100% compatible with them but has many of the Jinja2/Djang
 ## Documentation
 API documentation is available on [docs.rs](https://docs.rs/crate/tera/).
 
-Tera documentation is available on its [site](https://tera.netlify.com/docs).
+Tera documentation is available on its [site](https://tera.netlify.app/docs).
 
 ## Community
 There's a gitter community chat (not managed/used by @Keats): https://gitter.im/Tera-templates/community
