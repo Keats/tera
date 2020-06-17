@@ -1,6 +1,6 @@
 title = "Tera"
 description = "Tera - A template engine for Rust inspired by Jinja2 and Django templates"
-base_url = "https://tera.netlify.com/"
+base_url = "https://tera.netlify.app/"
 highlight_code = true
 highlight_theme = "monokai"
 compile_sass = true
