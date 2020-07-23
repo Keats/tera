@@ -79,6 +79,22 @@ pub fn lower(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(&s.to_lowercase()).unwrap())
 }
 
+#[cfg(feature = "builtins")]
+pub fn snake(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+    use heck::SnakeCase;
+    let s = try_get_value!("snake_case", "value", String, value);
+
+    Ok(to_value(&s.to_snake_case()).unwrap())
+}
+
+#[cfg(feature = "builtins")]
+pub fn camel(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+    use heck::CamelCase;
+    let s = try_get_value!("snake_case", "value", String, value);
+
+    Ok(to_value(&s.to_camel_case()).unwrap())
+}
+
 /// Strip leading and trailing whitespace.
 pub fn trim(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("trim", "value", String, value);
@@ -400,6 +416,20 @@ mod tests {
             result.err().unwrap().to_string(),
             "Filter `upper` was called on an incorrect value: got `50` but expected a String"
         );
+    }
+
+    #[test]
+    fn test_snake() {
+        let result = snake(&to_value("Test Value").unwrap(), &HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("test_value").unwrap());
+    }
+
+    #[test]
+    fn test_camel() {
+        let result = camel(&to_value("test value").unwrap(), &HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("TestValue").unwrap());
     }
 
     #[test]
