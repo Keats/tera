@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0 (2020-07-24)
+
+- Add `Context::get` and `Context::contains_key`
+
 ## 1.3.1 (2020-06-09)
 
 - Fix `raw` tag swallowing all whitespace at beginning and end
