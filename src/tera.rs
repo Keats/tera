@@ -515,7 +515,9 @@ impl Tera {
     fn register_tera_filters(&mut self) {
         self.register_filter("upper", string::upper);
         self.register_filter("lower", string::lower);
+        #[cfg(feature = "builtins")]
         self.register_filter("snake", string::snake);
+        #[cfg(feature = "builtins")]
         self.register_filter("camel", string::camel);
         self.register_filter("trim", string::trim);
         self.register_filter("trim_start", string::trim_start);

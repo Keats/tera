@@ -418,6 +418,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn test_snake() {
         let result = snake(&to_value("Test Value").unwrap(), &HashMap::new());
@@ -425,6 +426,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("test_value").unwrap());
     }
 
+    #[cfg(feature = "builtins")]
     #[test]
     fn test_camel() {
         let result = camel(&to_value("test value").unwrap(), &HashMap::new());
