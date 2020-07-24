@@ -81,8 +81,14 @@ impl Context {
         Context::from_value(obj)
     }
 
-    pub(crate) fn get(&self, index: &str) -> Option<&Value> {
+    /// Returns the value at a given key index.
+    pub fn get(&self, index: &str) -> Option<&Value> {
         self.data.get(index)
+    }
+
+    /// Checks if a value exists at a specific index.
+    pub fn contains_key(&self, index: &str) -> bool {
+        self.data.contains_key(index)
     }
 }
 
