@@ -516,9 +516,9 @@ impl Tera {
         self.register_filter("upper", string::upper);
         self.register_filter("lower", string::lower);
         #[cfg(feature = "builtins")]
-        self.register_filter("snake", string::snake);
+        self.register_filter("snake", string::snake_case);
         #[cfg(feature = "builtins")]
-        self.register_filter("camel", string::camel);
+        self.register_filter("camel", string::camel_case);
         self.register_filter("trim", string::trim);
         self.register_filter("trim_start", string::trim_start);
         self.register_filter("trim_end", string::trim_end);

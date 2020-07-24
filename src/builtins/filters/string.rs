@@ -80,7 +80,7 @@ pub fn lower(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 }
 
 #[cfg(feature = "builtins")]
-pub fn snake(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+pub fn snake_case(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     use heck::SnakeCase;
     let s = try_get_value!("snake_case", "value", String, value);
 
@@ -88,7 +88,7 @@ pub fn snake(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 }
 
 #[cfg(feature = "builtins")]
-pub fn camel(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+pub fn camel_case(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     use heck::CamelCase;
     let s = try_get_value!("snake_case", "value", String, value);
 
@@ -420,16 +420,16 @@ mod tests {
 
     #[cfg(feature = "builtins")]
     #[test]
-    fn test_snake() {
-        let result = snake(&to_value("Test Value").unwrap(), &HashMap::new());
+    fn test_snake_case() {
+        let result = snake_case(&to_value("Test Value").unwrap(), &HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("test_value").unwrap());
     }
 
     #[cfg(feature = "builtins")]
     #[test]
-    fn test_camel() {
-        let result = camel(&to_value("test value").unwrap(), &HashMap::new());
+    fn test_camel_case() {
+        let result = camel_case(&to_value("test value").unwrap(), &HashMap::new());
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("TestValue").unwrap());
     }
