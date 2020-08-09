@@ -354,7 +354,7 @@ impl<'a> Processor<'a> {
                                 i
                             ))),
                         },
-                        ExprVal::FunctionCall(ref fn_call) => match *self.eval_tera_fn_call(fn_call)? {
+                        ExprVal::FunctionCall(ref fn_call) => match *self.eval_tera_fn_call(fn_call, &mut needs_escape)? {
                             Value::String(ref v) => res.push_str(&v),
                             Value::Number(ref v) => res.push_str(&v.to_string()),
                             _ => return Err(Error::msg(format!(
@@ -397,8 +397,7 @@ impl<'a> Processor<'a> {
                 }
             }
             ExprVal::FunctionCall(ref fn_call) => {
-                needs_escape = true;
-                self.eval_tera_fn_call(fn_call)?
+                self.eval_tera_fn_call(fn_call, &mut needs_escape)?
             }
             ExprVal::MacroCall(ref macro_call) => {
                 Cow::Owned(Value::String(self.eval_macro_call(macro_call)?))
@@ -416,7 +415,7 @@ impl<'a> Processor<'a> {
             if filter.name == "safe" || filter.name == "default" {
                 continue;
             }
-            res = self.eval_filter(&res, filter)?;
+            res = self.eval_filter(&res, filter, &mut needs_escape)?;
         }
 
         // Lastly, we need to check if the expression is negated, thus turning it into a bool
@@ -456,7 +455,8 @@ impl<'a> Processor<'a> {
 
         let mut tester_args = vec![];
         for arg in &test.args {
-            tester_args.push(self.safe_eval_expression(arg).map_err(err_wrap)?.clone().into_owned());
+            tester_args
+                .push(self.safe_eval_expression(arg).map_err(err_wrap)?.clone().into_owned());
         }
 
         let found = self.lookup_ident(&test.ident).map(|found| found.clone().into_owned()).ok();
@@ -469,8 +469,14 @@ impl<'a> Processor<'a> {
         }
     }
 
-    fn eval_tera_fn_call(self: &mut Self, function_call: &'a FunctionCall) -> Result<Val<'a>> {
+    fn eval_tera_fn_call(
+        self: &mut Self,
+        function_call: &'a FunctionCall,
+        needs_escape: &mut bool,
+    ) -> Result<Val<'a>> {
         let tera_fn = self.tera.get_function(&function_call.name)?;
+        *needs_escape = !tera_fn.is_safe();
+
         let err_wrap = |e| Error::call_function(&function_call.name, e);
 
         let mut args = HashMap::new();
@@ -532,8 +538,15 @@ impl<'a> Processor<'a> {
         Ok(output)
     }
 
-    fn eval_filter(&mut self, value: &Val<'a>, fn_call: &'a FunctionCall) -> Result<Val<'a>> {
+    fn eval_filter(
+        &mut self,
+        value: &Val<'a>,
+        fn_call: &'a FunctionCall,
+        needs_escape: &mut bool,
+    ) -> Result<Val<'a>> {
         let filter_fn = self.tera.get_filter(&fn_call.name)?;
+        *needs_escape = !filter_fn.is_safe();
+
         let err_wrap = |e| Error::call_filter(&fn_call.name, e);
 
         let mut args = HashMap::new();
@@ -620,7 +633,7 @@ impl<'a> Processor<'a> {
             ExprVal::Bool(val) => val,
             ExprVal::String(ref string) => !string.is_empty(),
             ExprVal::FunctionCall(ref fn_call) => {
-                let v = self.eval_tera_fn_call(fn_call)?;
+                let v = self.eval_tera_fn_call(fn_call, &mut false)?;
                 match v.as_bool() {
                     Some(val) => val,
                     None => {
@@ -832,7 +845,7 @@ impl<'a> Processor<'a> {
                 }
             }
             ExprVal::FunctionCall(ref fn_call) => {
-                let v = self.eval_tera_fn_call(fn_call)?;
+                let v = self.eval_tera_fn_call(fn_call, &mut false)?;
                 if v.is_i64() {
                     Some(Number::from(v.as_i64().unwrap()))
                 } else if v.is_u64() {
@@ -930,7 +943,9 @@ impl<'a> Processor<'a> {
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
                 let body = self.render_body(body)?;
                 buffer.push_str(
-                    &self.eval_filter(&Cow::Owned(Value::String(body)), filter)?.render(),
+                    &self
+                        .eval_filter(&Cow::Owned(Value::String(body)), filter, &mut false)?
+                        .render(),
                 );
             }
             // Macros have been imported at the beginning
