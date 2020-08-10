@@ -12,6 +12,11 @@ use crate::errors::{Error, Result};
 pub trait Function: Sync + Send {
     /// The global function type definition
     fn call(&self, args: &HashMap<String, Value>) -> Result<Value>;
+
+    /// Whether the current function's output should be treated as safe, defaults to `false`
+    fn is_safe(&self) -> bool {
+        false
+    }
 }
 
 impl<F> Function for F
