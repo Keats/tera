@@ -923,6 +923,18 @@ and `end` argument to define where to stop (exclusive, default to the length of 
 {% for i in my_arr | slice(start=1, end=5) %}
 ```
 
+You can also use negative index values to refer the array from the last element. -1 refers to the
+last index, -2 refers to the second last index and so on.
+
+For example, let's look at the following template:
+
+```jinja2
+{% for i in my_arr | slice(end=-2) %}
+```
+
+will produce the follow output for `my_array = [1, 2, 3, 4, 5]`: `[1, 2, 3]`
+
+
 #### group_by
 Group an array using the required `attribute` argument. The filter takes an array and return
 a map where the keys are the values of the `attribute` stringified and the values are all elements of

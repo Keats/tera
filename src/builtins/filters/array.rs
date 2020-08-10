@@ -240,6 +240,15 @@ pub fn map(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(arr).unwrap())
 }
 
+#[inline]
+fn get_index(i: f64, array: &Vec<Value>) -> usize {
+    if i >= 0.0 {
+        i as usize
+    } else {
+        (array.len() as f64 + i) as usize
+    }
+}
+
 /// Slice the array
 /// Use the `start` argument to define where to start (inclusive, default to `0`)
 /// and `end` argument to define where to stop (exclusive, default to the length of the array)
@@ -251,17 +260,20 @@ pub fn slice(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     }
 
     let start = match args.get("start") {
-        Some(val) => try_get_value!("slice", "start", f64, val) as usize,
+        Some(val) => get_index(try_get_value!("slice", "start", f64, val), &arr),
         None => 0,
     };
+
     // Not an error, but returns an empty Vec
     if start > arr.len() {
         return Ok(Vec::<Value>::new().into());
     }
+
     let mut end = match args.get("end") {
-        Some(val) => try_get_value!("slice", "end", f64, val) as usize,
+        Some(val) => get_index(try_get_value!("slice", "end", f64, val), &arr),
         None => arr.len(),
     };
+
     if end > arr.len() {
         end = arr.len();
     }
@@ -611,7 +623,7 @@ mod tests {
 
     #[test]
     fn test_slice() {
-        fn make_args(start: Option<usize>, end: Option<usize>) -> HashMap<String, Value> {
+        fn make_args(start: Option<usize>, end: Option<f64>) -> HashMap<String, Value> {
             let mut args = HashMap::new();
             if let Some(s) = start {
                 args.insert("start".to_string(), to_value(s).unwrap());
@@ -626,8 +638,9 @@ mod tests {
 
         let inputs = vec![
             (make_args(Some(1), None), vec![2, 3, 4, 5]),
-            (make_args(None, Some(2)), vec![1, 2]),
-            (make_args(Some(1), Some(2)), vec![2]),
+            (make_args(None, Some(2.0)), vec![1, 2]),
+            (make_args(Some(1), Some(2.0)), vec![2]),
+            (make_args(None, Some(-2.0)), vec![1, 2, 3]),
             (make_args(None, None), vec![1, 2, 3, 4, 5]),
         ];
 
