@@ -62,10 +62,7 @@ fn test_error_render_filter_section_invalid() {
     let err = result.unwrap_err();
     let source = err.source().unwrap();
 
-    assert_eq!(
-        source.to_string(),
-        "Filter call \'round\' failed"
-    );
+    assert_eq!(source.to_string(), "Filter call \'round\' failed");
     let source2 = source.source().unwrap();
     assert_eq!(
         source2.to_string(),

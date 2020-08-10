@@ -274,10 +274,7 @@ fn error_gives_source_on_tests() {
     let err = result.unwrap_err();
 
     let source = err.source().unwrap();
-    assert_eq!(
-        source.to_string(),
-        "Test call \'undefined\' failed"
-    );
+    assert_eq!(source.to_string(), "Test call \'undefined\' failed");
     let source2 = source.source().unwrap();
 
     assert_eq!(

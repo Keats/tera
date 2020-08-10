@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0 (2020-08-10)
+
+- Add the concept of safe functions and filters
+- Allow negative index on `slice` filter
+
 ## 1.4.0 (2020-07-24)
 
 - Add `Context::get` and `Context::contains_key`

@@ -141,17 +141,26 @@ impl Error {
     }
 
     /// Creates an error wrapping a failed function call.
-    pub fn call_function(name: impl ToString, source: impl Into<Box<dyn StdError + Send + Sync>>) -> Self {
+    pub fn call_function(
+        name: impl ToString,
+        source: impl Into<Box<dyn StdError + Send + Sync>>,
+    ) -> Self {
         Self { kind: ErrorKind::CallFunction(name.to_string()), source: Some(source.into()) }
     }
 
     /// Creates an error wrapping a failed filter call.
-    pub fn call_filter(name: impl ToString, source: impl Into<Box<dyn StdError + Send + Sync>>) -> Self {
+    pub fn call_filter(
+        name: impl ToString,
+        source: impl Into<Box<dyn StdError + Send + Sync>>,
+    ) -> Self {
         Self { kind: ErrorKind::CallFilter(name.to_string()), source: Some(source.into()) }
     }
 
     /// Creates an error wrapping a failed test call.
-    pub fn call_test(name: impl ToString, source: impl Into<Box<dyn StdError + Send + Sync>>) -> Self {
+    pub fn call_test(
+        name: impl ToString,
+        source: impl Into<Box<dyn StdError + Send + Sync>>,
+    ) -> Self {
         Self { kind: ErrorKind::CallTest(name.to_string()), source: Some(source.into()) }
     }
 
