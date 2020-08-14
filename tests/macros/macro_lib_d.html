@@ -1,0 +1,4 @@
+{% macro inner_impl() %}hello{% endmacro inner_impl -%}
+{# https://github.com/Keats/tera/issues/532
+   Try changing self:: to lib_d:: to pass one test and fail another. #}
+{% macro func() %}{{ self::inner_impl() }}{% endmacro func -%}

@@ -43,3 +43,21 @@ fn test_extend_and_include4() {
     assert_eq!(result.is_err(), false);
     assert_eq!(result.unwrap(), "hello");
 }
+
+#[test]
+fn test_extend_and_include_nested1() {
+    // inheritance, a macro import, another nested import, nested uses self
+    let result = render_tpl("extend_and_include_nested1.html");
+
+    assert_eq!(result.is_err(), false);
+    assert_eq!(result.unwrap(), "hello");
+}
+
+#[test]
+fn test_extend_and_include_nested2() {
+    // like test_extend_and_include_nested1 but no inheritance
+    let result = render_tpl("extend_and_include_nested2.html");
+
+    assert_eq!(result.is_err(), false);
+    assert_eq!(result.unwrap(), "hello");
+}
