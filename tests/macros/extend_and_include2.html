@@ -1,0 +1,4 @@
+{% extends "base.html" -%}
+{% import "macro_lib_a.html" as lib_a -%}
+{% import "macro_lib_b.html" as lib_b -%}
+{% block content %}{{ lib_a::main() }}{% endblock content -%}
