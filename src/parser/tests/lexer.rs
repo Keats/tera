@@ -377,6 +377,8 @@ fn lex_fn_call() {
         "fn(hello=1+1,hey=1)",
         "fn(hello1=true,name=name,admin=true)",
         "fn(hello=name)",
+        "fn(hello=name,)",
+        "fn(\n  hello=name,\n)",
         "fn(hello=name|filter,id=1)",
     ];
     for i in inputs {
