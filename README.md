@@ -5,7 +5,7 @@
 [![Docs](https://docs.rs/tera/badge.svg)](https://docs.rs/crate/tera/)
 [![Gitter](https://badges.gitter.im/Tera-templates/community.svg)](https://gitter.im/Tera-templates/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-Tera is a template engine inspired by [Jinja2](http://jinja.pocoo.org/) and the [Django template language](https://docs.djangoproject.com/en/1.9/topics/templates/).
+Tera is a template engine inspired by [Jinja2](http://jinja.pocoo.org/) and the [Django template language](https://docs.djangoproject.com/en/3.1/topics/templates/).
 
 ```jinja2
 <title>{% block title %}{% endblock title %}</title>
