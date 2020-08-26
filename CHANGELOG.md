@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 (unreleased)
+
+- Allow multiline function kwargs with trailing comma
+
 ## 1.5.0 (2020-08-10)
 
 - Add the concept of safe functions and filters
