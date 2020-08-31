@@ -737,7 +737,7 @@ Tera has the following filters built-in:
 Lowercase a string
 
 #### upper
-Lowercase a string
+Uppercase a string
 
 #### wordcount
 Returns number of words in a string
