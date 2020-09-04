@@ -2,7 +2,7 @@
 
 //! # Tera
 //! Tera is a template engine based on [Jinja2](http://jinja.pocoo.org/)
-//! and the [Django template language](https://docs.djangoproject.com/en/1.9/topics/templates/).
+//! and the [Django template language](https://docs.djangoproject.com/en/3.1/topics/templates/).
 //!
 //! See the [site](https://tera.netlify.com) for features and to get started.
 
