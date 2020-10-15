@@ -83,7 +83,7 @@ You need two things to render a template: a name and a context.
 If you are using globs, Tera will automatically remove the glob prefix from the template names. To use our example from before,
 the template name for the file located at `templates/hello.html` will be `hello.html`.
 
-The context can either a be data structure that implements the `Serialize` trait from `serde_json` or an instance of `tera::Context`:
+The context can either be a data structure that implements the `Serialize` trait from `serde_json` or an instance of `tera::Context`:
 
 ```rs
 use tera::Context;
