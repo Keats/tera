@@ -114,6 +114,9 @@ tera.autoescape_on(vec![".php.html"]);
 tera.autoescape_on(vec![]);
 ```
 
+Tera does not perform contextual auto-escaping, eg by parsing the template to know whether to escape JS, CSS or HTML (see 
+<https://rawgit.com/mikesamuel/sanitized-jquery-templates/trunk/safetemplate.html> for more details on that).
+
 ## Advanced usage
 
 ### Extending another instance
