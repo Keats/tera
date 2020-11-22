@@ -1111,7 +1111,7 @@ Only available if the `builtins` feature is enabled.
 
 Parse a timestamp into a date(time) string. Defaults to `YYYY-MM-DD` format.
 Time formatting syntax is inspired from strftime and a full reference is available
-on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html).
+on [chrono docs](https://docs.rs/chrono/0.4/chrono/format/strftime/index.html).
 
 Example: `{{ ts | date }} {{ ts | date(format="%Y-%m-%d %H:%M") }}`
 
