@@ -16,7 +16,7 @@
 /// ```
 #[inline]
 pub fn escape_html(input: &str) -> String {
-    let mut output = String::with_capacity(input.len() * 2);
+    let mut output = String::with_capacity(input.len());
     for c in input.chars() {
         match c {
             '&' => output.push_str("&amp;"),
@@ -41,6 +41,7 @@ mod tests {
     fn test_escape_html() {
         let tests = vec![
             (r"", ""),
+            (r"&&&&&&&&", "&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;"),
             (r"a&b", "a&amp;b"),
             (r"<a", "&lt;a"),
             (r">a", "&gt;a"),
