@@ -21,34 +21,62 @@ impl Context {
         Context { data: BTreeMap::new() }
     }
 
-    /// Converts the `val` parameter to `Value` and insert it into the context
+    /// Converts the `val` parameter to `Value` and insert it into the context.
     ///
-    /// ```rust,ignore
-    /// let mut context = Context::new();
-    /// // user is an instance of a struct implementing `Serialize`
-    /// context.insert("number_users", 42);
+    /// Panics if the serialization fails.
+    ///
+    /// ```rust
+    /// # use tera::Context;
+    /// let mut context = tera::Context::new();
+    /// context.insert("number_users", &42);
     /// ```
     pub fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) {
         self.data.insert(key.into(), to_value(val).unwrap());
     }
 
+    /// Converts the `val` parameter to `Value` and insert it into the context.
+    /// 
+    /// Returns an error if the serialization fails.
+    ///
+    /// ```rust
+    /// # use tera::Context;
+    /// # struct CannotBeSerialized;
+    /// # impl serde::Serialize for CannotBeSerialized {
+    /// #     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    /// #         Err(serde::ser::Error::custom("Error"))
+    /// #     }
+    /// # }
+    /// # let user = CannotBeSerialized;
+    /// let mut context = Context::new();
+    /// // user is an instance of a struct implementing `Serialize`
+    /// if let Err(_) = context.try_insert("number_users", &user) {
+    ///     // Serialization failed
+    /// }
+    /// ```
+    pub fn try_insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) -> TeraResult<()> {
+        self.data.insert(key.into(), to_value(val)?);
+
+        Ok(())
+    }
+
     /// Appends the data of the `source` parameter to `self`, overwriting existing keys.
     /// The source context will be dropped.
     ///
-    /// ```rust,ignore
+    /// ```rust
+    /// # use tera::Context;
     /// let mut target = Context::new();
-    /// target.insert("a", 1);
-    /// target.insert("b", 2);
+    /// target.insert("a", &1);
+    /// target.insert("b", &2);
     /// let mut source = Context::new();
-    /// source.insert("b", 3);
-    /// source.insert("d", 4);
+    /// source.insert("b", &3);
+    /// source.insert("d", &4);
     /// target.extend(source);
     /// ```
     pub fn extend(&mut self, mut source: Context) {
         self.data.append(&mut source.data);
     }
 
-    /// Converts the context to a `serde_json::Value` consuming the context
+    /// Converts the context to a `serde_json::Value` consuming the context.
     pub fn into_json(self) -> Value {
         let mut m = Map::new();
         for (key, value) in self.data {
@@ -57,7 +85,7 @@ impl Context {
         Value::Object(m)
     }
 
-    /// Takes a serde-json `Value` and convert it into a `Context` with no overhead/cloning
+    /// Takes a serde-json `Value` and convert it into a `Context` with no overhead/cloning.
     pub fn from_value(obj: Value) -> TeraResult<Self> {
         match obj {
             Value::Object(m) => {
@@ -75,7 +103,7 @@ impl Context {
 
     /// Takes something that impl Serialize and create a context with it.
     /// Meant to be used if you have a hashmap or a struct and don't want to insert values
-    /// one by one in the context
+    /// one by one in the context.
     pub fn from_serialize(value: impl Serialize) -> TeraResult<Self> {
         let obj = to_value(value).map_err(Error::json)?;
         Context::from_value(obj)
@@ -102,7 +130,7 @@ pub trait ValueRender {
     fn render(&self) -> Cow<str>;
 }
 
-// Convert serde Value to String
+// Convert serde Value to String.
 impl ValueRender for Value {
     fn render(&self) -> Cow<str> {
         match *self {
