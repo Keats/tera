@@ -3,6 +3,7 @@
 ## 1.6.0 (unreleased)
 
 - Allow multiline function kwargs with trailing comma
+- Add `Context::try_insert`
 
 ## 1.5.0 (2020-08-10)
 
