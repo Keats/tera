@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::errors::{Error, Result};
 use crate::parser::ast::{Block, MacroDefinition, Node};
@@ -30,6 +30,9 @@ pub struct Template {
     /// Only used during initial parsing. Rendering will use `self.blocks_definitions`
     pub blocks: HashMap<String, Block>,
 
+    /// Used to determine if any blocks are expanded using the "useblock" tag. We need to
+    /// record any block of this kind to later determine if we should render it or not.
+    pub use_blocks: HashSet<String>,
     // Below are filled when all templates have been parsed so we know the full hierarchy of templates
     /// The full list of parent templates
     pub parents: Vec<String>,
@@ -50,7 +53,12 @@ impl Template {
         // First we want all the blocks used in that template
         // This is recursive as we can have blocks inside blocks
         let mut blocks = HashMap::new();
-        fn find_blocks(ast: &[Node], blocks: &mut HashMap<String, Block>) -> Result<()> {
+        let mut use_blocks = HashSet::new();
+        fn find_blocks(
+            ast: &[Node],
+            blocks: &mut HashMap<String, Block>,
+            use_blocks: &mut HashSet<String>,
+        ) -> Result<()> {
             for node in ast {
                 match *node {
                     Node::Block(_, ref block, _) => {
@@ -62,15 +70,18 @@ impl Template {
                         }
 
                         blocks.insert(block.name.to_string(), block.clone());
-                        find_blocks(&block.body, blocks)?;
-                    }
+                        find_blocks(&block.body, blocks, use_blocks)?;
+                    },
+                    Node::UseBlock(_, ref name) => {
+                        use_blocks.insert(name.clone());
+                    },
                     _ => continue,
                 };
             }
 
             Ok(())
         }
-        find_blocks(&ast, &mut blocks)?;
+        find_blocks(&ast, &mut blocks, &mut use_blocks)?;
 
         // And now we find the potential parent and everything macro related (definition, import)
         let mut macros = HashMap::new();
@@ -102,6 +113,7 @@ impl Template {
             ast,
             parent,
             blocks,
+            use_blocks,
             macros,
             imported_macro_files,
             parents: vec![],

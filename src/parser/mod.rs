@@ -707,6 +707,27 @@ fn parse_block(pair: Pair<Rule>) -> TeraResult<Node> {
     Ok(Node::Block(start_ws, Block { name: name.unwrap(), body }, end_ws))
 }
 
+fn parse_useblock_tag(pair: Pair<Rule>) -> TeraResult<Node> {
+    let mut ws = WS::default();
+    let mut name = None;
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::tag_start => {
+                ws.left = p.as_span().as_str() == "{%-";
+            }
+            Rule::tag_end => {
+                ws.right = p.as_span().as_str() == "-%}";
+            }
+            Rule::ident => name = Some(p.as_str().to_string()),
+            _ => unreachable!("unexpected {:?} rule in parse_useblock_tag", p.as_rule()),
+        }
+    }
+
+    Ok(Node::UseBlock(ws, name.unwrap()))
+}
+
+
 fn parse_macro_arg(p: Pair<Rule>) -> TeraResult<ExprVal> {
     let val = match p.as_rule() {
         Rule::int => Some(ExprVal::Int(
@@ -1009,6 +1030,7 @@ fn parse_content(pair: Pair<Rule>) -> TeraResult<Vec<Node>> {
             Rule::filter_section => nodes.push(parse_filter_section(p)?),
             Rule::text => nodes.push(Node::Text(p.as_span().as_str().to_string())),
             Rule::block => nodes.push(parse_block(p)?),
+            Rule::useblock_tag => nodes.push(parse_useblock_tag(p)?),
             _ => unreachable!("unreachable content rule: {:?}", p.as_rule()),
         };
     }
@@ -1130,6 +1152,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::import_macro_tag => r#"an import macro tag (`{% import "filename" as namespace %}`"#.to_string(),
                     Rule::block | Rule::block_tag => r#"a block tag (`{% block block_name %}`"#.to_string(),
                     Rule::endblock_tag => r#"an endblock tag (`{% endblock block_name %}`"#.to_string(),
+                    Rule::useblock_tag => r#"an useblock tag (`{% useblock block_name %}`"#.to_string(),
                     Rule::macro_definition
                     | Rule::macro_tag => r#"a macro definition tag (`{% macro my_macro() %}`"#.to_string(),
                     Rule::extends_tag => r#"an extends tag (`{% extends "myfile" %}`"#.to_string(),

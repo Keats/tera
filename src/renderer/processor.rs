@@ -263,13 +263,19 @@ impl<'a> Processor<'a> {
                 .unwrap(),
         };
 
+        let should_render = !level_template.use_blocks.contains(&block.name);
         let blocks_definitions = &level_template.blocks_definitions;
 
         // Can we find this one block in these definitions? If so render it
         if let Some(block_def) = blocks_definitions.get(&block.name) {
             let (_, Block { ref body, .. }) = block_def[0];
             self.blocks.push((&block.name[..], &level_template.name[..], level));
-            return self.render_body(body);
+
+            if should_render {
+                return self.render_body(body);
+            } else {
+                return Ok(String::new());
+            }
         }
 
         // Do we have more parents to look through?
@@ -277,8 +283,38 @@ impl<'a> Processor<'a> {
             return self.render_block(block, level + 1);
         }
 
-        // Nope, just render the body we got
-        self.render_body(&block.body)
+        // Nope, just render the body we got if it isn't "useblock" only
+        if should_render {
+            self.render_body(&block.body)
+        } else {
+            Ok(String::new())
+        }
+    }
+
+    fn render_block_by_name(self: &mut Self, name: &'a str, level: usize) -> Result<String> {
+        let level_template = match level {
+            0 => self.call_stack.active_template(),
+            _ => self
+                .tera
+                .get_template(&self.call_stack.active_template().parents[level - 1])
+                .unwrap(),
+        };
+
+        // Can we find this one block in these definitions? If so render it
+        if let Some(block_def) = level_template.blocks_definitions.get(name) {
+            let (_, Block { ref body, .. }) = block_def[0];
+            return self.render_body(body);
+        }
+
+        // Do we have more parents to look through?
+        if level < self.call_stack.active_template().parents.len() {
+            return self.render_block_by_name(name, level + 1);
+        }
+
+        Err(Error::msg(format!(
+            "Block `{}` not found while rendering '{}'",
+            name, self.call_stack.active_template().name
+        )))
     }
 
     fn get_default_value(self: &mut Self, expr: &'a Expr) -> Result<Val<'a>> {
@@ -959,6 +995,7 @@ impl<'a> Processor<'a> {
                 self.call_stack.continue_for_loop()?;
             }
             Node::Block(_, ref block, _) => buffer.push_str(&self.render_block(block, 0)?),
+            Node::UseBlock(_, ref name) => buffer.push_str(&self.render_block_by_name(name, 0)?),
             Node::Super => buffer.push_str(&self.do_super()?),
             Node::Include(_, ref tpl_name) => {
                 let template = self.tera.get_template(tpl_name)?;

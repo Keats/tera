@@ -54,6 +54,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                 continue;
             }
             Node::VariableBlock(ws, _)
+            | Node::UseBlock(ws, _)
             | Node::ImportMacro(ws, _, _)
             | Node::Extends(ws, _)
             | Node::Include(ws, _)
