@@ -5,6 +5,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
 
+#[cfg(feature = "globs")]
 use globwalk::glob;
 
 use crate::builtins::filters::{array, common, number, object, string, Filter};
@@ -123,48 +124,51 @@ impl Tera {
             .map(|(n, t)| (n.clone(), t.clone())) // TODO: avoid that clone
             .collect();
 
-        let mut errors = String::new();
+        #[cfg(feature = "globs")]
+        {
+            let mut errors = String::new();
 
-        let dir = self.glob.clone().unwrap();
-        // We clean the filename by removing the dir given
-        // to Tera so users don't have to prefix everytime
-        let mut parent_dir = dir.split_at(dir.find('*').unwrap()).0;
-        // Remove `./` from the glob if used as it would cause an error in strip_prefix
-        if parent_dir.starts_with("./") {
-            parent_dir = &parent_dir[2..];
-        }
+            let dir = self.glob.clone().unwrap();
+            // We clean the filename by removing the dir given
+            // to Tera so users don't have to prefix everytime
+            let mut parent_dir = dir.split_at(dir.find('*').unwrap()).0;
+            // Remove `./` from the glob if used as it would cause an error in strip_prefix
+            if parent_dir.starts_with("./") {
+                parent_dir = &parent_dir[2..];
+            }
 
-        // We are parsing all the templates on instantiation
-        for entry in glob(&dir).unwrap().filter_map(std::result::Result::ok) {
-            let mut path = entry.into_path();
-            // We only care about actual files
-            if path.is_file() {
-                if path.starts_with("./") {
-                    path = path.strip_prefix("./").unwrap().to_path_buf();
-                }
+            // We are parsing all the templates on instantiation
+            for entry in glob(&dir).unwrap().filter_map(std::result::Result::ok) {
+                let mut path = entry.into_path();
+                // We only care about actual files
+                if path.is_file() {
+                    if path.starts_with("./") {
+                        path = path.strip_prefix("./").unwrap().to_path_buf();
+                    }
 
-                let filepath = path
-                    .strip_prefix(&parent_dir)
-                    .unwrap()
-                    .to_string_lossy()
-                    // unify on forward slash
-                    .replace("\\", "/");
+                    let filepath = path
+                        .strip_prefix(&parent_dir)
+                        .unwrap()
+                        .to_string_lossy()
+                        // unify on forward slash
+                        .replace("\\", "/");
 
-                if let Err(e) = self.add_file(Some(&filepath), path) {
-                    use std::error::Error;
+                    if let Err(e) = self.add_file(Some(&filepath), path) {
+                        use std::error::Error;
 
-                    errors += &format!("\n* {}", e);
-                    let mut cause = e.source();
-                    while let Some(e) = cause {
-                        errors += &format!("\n{}", e);
-                        cause = e.source();
+                        errors += &format!("\n* {}", e);
+                        let mut cause = e.source();
+                        while let Some(e) = cause {
+                            errors += &format!("\n{}", e);
+                            cause = e.source();
+                        }
                     }
                 }
             }
-        }
 
-        if !errors.is_empty() {
-            return Err(Error::msg(errors));
+            if !errors.is_empty() {
+                return Err(Error::msg(errors));
+            }
         }
 
         Ok(())
@@ -739,9 +743,11 @@ impl fmt::Debug for Tera {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "globs")]
     use tempfile::tempdir;
 
     use std::collections::HashMap;
+    #[cfg(feature = "globs")]
     use std::fs::File;
 
     use super::Tera;
@@ -983,18 +989,21 @@ mod tests {
         assert!(my_tera.testers.contains_key("hello"));
     }
 
+    #[cfg(feature = "globs")]
     #[test]
     fn can_load_from_glob() {
         let tera = Tera::new("examples/basic/templates/**/*").unwrap();
         assert!(tera.get_template("base.html").is_ok());
     }
 
+    #[cfg(feature = "globs")]
     #[test]
     fn can_load_from_glob_with_patterns() {
         let tera = Tera::new("examples/basic/templates/**/*.{html, xml}").unwrap();
         assert!(tera.get_template("base.html").is_ok());
     }
 
+    #[cfg(feature = "globs")]
     #[test]
     fn full_reload_with_glob() {
         let mut tera = Tera::new("examples/basic/templates/**/*").unwrap();
@@ -1003,6 +1012,7 @@ mod tests {
         assert!(tera.get_template("base.html").is_ok());
     }
 
+    #[cfg(feature = "globs")]
     #[test]
     fn full_reload_with_glob_after_extending() {
         let mut tera = Tera::new("examples/basic/templates/**/*").unwrap();
@@ -1017,6 +1027,7 @@ mod tests {
         assert!(tera.get_template("one").is_ok());
     }
 
+    #[cfg(feature = "globs")]
     #[should_panic]
     #[test]
     fn test_can_only_parse_templates() {
@@ -1033,6 +1044,7 @@ mod tests {
     }
 
     // https://github.com/Keats/tera/issues/380
+    #[cfg(feature = "globs")]
     #[test]
     fn glob_work_with_absolute_paths() {
         let tmp_dir = tempdir().expect("create temp dir");
@@ -1044,6 +1056,7 @@ mod tests {
         assert_eq!(tera.templates.len(), 2);
     }
 
+    #[cfg(feature = "globs")]
     #[test]
     fn glob_work_with_absolute_paths_and_double_star() {
         let tmp_dir = tempdir().expect("create temp dir");

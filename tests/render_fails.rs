@@ -1,3 +1,4 @@
+#![cfg(feature = "globs")]
 extern crate tera;
 #[macro_use]
 extern crate serde_derive;
