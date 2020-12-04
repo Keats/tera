@@ -282,3 +282,16 @@ fn error_gives_source_on_tests() {
         "Tester `undefined` was called with some args but this test doesn\'t take args"
     );
 }
+
+#[test]
+fn error_on_missing_block_when_using_useblock() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![("tpl", "{% useblock my_block %}")]).unwrap();
+
+    let result = tera.render("tpl", &Context::new());
+
+    assert_eq!(
+        result.unwrap_err().source().unwrap().to_string(),
+        "Block `my_block` not found while rendering \'tpl\'"
+    );
+}

@@ -823,6 +823,12 @@ fn parse_block() {
 }
 
 #[test]
+fn parse_useblock_tag() {
+    let ast = parse("{% useblock my_block -%}").unwrap();
+    assert_eq!(ast[0], Node::UseBlock(WS { left: false, right: true }, "my_block".to_string(),),);
+}
+
+#[test]
 fn parse_simple_macro_definition() {
     let ast = parse("{% macro hello(a=1, b='hello', c) %}A: {{a}}{% endmacro %}").unwrap();
     let mut args = HashMap::new();

@@ -571,6 +571,82 @@ fn ok_many_variable_blocks() {
 }
 
 #[test]
+fn can_expand_block_multiple_times_with_useblock() {
+    let result = render_template(
+        r#"
+{%- block test -%}Hello World{%- endblock test -%}
+{%- useblock test %} {% useblock test -%}
+        "#,
+        &Context::new()
+    );
+
+    assert_eq!(result.unwrap(), "Hello World Hello World");
+}
+
+#[test]
+fn can_expand_block_multiple_times_with_useblock_nested() {
+    let result = render_template(
+        r#"
+{%- block test -%}Hello World{%- endblock test -%}
+{%- block test2 -%}{%- useblock test %} {% useblock test -%}{%- endblock test2 -%}
+{%- useblock test2 -%}
+        "#,
+        &Context::new()
+    );
+
+    assert_eq!(result.unwrap(), "Hello World Hello World");
+}
+
+#[test]
+fn can_expand_block_with_useblock_with_inheritance() {
+    let mut tera = Tera::default();
+    tera.add_raw_template("base", "{% useblock test %}").unwrap();
+    tera.add_raw_template(
+        "index",
+        "{% extends \"base\" %}{% block test %}Hello World{% endblock test %}"
+    ).unwrap();
+
+    let result = tera.render("index", &Context::new());
+
+    assert_eq!(result.unwrap(), "Hello World");
+}
+
+#[test]
+fn can_expand_block_with_useblock_with_deep_inheritance() {
+    let mut tera = Tera::default();
+    tera.add_raw_template("level1", "{% useblock test_deep %}").unwrap();
+    tera.add_raw_template(
+        "level2",
+        "{% extends \"level1\" %}{% block test_deep %}{% useblock test %}{% endblock test_deep %}"
+    ).unwrap();
+    tera.add_raw_template(
+        "level3",
+        "{% extends \"level2\" %}{% block test %}Hello World{% endblock test %}"
+    ).unwrap();
+
+    let result = tera.render("level3", &Context::new());
+
+    assert_eq!(result.unwrap(), "Hello World");
+}
+
+#[test]
+fn can_expand_block_with_block_then_multiple_useblock() {
+    let mut tera = Tera::default();
+    tera.add_raw_template(
+        "base",
+        "{%- block test %}{% endblock test %}_{% useblock test -%}_{% useblock test -%}"
+    ).unwrap();
+    tera.add_raw_template(
+        "index",
+        "{% extends \"base\" %}{%- block test -%}Hello{%- endblock test -%}"
+    ).unwrap();
+
+    let result = tera.render("index", &Context::new());
+
+    assert_eq!(result.unwrap(), "Hello_Hello_Hello");
+}
+
+#[test]
 fn can_set_variable_in_global_context_in_forloop() {
     let mut context = Context::new();
     context.insert("tags", &vec![1, 2, 3]);

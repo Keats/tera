@@ -455,6 +455,11 @@ fn lex_block_tag() {
 }
 
 #[test]
+fn lex_useblock_tag() {
+    assert!(TeraParser::parse(Rule::useblock_tag, "{% useblock my_block %}").is_ok());
+}
+
+#[test]
 fn lex_macro_tag() {
     let inputs =
         vec!["{%- macro tag() %}", "{% macro my_block(name) -%}", "{% macro my_block(name=42) %}"];
