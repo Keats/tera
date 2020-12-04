@@ -114,7 +114,7 @@ tera.autoescape_on(vec![".php.html"]);
 tera.autoescape_on(vec![]);
 ```
 
-Tera does not perform contextual auto-escaping, eg by parsing the template to know whether to escape JS, CSS or HTML (see 
+Tera does not perform contextual auto-escaping, eg by parsing the template to know whether to escape JS, CSS or HTML (see
 <https://rawgit.com/mikesamuel/sanitized-jquery-templates/trunk/safetemplate.html> for more details on that).
 
 ## Advanced usage
@@ -412,7 +412,7 @@ Filter sections can also contain [`block` sections](@/docs/_index.md#inheritance
 {% filter upper %}
   {% block content_to_be_upper_cased %}
     This will be upper-cased
-  {% endblock content_to_be_upper_cased %} 
+  {% endblock content_to_be_upper_cased %}
 {% endfilter %}
 ```
 
@@ -563,7 +563,7 @@ Lastly, you can set a default body to be rendered when the container is empty:
 {% for product in products %}
   {{loop.index}}. {{product.name}}
 {% else %}
-  No products.  
+  No products.
 {% endfor %}
 ```
 
@@ -644,7 +644,7 @@ Here's an example of a recursive macro:
 {% endmacro factorial %}
 ```
 
-Macros body can contain all normal Tera syntax with the exception of macros definition, `block` and `extends`.
+Macros body can contain all normal Tera syntax with the exception of macros definition, `block`, `useblock` and `extends`.
 
 
 ## Inheritance
@@ -665,11 +665,11 @@ For example, here's a `base.html` almost copied from the Jinja2 documentation:
 <head>
     {% block head %}
     <link rel="stylesheet" href="style.css" />
-    <title>{% block title %}{% endblock title %} - My Webpage</title>
+    <title>{% useblock title %} - My Webpage</title>
     {% endblock head %}
 </head>
 <body>
-    <div id="content">{% block content %}{% endblock content %}</div>
+    <div id="content">{% useblock content %}</div>
     <div id="footer">
         {% block footer %}
         &copy; Copyright 2008 by <a href="http://domain.invalid/">you</a>.
@@ -678,10 +678,15 @@ For example, here's a `base.html` almost copied from the Jinja2 documentation:
 </body>
 </html>
 ```
-The only difference with Jinja2 being that the `endblock` tags have to be named.
+The only two differences to Jinja2 are:
+- `endblock` tags have to be named
+- `{% useblock name %}` may be used instead of `{{ self.name() }}`
 
 This `base.html` template defines 4 `block` tag that child templates can override.
 The `head` and `footer` block have some content already which will be rendered if they are not overridden.
+
+The `useblock` tag simply expands a previously block. This can be used if you want to use a block multiple times.
+If you need to extend a block using `{{/* super() */}}` use `block` instead.
 
 ### Child template
 Again, straight from Jinja2 docs:
