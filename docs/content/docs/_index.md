@@ -974,7 +974,27 @@ The `attribute` argument can be used to group posts by year:
 or by author name:
 
 ```jinja2
-{{ posts | group_by(attribute="author.name") }}
+{% for name, author_posts in posts | group_by(attribute="author.name") %}
+    {{ name }}
+    {% for post in author_posts %}
+        {{ post.year }}: {{ post.content }}
+    {% endfor %}
+{% endfor %}
+```
+
+Manipulating the hashmap produced by `group_by` in an arbitrary order requires additional steps to extract the keys into a separate array.
+
+Example:
+
+```jinja2
+{% set map = section.pages | group_by(attribute="year") %}
+{% set_global years = [] %}
+{% for year, ignored in map %}
+    {% set_global years = years | concat(with=year) %}
+{% endfor %}
+{% for year in years | reverse %}
+    {% set posts = map[year] %}
+{% endfor %}
 ```
 
 #### filter
