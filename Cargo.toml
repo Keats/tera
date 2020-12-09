@@ -13,23 +13,23 @@ edition = "2018"
 include = ["src/**/*", "LICENSE", "README.md", "CHANGELOG.md"]
 
 [dependencies]
-globwalk = "0.8"
+globwalk = "0.8.1"
 serde = "1.0"
-serde_json = "1.0"
-pest = "2"
-pest_derive = "2"
+serde_json = "1.0.11"
+pest = "2.0.2"
+pest_derive = "2.0.2"
 lazy_static = "1.0"
 # used in striptags & titles filters. Already pulled by globwalk
 regex = "1.0"
 
 # used in slugify filter
-slug = {version = "0.1", optional = true}
+slug = {version = "0.1.1", optional = true}
 # used in urlencode filter
-percent-encoding = {version = "2", optional = true}
+percent-encoding = {version = "2.1", optional = true}
 # used in filesizeformat filter
 humansize = {version = "1", optional = true}
 # used in date format filter
-chrono = {version = "0.4", optional = true}
+chrono = {version = "0.4.1", optional = true}
 chrono-tz = {version = "0.5", optional = true}
 # used in truncate filter
 unic-segment = {version = "0.9", optional = true}
