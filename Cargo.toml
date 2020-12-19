@@ -34,7 +34,7 @@ chrono-tz = {version = "0.5", optional = true}
 # used in truncate filter
 unic-segment = {version = "0.9", optional = true}
 # used in get_random function
-rand = {version = "0.7", optional = true}
+rand = {version = "0.8", optional = true}
 
 [dev-dependencies]
 serde_derive = "1.0"

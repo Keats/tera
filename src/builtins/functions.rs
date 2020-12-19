@@ -166,7 +166,7 @@ pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
         None => return Err(Error::msg("Function `get_random` didn't receive an `end` argument")),
     };
     let mut rng = rand::thread_rng();
-    let res = rng.gen_range(start, end);
+    let res = rng.gen_range(start..end);
 
     Ok(Value::Number(res.into()))
 }
