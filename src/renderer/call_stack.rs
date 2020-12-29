@@ -27,7 +27,7 @@ impl<'a> UserContext<'a> {
         self.inner.get(key)
     }
 
-    pub fn find_value_by_pointer(self: &Self, pointer: &str) -> Option<&'a Value> {
+    pub fn find_value_by_pointer(&self, pointer: &str) -> Option<&'a Value> {
         assert!(pointer.starts_with('/'));
         let root = pointer.split('/').nth(1).unwrap().replace("~1", "/").replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
@@ -74,7 +74,7 @@ impl<'a> CallStack<'a> {
 
     /// Returns mutable reference to global `StackFrame`
     /// i.e gets first stack outside current for loops
-    pub fn global_frame_mut(self: &mut Self) -> &mut StackFrame<'a> {
+    pub fn global_frame_mut(&mut self) -> &mut StackFrame<'a> {
         if self.current_frame().kind == FrameType::ForLoop {
             for stack_frame in self.stack.iter_mut().rev() {
                 // walk up the parent stacks until we meet the current template
@@ -90,12 +90,12 @@ impl<'a> CallStack<'a> {
     }
 
     /// Returns mutable reference to current `StackFrame`
-    pub fn current_frame_mut(self: &mut Self) -> &mut StackFrame<'a> {
+    pub fn current_frame_mut(&mut self) -> &mut StackFrame<'a> {
         self.stack.last_mut().expect("No current frame exists")
     }
 
     /// Returns immutable reference to current `StackFrame`
-    pub fn current_frame(self: &Self) -> &StackFrame<'a> {
+    pub fn current_frame(&self) -> &StackFrame<'a> {
         self.stack.last().expect("No current frame exists")
     }
 
@@ -141,7 +141,7 @@ impl<'a> CallStack<'a> {
     }
 
     /// Breaks current for loop
-    pub fn break_for_loop(self: &mut Self) -> Result<()> {
+    pub fn break_for_loop(&mut self) -> Result<()> {
         match self.current_frame_mut().for_loop {
             Some(ref mut for_loop) => {
                 for_loop.break_loop();
@@ -152,7 +152,7 @@ impl<'a> CallStack<'a> {
     }
 
     /// Continues current for loop
-    pub fn increment_for_loop(self: &mut Self) -> Result<()> {
+    pub fn increment_for_loop(&mut self) -> Result<()> {
         let frame = self.current_frame_mut();
         frame.clear_context();
         match frame.for_loop {
@@ -165,7 +165,7 @@ impl<'a> CallStack<'a> {
     }
 
     /// Continues current for loop
-    pub fn continue_for_loop(self: &mut Self) -> Result<()> {
+    pub fn continue_for_loop(&mut self) -> Result<()> {
         match self.current_frame_mut().for_loop {
             Some(ref mut for_loop) => {
                 for_loop.continue_loop();
@@ -198,7 +198,7 @@ impl<'a> CallStack<'a> {
         self.current_frame().active_template
     }
 
-    pub fn current_context_cloned(self: &Self) -> Value {
+    pub fn current_context_cloned(&self) -> Value {
         let mut context = HashMap::new();
 
         // Go back the stack in reverse to see what we have access to

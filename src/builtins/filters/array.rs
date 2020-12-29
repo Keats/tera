@@ -241,7 +241,7 @@ pub fn map(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 }
 
 #[inline]
-fn get_index(i: f64, array: &Vec<Value>) -> usize {
+fn get_index(i: f64, array: &[Value]) -> usize {
     if i >= 0.0 {
         i as usize
     } else {

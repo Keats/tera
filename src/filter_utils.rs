@@ -5,6 +5,7 @@ use std::cmp::Ordering;
 #[derive(PartialEq, PartialOrd, Default, Copy, Clone)]
 pub struct OrderedF64(f64);
 
+
 impl OrderedF64 {
     fn new(n: f64) -> Result<Self> {
         if n.is_finite() {

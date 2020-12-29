@@ -37,7 +37,7 @@ impl<'a> MacroCollection<'a> {
     /// HashMap for easy popping as well, otherwise there could be stray macro
     /// definitions remaining
     pub fn add_macros_from_template(
-        self: &mut Self,
+        &mut self,
         tera: &'a Tera,
         template: &'a Template,
     ) -> Result<()> {

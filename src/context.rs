@@ -35,7 +35,7 @@ impl Context {
     }
 
     /// Converts the `val` parameter to `Value` and insert it into the context.
-    /// 
+    ///
     /// Returns an error if the serialization fails.
     ///
     /// ```rust
@@ -53,7 +53,11 @@ impl Context {
     ///     // Serialization failed
     /// }
     /// ```
-    pub fn try_insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) -> TeraResult<()> {
+    pub fn try_insert<T: Serialize + ?Sized, S: Into<String>>(
+        &mut self,
+        key: S,
+        val: &T,
+    ) -> TeraResult<()> {
         self.data.insert(key.into(), to_value(val)?);
 
         Ok(())

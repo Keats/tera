@@ -159,7 +159,7 @@ impl<'a> Processor<'a> {
         Ok(output)
     }
 
-    fn render_for_loop(self: &mut Self, for_loop: &'a Forloop) -> Result<String> {
+    fn render_for_loop(&mut self, for_loop: &'a Forloop) -> Result<String> {
         let container_name = match for_loop.container.val {
             ExprVal::Ident(ref ident) => ident,
             ExprVal::FunctionCall(FunctionCall { ref name, .. }) => name,
@@ -237,7 +237,7 @@ impl<'a> Processor<'a> {
         }
     }
 
-    fn render_if_node(self: &mut Self, if_node: &'a If) -> Result<String> {
+    fn render_if_node(&mut self, if_node: &'a If) -> Result<String> {
         for &(_, ref expr, ref body) in &if_node.conditions {
             if self.eval_as_bool(expr)? {
                 return self.render_body(body);
@@ -254,7 +254,7 @@ impl<'a> Processor<'a> {
     /// The way inheritance work is that the top parent will be rendered by the renderer so for blocks
     /// we want to look from the bottom (`level = 0`, the template the user is actually rendering)
     /// to the top (the base template).
-    fn render_block(self: &mut Self, block: &'a Block, level: usize) -> Result<String> {
+    fn render_block(&mut self, block: &'a Block, level: usize) -> Result<String> {
         let level_template = match level {
             0 => self.call_stack.active_template(),
             _ => self
@@ -281,7 +281,7 @@ impl<'a> Processor<'a> {
         self.render_body(&block.body)
     }
 
-    fn get_default_value(self: &mut Self, expr: &'a Expr) -> Result<Val<'a>> {
+    fn get_default_value(&mut self, expr: &'a Expr) -> Result<Val<'a>> {
         if let Some(default_expr) = expr.filters[0].args.get("value") {
             self.eval_expression(default_expr)
         } else {
@@ -289,7 +289,7 @@ impl<'a> Processor<'a> {
         }
     }
 
-    fn eval_in_condition(self: &mut Self, in_cond: &'a In) -> Result<bool> {
+    fn eval_in_condition(&mut self, in_cond: &'a In) -> Result<bool> {
         let lhs = self.eval_expression(&in_cond.lhs)?;
         let rhs = self.eval_expression(&in_cond.rhs)?;
 
@@ -323,7 +323,7 @@ impl<'a> Processor<'a> {
         Ok(if in_cond.negated { !present } else { present })
     }
 
-    fn eval_expression(self: &mut Self, expr: &'a Expr) -> Result<Val<'a>> {
+    fn eval_expression(&mut self, expr: &'a Expr) -> Result<Val<'a>> {
         let mut needs_escape = false;
 
         let mut res = match expr.val {
@@ -434,7 +434,7 @@ impl<'a> Processor<'a> {
     }
 
     /// Render an expression and never escape its result
-    fn safe_eval_expression(self: &mut Self, expr: &'a Expr) -> Result<Val<'a>> {
+    fn safe_eval_expression(&mut self, expr: &'a Expr) -> Result<Val<'a>> {
         let should_escape = self.should_escape;
         self.should_escape = false;
         let res = self.eval_expression(expr);
@@ -443,13 +443,13 @@ impl<'a> Processor<'a> {
     }
 
     /// Evaluate a set tag and add the value to the right context
-    fn eval_set(self: &mut Self, set: &'a Set) -> Result<()> {
+    fn eval_set(&mut self, set: &'a Set) -> Result<()> {
         let assigned_value = self.safe_eval_expression(&set.value)?;
         self.call_stack.add_assignment(&set.key[..], set.global, assigned_value);
         Ok(())
     }
 
-    fn eval_test(self: &mut Self, test: &'a Test) -> Result<bool> {
+    fn eval_test(&mut self, test: &'a Test) -> Result<bool> {
         let tester_fn = self.tera.get_tester(&test.name)?;
         let err_wrap = |e| Error::call_test(&test.name, e);
 
@@ -470,7 +470,7 @@ impl<'a> Processor<'a> {
     }
 
     fn eval_tera_fn_call(
-        self: &mut Self,
+        &mut self,
         function_call: &'a FunctionCall,
         needs_escape: &mut bool,
     ) -> Result<Val<'a>> {
@@ -490,7 +490,7 @@ impl<'a> Processor<'a> {
         Ok(Cow::Owned(tera_fn.call(&args).map_err(err_wrap)?))
     }
 
-    fn eval_macro_call(self: &mut Self, macro_call: &'a MacroCall) -> Result<String> {
+    fn eval_macro_call(&mut self, macro_call: &'a MacroCall) -> Result<String> {
         let active_template_name = if let Some(block) = self.blocks.last() {
             block.1
         } else if self.template.name != self.template_root.name {
@@ -615,7 +615,7 @@ impl<'a> Processor<'a> {
             ExprVal::Ident(_) => {
                 let mut res = self
                     .eval_expression(&bool_expr)
-                    .unwrap_or_else(|_| Cow::Owned(Value::Bool(false)))
+                    .unwrap_or(Cow::Owned(Value::Bool(false)))
                     .is_truthy();
                 if bool_expr.negated {
                     res = !res;
@@ -1022,7 +1022,7 @@ impl<'a> Processor<'a> {
     }
 
     /// Entry point for the rendering
-    pub fn render(self: &mut Self) -> Result<String> {
+    pub fn render(&mut self) -> Result<String> {
         // 10000 is a random value
         let mut output = String::with_capacity(10000);
         for node in &self.template_root.ast {
