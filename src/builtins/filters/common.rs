@@ -107,7 +107,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                         None => val.format(&format),
                     },
                     Err(_) => match s.parse::<NaiveDateTime>() {
-                        Ok(val) => val.format(&format),
+                        Ok(val) => DateTime::<Utc>::from_utc(val, Utc).format(&format),
                         Err(_) => {
                             return Err(Error::msg(format!(
                                 "Error parsing `{:?}` as rfc3339 date or naive datetime",
@@ -298,6 +298,16 @@ mod tests {
         println!("{:?}", result);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00").unwrap());
+    }
+
+    // https://github.com/getzola/zola/issues/1279
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn date_format_doesnt_panic() {
+        let mut args = HashMap::new();
+        args.insert("format".to_string(), to_value("%+S").unwrap());
+        let result = date(&to_value("2017-01-01T00:00:00").unwrap(), &args);
+        assert!(result.is_ok());
     }
 
     #[cfg(feature = "builtins")]
