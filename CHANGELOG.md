@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1 (2020-12-29)
+
+- Fix date filter sometimes panicking with some format input
+
 ## 1.6.0 (2020-12-19)
 
 - Allow multiline function kwargs with trailing comma
