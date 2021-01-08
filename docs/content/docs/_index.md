@@ -453,7 +453,7 @@ the list of URLs for example.
 Here's an example on how to implement a very basic function:
 
 ```rust
-fn make_url_for(urls: BTreeMap<String, String>) -> GlobalFn {
+fn make_url_for(urls: BTreeMap<String, String>) -> Function {
     Box::new(move |args| -> Result<Value> {
         match args.get("name") {
             Some(val) => match from_value::<String>(val.clone()) {
