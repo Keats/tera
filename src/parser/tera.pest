@@ -99,6 +99,8 @@ logic_expr = !{ logic_val ~ ((op_or | op_and) ~ logic_val)* }
 array = !{ "[" ~ (logic_val ~ ",")* ~ logic_val? ~ "]"}
 array_filter = !{ array ~ filter* }
 
+string_array = !{ "[" ~ (string ~ ",")* ~ string? ~ "]"}
+
 // ----------------------------------------------------
 
 /// FUNCTIONS & FILTERS
@@ -150,7 +152,7 @@ block_start    = _{ variable_start | tag_start | comment_start }
 
 
 // Actual tags
-include_tag      = ${ tag_start ~ WHITESPACE* ~ "include" ~ WHITESPACE+ ~ string ~ WHITESPACE* ~ tag_end }
+include_tag      = ${ tag_start ~ WHITESPACE* ~ "include" ~ WHITESPACE+ ~ (string | string_array) ~ WHITESPACE* ~ tag_end }
 comment_tag      = !{ comment_start ~ (!comment_end ~ ANY)* ~ comment_end }
 block_tag        = ${ tag_start ~ WHITESPACE* ~ "block" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ tag_end }
 macro_tag        = ${ tag_start ~ WHITESPACE* ~ "macro" ~ WHITESPACE+ ~ macro_fn_wrapper ~ WHITESPACE* ~ tag_end }

@@ -141,6 +141,7 @@ fn lex_array() {
         "[1,2,3]",
         "[1, 2,3,]",
         "[1 + 1, 2,3 * 2,]",
+        "[\"foo\", \"bar\"]",
         "[1,true,'string', 0.5, hello(), macros::hey(arg=1)]",
     ];
 
@@ -428,6 +429,7 @@ fn lex_test() {
 #[test]
 fn lex_include_tag() {
     assert!(TeraParser::parse(Rule::include_tag, "{% include \"index.html\" %}").is_ok());
+    assert!(TeraParser::parse(Rule::include_tag, "{% include [\"index.html\"] %}").is_ok());
 }
 
 #[test]

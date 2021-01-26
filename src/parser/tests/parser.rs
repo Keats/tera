@@ -24,7 +24,18 @@ fn parse_text_with_whitespace() {
 #[test]
 fn parse_include_tag() {
     let ast = parse("{% include \"index.html\" -%}").unwrap();
-    assert_eq!(ast[0], Node::Include(WS { left: false, right: true }, "index.html".to_string(),),);
+    assert_eq!(
+        ast[0],
+        Node::Include(WS { left: false, right: true }, vec!["index.html".to_string()],),
+    );
+    let ast = parse("{% include [\"custom/index.html\", \"index.html\"] %}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::Include(
+            WS { left: false, right: false },
+            vec!["custom/index.html".to_string(), "index.html".to_string()],
+        ),
+    );
 }
 
 #[test]

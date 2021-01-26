@@ -960,13 +960,27 @@ impl<'a> Processor<'a> {
             }
             Node::Block(_, ref block, _) => buffer.push_str(&self.render_block(block, 0)?),
             Node::Super => buffer.push_str(&self.do_super()?),
-            Node::Include(_, ref tpl_name) => {
-                let template = self.tera.get_template(tpl_name)?;
-                self.macros.add_macros_from_template(&self.tera, template)?;
-                self.call_stack.push_include_frame(tpl_name, template);
-                let result = self.render_body(&template.ast)?;
-                self.call_stack.pop();
-                buffer.push_str(&result);
+            Node::Include(_, ref tpl_names) => {
+                let mut found = false;
+                for tpl_name in tpl_names {
+                    let template = self.tera.get_template(tpl_name);
+                    if template.is_err() {
+                        continue;
+                    }
+                    let template = template.unwrap();
+                    self.macros.add_macros_from_template(&self.tera, template)?;
+                    self.call_stack.push_include_frame(tpl_name, template);
+                    let result = self.render_body(&template.ast)?;
+                    self.call_stack.pop();
+                    buffer.push_str(&result);
+                    found = true;
+                    break;
+                }
+                if !found {
+                    return Err(Error::template_not_found(
+                        vec!["[", &tpl_names.join(", ").to_string(), "]"].join(""),
+                    ));
+                }
             }
             Node::Extends(_, ref name) => {
                 return Err(Error::msg(format!(

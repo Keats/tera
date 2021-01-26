@@ -324,7 +324,7 @@ pub enum Node {
     /// The `{% extends "blabla.html" %}` node, contains the template name
     Extends(WS, String),
     /// The `{% include "blabla.html" %}` node, contains the template name
-    Include(WS, String),
+    Include(WS, Vec<String>),
     /// The `{% import "macros.html" as macros %}`
     ImportMacro(WS, String, String),
     /// The `{% set val = something %}` tag
