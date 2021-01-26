@@ -960,7 +960,7 @@ impl<'a> Processor<'a> {
             }
             Node::Block(_, ref block, _) => buffer.push_str(&self.render_block(block, 0)?),
             Node::Super => buffer.push_str(&self.do_super()?),
-            Node::Include(_, ref tpl_names) => {
+            Node::Include(_, ref tpl_names, ref ignore_missing) => {
                 let mut found = false;
                 for tpl_name in tpl_names {
                     let template = self.tera.get_template(tpl_name);
@@ -976,7 +976,7 @@ impl<'a> Processor<'a> {
                     found = true;
                     break;
                 }
-                if !found {
+                if !found && !ignore_missing {
                     return Err(Error::template_not_found(
                         vec!["[", &tpl_names.join(", ").to_string(), "]"].join(""),
                     ));

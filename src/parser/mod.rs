@@ -586,6 +586,7 @@ fn parse_extends(pair: Pair<Rule>) -> TeraResult<Node> {
 fn parse_include(pair: Pair<Rule>) -> TeraResult<Node> {
     let mut ws = WS::default();
     let mut files = vec![];
+    let mut ignore_missing = false;
 
     for p in pair.into_inner() {
         match p.as_rule() {
@@ -596,6 +597,7 @@ fn parse_include(pair: Pair<Rule>) -> TeraResult<Node> {
                 files.push(replace_string_markers(p.as_span().as_str()));
             }
             Rule::string_array => files.extend(parse_string_array(p)?),
+            Rule::ignore_missing => ignore_missing = true,
             Rule::tag_end => {
                 ws.right = p.as_span().as_str() == "-%}";
             }
@@ -603,7 +605,7 @@ fn parse_include(pair: Pair<Rule>) -> TeraResult<Node> {
         };
     }
 
-    Ok(Node::Include(ws, files))
+    Ok(Node::Include(ws, files, ignore_missing))
 }
 
 fn parse_set_tag(pair: Pair<Rule>, global: bool) -> TeraResult<Node> {
@@ -1134,6 +1136,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::raw_text => "some raw text".to_string(),
                     Rule::raw => "a raw block (`{% raw %}...{% endraw %}`".to_string(),
                     Rule::endraw_tag => "`{% endraw %}`".to_string(),
+                    Rule::ignore_missing => "ignore missing mark for include tag".to_string(),
                     Rule::include_tag => r#"an include tag (`{% include "..." %}`)"#.to_string(),
                     Rule::comment_tag => "a comment tag (`{#...#}`)".to_string(),
                     Rule::variable_tag => "a variable tag (`{{ ... }}`)".to_string(),

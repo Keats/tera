@@ -151,8 +151,12 @@ comment_end    = _{ "#}" }
 block_start    = _{ variable_start | tag_start | comment_start }
 
 
+// Tag marks
+ignore_missing = { "ignore" ~ WHITESPACE* ~ "missing" }
+
+
 // Actual tags
-include_tag      = ${ tag_start ~ WHITESPACE* ~ "include" ~ WHITESPACE+ ~ (string | string_array) ~ WHITESPACE* ~ tag_end }
+include_tag      = ${ tag_start ~ WHITESPACE* ~ "include" ~ WHITESPACE+ ~ (string | string_array) ~ WHITESPACE* ~ ignore_missing? ~ WHITESPACE* ~ tag_end }
 comment_tag      = !{ comment_start ~ (!comment_end ~ ANY)* ~ comment_end }
 block_tag        = ${ tag_start ~ WHITESPACE* ~ "block" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ tag_end }
 macro_tag        = ${ tag_start ~ WHITESPACE* ~ "macro" ~ WHITESPACE+ ~ macro_fn_wrapper ~ WHITESPACE* ~ tag_end }

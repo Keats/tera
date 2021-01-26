@@ -430,6 +430,8 @@ fn lex_test() {
 fn lex_include_tag() {
     assert!(TeraParser::parse(Rule::include_tag, "{% include \"index.html\" %}").is_ok());
     assert!(TeraParser::parse(Rule::include_tag, "{% include [\"index.html\"] %}").is_ok());
+    assert!(TeraParser::parse(Rule::include_tag, "{% include [\"index.html\"] ignore missing %}")
+        .is_ok());
 }
 
 #[test]
