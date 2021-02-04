@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use crate::errors::{Error, Result};
+use crate::utils::render_to_string;
 #[cfg(feature = "builtins")]
 use chrono::{
     format::{Item, StrftimeItems},
@@ -142,7 +143,8 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
 // Returns the given value as a string.
 pub fn as_str(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
-    to_value(&value.render()).map_err(Error::json)
+    let value = render_to_string(|w| value.render(w))?;
+    to_value(value).map_err(Error::json)
 }
 
 #[cfg(test)]
