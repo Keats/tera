@@ -39,6 +39,8 @@ pub enum ErrorKind {
     CallFilter(String),
     /// An error occured while executing a test.
     CallTest(String),
+    /// An IO error occured
+    Io(std::io::ErrorKind),
     /// This enum may grow additional variants, so this makes sure clients
     /// don't count on exhaustive matching. (Otherwise, adding a new variant
     /// could break existing code.)
@@ -79,6 +81,9 @@ impl fmt::Display for Error {
             ErrorKind::CallFunction(ref name) => write!(f, "Function call '{}' failed", name),
             ErrorKind::CallFilter(ref name) => write!(f, "Filter call '{}' failed", name),
             ErrorKind::CallTest(ref name) => write!(f, "Test call '{}' failed", name),
+            ErrorKind::Io(ref io_error) => {
+                write!(f, "Io error while writing rendered value to output: {:?}", io_error)
+            }
             ErrorKind::__Nonexhaustive => write!(f, "Nonexhaustive"),
         }
     }
@@ -173,8 +178,18 @@ impl Error {
     pub fn invalid_macro_def(name: impl ToString) -> Self {
         Self { kind: ErrorKind::InvalidMacroDefinition(name.to_string()), source: None }
     }
+
+    /// Creates a IO error
+    pub fn io_error(error: std::io::Error) -> Self {
+        Self { kind: ErrorKind::Io(error.kind()), source: Some(Box::new(error)) }
+    }
 }
 
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Self {
+        Self::io_error(error)
+    }
+}
 impl From<&str> for Error {
     fn from(e: &str) -> Self {
         Self::msg(e)

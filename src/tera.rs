@@ -309,6 +309,26 @@ impl Tera {
         renderer.render()
     }
 
+    /// Renders a Tera template given a `tera::Context` to a [std::io::Write],
+    ///
+    /// The only difference from [Self::render] is that this version doesn't convert buffer to a String,
+    /// allowing to render directly to anything that implements [std::io::Write].
+    ///
+    /// Any i/o error will be reported in the result.
+    ///
+    /// ```rust,ignore
+    /// // Rendering a template to an internal buffer
+    /// let mut buffer = Vec::new();
+    /// let mut context = Context::new();
+    /// context.insert("age", 18);
+    /// tera.render_to("hello.html", context, &mut buffer);
+    /// ```
+    pub fn render_to(&self, template_name: &str, context: &Context, w: impl Write) -> Result<()> {
+        let template = self.get_template(template_name)?;
+        let renderer = Renderer::new(template, self, context);
+        renderer.render_to(w)
+    }
+
     /// Renders a one off template (for example a template coming from a user
     /// input) given a `Context` and an instance of Tera. This allows you to
     /// render templates using custom filters or functions.

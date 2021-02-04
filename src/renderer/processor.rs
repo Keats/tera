@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::io::Write;
 
 use serde_json::{to_string_pretty, to_value, Number, Value};
 
@@ -13,6 +14,7 @@ use crate::renderer::square_brackets::pull_out_square_bracket;
 use crate::renderer::stack_frame::{FrameContext, FrameType, Val};
 use crate::template::Template;
 use crate::tera::Tera;
+use crate::utils::render_to_string;
 use crate::Context;
 
 /// Special string indicating request to dump context
@@ -145,21 +147,19 @@ impl<'a> Processor<'a> {
         }
     }
 
-    fn render_body(&mut self, body: &'a [Node]) -> Result<String> {
-        let mut output = String::with_capacity(body.len() * 20);
-
+    fn render_body(&mut self, body: &'a [Node], w: &mut impl Write) -> Result<()> {
         for n in body {
-            self.render_node(n, &mut output)?;
+            self.render_node(n, w)?;
 
             if self.call_stack.should_break_body() {
                 break;
             }
         }
 
-        Ok(output)
+        Ok(())
     }
 
-    fn render_for_loop(&mut self, for_loop: &'a Forloop) -> Result<String> {
+    fn render_for_loop(&mut self, for_loop: &'a Forloop, w: &mut impl Write) -> Result<()> {
         let container_name = match for_loop.container.val {
             ExprVal::Ident(ref ident) => ident,
             ExprVal::FunctionCall(FunctionCall { ref name, .. }) => name,
@@ -214,14 +214,13 @@ impl<'a> Processor<'a> {
 
         let len = for_loop.len();
         match (len, for_loop_empty_body) {
-            (0, Some(empty_body)) => Ok(self.render_body(&empty_body)?),
-            (0, _) => Ok("".to_string()),
+            (0, Some(empty_body)) => self.render_body(&empty_body, w),
+            (0, _) => Ok(()),
             (_, _) => {
                 self.call_stack.push_for_loop_frame(for_loop_name, for_loop);
 
-                let mut output = String::with_capacity(len * 20);
                 for _ in 0..len {
-                    output.push_str(&self.render_body(&for_loop_body)?);
+                    self.render_body(&for_loop_body, w)?;
 
                     if self.call_stack.should_break_for_loop() {
                         break;
@@ -232,29 +231,29 @@ impl<'a> Processor<'a> {
 
                 self.call_stack.pop();
 
-                Ok(output)
+                Ok(())
             }
         }
     }
 
-    fn render_if_node(&mut self, if_node: &'a If) -> Result<String> {
+    fn render_if_node(&mut self, if_node: &'a If, w: &mut impl Write) -> Result<()> {
         for &(_, ref expr, ref body) in &if_node.conditions {
             if self.eval_as_bool(expr)? {
-                return self.render_body(body);
+                return self.render_body(body, w);
             }
         }
 
         if let Some((_, ref body)) = if_node.otherwise {
-            return self.render_body(body);
+            return self.render_body(body, w);
         }
 
-        Ok(String::new())
+        Ok(())
     }
 
     /// The way inheritance work is that the top parent will be rendered by the renderer so for blocks
     /// we want to look from the bottom (`level = 0`, the template the user is actually rendering)
     /// to the top (the base template).
-    fn render_block(&mut self, block: &'a Block, level: usize) -> Result<String> {
+    fn render_block(&mut self, block: &'a Block, level: usize, w: &mut impl Write) -> Result<()> {
         let level_template = match level {
             0 => self.call_stack.active_template(),
             _ => self
@@ -269,16 +268,16 @@ impl<'a> Processor<'a> {
         if let Some(block_def) = blocks_definitions.get(&block.name) {
             let (_, Block { ref body, .. }) = block_def[0];
             self.blocks.push((&block.name[..], &level_template.name[..], level));
-            return self.render_body(body);
+            return self.render_body(body, w);
         }
 
         // Do we have more parents to look through?
         if level < self.call_stack.active_template().parents.len() {
-            return self.render_block(block, level + 1);
+            return self.render_block(block, level + 1, w);
         }
 
         // Nope, just render the body we got
-        self.render_body(&block.body)
+        self.render_body(&block.body, w)
     }
 
     fn get_default_value(&mut self, expr: &'a Expr) -> Result<Val<'a>> {
@@ -400,7 +399,8 @@ impl<'a> Processor<'a> {
                 self.eval_tera_fn_call(fn_call, &mut needs_escape)?
             }
             ExprVal::MacroCall(ref macro_call) => {
-                Cow::Owned(Value::String(self.eval_macro_call(macro_call)?))
+                let val = render_to_string(|w| self.eval_macro_call(macro_call, w))?;
+                Cow::Owned(Value::String(val))
             }
             ExprVal::Test(ref test) => Cow::Owned(Value::Bool(self.eval_test(test)?)),
             ExprVal::Logic(_) => Cow::Owned(Value::Bool(self.eval_as_bool(expr)?)),
@@ -490,7 +490,7 @@ impl<'a> Processor<'a> {
         Ok(Cow::Owned(tera_fn.call(&args).map_err(err_wrap)?))
     }
 
-    fn eval_macro_call(&mut self, macro_call: &'a MacroCall) -> Result<String> {
+    fn eval_macro_call(&mut self, macro_call: &'a MacroCall, w: &mut impl Write) -> Result<()> {
         let active_template_name = if let Some(block) = self.blocks.last() {
             block.1
         } else if self.template.name != self.template_root.name {
@@ -531,11 +531,11 @@ impl<'a> Processor<'a> {
             self.tera.get_template(macro_template_name)?,
         );
 
-        let output = self.render_body(&macro_definition.body)?;
+        self.render_body(&macro_definition.body, w)?;
 
         self.call_stack.pop();
 
-        Ok(output)
+        Ok(())
     }
 
     fn eval_filter(
@@ -649,8 +649,9 @@ impl<'a> Processor<'a> {
                 !res.as_str().unwrap().is_empty()
             }
             ExprVal::MacroCall(ref macro_call) => {
-                let res = self.eval_macro_call(&macro_call)?;
-                !res.is_empty()
+                let mut buf = Vec::new();
+                self.eval_macro_call(&macro_call, &mut buf)?;
+                !buf.is_empty()
             }
             _ => unreachable!("unimplemented logic operation for {:?}", bool_expr),
         };
@@ -883,7 +884,7 @@ impl<'a> Processor<'a> {
     /// Only called while rendering a block.
     /// This will look up the block we are currently rendering and its level and try to render
     /// the block at level + n, where would be the next template in the hierarchy the block is present
-    fn do_super(&mut self) -> Result<String> {
+    fn do_super(&mut self, w: &mut impl Write) -> Result<()> {
         let &(block_name, _, level) = self.blocks.last().unwrap();
         let mut next_level = level + 1;
 
@@ -898,7 +899,7 @@ impl<'a> Processor<'a> {
                 let (ref tpl_name, Block { ref body, .. }) = block_def[0];
                 self.blocks.push((block_name, tpl_name, next_level));
 
-                let res = self.render_body(body)?;
+                self.render_body(body, w)?;
                 self.blocks.pop();
 
                 // Can't go any higher for that block anymore?
@@ -906,7 +907,7 @@ impl<'a> Processor<'a> {
                     // then remove it from the stack, we're done with it
                     self.blocks.pop();
                 }
-                return Ok(res);
+                return Ok(());
             } else {
                 next_level += 1;
             }
@@ -933,40 +934,33 @@ impl<'a> Processor<'a> {
 
     /// Process the given node, appending the string result to the buffer
     /// if it is possible
-    fn render_node(&mut self, node: &'a Node, buffer: &mut String) -> Result<()> {
+    fn render_node(&mut self, node: &'a Node, w: &mut impl Write) -> Result<()> {
         match *node {
-            Node::Text(ref s) | Node::Raw(_, ref s, _) => buffer.push_str(s),
-            Node::VariableBlock(_, ref expr) => {
-                buffer.push_str(&self.eval_expression(expr)?.render())
-            }
+            Node::Text(ref s) | Node::Raw(_, ref s, _) => write!(w, "{}", s)?,
+            Node::VariableBlock(_, ref expr) => self.eval_expression(expr)?.render(w)?,
             Node::Set(_, ref set) => self.eval_set(set)?,
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
-                let body = self.render_body(body)?;
-                buffer.push_str(
-                    &self
-                        .eval_filter(&Cow::Owned(Value::String(body)), filter, &mut false)?
-                        .render(),
-                );
+                let body = render_to_string(|w| self.render_body(body, w))?;
+                &self.eval_filter(&Cow::Owned(Value::String(body)), filter, &mut false)?.render(w);
             }
             // Macros have been imported at the beginning
             Node::ImportMacro(_, _, _) => (),
-            Node::If(ref if_node, _) => buffer.push_str(&self.render_if_node(if_node)?),
-            Node::Forloop(_, ref forloop, _) => buffer.push_str(&self.render_for_loop(forloop)?),
+            Node::If(ref if_node, _) => self.render_if_node(if_node, w)?,
+            Node::Forloop(_, ref forloop, _) => self.render_for_loop(forloop, w)?,
             Node::Break(_) => {
                 self.call_stack.break_for_loop()?;
             }
             Node::Continue(_) => {
                 self.call_stack.continue_for_loop()?;
             }
-            Node::Block(_, ref block, _) => buffer.push_str(&self.render_block(block, 0)?),
-            Node::Super => buffer.push_str(&self.do_super()?),
+            Node::Block(_, ref block, _) => self.render_block(block, 0, w)?,
+            Node::Super => self.do_super(w)?,
             Node::Include(_, ref tpl_name) => {
                 let template = self.tera.get_template(tpl_name)?;
                 self.macros.add_macros_from_template(&self.tera, template)?;
                 self.call_stack.push_include_frame(tpl_name, template);
-                let result = self.render_body(&template.ast)?;
+                self.render_body(&template.ast, w)?;
                 self.call_stack.pop();
-                buffer.push_str(&result);
             }
             Node::Extends(_, ref name) => {
                 return Err(Error::msg(format!(
@@ -1022,14 +1016,12 @@ impl<'a> Processor<'a> {
     }
 
     /// Entry point for the rendering
-    pub fn render(&mut self) -> Result<String> {
-        // 10000 is a random value
-        let mut output = String::with_capacity(10000);
+    pub fn render(&mut self, write: &mut impl Write) -> Result<()> {
         for node in &self.template_root.ast {
-            self.render_node(node, &mut output)
+            self.render_node(node, write)
                 .map_err(|e| Error::chain(self.get_error_location(), e))?;
         }
 
-        Ok(output)
+        Ok(())
     }
 }
