@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
 
-use globwalk::glob;
+use globwalk::glob_builder;
 
 use crate::builtins::filters::{array, common, number, object, string, Filter};
 use crate::builtins::functions::{self, Function};
@@ -135,7 +135,12 @@ impl Tera {
         }
 
         // We are parsing all the templates on instantiation
-        for entry in glob(&dir).unwrap().filter_map(std::result::Result::ok) {
+        for entry in glob_builder(&dir)
+            .follow_links(true)
+            .build()
+            .unwrap()
+            .filter_map(std::result::Result::ok)
+        {
             let mut path = entry.into_path();
             // We only care about actual files
             if path.is_file() {
