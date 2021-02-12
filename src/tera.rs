@@ -328,10 +328,10 @@ impl Tera {
     /// context.insert("age", 18);
     /// tera.render_to("hello.html", context, &mut buffer);
     /// ```
-    pub fn render_to(&self, template_name: &str, context: &Context, w: impl Write) -> Result<()> {
+    pub fn render_to(&self, template_name: &str, context: &Context, write: impl Write) -> Result<()> {
         let template = self.get_template(template_name)?;
         let renderer = Renderer::new(template, self, context);
-        renderer.render_to(w)
+        renderer.render_to(write)
     }
 
     /// Renders a one off template (for example a template coming from a user

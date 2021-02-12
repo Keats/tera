@@ -131,31 +131,31 @@ impl Default for Context {
 }
 
 pub trait ValueRender {
-    fn render(&self, w: &mut impl Write) -> std::io::Result<()>;
+    fn render(&self, write: &mut impl Write) -> std::io::Result<()>;
 }
 
 // Convert serde Value to String.
 impl ValueRender for Value {
-    fn render(&self, w: &mut impl Write) -> std::io::Result<()> {
+    fn render(&self, write: &mut impl Write) -> std::io::Result<()> {
         match *self {
-            Value::String(ref s) => write!(w, "{}", s),
-            Value::Number(ref i) => write!(w, "{}", i),
-            Value::Bool(i) => write!(w, "{}", i),
+            Value::String(ref s) => write!(write, "{}", s),
+            Value::Number(ref i) => write!(write, "{}", i),
+            Value::Bool(i) => write!(write, "{}", i),
             Value::Null => Ok(()),
             Value::Array(ref a) => {
                 let mut first = true;
-                write!(w, "[")?;
+                write!(write, "[")?;
                 for i in a.iter() {
                     if !first {
-                        write!(w, ", ")?;
+                        write!(write, ", ")?;
                     }
                     first = false;
-                    i.render(w)?;
+                    i.render(write)?;
                 }
-                write!(w, "]")?;
+                write!(write, "]")?;
                 Ok(())
             }
-            Value::Object(_) => write!(w, "[object]"),
+            Value::Object(_) => write!(write, "[object]"),
         }
     }
 }
