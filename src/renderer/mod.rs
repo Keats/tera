@@ -49,7 +49,7 @@ impl<'a> Renderer<'a> {
     pub fn render(&self) -> Result<String> {
         let mut output = Vec::with_capacity(10_000);
         self.render_to(&mut output)?;
-        Ok(buffer_to_string(output))
+        buffer_to_string(|| "converting rendered buffer to string".to_string(), output)
     }
 
     /// Combines the context with the Template to write the end result to output
