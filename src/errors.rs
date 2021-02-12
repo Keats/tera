@@ -41,6 +41,13 @@ pub enum ErrorKind {
     CallTest(String),
     /// An IO error occured
     Io(std::io::ErrorKind),
+    /// UTF-8 conversion error
+    ///
+    /// This should not occur unless invalid UTF8 chars are rendered
+    Utf8Conversion {
+        /// The context that indicates where the error occurs in the rendering process
+        context: String,
+    },
     /// This enum may grow additional variants, so this makes sure clients
     /// don't count on exhaustive matching. (Otherwise, adding a new variant
     /// could break existing code.)
@@ -83,6 +90,9 @@ impl fmt::Display for Error {
             ErrorKind::CallTest(ref name) => write!(f, "Test call '{}' failed", name),
             ErrorKind::Io(ref io_error) => {
                 write!(f, "Io error while writing rendered value to output: {:?}", io_error)
+            }
+            ErrorKind::Utf8Conversion { ref context } => {
+                write!(f, "UTF-8 conversion error occured while rendering template: {}", context)
             }
             ErrorKind::__Nonexhaustive => write!(f, "Nonexhaustive"),
         }
@@ -179,9 +189,14 @@ impl Error {
         Self { kind: ErrorKind::InvalidMacroDefinition(name.to_string()), source: None }
     }
 
-    /// Creates a IO error
+    /// Creates an IO error
     pub fn io_error(error: std::io::Error) -> Self {
         Self { kind: ErrorKind::Io(error.kind()), source: Some(Box::new(error)) }
+    }
+
+    /// Creates an utf8 conversion error
+    pub fn utf8_conversion_error(error: std::string::FromUtf8Error, context: String) -> Self {
+        Self { kind: ErrorKind::Utf8Conversion { context }, source: Some(Box::new(error)) }
     }
 }
 

@@ -253,7 +253,12 @@ impl<'a> Processor<'a> {
     /// The way inheritance work is that the top parent will be rendered by the renderer so for blocks
     /// we want to look from the bottom (`level = 0`, the template the user is actually rendering)
     /// to the top (the base template).
-    fn render_block(&mut self, block: &'a Block, level: usize, write: &mut impl Write) -> Result<()> {
+    fn render_block(
+        &mut self,
+        block: &'a Block,
+        level: usize,
+        write: &mut impl Write,
+    ) -> Result<()> {
         let level_template = match level {
             0 => self.call_stack.active_template(),
             _ => self
@@ -399,7 +404,10 @@ impl<'a> Processor<'a> {
                 self.eval_tera_fn_call(fn_call, &mut needs_escape)?
             }
             ExprVal::MacroCall(ref macro_call) => {
-                let val = render_to_string(|w| self.eval_macro_call(macro_call, w))?;
+                let val = render_to_string(
+                    || format!("macro {}", macro_call.name),
+                    |w| self.eval_macro_call(macro_call, w),
+                )?;
                 Cow::Owned(Value::String(val))
             }
             ExprVal::Test(ref test) => Cow::Owned(Value::Bool(self.eval_test(test)?)),
@@ -940,8 +948,13 @@ impl<'a> Processor<'a> {
             Node::VariableBlock(_, ref expr) => self.eval_expression(expr)?.render(write)?,
             Node::Set(_, ref set) => self.eval_set(set)?,
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
-                let body = render_to_string(|w| self.render_body(body, w))?;
-                &self.eval_filter(&Cow::Owned(Value::String(body)), filter, &mut false)?.render(write);
+                let body = render_to_string(
+                    || format!("filter {}", filter.name),
+                    |w| self.render_body(body, w),
+                )?;
+                &self
+                    .eval_filter(&Cow::Owned(Value::String(body)), filter, &mut false)?
+                    .render(write);
             }
             // Macros have been imported at the beginning
             Node::ImportMacro(_, _, _) => (),
