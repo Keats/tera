@@ -204,7 +204,7 @@ fn bench_huge_loop(b: &mut test::Bencher) {
     let rows = RowWrapper { real, dummy };
 
     let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("huge.html", "{% for v in rows %}{{v}}{% endfor %}")]).unwrap();
+    tera.add_raw_templates(vec![("huge.html", "{% for real in rows.real %}{{real.v}}{% endfor %}")]).unwrap();
     let mut context = Context::new();
     context.insert("rows", &rows);
 
