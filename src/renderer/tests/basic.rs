@@ -266,6 +266,36 @@ fn render_include_tag() {
 }
 
 #[test]
+fn render_include_array_tag() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("world", "world"),
+        ("hello", "<h1>Hello {% include [\"custom/world\", \"world\"] %}</h1>"),
+    ])
+    .unwrap();
+    let result = tera.render("hello", &Context::new()).unwrap();
+    assert_eq!(result, "<h1>Hello world</h1>".to_owned());
+
+    tera.add_raw_template("custom/world", "custom world").unwrap();
+    let result = tera.render("hello", &Context::new()).unwrap();
+    assert_eq!(result, "<h1>Hello custom world</h1>".to_owned());
+}
+
+#[test]
+fn render_include_tag_missing() {
+    let mut tera = Tera::default();
+    tera.add_raw_template("hello", "<h1>Hello {% include \"world\" %}</h1>").unwrap();
+    let result = tera.render("hello", &Context::new());
+    assert!(result.is_err());
+
+    let mut tera = Tera::default();
+    tera.add_raw_template("hello", "<h1>Hello {% include \"world\" ignore missing %}</h1>")
+        .unwrap();
+    let result = tera.render("hello", &Context::new()).unwrap();
+    assert_eq!(result, "<h1>Hello </h1>".to_owned());
+}
+
+#[test]
 fn can_set_variables_in_included_templates() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![

@@ -602,6 +602,19 @@ If you want to do that, use macros.
 While you can `set` values in included templates, those values only exist while rendering
 them: the template calling `include` doesn't see them.
 
+You can mark an include with `ignore missing`, so that Tera will ignore the statement if the template to be inclued does not exist.
+
+```jinja2
+{% include "header.html" ignore missing %}
+```
+
+You can also provide a list of templates that are checked for existence before inclusion. The first template that exists will be included. If `ignore missing` is given, it will fall back to rendering nothing if none of the templates exist.
+
+```jinja2
+{% include ["custom/header.html", "header.html"] %}
+{% include ["special_sidebar.html", "sidebar.html"] ignore missing %}
+```
+
 ### Macros
 
 Think of macros as functions or components that you can call and return some text.
