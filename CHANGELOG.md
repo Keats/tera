@@ -1,7 +1,9 @@
 # Changelog
 
 ## 1.7.0 (unreleased)
-
+- Allow rendering to `std::io::Write`
+- Follow symlinks in glob
+- Allow including lists of templates
 
 ## 1.6.1 (2020-12-29)
 
