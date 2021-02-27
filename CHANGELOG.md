@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.0 (unreleased)
+
+
 ## 1.6.1 (2020-12-29)
 
 - Fix date filter sometimes panicking with some format input
