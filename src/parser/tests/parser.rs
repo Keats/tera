@@ -28,7 +28,8 @@ fn parse_include_tag() {
         ast[0],
         Node::Include(WS { left: false, right: true }, vec!["index.html".to_string()], false,),
     );
-    let ast = parse("{% include [\"custom/index.html\", \"index.html\"] ignore missing %}").unwrap();
+    let ast =
+        parse("{% include [\"custom/index.html\", \"index.html\"] ignore missing %}").unwrap();
     assert_eq!(
         ast[0],
         Node::Include(

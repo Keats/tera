@@ -146,10 +146,11 @@ variable_end   = { "-}}" | "}}" }
 // whitespace control
 tag_start      = { "{%-" | "{%" }
 tag_end        = { "-%}" | "%}" }
-comment_start  = _{ "{#" }
-comment_end    = _{ "#}" }
+comment_start  = { "{#-" | "{#" }
+comment_end    = { "-#}" | "#}" }
 block_start    = _{ variable_start | tag_start | comment_start }
 
+comment_text       = ${ (!(comment_end) ~ ANY)+ }
 
 // Tag marks
 ignore_missing = { "ignore" ~ WHITESPACE* ~ "missing" }
@@ -157,7 +158,7 @@ ignore_missing = { "ignore" ~ WHITESPACE* ~ "missing" }
 
 // Actual tags
 include_tag      = ${ tag_start ~ WHITESPACE* ~ "include" ~ WHITESPACE+ ~ (string | string_array) ~ WHITESPACE* ~ ignore_missing? ~ WHITESPACE* ~ tag_end }
-comment_tag      = !{ comment_start ~ (!comment_end ~ ANY)* ~ comment_end }
+comment_tag      = ${ comment_start ~ comment_text ~ comment_end }
 block_tag        = ${ tag_start ~ WHITESPACE* ~ "block" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ tag_end }
 macro_tag        = ${ tag_start ~ WHITESPACE* ~ "macro" ~ WHITESPACE+ ~ macro_fn_wrapper ~ WHITESPACE* ~ tag_end }
 if_tag           = ${ tag_start ~ WHITESPACE* ~ "if" ~ WHITESPACE+ ~ logic_expr ~ WHITESPACE* ~ tag_end }

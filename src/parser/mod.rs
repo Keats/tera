@@ -942,6 +942,28 @@ fn parse_continue_tag(pair: Pair<Rule>) -> Node {
     Node::Continue(ws)
 }
 
+fn parse_comment_tag(pair: Pair<Rule>) -> Node {
+    let mut ws = WS::default();
+    let mut content = String::new();
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::comment_start => {
+                ws.left = p.as_span().as_str() == "{#-";
+            }
+            Rule::comment_end => {
+                ws.right = p.as_span().as_str() == "-#}";
+            }
+            Rule::comment_text => {
+                content = p.as_str().to_owned();
+            }
+            _ => unreachable!(),
+        };
+    }
+
+    Node::Comment(ws, content)
+}
+
 fn parse_if(pair: Pair<Rule>) -> TeraResult<Node> {
     // the `endif` tag ws handling
     let mut end_ws = WS::default();
@@ -1026,8 +1048,7 @@ fn parse_content(pair: Pair<Rule>) -> TeraResult<Vec<Node>> {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::include_tag => nodes.push(parse_include(p)?),
-            // Ignore comments
-            Rule::comment_tag => (),
+            Rule::comment_tag => nodes.push(parse_comment_tag(p)),
             Rule::super_tag => nodes.push(Node::Super),
             Rule::set_tag => nodes.push(parse_set_tag(p, false)?),
             Rule::set_global_tag => nodes.push(parse_set_tag(p, true)?),
@@ -1139,6 +1160,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::ignore_missing => "ignore missing mark for include tag".to_string(),
                     Rule::include_tag => r#"an include tag (`{% include "..." %}`)"#.to_string(),
                     Rule::comment_tag => "a comment tag (`{#...#}`)".to_string(),
+                    Rule::comment_text => "the context of a comment (`{# ... #}`)".to_string(),
                     Rule::variable_tag => "a variable tag (`{{ ... }}`)".to_string(),
                     Rule::filter_tag | Rule::filter_section => {
                         "a filter section (`{% filter something %}...{% endfilter %}`)".to_string()

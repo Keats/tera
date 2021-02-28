@@ -22,11 +22,16 @@ fn can_remove_whitespace_basic() {
         ("  {{ \"hello\" -}} ", "  hello"),
         ("  {{- \"hello\" }} ", "hello "),
         ("  {{- \"hello\" -}} ", "hello"),
+        // Comments are not rendered so it should be just whitespace if anything
+        ("  {#- \"hello\" -#} ", ""),
+        ("  {# \"hello\" -#} ", "  "),
+        ("  {#- \"hello\" #} ", " "),
     ];
 
     for (input, expected) in inputs {
         let mut tera = Tera::default();
         tera.add_raw_template("tpl", input).unwrap();
+        println!("{} -> {:?}", input, expected);
         assert_eq!(tera.render("tpl", &context).unwrap(), expected);
     }
 }

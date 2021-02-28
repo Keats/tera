@@ -944,6 +944,8 @@ impl<'a> Processor<'a> {
     /// if it is possible
     fn render_node(&mut self, node: &'a Node, write: &mut impl Write) -> Result<()> {
         match *node {
+            // Comments are ignored when rendering
+            Node::Comment(_, _) => (),
             Node::Text(ref s) | Node::Raw(_, ref s, _) => write!(write, "{}", s)?,
             Node::VariableBlock(_, ref expr) => self.eval_expression(expr)?.render(write)?,
             Node::Set(_, ref set) => self.eval_set(set)?,
