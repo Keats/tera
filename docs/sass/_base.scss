@@ -49,6 +49,53 @@ a {
   }
 }
 
+.playground-container {
+  margin: 0 auto;
+  padding-right: 15px;
+  padding-left: 15px;
+  flex: 1;
+
+  .hero {
+    text-align: center;
+  }
+
+  #run {
+    margin-top: 2rem;
+    border: 1px solid rgba(222,98,98,0.3);
+    cursor: pointer;
+
+    &:hover {
+      border-color: #DE6262;
+    }
+  }
+
+  #errors {
+    color: red;
+  }
+
+  .playground {
+    display: flex;
+    flex-flow: wrap;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+
+  #context-editor {
+    margin-left: 2rem;
+  }
+
+  #rendered-editor {
+    width: 100%;
+    margin-top: 2rem;
+  }
+
+  .ace-editor {
+    width: 550px;
+    height: 300px;
+  }
+
+}
+
 .github-corner:hover .octo-arm {
   animation: octocat-wave 560ms ease-in-out;
 }

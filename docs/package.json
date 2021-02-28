@@ -1,5 +1,5 @@
 {
-  "name": "tera-playground",
+  "name": "playground",
   "version": "0.1.0",
   "description": "tera playground",
   "main": "index.js",
@@ -11,7 +11,7 @@
   "license": "(MIT OR Apache-2.0)",
   "homepage": "https://tera.netlify.app/",
   "dependencies": {
-    "tera-web": "file:tera-playground/pkg/"
+    "tera-web": "file:playground/pkg/"
   },
   "devDependencies": {
     "webpack": "^4.29.3",

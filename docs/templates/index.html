@@ -8,6 +8,7 @@
         <meta name="author" content="{{ config.extra.author }}">
         <title>{% block title %}{{ config.title }}{% endblock title %}</title>
         <link rel="stylesheet" href="{{ get_url(path="app.css") }}"/>
+        {% block extra_js %}{% endblock extra_js %}
     </head>
     <body>
 
@@ -16,6 +17,7 @@
                 <nav>
                     <a href="{{ config.base_url }}">Tera</a>
                     <a href="{{ get_url(path="@/docs/_index.md") }}" class="nav-link">Documentation</a>
+                    <a href="{{ get_url(path="@/playground/_index.md") }}" class="nav-link">Playground</a>
                     <a href="https://docs.rs/tera" class="nav-link">API Docs</a>
                 </nav>
 
@@ -57,30 +59,9 @@
             </div>
         {% endblock content %}
 
-        <div class="container">
-            <div class="hero">
-                <h1>Tera Playground</h1>
-            </div>
-            <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
-            <textarea id="template" rows="15">{% raw %}<title>{% block title %}{% endblock title %}</title>
-<ul>
-{% for user in users -%}
-  <li><a href="{{ user.url }}">{{ user.username }}</a></li>
-{%- endfor %}
-</ul>{% endraw %}</textarea>
-            <textarea id="context" rows="15">{
-  "users": [
-    { "url": "https://example.com", "name": "John" }
-  ]
-}</textarea>
-            <textarea id="rendered" rows="15" readonly></textarea>
-            <p id="errors"></p>
-            <script src="{{ get_url(path="bootstrap.js") }}"></script>
-        </div>
-
         <footer>
             <div class="container">
-                © 2017-2019 Vincent Prouillet
+                © 2017-2021 Vincent Prouillet
             </div>
         </footer>
     </body>

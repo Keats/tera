@@ -12,4 +12,4 @@ public/
 !examples/**/*.css
 callgrind.out.*
 *.zst
-docs/static/
+!docs/playground/pkg/**
