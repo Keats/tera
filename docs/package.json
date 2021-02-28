@@ -1,0 +1,21 @@
+{
+  "name": "tera-playground",
+  "version": "0.1.0",
+  "description": "tera playground",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "start": "webpack-dev-server"
+  },
+  "author": "Vincent Prouillet <balthek@gmail.com>",
+  "license": "(MIT OR Apache-2.0)",
+  "homepage": "https://tera.netlify.app/",
+  "dependencies": {
+    "tera-web": "file:tera-playground/pkg/"
+  },
+  "devDependencies": {
+    "webpack": "^4.29.3",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.5"
+  }
+}
