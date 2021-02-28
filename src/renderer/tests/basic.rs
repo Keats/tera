@@ -363,6 +363,7 @@ fn render_filter_section() {
             "HELLO I",
         ),
         ("{% filter title %}Hello {% if true %}{{ 'world' | upper | safe }}{% endif %}{% endfilter %}", "Hello World"),
+        ("{% filter safe %}{% filter upper %}<Hello>{% endfilter %}{% endfilter%}", "<HELLO>")
     ];
 
     let context = Context::new();
