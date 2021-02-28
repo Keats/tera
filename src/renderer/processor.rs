@@ -954,9 +954,8 @@ impl<'a> Processor<'a> {
                     || format!("filter {}", filter.name),
                     |w| self.render_body(body, w),
                 )?;
-                &self
-                    .eval_filter(&Cow::Owned(Value::String(body)), filter, &mut false)?
-                    .render(write);
+                self.eval_filter(&Cow::Owned(Value::String(body)), filter, &mut false)?
+                    .render(write)?;
             }
             // Macros have been imported at the beginning
             Node::ImportMacro(_, _, _) => (),
@@ -987,7 +986,7 @@ impl<'a> Processor<'a> {
                 }
                 if !found && !ignore_missing {
                     return Err(Error::template_not_found(
-                        vec!["[", &tpl_names.join(", ").to_string(), "]"].join(""),
+                        vec!["[", &tpl_names.join(", "), "]"].join(""),
                     ));
                 }
             }
