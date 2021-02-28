@@ -256,6 +256,16 @@ fn invalid_block_missing_name() {
 }
 
 #[test]
+fn invalid_useblock_missing_name() {
+    assert_err_msg(r#"{% useblock %}"#, &["1:1", "expected an identifier (must start with a-z)"]);
+}
+
+#[test]
+fn invalid_useblock_no_identifier() {
+    assert_err_msg(r#"{% useblock 1 %}"#, &["1:1", "expected an identifier (must start with a-z)"]);
+}
+
+#[test]
 fn unterminated_test() {
     assert_err_msg(
         r#"{% if a is odd( %}"#,

@@ -191,6 +191,7 @@ endfilter_tag    = !{ tag_start ~ "endfilter" ~ tag_end }
 break_tag        = !{ tag_start ~ "break" ~ tag_end }
 continue_tag     = !{ tag_start ~ "continue" ~ tag_end }
 
+useblock_tag     = ${ tag_start ~ WHITESPACE* ~ "useblock" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ tag_end }
 variable_tag     = !{ variable_start ~ (logic_expr | array_filter) ~ variable_end }
 super_tag        = !{ variable_start ~ "super()" ~ variable_end }
 
@@ -221,6 +222,7 @@ filter_section_content = @{
     set_tag |
     set_global_tag |
     block |
+    useblock_tag |
     forloop |
     filter_section_if |
     raw |
@@ -252,6 +254,7 @@ block_content = @{
     set_global_tag |
     block |
     block_if |
+    useblock_tag |
     forloop |
     filter_section |
     raw |
@@ -282,6 +285,7 @@ content = @{
     set_global_tag |
     macro_definition |
     block |
+    useblock_tag |
     content_if |
     forloop |
     filter_section |

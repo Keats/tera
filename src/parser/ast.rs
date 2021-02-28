@@ -337,6 +337,8 @@ pub enum Node {
     FilterSection(WS, FilterSection, WS),
     /// A `{% block name %}...{% endblock %}`
     Block(WS, Block, WS),
+    /// A `{% useblock name %}`
+    UseBlock(WS, String),
     /// A `{% for i in items %}...{% endfor %}`
     Forloop(WS, Forloop, WS),
 

@@ -12,8 +12,7 @@
 {% endif %}
 {{ "{{ hey }}" }}
 
-{% block content %}
-{% endblock content %}
+{% useblock content %}
 
 {{ macros::hello_world(greeting="世界") }}
 {{ get_random(start=0, end=10) }}
