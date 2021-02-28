@@ -63,6 +63,8 @@ a {
     margin-top: 2rem;
     border: 1px solid rgba(222,98,98,0.3);
     cursor: pointer;
+    flex: 100%;
+    align-self: center;
 
     &:hover {
       border-color: #DE6262;

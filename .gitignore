@@ -13,3 +13,4 @@ public/
 callgrind.out.*
 *.zst
 !docs/playground/pkg/**
+docs/static/playground/
