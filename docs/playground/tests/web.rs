@@ -5,7 +5,7 @@
 extern crate wasm_bindgen_test;
 use wasm_bindgen_test::*;
 
-use tera_playground::render;
+use playground::render;
 
 wasm_bindgen_test_configure!(run_in_browser);
 

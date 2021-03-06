@@ -1,10 +1,10 @@
 [build]
     base    = "docs"
     publish = "docs/public"
-    command = "zola build"
+    command = "npm install && npm run build:prod && zola build"
 
 [build.environment]
-    ZOLA_VERSION = "0.10.1"
+    ZOLA_VERSION = "0.13.0"
 
 [context.deploy-preview]
-    command = "zola build --base-url $DEPLOY_PRIME_URL"
+    command = "npm install && npm run build:prod && zola build --base-url $DEPLOY_PRIME_URL"

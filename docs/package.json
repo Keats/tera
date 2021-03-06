@@ -1,17 +1,18 @@
 {
-  "name": "tera-playground",
+  "name": "playground",
   "version": "0.1.0",
   "description": "tera playground",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
+    "build": "rm -rf static/playground && webpack",
+    "build:prod": "rm -rf static/playground && webpack --production",
     "start": "webpack-dev-server"
   },
   "author": "Vincent Prouillet <balthek@gmail.com>",
   "license": "(MIT OR Apache-2.0)",
   "homepage": "https://tera.netlify.app/",
   "dependencies": {
-    "tera-web": "file:tera-playground/pkg/"
+    "tera-web": "file:playground/pkg/"
   },
   "devDependencies": {
     "webpack": "^4.29.3",

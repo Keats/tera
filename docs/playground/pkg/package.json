@@ -1,0 +1,15 @@
+{
+  "name": "playground",
+  "collaborators": [
+    "Ivan Tham <pickfire@riseup.net>"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "playground_bg.wasm",
+    "playground.js",
+    "playground.d.ts"
+  ],
+  "module": "playground.js",
+  "types": "playground.d.ts",
+  "sideEffects": false
+}

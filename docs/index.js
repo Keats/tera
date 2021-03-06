@@ -1,29 +1,12 @@
 import * as wasm from "tera-web";
 
-let template = document.getElementById("template");
-let context = document.getElementById("context");
-let rendered = document.getElementById("rendered");
-let errors = document.getElementById("errors");
 
-function render() {
+function renderTera(template, context) {
   try {
-    rendered.value = wasm.render(template.value, context.value);
-    errors.textContent = "";
+    const value = wasm.render(template, context);
+    return {value, error: null};
   } catch (error) {
-    rendered.value = "";
-    errors.textContent = error;
+    return {value: null, error};
   }
 }
-
-function debounce(func, timeout = 300) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => { func.apply(this, args); }, timeout);
-  };
-}
-
-template.onkeyup = debounce(() => render());
-context.onkeyup = debounce(() => render());
-
-render();
+window.renderTera = renderTera;

@@ -1,0 +1,68 @@
+{% extends "index.html" %}
+
+{% block extra_js %}
+    <script src="{{ get_url(path="editor/ace.js", cachebust=true) }} | safe"></script>
+    <script src="{{ get_url(path="playground/bootstrap.js", cachebust=true) }} | safe"></script>
+{% endblock extra_js %}
+
+{% block hero %}
+{% endblock hero %}
+
+{% block content %}
+
+    <div class="playground-container">
+        <div class="hero">
+            <h1>Playground</h1>
+        </div>
+        <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+
+        <div class="playground">
+        <div id="tera-editor" class="ace-editor">{% raw %}<title>{% block title %}{% endblock title %}</title>
+<ul>
+{% for user in users -%}
+<li><a href="{{ user.url }}">{{ user.name }}</a></li>
+{%- endfor %}
+</ul>{% endraw %}</div>
+        <div id="context-editor" class="ace-editor">{
+  "users": [
+     { "url": "https://example.com", "name": "John" }
+  ]
+}</div>
+        <button id="run" class="button">Run</button>
+        <div id="rendered-editor" class="ace-editor"></div>
+        <p id="errors"></p>
+    </div>
+    </div>
+
+    <script>
+      const teraEditor = ace.edit("tera-editor");
+      teraEditor.setTheme("ace/theme/monokai");
+      teraEditor.getSession().setMode("ace/mode/twig");
+
+      const ctxEditor = ace.edit("context-editor");
+      ctxEditor.setTheme("ace/theme/monokai");
+      ctxEditor.getSession().setMode("ace/mode/json");
+
+      const renderedEditor = ace.edit("rendered-editor");
+      renderedEditor.setTheme("ace/theme/monokai");
+      renderedEditor.getSession().setMode("ace/mode/html");
+      renderedEditor.setOption("readOnly", true);
+      renderedEditor.getSession().setUseWorker(false);
+
+      const runButton = document.getElementById("run");
+      const errors = document.getElementById("errors");
+      function renderPlayground() {
+          const tpl = teraEditor.getValue();
+          const ctx = ctxEditor.getValue();
+          const {value, error} = window.renderTera(tpl, ctx);
+          if (error) {
+              errors.innerText = error;
+          } else {
+              renderedEditor.setValue(value);
+              renderedEditor.gotoLine(0);
+          }
+      }
+      runButton.onclick = renderPlayground;
+    </script>
+
+{% endblock content %}

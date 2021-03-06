@@ -1,5 +1,5 @@
 [package]
-name = "tera-playground"
+name = "playground"
 version = "0.1.0"
 authors = ["Ivan Tham <pickfire@riseup.net>"]
 edition = "2018"
