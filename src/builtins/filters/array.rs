@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use crate::context::{get_json_pointer, ValueRender};
 use crate::errors::{Error, Result};
 use crate::filter_utils::{get_sort_strategy_for_type, get_unique_strategy_for_type};
+use crate::utils::render_to_string;
 use serde_json::value::{to_value, Map, Value};
 
 /// Returns the nth value of an array
@@ -54,7 +55,10 @@ pub fn join(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     };
 
     // Convert all the values to strings before we join them together.
-    let rendered = arr.iter().map(ValueRender::render).collect::<Vec<_>>();
+    let rendered = arr
+        .iter()
+        .map(|v| render_to_string(|| "joining array".to_string(), |w| v.render(w)))
+        .collect::<Result<Vec<_>>>()?;
     to_value(&rendered.join(&sep)).map_err(Error::json)
 }
 

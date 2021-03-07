@@ -8,10 +8,13 @@ mod macros;
 mod processor;
 mod stack_frame;
 
+use std::io::Write;
+
 use self::processor::Processor;
 use crate::errors::Result;
 use crate::template::Template;
 use crate::tera::Tera;
+use crate::utils::buffer_to_string;
 use crate::Context;
 
 /// Given a `Tera` and reference to `Template` and a `Context`, renders text
@@ -44,15 +47,16 @@ impl<'a> Renderer<'a> {
 
     /// Combines the context with the Template to generate the end result
     pub fn render(&self) -> Result<String> {
-        let output;
+        let mut output = Vec::with_capacity(2000);
+        self.render_to(&mut output)?;
+        buffer_to_string(|| "converting rendered buffer to string".to_string(), output)
+    }
 
-        {
-            let mut processor =
-                Processor::new(self.template, self.tera, &self.context, self.should_escape);
+    /// Combines the context with the Template to write the end result to output
+    pub fn render_to(&self, mut output: impl Write) -> Result<()> {
+        let mut processor =
+            Processor::new(self.template, self.tera, &self.context, self.should_escape);
 
-            output = processor.render()?;
-        }
-
-        Ok(output)
+        processor.render(&mut output)
     }
 }

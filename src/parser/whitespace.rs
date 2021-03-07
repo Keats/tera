@@ -59,6 +59,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
             | Node::Include(ws, _, _)
             | Node::Set(ws, _)
             | Node::Break(ws)
+            | Node::Comment(ws, _)
             | Node::Continue(ws) => {
                 trim_right_previous!(previous_was_text && ws.left, res);
                 trim_left_next = ws.right;

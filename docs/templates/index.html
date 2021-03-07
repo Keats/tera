@@ -8,6 +8,7 @@
         <meta name="author" content="{{ config.extra.author }}">
         <title>{% block title %}{{ config.title }}{% endblock title %}</title>
         <link rel="stylesheet" href="{{ get_url(path="app.css") }}"/>
+        {% block extra_js %}{% endblock extra_js %}
     </head>
     <body>
 
@@ -16,6 +17,7 @@
                 <nav>
                     <a href="{{ config.base_url }}">Tera</a>
                     <a href="{{ get_url(path="@/docs/_index.md") }}" class="nav-link">Documentation</a>
+                    <a href="{{ get_url(path="@/playground/_index.md") }}" class="nav-link">Playground</a>
                     <a href="https://docs.rs/tera" class="nav-link">API Docs</a>
                 </nav>
 
@@ -59,7 +61,7 @@
 
         <footer>
             <div class="container">
-                © 2017-2019 Vincent Prouillet
+                © 2017-2021 Vincent Prouillet
             </div>
         </footer>
     </body>

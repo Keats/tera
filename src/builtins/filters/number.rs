@@ -64,11 +64,8 @@ pub fn round(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 pub fn filesizeformat(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("filesizeformat", "value", usize, value);
     num.file_size(file_size_opts::CONVENTIONAL)
-        .or_else(|_| {
-            Err(Error::msg(format!(
-                "Filter `filesizeformat` was called on a negative number: {}",
-                num
-            )))
+        .map_err(|_| {
+            Error::msg(format!("Filter `filesizeformat` was called on a negative number: {}", num))
         })
         .map(to_value)
         .map(std::result::Result::unwrap)

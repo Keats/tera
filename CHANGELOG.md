@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0 (2021-03-07)
+
+- Allow rendering to `std::io::Write`
+- Follow symlinks in glob
+- Allow including lists of templates
+- Comment tags can now use whitespace control
+
 ## 1.6.1 (2020-12-29)
 
 - Fix date filter sometimes panicking with some format input

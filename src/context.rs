@@ -1,5 +1,5 @@
-use std::borrow::Cow;
 use std::collections::BTreeMap;
+use std::io::Write;
 
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
@@ -131,30 +131,31 @@ impl Default for Context {
 }
 
 pub trait ValueRender {
-    fn render(&self) -> Cow<str>;
+    fn render(&self, write: &mut impl Write) -> std::io::Result<()>;
 }
 
 // Convert serde Value to String.
 impl ValueRender for Value {
-    fn render(&self) -> Cow<str> {
+    fn render(&self, write: &mut impl Write) -> std::io::Result<()> {
         match *self {
-            Value::String(ref s) => Cow::Borrowed(s),
-            Value::Number(ref i) => Cow::Owned(i.to_string()),
-            Value::Bool(i) => Cow::Owned(i.to_string()),
-            Value::Null => Cow::Owned(String::new()),
+            Value::String(ref s) => write!(write, "{}", s),
+            Value::Number(ref i) => write!(write, "{}", i),
+            Value::Bool(i) => write!(write, "{}", i),
+            Value::Null => Ok(()),
             Value::Array(ref a) => {
-                let mut buf = String::new();
-                buf.push('[');
+                let mut first = true;
+                write!(write, "[")?;
                 for i in a.iter() {
-                    if buf.len() > 1 {
-                        buf.push_str(", ");
+                    if !first {
+                        write!(write, ", ")?;
                     }
-                    buf.push_str(i.render().as_ref());
+                    first = false;
+                    i.render(write)?;
                 }
-                buf.push(']');
-                Cow::Owned(buf)
+                write!(write, "]")?;
+                Ok(())
             }
-            Value::Object(_) => Cow::Borrowed("[object]"),
+            Value::Object(_) => write!(write, "[object]"),
         }
     }
 }

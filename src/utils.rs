@@ -1,3 +1,5 @@
+use crate::errors::Error;
+
 /// Escape HTML following [OWASP](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
 ///
 /// Escape the following characters with HTML entity encoding to prevent switching
@@ -33,9 +35,28 @@ pub fn escape_html(input: &str) -> String {
     output
 }
 
+pub(crate) fn render_to_string<C, F, E>(context: C, render: F) -> Result<String, Error>
+where
+    C: FnOnce() -> String,
+    F: FnOnce(&mut Vec<u8>) -> Result<(), E>,
+    Error: From<E>,
+{
+    let mut buffer = Vec::new();
+    render(&mut buffer).map_err(Error::from)?;
+    buffer_to_string(context, buffer)
+}
+
+pub(crate) fn buffer_to_string<F>(context: F, buffer: Vec<u8>) -> Result<String, Error>
+where
+    F: FnOnce() -> String,
+{
+    String::from_utf8(buffer).map_err(|error| Error::utf8_conversion_error(error, context()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::escape_html;
+    use super::render_to_string;
 
     #[test]
     fn test_escape_html() {
@@ -53,5 +74,12 @@ mod tests {
         }
         let empty = String::new();
         assert_eq!(escape_html(&empty), empty);
+    }
+
+    #[test]
+    fn test_render_to_string() {
+        use std::io::Write;
+        let string = render_to_string(|| panic!(), |w| write!(w, "test")).unwrap();
+        assert_eq!(string, "test".to_owned());
     }
 }

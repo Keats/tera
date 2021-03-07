@@ -447,7 +447,16 @@ fn lex_extends_tag() {
 
 #[test]
 fn lex_comment_tag() {
-    assert!(TeraParser::parse(Rule::comment_tag, "{# #comment# {{}} {%%} #}").is_ok());
+    let inputs = vec![
+        "{# #comment# {{}} {%%} #}",
+        "{# #comment# {{}} {%%} #}",
+        "{#- #comment# {{}} {%%} #}",
+        "{# #comment# {{}} {%%} -#}",
+        "{#- #comment# {{}} {%%} -#}",
+    ];
+    for i in inputs {
+        assert_lex_rule!(Rule::comment_tag, i);
+    }
 }
 
 #[test]

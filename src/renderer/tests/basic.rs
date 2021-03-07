@@ -363,6 +363,7 @@ fn render_filter_section() {
             "HELLO I",
         ),
         ("{% filter title %}Hello {% if true %}{{ 'world' | upper | safe }}{% endif %}{% endfilter %}", "Hello World"),
+        ("{% filter safe %}{% filter upper %}<Hello>{% endfilter %}{% endfilter%}", "<HELLO>")
     ];
 
     let context = Context::new();
@@ -649,7 +650,7 @@ fn filter_filter_works() {
     #[derive(Debug, Serialize)]
     struct Author {
         id: u8,
-    };
+    }
 
     let mut context = Context::new();
     context.insert("authors", &vec![Author { id: 1 }, Author { id: 2 }, Author { id: 3 }]);

@@ -347,4 +347,7 @@ pub enum Node {
     Break(WS),
     /// The `{% continue %}` tag
     Continue(WS),
+
+    /// The `{# #} `comment tag and its content
+    Comment(WS, String),
 }

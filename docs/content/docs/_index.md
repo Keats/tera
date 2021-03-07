@@ -691,7 +691,6 @@ For example, here's a `base.html` almost copied from the Jinja2 documentation:
 </body>
 </html>
 ```
-The only difference with Jinja2 being that the `endblock` tags have to be named.
 
 This `base.html` template defines 4 `block` tag that child templates can override.
 The `head` and `footer` block have some content already which will be rendered if they are not overridden.

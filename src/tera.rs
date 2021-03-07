@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
 
-use globwalk::glob;
+use globwalk::glob_builder;
 
 use crate::builtins::filters::{array, common, number, object, string, Filter};
 use crate::builtins::functions::{self, Function};
@@ -135,7 +135,12 @@ impl Tera {
         }
 
         // We are parsing all the templates on instantiation
-        for entry in glob(&dir).unwrap().filter_map(std::result::Result::ok) {
+        for entry in glob_builder(&dir)
+            .follow_links(true)
+            .build()
+            .unwrap()
+            .filter_map(std::result::Result::ok)
+        {
             let mut path = entry.into_path();
             // We only care about actual files
             if path.is_file() {
@@ -307,6 +312,31 @@ impl Tera {
         let template = self.get_template(template_name)?;
         let renderer = Renderer::new(template, self, context);
         renderer.render()
+    }
+
+    /// Renders a Tera template given a `tera::Context` to a [std::io::Write],
+    ///
+    /// The only difference from [Self::render] is that this version doesn't convert buffer to a String,
+    /// allowing to render directly to anything that implements [std::io::Write].
+    ///
+    /// Any i/o error will be reported in the result.
+    ///
+    /// ```rust,ignore
+    /// // Rendering a template to an internal buffer
+    /// let mut buffer = Vec::new();
+    /// let mut context = Context::new();
+    /// context.insert("age", 18);
+    /// tera.render_to("hello.html", context, &mut buffer);
+    /// ```
+    pub fn render_to(
+        &self,
+        template_name: &str,
+        context: &Context,
+        write: impl Write,
+    ) -> Result<()> {
+        let template = self.get_template(template_name)?;
+        let renderer = Renderer::new(template, self, context);
+        renderer.render_to(write)
     }
 
     /// Renders a one off template (for example a template coming from a user
