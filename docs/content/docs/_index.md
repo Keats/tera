@@ -596,6 +596,12 @@ You can include a template to be rendered using the current context with the `in
 {% include "included.html" %}
 ```
 
+The template path needs to be a static string. This is invalid:
+
+```jinja
+{% include "partials/" ~ name ~ ".html" %}
+```
+
 Tera doesn't offer passing a custom context to the `include` tag.
 If you want to do that, use macros.
 
