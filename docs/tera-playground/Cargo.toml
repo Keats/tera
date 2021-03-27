@@ -30,7 +30,6 @@ serde_json = "1.0.63"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
-wasm-bindgen = { version = "0.2.63", features = ["serde-serialize"] }
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
