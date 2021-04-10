@@ -468,9 +468,28 @@ fn lex_block_tag() {
 }
 
 #[test]
+fn lex_filter_tag() {
+    let inputs = vec![
+        "{%- filter tag() %}",
+        "{% filter foo(bar=baz) -%}",
+        "{% filter foo(bar=42) %}",
+        "{% filter foo(bar=baz,qux=quz) %}",
+        "{% filter foo(bar=baz, qux=quz) %}",
+        "{% filter foo ( bar=\"baz\", qux=42 ) %}",
+    ];
+    for i in inputs {
+        assert_lex_rule!(Rule::filter_tag, i);
+    }
+}
+
+#[test]
 fn lex_macro_tag() {
-    let inputs =
-        vec!["{%- macro tag() %}", "{% macro my_block(name) -%}", "{% macro my_block(name=42) %}"];
+    let inputs = vec![
+        "{%- macro tag() %}",
+        "{% macro my_block(name) -%}",
+        "{% macro my_block(name=42) %}",
+        "{% macro foo ( bar=\"baz\", qux=42 ) %}",
+    ];
     for i in inputs {
         assert_lex_rule!(Rule::macro_tag, i);
     }

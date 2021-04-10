@@ -108,7 +108,7 @@ string_array = !{ "[" ~ (string ~ ",")* ~ string? ~ "]"}
 // A keyword argument: something=10, something="a value", something=1+10 etc
 kwarg   = { ident ~ "=" ~ (logic_expr | array_filter) }
 kwargs  = _{ kwarg ~ ("," ~ kwarg )* ~ ","? }
-fn_call = { ident ~ "(" ~ kwargs? ~ ")" }
+fn_call = !{ ident ~ "(" ~ kwargs? ~ ")" }
 filter  = { "|" ~ (fn_call | ident) }
 
 
