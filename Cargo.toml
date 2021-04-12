@@ -1,6 +1,6 @@
 [package]
 name = "tera"
-version = "1.7.0"
+version = "1.7.1"
 authors = ["Vincent Prouillet <hello@prouilletvincent.com>"]
 license = "MIT"
 readme = "README.md"
@@ -38,7 +38,7 @@ rand = {version = "0.8", optional = true}
 
 [dev-dependencies]
 serde_derive = "1.0"
-pretty_assertions = "0.6"
+pretty_assertions = "0.7"
 tempfile = "3"
 
 [features]

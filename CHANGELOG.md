@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1 (2021-04-12)
+
+- Fix parsing of filter arguments separated by whitespaces
+
 ## 1.7.0 (2021-03-07)
 
 - Allow rendering to `std::io::Write`
