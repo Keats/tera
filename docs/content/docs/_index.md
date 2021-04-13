@@ -559,7 +559,7 @@ You can also iterate on array literals:
 Lastly, you can set a default body to be rendered when the container is empty:
 
 
-```
+```jinja2
 {% for product in products %}
   {{loop.index}}. {{product.name}}
 {% else %}
