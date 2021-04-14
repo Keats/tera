@@ -956,8 +956,8 @@ mod tests {
         let mut my_tera = Tera::default();
         my_tera
             .add_raw_templates(vec![
-                ("dots", "{{ map[\"a.b.c\"] }}"),
-                ("urls", "{{ map[\"https://example.com\"] }}"),
+                ("dots", r#"{{ map["a.b.c"] }}"#),
+                ("urls", r#"{{ map["https://example.com"] }}"#),
             ])
             .unwrap();
 
