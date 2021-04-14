@@ -952,6 +952,27 @@ mod tests {
     }
 
     #[test]
+    fn test_render_map_with_dotted_keys() {
+        let mut my_tera = Tera::default();
+        my_tera
+            .add_raw_templates(vec![
+                ("dots", "{{ map[\"a.b.c\"] }}"),
+                ("urls", "{{ map[\"https://example.com\"] }}"),
+            ])
+            .unwrap();
+
+        let mut map = HashMap::new();
+        map.insert("a.b.c", "success");
+        map.insert("https://example.com", "success");
+
+        let mut tera_context = Context::new();
+        tera_context.insert("map", &map);
+
+        my_tera.render("dots", &tera_context).unwrap();
+        my_tera.render("urls", &tera_context).unwrap();
+    }
+
+    #[test]
     fn test_extend_no_overlap() {
         let mut my_tera = Tera::default();
         my_tera
