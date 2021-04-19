@@ -833,6 +833,16 @@ By default, the filter will add an ellipsis at the end if the text was truncated
 change the string appended by setting the `end` argument.
 For example, `{{ value | truncate(length=10, end="") }}` will not append anything.
 
+#### linebreaksbr
+Replaces line breaks (`\n` or `\r\n`) with HTML line breaks (`<br>`).
+
+Example: `{{ value | linebreaksbr }}`
+
+If value is "Hello\r\nworld\n", the output will be "Hello&lt;br&gt;world&lt;br&gt;".
+
+Note that if the template you using it in is automatically escaped, you will
+need to call the `safe` filter before `linebreaksbr`.
+
 #### striptags
 Tries to remove HTML tags from input. Does not guarantee well formed output if input is not valid HTML.
 
