@@ -204,7 +204,15 @@ impl ValueTruthy for Value {
 /// Converts a dotted path to a json pointer one
 #[inline]
 pub fn get_json_pointer(key: &str) -> String {
-    ["/", &key.replace(".", "/")].join("")
+    lazy_static::lazy_static! {
+        // Split the key into dot-separated segments, respecting quoted strings as single units
+        // to fix https://github.com/Keats/tera/issues/590
+        static ref JSON_POINTER_REGEX: regex::Regex = regex::Regex::new("\"[^\"]*\"|[^.]+").unwrap();
+    }
+
+    let mut segments = vec![""];
+    segments.extend(JSON_POINTER_REGEX.find_iter(key).map(|mat| mat.as_str().trim_matches('"')));
+    segments.join("/")
 }
 
 #[cfg(test)]

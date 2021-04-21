@@ -63,11 +63,11 @@ fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<S
 
     Ok(new_key
         .replace("/", "~1") // https://tools.ietf.org/html/rfc6901#section-3
-        .replace("['", ".")
-        .replace("[\"", ".")
+        .replace("['", ".\"")
+        .replace("[\"", ".\"")
         .replace("[", ".")
-        .replace("']", "")
-        .replace("\"]", "")
+        .replace("']", "\"")
+        .replace("\"]", "\"")
         .replace("]", ""))
 }
 
