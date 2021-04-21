@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.0 (2021-04-21)
+
+- Add `linebreaksbr` filter from Django
+- Allow dots in context object key names
+
 ## 1.7.1 (2021-04-12)
 
 - Fix parsing of filter arguments separated by whitespaces
