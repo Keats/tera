@@ -255,6 +255,14 @@ pub fn title(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     .unwrap())
 }
 
+/// Convert line breaks (`\n` or `\r\n`) to HTML linebreaks (`<br>`).
+///
+/// Example: The input "Hello\nWorld" turns into "Hello<br>World".
+pub fn linebreaksbr(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("title", "value", String, value);
+    Ok(to_value(&s.replace("\r\n", "<br>").replace("\n", "<br>")).unwrap())
+}
+
 /// Removes html tags from string
 pub fn striptags(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("striptags", "value", String, value);
@@ -818,5 +826,23 @@ mod tests {
         let result = float(&to_value(1.23).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value(1.23).unwrap());
+    }
+
+    #[test]
+    fn test_linebreaksbr() {
+        let args = HashMap::new();
+        let tests: Vec<(&str, &str)> = vec![
+            ("hello world", "hello world"),
+            ("hello\nworld", "hello<br>world"),
+            ("hello\r\nworld", "hello<br>world"),
+            ("hello\n\rworld", "hello<br>\rworld"),
+            ("hello\r\n\nworld", "hello<br><br>world"),
+            ("hello<br>world\n", "hello<br>world<br>"),
+        ];
+        for (input, expected) in tests {
+            let result = linebreaksbr(&to_value(input).unwrap(), &args);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
     }
 }

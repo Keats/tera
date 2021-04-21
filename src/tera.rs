@@ -556,6 +556,7 @@ impl Tera {
         self.register_filter("replace", string::replace);
         self.register_filter("capitalize", string::capitalize);
         self.register_filter("title", string::title);
+        self.register_filter("linebreaksbr", string::linebreaksbr);
         self.register_filter("striptags", string::striptags);
         #[cfg(feature = "builtins")]
         self.register_filter("urlencode", string::urlencode);
