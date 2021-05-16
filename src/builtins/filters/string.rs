@@ -4,11 +4,10 @@ use std::collections::HashMap;
 use lazy_static::lazy_static;
 use regex::{Captures, Regex};
 use serde_json::value::{to_value, Value};
+use unic_segment::GraphemeIndices;
 
 #[cfg(feature = "builtins")]
 use percent_encoding::{percent_encode, AsciiSet, NON_ALPHANUMERIC};
-#[cfg(feature = "builtins")]
-use unic_segment::GraphemeIndices;
 
 use crate::errors::{Error, Result};
 use crate::utils;
@@ -154,7 +153,6 @@ pub fn trim_end_matches(value: &Value, args: &HashMap<String, Value>) -> Result<
 /// The return value of this function might be longer than `length`: the `end`
 /// string is *added* after the truncation occurs.
 ///
-#[cfg(feature = "builtins")]
 pub fn truncate(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("truncate", "value", String, value);
     let length = match args.get("length") {
@@ -463,7 +461,6 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "builtins")]
     #[test]
     fn test_truncate_smaller_than_length() {
         let mut args = HashMap::new();
@@ -473,7 +470,6 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("hello").unwrap());
     }
 
-    #[cfg(feature = "builtins")]
     #[test]
     fn test_truncate_when_required() {
         let mut args = HashMap::new();
@@ -483,7 +479,6 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("日本…").unwrap());
     }
 
-    #[cfg(feature = "builtins")]
     #[test]
     fn test_truncate_custom_end() {
         let mut args = HashMap::new();
@@ -494,7 +489,6 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("日本").unwrap());
     }
 
-    #[cfg(feature = "builtins")]
     #[test]
     fn test_truncate_multichar_grapheme() {
         let mut args = HashMap::new();

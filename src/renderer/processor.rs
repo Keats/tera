@@ -186,6 +186,15 @@ impl<'a> Processor<'a> {
                 }
                 ForLoop::from_array(&for_loop.value, container_val)
             }
+            Value::String(_) => {
+                if for_loop.key.is_some() {
+                    return Err(Error::msg(format!(
+                        "Tried to iterate using key value on variable `{}`, but it isn't an object/map",
+                        container_name,
+                    )));
+                }
+                ForLoop::from_string(&for_loop.value, container_val)
+            }
             Value::Object(_) => {
                 if for_loop.key.is_none() {
                     return Err(Error::msg(format!(

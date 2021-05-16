@@ -77,7 +77,7 @@ fn test_error_render_iterate_non_array() {
     assert_eq!(result.is_err(), true);
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
-        "Tried to iterate on a container (`username`) that has a unsupported type"
+        "Tried to iterate on a container (`friend_reviewed`) that has a unsupported type"
     );
 }
 
