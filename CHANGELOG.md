@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.0 (2021-05-16)
+
+- Add `Context::remove`
+
 ## 1.8.0 (2021-04-21)
 
 - Add `linebreaksbr` filter from Django
