@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.10.0 (2021-05-21)
+
+- Add `Tera::get_template_names`
+
 ## 1.9.0 (2021-05-16)
 
 - Add `Context::remove`
