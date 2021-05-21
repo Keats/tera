@@ -390,6 +390,28 @@ impl Tera {
         }
     }
 
+    /// Returns an iterator over the names of all registered templates in an
+    /// unspecified order.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use tera::Tera;
+    ///
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template("foo", "{{ hello }}");
+    /// tera.add_raw_template("another-one.html", "contents go here");
+    ///
+    /// let names: Vec<_> = tera.get_template_names().collect();
+    /// assert_eq!(names.len(), 2);
+    /// assert!(names.contains(&"foo"));
+    /// assert!(names.contains(&"another-one.html"));
+    /// ```
+    #[inline]
+    pub fn get_template_names(&self) -> impl Iterator<Item = &str> {
+        self.templates.keys().map(|s| s.as_str())
+    }
+
     /// Add a single template to the Tera instance
     ///
     /// This will error if the inheritance chain can't be built, such as adding a child
