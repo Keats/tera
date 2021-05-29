@@ -121,7 +121,7 @@ Tera does not perform contextual auto-escaping, eg by parsing the template to kn
 
 ### Extending another instance
 If you are using a framework or a library using Tera, chances are they provide their own Tera instance with some
-built-in templates, filters, global functions or testers. Tera offers a `extend` method that will extend your own
+built-in templates, filters, global functions or testers. Tera offers an `extend` method that will extend your own
 instance with everything mentioned before:
 
 ```rs
@@ -142,7 +142,7 @@ tera.full_reload()?;
 Note that reloading is only available if you are loading templates with a glob.
 
 ### Loading templates from strings
-Tera allows you load templates not only from files but also from plain strings.
+Tera allows you to load templates not only from files but also from plain strings.
 
 ```rs
 // one template only
@@ -181,7 +181,7 @@ let result = Tera::one_off(user_tpl, context, true);
 A Tera template is just a text file where variables and expressions get replaced with values
 when it is rendered. The syntax is based on Jinja2 and Django templates.
 
-There are 3 kinds of delimiter and those cannot be changed:
+There are 3 kinds of delimiters and those cannot be changed:
 
 - `{{` and `}}` for expressions
 - `{%` or `{%-` and `%}` or `-%}` for statements
@@ -280,7 +280,7 @@ Math operations are only allowed with numbers, using them on any other kind of v
 You can use the following operators:
 
 - `+`: adds 2 values together, `{{ 1 + 1 }}` will print `2`
-- `-`: performs a substraction, `{{ 2 - 1 }}` will print `1`
+- `-`: performs a subtraction, `{{ 2 - 1 }}` will print `1`
 - `/`: performs a division, `{{ 10 / 2 }}` will print `5`
 - `*`: performs a multiplication, `{{ 5 * 2 }}` will print `10`
 - `%`: performs a modulo, `{{ 2 % 2 }}` will print `0`
@@ -663,13 +663,13 @@ Here's an example of a recursive macro:
 {% endmacro factorial %}
 ```
 
-Macros body can contain all normal Tera syntax with the exception of macros definition, `block` and `extends`.
+A macro's body can contain all normal Tera syntax with the exception of macros definition, `block` and `extends`.
 
 
 ## Inheritance
 
 Tera uses the same kind of inheritance as Jinja2 and Django templates:
-you define a base template and extends it in child templates through blocks.
+you define a base template and extend it in child templates through blocks.
 There can be multiple levels of inheritance (i.e. A extends B that extends C).
 
 ### Base template
@@ -698,7 +698,7 @@ For example, here's a `base.html` almost copied from the Jinja2 documentation:
 </html>
 ```
 
-This `base.html` template defines 4 `block` tag that child templates can override.
+This `base.html` template defines 4 `block` tags that child templates can override.
 The `head` and `footer` block have some content already which will be rendered if they are not overridden.
 
 ### Child template
@@ -721,7 +721,7 @@ Again, straight from Jinja2 docs:
 {% endblock content %}
 ```
 
-To indicate inheritance, you have use the `extends` tag as the first thing in the file followed by the name of the template you want
+To indicate inheritance, you have to use the `extends` tag as the first thing in the file followed by the name of the template you want
 to extend.
 The `{{/* super() */}}` variable call tells Tera to render the parent block there.
 
@@ -743,10 +743,10 @@ Nested blocks also work in Tera. Consider the following templates:
 The block `ending` is nested in the `hey` block. Rendering the `child` template will do the following:
 
 - Find the first base template: `grandparent`
-- See `hey` block in it and checks if it is in `child` and `parent` template
+- See `hey` block in it and check if it is in `child` and `parent` template
 - It is in `child` so we render it, it contains a `super()` call so we render the `hey` block from `parent`,
 which also contains a `super()` so we render the `hey` block of the `grandparent` template as well
-- See `ending` block in `child`, render it and also renders the `ending` block of `parent` as there is a `super()`
+- See `ending` block in `child`, render it and also render the `ending` block of `parent` as there is a `super()`
 
 The end result of that rendering (not counting whitespace) will be: "dad says hi and grandma says hello sincerely with love".
 
@@ -757,16 +757,16 @@ The end result of that rendering (not counting whitespace) will be: "dad says hi
 Tera has the following filters built-in:
 
 #### lower
-Lowercase a string
+Converts a string to lowercase.
 
 #### upper
-Uppercase a string
+Converts a string to uppercase.
 
 #### wordcount
-Returns number of words in a string
+Returns the number of words in a string.
 
 #### capitalize
-Returns the string with all its character lowercased apart from the first char which is uppercased.
+Returns the string with all its characters lowercased apart from the first char which is uppercased.
 
 #### replace
 Takes 2 mandatory string named arguments: `from` and `to`. It will return a string with all instances of
@@ -784,8 +784,8 @@ If value is "I'm using Tera", the output will be "I\\'m using Tera".
 #### slugify
 Only available if the `builtins` feature is enabled.
 
-Transform a string into ASCII, lowercase it, trim it, converts spaces to hyphens and
-remove all characters that are not numbers, lowercase letters or hyphens.
+Transforms a string into ASCII, lowercases it, trims it, converts spaces to hyphens and
+removes all characters that are not numbers, lowercase letters or hyphens.
 
 Example: `{{ value | slugify }}`
 
@@ -799,23 +799,23 @@ Example: `{{ value | title }}`
 If value is "foo  bar", the output will be "Foo  Bar".
 
 #### trim
-Remove leading and trailing whitespace if the variable is a string.
+Removes leading and trailing whitespace if the variable is a string.
 
 #### trim_start
-Remove leading whitespace if the variable is a string.
+Removes leading whitespace if the variable is a string.
 
 #### trim_end
-Remove trailing whitespace if the variable is a string.
+Removes trailing whitespace if the variable is a string.
 
 #### trim_start_matches
-Remove leading characters that match the given pattern if the variable is a string.
+Removes leading characters that match the given pattern if the variable is a string.
 
 Example: `{{ value | trim_start_matches(pat="//") }}`
 
 If value is "//a/b/c//", the output will be "a/b/c//".
 
 #### trim_end_matches
-Remove trailing characters that match the given pattern if the variable is a string.
+Removes trailing characters that match the given pattern if the variable is a string.
 
 Example: `{{ value | trim_end_matches(pat="//") }}`
 
@@ -850,7 +850,7 @@ Example: `{{ value | striptags}}`
 
 If value is "&lt;b&gt;Joel&lt;/b&gt;", the output will be "Joel".
 
-Note that if the template you using it in is automatically escaped, you will need to call the `safe` filter
+Note that if the template you are using it in is automatically escaped, you will need to call the `safe` filter
 before `striptags`.
 
 #### first
@@ -947,7 +947,7 @@ or by last name:
 ```
 
 #### slice
-Slice an array by the given `start` and `end` parameter. Both parameters are
+Slices an array by the given `start` and `end` parameter. Both parameters are
 optional and omitting them will return the same array.
 Use the `start` argument to define where to start (inclusive, default to `0`)
 and `end` argument to define where to stop (exclusive, default to the length of the array).
@@ -972,7 +972,7 @@ will produce the follow output for `my_array = [1, 2, 3, 4, 5]`: `[1, 2, 3]`
 
 
 #### group_by
-Group an array using the required `attribute` argument. The filter takes an array and return
+Groups an array using the required `attribute` argument. The filter takes an array and returns
 a map where the keys are the values of the `attribute` stringified and the values are all elements of
 the initial array having that `attribute`. Values with missing `attribute` or where `attribute` is null
 will be discarded.
@@ -1027,7 +1027,7 @@ Example:
 
 #### filter
 
-Filter the array values, returning only the values where the `attribute` is equal to the `value`.
+Filters the array values, returning only the values where the `attribute` is equal to the `value`.
 Values with missing `attribute` or where `attribute` is null will be discarded.
 
 `attribute` is mandatory.
@@ -1157,7 +1157,7 @@ Example: `{{ num | filesizeformat }}`
 #### date
 Only available if the `builtins` feature is enabled.
 
-Parse a timestamp into a date(time) string. Defaults to `YYYY-MM-DD` format.
+Parses a timestamp into a date(time) string. Defaults to `YYYY-MM-DD` format.
 Time formatting syntax is inspired from strftime and a full reference is available
 on [chrono docs](https://docs.rs/chrono/0.4/chrono/format/strftime/index.html).
 
@@ -1193,18 +1193,18 @@ Escapes XML special characters. Specifically, it makes these replacements:
 - `'` (single quote) is converted to `&apos;`
 
 #### safe
-Mark a variable as safe: HTML will not be escaped anymore.
+Marks a variable as safe: HTML will not be escaped anymore.
 `safe` only works if it is the last filter of the expression:
 
 - `{{ content | replace(from="Robert", to="Bob") | safe }}` will not be escaped
 - `{{ content | safe | replace(from="Robert", to="Bob") }}` will be escaped
 
 #### get
-Access a value from an object when the key is not a Tera identifier.
+Accesses a value from an object when the key is not a Tera identifier.
 Example: `{{ sections | get(key="posts/content") }}`
 
 #### split
-Split a string into an array of strings, separated by a pattern given.
+Splits a string into an array of strings, separated by a pattern given.
 Example: `{{ path | split(pat="/") }}`
 
 #### int
@@ -1291,7 +1291,7 @@ Returns true if the given variable can be iterated over in Tera (ie is an array/
 Returns true if the given variable is an object (ie can be iterated over key, value).
 
 #### starting\_with
-Returns true if the given variable is a string starts with the arg given.
+Returns true if the given variable is a string and starts with the arg given.
 
 Example:
 ```jinja2
@@ -1301,7 +1301,7 @@ Example:
 ```
 
 #### ending\_with
-Returns true if the given variable is a string ends with the arg given.
+Returns true if the given variable is a string and ends with the arg given.
 
 #### containing
 Returns true if the given variable contains the arg given.
@@ -1309,7 +1309,7 @@ Returns true if the given variable contains the arg given.
 The test works on:
 
 - strings: is the arg a substring?
-- arrays: is the arg given one of the member of the array?
+- arrays: is the arg given one of the members of the array?
 - maps: is the arg given a key of the map?
 
 Example:
