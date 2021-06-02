@@ -239,7 +239,7 @@ will not be rendered.
 
 Tera has a few literals that can be used:
 
-- booleans: `true` and `false`
+- booleans: `true` (or `True`) and `false` (or `False`)
 - integers
 - floats
 - strings: text delimited by `""`, `''` or backticks
