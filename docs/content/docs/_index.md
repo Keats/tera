@@ -184,7 +184,7 @@ when it is rendered. The syntax is based on Jinja2 and Django templates.
 There are 3 kinds of delimiters and those cannot be changed:
 
 - `{{` and `}}` for expressions
-- `{%` or `{%-` and `%}` or `-%}` for statements
+- `{%` and `%}` for statements
 - `{#` and `#}` for comments
 
 ### Raw
