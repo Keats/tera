@@ -11,7 +11,7 @@ To use Tera in your Rust projects, simply add it to your `Cargo.toml`:
 tera = "1"
 ```
 
-By default, Tera comes with some additional dependencies required for the `truncate`, `date`, `filesizeformat` `slugify`, `urlencode` and `urlencode_strict` filters as
+By default, Tera comes with some additional dependencies required for the `truncate`, `date`, `filesizeformat`, `slugify`, `urlencode` and `urlencode_strict` filters as
 well as for the `now` function. You can disable them by setting the following in your `Cargo.toml`:
 
 ```toml
@@ -261,7 +261,7 @@ Specific members of an array or tuple are accessed by using the `.i` notation, w
 
 #### Square bracket notation:
 A more powerful alternative to (`.`) is to use square brackets (`[ ]`).
-Variables can be rendering using the notation `{{product['name']}}` or `{{product["name"]}}`.
+Variables can be rendered using the notation `{{product['name']}}` or `{{product["name"]}}`.
 
 If the item is not in quotes it will be treated as a variable.
 Assuming you have the following objects in your context `product = Product{ name: "Fred" }`
@@ -373,7 +373,7 @@ Multiple filters can be chained: the output of one filter is applied to the next
 For example, `{{ name | lower | replace(from="doctor", to="Dr.") }}` will take a variable called name, make it lowercase and then replace instances of `doctor` by `Dr.`.
 It is equivalent to `replace(lower(name), from="doctor", to="Dr.")` if we were to look at it as functions.
 
-Calling filters on a incorrect type like trying to capitalize an array or using invalid types for arguments will result in a error.
+Calling filters on an incorrect type like trying to capitalize an array or using invalid types for arguments will result in an error.
 
 Filters are functions with the `fn(Value, HashMap<String, Value>) -> Result<Value>` definition and custom ones can be added like so:
 
@@ -783,7 +783,7 @@ Returns the string with all its characters lowercased apart from the first char 
 
 #### replace
 Takes 2 mandatory string named arguments: `from` and `to`. It will return a string with all instances of
-the `from` string with the `to` string.
+the `from` string replaced with the `to` string.
 
 Example: `{{ name | replace(from="Robert", to="Bob")}}`
 
