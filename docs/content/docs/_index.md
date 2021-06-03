@@ -257,7 +257,7 @@ A magical variable is available in every template if you want to print the curre
 
 #### Dot notation:
 Construct and attributes can be accessed by using the dot (`.`) like `{{ product.name }}`.
-Specific members of an array or tuple are accessed by using the `.i` notation, where i is a zero-based index.
+Specific members of an array or tuple are accessed by using the `.i` notation, where i is a zero-based index. In dot notation variable can not be used after the dot (`.`).
 
 #### Square bracket notation:
 A more powerful alternative to (`.`) is to use square brackets (`[ ]`).
@@ -267,7 +267,7 @@ If the item is not in quotes it will be treated as a variable.
 Assuming you have the following objects in your context `product = Product{ name: "Fred" }`
 and `my_field = "name"`, calling `{{product[my_field]}}` will resolve to: `{{product.name}}`.
 
-Only variables evaluating to String and Number can be used as index: anything else will be
+Only variables evaluating to string or integer number can be used as index: anything else will be
 an error.
 
 ### Expressions
