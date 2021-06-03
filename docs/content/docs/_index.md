@@ -306,9 +306,9 @@ The priority of operations is the following, from lowest to highest:
 - `or`: true if the left or right operands are true
 - `not`: negate a statement
 
-#### String concatenation
+#### Concatenation
 
-You can concatenate several strings/idents using the `~` operator.
+You can concatenate several strings/numbers/idents using the `~` operator.
 
 ```jinja2
 {{ "hello " ~ 'world' ~ `!` }}
@@ -318,7 +318,7 @@ You can concatenate several strings/idents using the `~` operator.
 {{ an_ident ~ another_ident }}
 ```
 
-An ident resolving to something other than a string will raise an error.
+An ident resolving to something other than a string or a number will raise an error.
 
 #### `in` checking
 
