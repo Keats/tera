@@ -243,7 +243,7 @@ Tera has a few literals that can be used:
 - integers
 - floats
 - strings: text delimited by `""`, `''` or `` `` ``
-- arrays: a list of literals and/or idents by `[` and `]` and comma separated (trailing comma allowed)
+- arrays: a comma-separated list of literals and/or idents surrounded by `[` and `]` (trailing comma allowed)
 
 ### Variables
 
