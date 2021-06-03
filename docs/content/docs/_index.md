@@ -333,7 +333,7 @@ You can check whether a left side is contained in a right side using the `in` op
 ```
 
 Only literals/variables resulting in an array, a string and an object are supported in the right hand side: everything else
-will raise an error.
+will raise an error. While in the left hand side only literals/variables resulting in a number, a string and a boolean are supported
 
 
 ## Manipulating data
