@@ -304,7 +304,7 @@ The priority of operations is the following, from lowest to highest:
 
 - `and`: true if the left and right operands are true
 - `or`: true if the left or right operands are true
-- `not`: negate a statement
+- `not`: negate an expression
 
 #### Concatenation
 
@@ -333,7 +333,7 @@ You can check whether a left side is contained in a right side using the `in` op
 ```
 
 Only literals/variables resulting in an array, a string and an object are supported in the right hand side: everything else
-will raise an error. While in the left hand side only literals/variables resulting in a number, a string and a boolean are supported
+will raise an error. While in the left hand side only literals/variables resulting in a number, a string and a boolean are supported.
 
 
 ## Manipulating data
