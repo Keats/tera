@@ -523,6 +523,19 @@ Loop over items in a array:
   {{loop.index}}. {{product.name}}
 {% endfor %}
 ```
+
+Or on characters of a string:
+
+```jinja2
+{% for letter in name %}
+  {% if loop.index % 2 == 0%}
+    <span style="color:red">{{ letter }}</span>
+  {% else %}
+    <span style="color:blue">{{ letter }}</span>
+  {% endif %}
+{% endfor %}
+```
+
 A few special variables are available inside for loops:
 
 - `loop.index`: current iteration 1-indexed
