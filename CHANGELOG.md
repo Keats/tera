@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.11.0 (2021-06-14)
+
+- Allow iterating on strings with `for`
+
 ## 1.10.0 (2021-05-21)
 
 - Add `Tera::get_template_names`
