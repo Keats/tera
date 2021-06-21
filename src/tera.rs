@@ -579,6 +579,7 @@ impl Tera {
         self.register_filter("title", string::title);
         self.register_filter("linebreaksbr", string::linebreaksbr);
         self.register_filter("striptags", string::striptags);
+        self.register_filter("spaceless", string::spaceless);
         #[cfg(feature = "builtins")]
         self.register_filter("urlencode", string::urlencode);
         #[cfg(feature = "builtins")]
