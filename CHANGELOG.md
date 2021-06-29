@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.0 (2021-06-29)
+
+- Add `spaceless` filter from Django
+
 ## 1.11.0 (2021-06-14)
 
 - Allow iterating on strings with `for`
