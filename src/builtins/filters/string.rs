@@ -62,6 +62,7 @@ const PYTHON_ENCODE_SET: &AsciiSet = &USERINFO_ENCODE_SET
 lazy_static! {
     static ref STRIPTAGS_RE: Regex = Regex::new(r"(<!--.*?-->|<[^>]*>)").unwrap();
     static ref WORDS_RE: Regex = Regex::new(r"\b(?P<first>\w)(?P<rest>\w*)\b").unwrap();
+    static ref SPACELESS_RE: Regex = Regex::new(r">\s+<").unwrap();
 }
 
 /// Convert a value to uppercase.
@@ -265,6 +266,12 @@ pub fn linebreaksbr(value: &Value, _: &HashMap<String, Value>) -> Result<Value> 
 pub fn striptags(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("striptags", "value", String, value);
     Ok(to_value(&STRIPTAGS_RE.replace_all(&s, "")).unwrap())
+}
+
+/// Removes spaces between html tags from string
+pub fn spaceless(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("spaceless", "value", String, value);
+    Ok(to_value(&SPACELESS_RE.replace_all(&s, "><")).unwrap())
 }
 
 /// Returns the given text with all special HTML characters encoded
@@ -690,6 +697,23 @@ mod tests {
         ];
         for (input, expected) in tests {
             let result = striptags(&to_value(input).unwrap(), &HashMap::new());
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), to_value(expected).unwrap());
+        }
+    }
+
+    #[test]
+    fn test_spaceless() {
+        let tests = vec![
+            ("<p>\n<a>test</a>\r\n </p>", "<p><a>test</a></p>"),
+            ("<p>\n<a> </a>\r\n </p>", "<p><a></a></p>"),
+            ("<p> </p>", "<p></p>"),
+            ("<p> <a>", "<p><a>"),
+            ("<p> test</p>", "<p> test</p>"),
+            ("<p>\r\n</p>", "<p></p>"),
+        ];
+        for (input, expected) in tests {
+            let result = spaceless(&to_value(input).unwrap(), &HashMap::new());
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }

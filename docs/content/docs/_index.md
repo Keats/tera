@@ -856,10 +856,22 @@ If value is "Hello\r\nworld\n", the output will be "Hello&lt;br&gt;world&lt;br&g
 Note that if the template you using it in is automatically escaped, you will
 need to call the `safe` filter before `linebreaksbr`.
 
+#### spaceless
+Remove space (` `) and line breaks (`\n` or `\r\n`) between HTML tags
+
+Example: `{{ value | spaceless }}`
+
+If the value is "&lt;p&gt;\n&lt;a&gt; &lt;/a&gt;\r\n &lt;/p&gt;", the output will be "&lt;p&gt;&lt;a&gt;&lt;/a&gt;&lt;/p&gt;".
+
+Note that only whitespace between successive opening tags and successive closing tags is removed.
+
+Also note that if the template you using it in is automatically escaped, you will
+need to call the `safe` filter before `spaceless`.
+
 #### striptags
 Tries to remove HTML tags from input. Does not guarantee well formed output if input is not valid HTML.
 
-Example: `{{ value | striptags}}`
+Example: `{{ value | striptags }}`
 
 If value is "&lt;b&gt;Joel&lt;/b&gt;", the output will be "Joel".
 
