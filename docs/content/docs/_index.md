@@ -341,7 +341,8 @@ will raise an error. While in the left hand side only literals/variables resulti
 ### Assignments
 You can assign values to variables during the rendering.
 Assignments in for loops and macros are scoped to their context but
-assignments outside of those will be set in the global context.
+assignments outside of those will be set in the global context. Furthermore, assignments
+in for loop are valid until the end of the current iteration only.
 
 ```jinja2
 {% set my_var = "hello" %}
