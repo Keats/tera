@@ -1369,7 +1369,7 @@ Tera comes with some built-in global functions.
 Returns an array of integers created using the arguments given.
 There are 3 arguments, all integers:
 
-- `end`: where to stop, mandatory
+- `end`: stop before `end`, mandatory
 - `start`: where to start from, defaults to `0`
 - `step_by`: with what number do we increment, defaults to `1`
 
