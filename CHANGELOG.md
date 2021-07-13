@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.0 (2021-07-13)
+
+- Remove unused feature of chrono
+- Remove unwanted bloat in crate from accidental WASM files
+
 ## 1.12.0 (2021-06-29)
 
 - Add `spaceless` filter from Django
