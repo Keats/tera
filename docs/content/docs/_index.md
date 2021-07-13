@@ -11,7 +11,7 @@ To use Tera in your Rust projects, simply add it to your `Cargo.toml`:
 tera = "1"
 ```
 
-By default, Tera comes with some additional dependencies required for the `truncate`, `date`, `filesizeformat` `slugify`, `urlencode` and `urlencode_strict` filters as
+By default, Tera comes with some additional dependencies required for the `truncate`, `date`, `filesizeformat`, `slugify`, `urlencode` and `urlencode_strict` filters as
 well as for the `now` function. You can disable them by setting the following in your `Cargo.toml`:
 
 ```toml
@@ -184,7 +184,7 @@ when it is rendered. The syntax is based on Jinja2 and Django templates.
 There are 3 kinds of delimiters and those cannot be changed:
 
 - `{{` and `}}` for expressions
-- `{%` or `{%-` and `%}` or `-%}` for statements
+- `{%` and `%}` for statements
 - `{#` and `#}` for comments
 
 ### Raw
@@ -239,11 +239,11 @@ will not be rendered.
 
 Tera has a few literals that can be used:
 
-- booleans: `true` and `false`
+- booleans: `true` (or `True`) and `false` (or `False`)
 - integers
 - floats
-- strings: text delimited by `""`, `''` or backticks
-- arrays: a list of literals and/or idents by `[` and `]` and comma separated (trailing comma allowed)
+- strings: text delimited by `""`, `''` or `` `` ``
+- arrays: a comma-separated list of literals and/or idents surrounded by `[` and `]` (trailing comma allowed)
 
 ### Variables
 
@@ -257,17 +257,17 @@ A magical variable is available in every template if you want to print the curre
 
 #### Dot notation:
 Construct and attributes can be accessed by using the dot (`.`) like `{{ product.name }}`.
-Specific members of an array or tuple are accessed by using the `.i` notation, where i is a zero-based index.
+Specific members of an array or tuple are accessed by using the `.i` notation, where i is a zero-based index. In dot notation variable can not be used after the dot (`.`).
 
 #### Square bracket notation:
 A more powerful alternative to (`.`) is to use square brackets (`[ ]`).
-Variables can be rendering using the notation `{{product['name']}}` or `{{product["name"]}}`.
+Variables can be rendered using the notation `{{product['name']}}` or `{{product["name"]}}`.
 
 If the item is not in quotes it will be treated as a variable.
 Assuming you have the following objects in your context `product = Product{ name: "Fred" }`
 and `my_field = "name"`, calling `{{product[my_field]}}` will resolve to: `{{product.name}}`.
 
-Only variables evaluating to String and Number can be used as index: anything else will be
+Only variables evaluating to string or integer number can be used as index: anything else will be
 an error.
 
 ### Expressions
@@ -304,11 +304,11 @@ The priority of operations is the following, from lowest to highest:
 
 - `and`: true if the left and right operands are true
 - `or`: true if the left or right operands are true
-- `not`: negate a statement
+- `not`: negate an expression
 
-#### String concatenation
+#### Concatenation
 
-You can concatenate several strings/idents using the `~` operator.
+You can concatenate several strings/numbers/idents using the `~` operator.
 
 ```jinja2
 {{ "hello " ~ 'world' ~ `!` }}
@@ -318,7 +318,7 @@ You can concatenate several strings/idents using the `~` operator.
 {{ an_ident ~ another_ident }}
 ```
 
-An ident resolving to something other than a string will raise an error.
+An ident resolving to something other than a string or a number will raise an error.
 
 #### `in` checking
 
@@ -333,7 +333,7 @@ You can check whether a left side is contained in a right side using the `in` op
 ```
 
 Only literals/variables resulting in an array, a string and an object are supported in the right hand side: everything else
-will raise an error.
+will raise an error. While in the left hand side only literals/variables resulting in a number, a string and a boolean are supported.
 
 
 ## Manipulating data
@@ -341,7 +341,8 @@ will raise an error.
 ### Assignments
 You can assign values to variables during the rendering.
 Assignments in for loops and macros are scoped to their context but
-assignments outside of those will be set in the global context.
+assignments outside of those will be set in the global context. Furthermore, assignments
+in for loop are valid until the end of the current iteration only.
 
 ```jinja2
 {% set my_var = "hello" %}
@@ -373,7 +374,7 @@ Multiple filters can be chained: the output of one filter is applied to the next
 For example, `{{ name | lower | replace(from="doctor", to="Dr.") }}` will take a variable called name, make it lowercase and then replace instances of `doctor` by `Dr.`.
 It is equivalent to `replace(lower(name), from="doctor", to="Dr.")` if we were to look at it as functions.
 
-Calling filters on a incorrect type like trying to capitalize an array or using invalid types for arguments will result in a error.
+Calling filters on an incorrect type like trying to capitalize an array or using invalid types for arguments will result in an error.
 
 Filters are functions with the `fn(Value, HashMap<String, Value>) -> Result<Value>` definition and custom ones can be added like so:
 
@@ -783,7 +784,7 @@ Returns the string with all its characters lowercased apart from the first char 
 
 #### replace
 Takes 2 mandatory string named arguments: `from` and `to`. It will return a string with all instances of
-the `from` string with the `to` string.
+the `from` string replaced with the `to` string.
 
 Example: `{{ name | replace(from="Robert", to="Bob")}}`
 
@@ -1368,7 +1369,7 @@ Tera comes with some built-in global functions.
 Returns an array of integers created using the arguments given.
 There are 3 arguments, all integers:
 
-- `end`: where to stop, mandatory
+- `end`: stop before `end`, mandatory
 - `start`: where to start from, defaults to `0`
 - `step_by`: with what number do we increment, defaults to `1`
 
