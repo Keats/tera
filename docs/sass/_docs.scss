@@ -105,6 +105,14 @@
   }
 }
 
+@media only screen and (min-width: 700px)  {
+  .docs__sidebar {
+    height: 90vh;
+    position: sticky;
+    top: 40px;
+    overflow-y: auto;
+  }
+}
 @media only screen and (max-width: 700px)  {
   .docs__sidebar {
     width: 100%;
