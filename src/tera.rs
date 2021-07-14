@@ -709,8 +709,8 @@ impl Tera {
         self.check_macro_files()
     }
 
-    /// Use that method when you want to add a given Tera instance templates/filters/testers
-    /// to your own. If a template/filter/tester with the same name already exists in your instance,
+    /// Use that method when you want to add a given Tera instance templates/filters/testers/functions
+    /// to your own. If a template/filter/tester/function with the same name already exists in your instance,
     /// it will not be overwritten.
     ///
     ///```rust,ignore
@@ -736,6 +736,12 @@ impl Tera {
         for (name, tester) in &other.testers {
             if !self.testers.contains_key(name) {
                 self.testers.insert(name.to_string(), tester.clone());
+            }
+        }
+
+        for (name, function) in &other.functions {
+            if !self.functions.contains_key(name) {
+                self.functions.insert(name.to_string(), function.clone());
             }
         }
 
