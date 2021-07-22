@@ -8,7 +8,8 @@ use crate::errors::{Error, Result};
 use crate::renderer::for_loop::{ForLoop, ForLoopState};
 use crate::renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
 use crate::template::Template;
-use crate::Context;
+use crate::{Context, FunctionRelaxed};
+use std::sync::Arc;
 
 /// Contains the user data and allows no mutation
 #[derive(Debug)]
@@ -129,6 +130,10 @@ impl<'a> CallStack<'a> {
         }
 
         None
+    }
+
+    pub fn lookup_function(&self, fn_name: &str) -> Option<&Arc<dyn FunctionRelaxed>> {
+        self.context.inner.get_function(fn_name)
     }
 
     /// Add an assignment value (via {% set ... %} and {% set_global ... %} )
