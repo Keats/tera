@@ -765,7 +765,7 @@ fn parse_macro_arg(p: Pair<Rule>) -> TeraResult<ExprVal> {
             "False" => Some(ExprVal::Bool(false)),
             _ => unreachable!(),
         },
-        Rule::string => Some(ExprVal::String(replace_string_markers(&p.as_str()))),
+        Rule::string => Some(ExprVal::String(replace_string_markers(p.as_str()))),
         _ => unreachable!("Got {:?} in parse_macro_arg: {}", p.as_rule(), p.as_str()),
     };
 
