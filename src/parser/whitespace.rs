@@ -2,15 +2,15 @@ use crate::parser::ast::*;
 
 macro_rules! trim_right_previous {
     ($vec: expr) => {
-        if let Some(last) = $vec.pop() {
-            if let Node::Text(mut s) = last {
-                s = s.trim_end().to_string();
-                if !s.is_empty() {
-                    $vec.push(Node::Text(s));
-                }
-            } else {
-                $vec.push(last);
+        let last = $vec.pop();
+
+        if let Some(Node::Text(mut s)) = last {
+            s = s.trim_end().to_string();
+            if !s.is_empty() {
+                $vec.push(Node::Text(s));
             }
+        } else if let Some(last) = last {
+            $vec.push(last);
         }
     };
     ($cond: expr, $vec: expr) => {
