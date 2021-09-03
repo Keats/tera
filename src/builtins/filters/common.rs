@@ -72,13 +72,9 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         None => "%Y-%m-%d".to_string(),
     };
 
-    let items: Vec<Item> = StrftimeItems::new(&format)
-        .filter(|item| match item {
-            Item::Error => true,
-            _ => false,
-        })
-        .collect();
-    if !items.is_empty() {
+    let items = StrftimeItems::new(&format).filter(|item| matches!(item, Item::Error)).count();
+
+    if items == 0 {
         return Err(Error::msg(format!("Invalid date format `{}`", format)));
     }
 
@@ -118,7 +114,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                     },
                 }
             } else {
-                match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
+                match NaiveDate::parse_from_str(s, "%Y-%m-%d") {
                     Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format),
                     Err(_) => {
                         return Err(Error::msg(format!(

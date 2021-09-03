@@ -217,7 +217,7 @@ pub fn capitalize(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(feature = "builtins")]
 pub fn urlencode(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("urlencode", "value", String, value);
-    let encoded = percent_encode(s.as_bytes(), &PYTHON_ENCODE_SET).to_string();
+    let encoded = percent_encode(s.as_bytes(), PYTHON_ENCODE_SET).to_string();
     Ok(Value::String(encoded))
 }
 
@@ -225,7 +225,7 @@ pub fn urlencode(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(feature = "builtins")]
 pub fn urlencode_strict(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("urlencode_strict", "value", String, value);
-    let encoded = percent_encode(s.as_bytes(), &NON_ALPHANUMERIC).to_string();
+    let encoded = percent_encode(s.as_bytes(), NON_ALPHANUMERIC).to_string();
     Ok(Value::String(encoded))
 }
 
