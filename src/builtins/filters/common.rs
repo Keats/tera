@@ -74,7 +74,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     let items = StrftimeItems::new(&format).filter(|item| matches!(item, Item::Error)).count();
 
-    if items == 0 {
+    if items > 0 {
         return Err(Error::msg(format!("Invalid date format `{}`", format)));
     }
 
