@@ -1229,6 +1229,9 @@ Marks a variable as safe: HTML will not be escaped anymore.
 Accesses a value from an object when the key is not a Tera identifier.
 Example: `{{ sections | get(key="posts/content") }}`
 
+The `get` filter also has a `default` parameter which can be used to provide a return value when the `key` parameter is missing from the set being filtered.
+Example: `{{ sections | get(key="posts/content", default="default") }}`
+
 #### split
 Splits a string into an array of strings, separated by a pattern given.
 Example: `{{ path | split(pat="/") }}`
