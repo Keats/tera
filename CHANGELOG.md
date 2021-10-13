@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.0 (unreleased)
+
+- Add `default` parameter to `get` filter
+- `Tera::extend` now also copies over function
+- Add Context-local functions
+
 ## 1.12.1 (2021-07-13)
 
 - Remove unused feature of chrono
