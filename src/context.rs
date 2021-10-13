@@ -1,5 +1,5 @@
-use std::collections::BTreeMap;
 use std::io::Write;
+use std::{collections::BTreeMap, iter};
 
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
@@ -212,12 +212,17 @@ pub fn get_json_pointer(key: &str) -> String {
     lazy_static::lazy_static! {
         // Split the key into dot-separated segments, respecting quoted strings as single units
         // to fix https://github.com/Keats/tera/issues/590
-        static ref JSON_POINTER_REGEX: regex::Regex = regex::Regex::new("\"[^\"]*\"|[^.]+").unwrap();
+        static ref JSON_POINTER_REGEX: regex::Regex = regex::Regex::new(r#""[^"]*"|[^.]+"#).unwrap();
     }
 
-    let mut segments = vec![""];
-    segments.extend(JSON_POINTER_REGEX.find_iter(key).map(|mat| mat.as_str().trim_matches('"')));
-    segments.join("/")
+    if key.find('"').is_some() {
+        let segments: Vec<&str> = iter::once("")
+            .chain(JSON_POINTER_REGEX.find_iter(key).map(|mat| mat.as_str().trim_matches('"')))
+            .collect();
+        segments.join("/")
+    } else {
+        ["/", &key.replace(".", "/")].join("")
+    }
 }
 
 #[cfg(test)]
@@ -226,6 +231,18 @@ mod tests {
 
     use serde_json::json;
     use std::collections::HashMap;
+
+    #[test]
+    fn test_get_json_pointer() {
+        assert_eq!(get_json_pointer(""), "/");
+        assert_eq!(get_json_pointer("foo"), "/foo");
+        assert_eq!(get_json_pointer("foo.bar.baz"), "/foo/bar/baz");
+        assert_eq!(get_json_pointer(r#"foo["bar"].baz"#), r#"/foo["bar"]/baz"#);
+        assert_eq!(
+            get_json_pointer(r#"foo["bar"].baz["qux"].blub"#),
+            r#"/foo["bar"]/baz["qux"]/blub"#
+        );
+    }
 
     #[test]
     fn can_extend_context() {
