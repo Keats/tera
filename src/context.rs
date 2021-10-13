@@ -5,20 +5,39 @@ use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
 
 use crate::errors::{Error, Result as TeraResult};
+use crate::FunctionRelaxed;
+use std::sync::Arc;
 
 /// The struct that holds the context of a template rendering.
 ///
 /// Light wrapper around a `BTreeMap` for easier insertions of Serializable
 /// values
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone)]
 pub struct Context {
     data: BTreeMap<String, Value>,
+    /// Ignored by PartialEq!
+    functions: BTreeMap<String, Arc<dyn FunctionRelaxed>>,
+}
+
+impl std::fmt::Debug for Context {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Context")
+            .field("data", &self.data)
+            .field("functions", &self.functions.keys())
+            .finish()
+    }
+}
+
+impl PartialEq for Context {
+    fn eq(&self, other: &Self) -> bool {
+        self.data.eq(&other.data)
+    }
 }
 
 impl Context {
     /// Initializes an empty context
     pub fn new() -> Self {
-        Context { data: BTreeMap::new() }
+        Context { data: BTreeMap::new(), functions: Default::default() }
     }
 
     /// Converts the `val` parameter to `Value` and insert it into the context.
@@ -63,6 +82,15 @@ impl Context {
         Ok(())
     }
 
+    /// Registers Context-local function
+    pub fn register_function<T: FunctionRelaxed + 'static, S: Into<String>>(
+        &mut self,
+        key: S,
+        val: T,
+    ) {
+        self.functions.insert(key.into(), Arc::new(val));
+    }
+
     /// Appends the data of the `source` parameter to `self`, overwriting existing keys.
     /// The source context will be dropped.
     ///
@@ -97,7 +125,7 @@ impl Context {
                 for (key, value) in m {
                     data.insert(key, value);
                 }
-                Ok(Context { data })
+                Ok(Context { data, functions: Default::default() })
             }
             _ => Err(Error::msg(
                 "Creating a Context from a Value/Serialize requires it being a JSON object",
@@ -126,6 +154,12 @@ impl Context {
     /// Checks if a value exists at a specific index.
     pub fn contains_key(&self, index: &str) -> bool {
         self.data.contains_key(index)
+    }
+
+    /// Looks up Context-local registered function
+    #[inline]
+    pub fn get_function(&self, fn_name: &str) -> Option<&Arc<dyn FunctionRelaxed>> {
+        self.functions.get(fn_name)
     }
 }
 
