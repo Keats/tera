@@ -22,12 +22,14 @@ mod utils;
 
 // Library exports.
 
-// Template is meant to be used internally only but is exported for test/bench.
 pub use crate::builtins::filters::Filter;
 pub use crate::builtins::functions::Function;
 pub use crate::builtins::testers::Test;
 pub use crate::context::Context;
 pub use crate::errors::{Error, ErrorKind, Result};
+// Template and get_json_pointer are meant to be used internally only but is exported for test/bench.
+#[doc(hidden)]
+pub use crate::context::get_json_pointer;
 #[doc(hidden)]
 pub use crate::template::Template;
 pub use crate::tera::Tera;
