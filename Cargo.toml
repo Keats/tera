@@ -32,13 +32,13 @@ percent-encoding = {version = "2.1", optional = true}
 humansize = {version = "1", optional = true}
 # used in date format filter
 chrono = {version = "0.4.1", optional = true, default-features = false, features = ["std", "clock"]}
-chrono-tz = {version = "0.5", optional = true}
+chrono-tz = {version = "0.6", optional = true}
 # used in get_random function
 rand = {version = "0.8", optional = true}
 
 [dev-dependencies]
 serde_derive = "1.0"
-pretty_assertions = "0.7"
+pretty_assertions = "1"
 tempfile = "3"
 
 [features]
