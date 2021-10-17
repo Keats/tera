@@ -1,10 +1,10 @@
 # Changelog
 
-## 1.13.0 (unreleased)
+## 1.13.0 (2021-10-17)
 
 - Add `default` parameter to `get` filter
 - `Tera::extend` now also copies over function
-- Add Context-local functions
+- Add Context-local Tera functions
 
 ## 1.12.1 (2021-07-13)
 
