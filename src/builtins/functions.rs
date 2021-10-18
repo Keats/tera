@@ -9,7 +9,7 @@ use serde_json::value::{from_value, to_value, Value};
 use crate::errors::{Error, Result};
 
 /// The context-local function type definition
-pub trait FunctionRelaxed {
+pub trait FunctionRelaxed: Sync + Send  {
     /// The context-local function type definition
     fn call(&self, args: &HashMap<String, Value>) -> Result<Value>;
 
@@ -21,7 +21,7 @@ pub trait FunctionRelaxed {
 
 impl<F> FunctionRelaxed for F
 where
-    F: Fn(&HashMap<String, Value>) -> Result<Value>,
+    F: Fn(&HashMap<String, Value>) -> Result<Value> + Sync + Send,
 {
     fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
         self(args)
