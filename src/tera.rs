@@ -8,7 +8,7 @@ use std::sync::Arc;
 use globwalk::glob_builder;
 
 use crate::builtins::filters::{array, common, number, object, string, Filter};
-use crate::builtins::functions::{self, Function};
+use crate::builtins::functions::{self, ContextSafety, Function};
 use crate::builtins::testers::{self, Test};
 use crate::context::Context;
 use crate::errors::{Error, Result};
@@ -308,7 +308,11 @@ impl Tera {
     /// // Rendering a template with an empty context
     /// tera.render("hello.html", Context::new());
     /// ```
-    pub fn render(&self, template_name: &str, context: &Context) -> Result<String> {
+    pub fn render<S: ContextSafety>(
+        &self,
+        template_name: &str,
+        context: &Context<S>,
+    ) -> Result<String> {
         let template = self.get_template(template_name)?;
         let renderer = Renderer::new(template, self, context);
         renderer.render()
@@ -328,10 +332,10 @@ impl Tera {
     /// context.insert("age", 18);
     /// tera.render_to("hello.html", context, &mut buffer);
     /// ```
-    pub fn render_to(
+    pub fn render_to<S: ContextSafety>(
         &self,
         template_name: &str,
-        context: &Context,
+        context: &Context<S>,
         write: impl Write,
     ) -> Result<()> {
         let template = self.get_template(template_name)?;
@@ -352,7 +356,11 @@ impl Tera {
     /// let string = tera.render_str("{{ greeting }} World!", &context)?;
     /// assert_eq!(string, "Hello World!");
     /// ```
-    pub fn render_str(&mut self, input: &str, context: &Context) -> Result<String> {
+    pub fn render_str<S: ContextSafety>(
+        &mut self,
+        input: &str,
+        context: &Context<S>,
+    ) -> Result<String> {
         self.add_raw_template(ONE_OFF_TEMPLATE_NAME, input)?;
         let result = self.render(ONE_OFF_TEMPLATE_NAME, &context);
         self.templates.remove(ONE_OFF_TEMPLATE_NAME);
@@ -371,7 +379,11 @@ impl Tera {
     /// context.insert("greeting", &"hello");
     /// Tera::one_off("{{ greeting }} world", &context, true);
     /// ```
-    pub fn one_off(input: &str, context: &Context, autoescape: bool) -> Result<String> {
+    pub fn one_off<S: ContextSafety>(
+        input: &str,
+        context: &Context<S>,
+        autoescape: bool,
+    ) -> Result<String> {
         let mut tera = Tera::default();
 
         if autoescape {

@@ -1,25 +1,71 @@
+use std::collections::HashMap;
 use std::io::Write;
+use std::marker::PhantomData;
+use std::ops::Deref;
 use std::{collections::BTreeMap, iter};
 
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
 
+use crate::builtins::functions::private::Sealed;
+use crate::builtins::functions::{ContextSafety, FunctionGeneral};
 use crate::errors::{Error, Result as TeraResult};
-use crate::FunctionRelaxed;
+use crate::{Function, FunctionRelaxed};
 use std::sync::Arc;
+
+/// Wrapper around `Arc<dyn Function>`
+#[derive(Clone)]
+pub struct FnSendSync(Arc<dyn Function>);
+
+impl Sealed for FnSendSync {}
+
+impl ContextSafety for FnSendSync {
+    type Inner = Arc<dyn Function>;
+}
+
+impl FunctionGeneral for Arc<dyn Function> {
+    fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
+        self.deref().call(args)
+    }
+
+    fn is_safe(&self) -> bool {
+        self.deref().is_safe()
+    }
+}
+
+#[derive(Clone)]
+pub struct FnRelaxed(Arc<dyn FunctionRelaxed>);
+
+impl Sealed for FnRelaxed {}
+
+impl ContextSafety for FnRelaxed {
+    type Inner = Arc<dyn FunctionRelaxed>;
+}
+
+impl FunctionGeneral for Arc<dyn FunctionRelaxed> {
+    fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
+        self.deref().call(args)
+    }
+
+    fn is_safe(&self) -> bool {
+        self.deref().is_safe()
+    }
+}
 
 /// The struct that holds the context of a template rendering.
 ///
 /// Light wrapper around a `BTreeMap` for easier insertions of Serializable
 /// values
 #[derive(Clone)]
-pub struct Context {
+pub struct Context<S: ContextSafety> {
     data: BTreeMap<String, Value>,
     /// Ignored by PartialEq!
-    functions: BTreeMap<String, Arc<dyn FunctionRelaxed>>,
+    //functions: BTreeMap<String, Arc<dyn FunctionRelaxed>>,
+    functions: BTreeMap<String, S::Inner>,
+    _phantom: PhantomData<S>,
 }
 
-impl std::fmt::Debug for Context {
+impl<S: ContextSafety> std::fmt::Debug for Context<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Context")
             .field("data", &self.data)
@@ -28,18 +74,65 @@ impl std::fmt::Debug for Context {
     }
 }
 
-impl PartialEq for Context {
+impl<S: ContextSafety> PartialEq for Context<S> {
     fn eq(&self, other: &Self) -> bool {
         self.data.eq(&other.data)
     }
 }
 
-impl Context {
+impl Context<FnSendSync> {
     /// Initializes an empty context
-    pub fn new() -> Self {
-        Context { data: BTreeMap::new(), functions: Default::default() }
+    pub fn new() -> Context<FnSendSync> {
+        Context { data: BTreeMap::new(), functions: Default::default(), _phantom: PhantomData }
     }
 
+    /// Takes a serde-json `Value` and convert it into a `Context` with no overhead/cloning.
+    pub fn from_value(obj: Value) -> TeraResult<Self> {
+        match obj {
+            Value::Object(m) => {
+                let mut data = BTreeMap::new();
+                for (key, value) in m {
+                    data.insert(key, value);
+                }
+                Ok(Context { data, functions: Default::default(), _phantom: Default::default() })
+            }
+            _ => Err(Error::msg(
+                "Creating a Context from a Value/Serialize requires it being a JSON object",
+            )),
+        }
+    }
+
+    /// Takes something that impl Serialize and create a context with it.
+    /// Meant to be used if you have a hashmap or a struct and don't want to insert values
+    /// one by one in the context.
+    pub fn from_serialize(value: impl Serialize) -> TeraResult<Self> {
+        let obj = to_value(value).map_err(Error::json)?;
+        Context::from_value(obj)
+    }
+
+    /// Registers Context-local function
+    pub fn register_function<T: Function + 'static, S: Into<String>>(&mut self, key: S, val: T) {
+        self.functions.insert(key.into(), Arc::new(val));
+    }
+}
+
+impl Context<FnRelaxed> {
+    /// Initializes an empty context
+    pub fn new_relaxed() -> Context<FnRelaxed> {
+        Context { data: BTreeMap::new(), functions: Default::default(), _phantom: PhantomData }
+    }
+
+    /// Registers Context-local function
+    pub fn register_function<T: FunctionRelaxed + 'static, S: Into<String>>(
+        &mut self,
+        key: S,
+        val: T,
+    ) {
+        self.functions.insert(key.into(), Arc::new(val));
+    }
+}
+
+impl<S: ContextSafety> Context<S> {
     /// Converts the `val` parameter to `Value` and insert it into the context.
     ///
     /// Panics if the serialization fails.
@@ -49,7 +142,7 @@ impl Context {
     /// let mut context = tera::Context::new();
     /// context.insert("number_users", &42);
     /// ```
-    pub fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) {
+    pub fn insert<T: Serialize + ?Sized, S1: Into<String>>(&mut self, key: S1, val: &T) {
         self.data.insert(key.into(), to_value(val).unwrap());
     }
 
@@ -72,23 +165,14 @@ impl Context {
     ///     // Serialization failed
     /// }
     /// ```
-    pub fn try_insert<T: Serialize + ?Sized, S: Into<String>>(
+    pub fn try_insert<T: Serialize + ?Sized, S1: Into<String>>(
         &mut self,
-        key: S,
+        key: S1,
         val: &T,
     ) -> TeraResult<()> {
         self.data.insert(key.into(), to_value(val)?);
 
         Ok(())
-    }
-
-    /// Registers Context-local function
-    pub fn register_function<T: FunctionRelaxed + 'static, S: Into<String>>(
-        &mut self,
-        key: S,
-        val: T,
-    ) {
-        self.functions.insert(key.into(), Arc::new(val));
     }
 
     /// Appends the data of the `source` parameter to `self`, overwriting existing keys.
@@ -104,7 +188,7 @@ impl Context {
     /// source.insert("d", &4);
     /// target.extend(source);
     /// ```
-    pub fn extend(&mut self, mut source: Context) {
+    pub fn extend<S2: ContextSafety>(&mut self, mut source: Context<S2>) {
         self.data.append(&mut source.data);
     }
 
@@ -115,30 +199,6 @@ impl Context {
             m.insert(key, value);
         }
         Value::Object(m)
-    }
-
-    /// Takes a serde-json `Value` and convert it into a `Context` with no overhead/cloning.
-    pub fn from_value(obj: Value) -> TeraResult<Self> {
-        match obj {
-            Value::Object(m) => {
-                let mut data = BTreeMap::new();
-                for (key, value) in m {
-                    data.insert(key, value);
-                }
-                Ok(Context { data, functions: Default::default() })
-            }
-            _ => Err(Error::msg(
-                "Creating a Context from a Value/Serialize requires it being a JSON object",
-            )),
-        }
-    }
-
-    /// Takes something that impl Serialize and create a context with it.
-    /// Meant to be used if you have a hashmap or a struct and don't want to insert values
-    /// one by one in the context.
-    pub fn from_serialize(value: impl Serialize) -> TeraResult<Self> {
-        let obj = to_value(value).map_err(Error::json)?;
-        Context::from_value(obj)
     }
 
     /// Returns the value at a given key index.
@@ -158,13 +218,13 @@ impl Context {
 
     /// Looks up Context-local registered function
     #[inline]
-    pub fn get_function(&self, fn_name: &str) -> Option<&Arc<dyn FunctionRelaxed>> {
+    pub fn get_function(&self, fn_name: &str) -> Option<&S::Inner> {
         self.functions.get(fn_name)
     }
 }
 
-impl Default for Context {
-    fn default() -> Context {
+impl Default for Context<FnSendSync> {
+    fn default() -> Context<FnSendSync> {
         Context::new()
     }
 }

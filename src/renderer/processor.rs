@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io::Write;
 
+use crate::builtins::functions::{ContextSafety, FunctionGeneral};
 use serde_json::{to_string_pretty, to_value, Number, Value};
 
 use crate::context::{ValueRender, ValueTruthy};
@@ -22,7 +23,10 @@ static MAGICAL_DUMP_VAR: &str = "__tera_context";
 
 /// This will convert a Tera variable to a json pointer if it is possible by replacing
 /// the index with their evaluated stringified value
-fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<String> {
+fn evaluate_sub_variables<'a, S: ContextSafety>(
+    key: &str,
+    call_stack: &CallStack<'a, S>,
+) -> Result<String> {
     let sub_vars_to_calc = pull_out_square_bracket(key);
     let mut new_key = key.to_string();
 
@@ -71,7 +75,10 @@ fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<S
         .replace("]", ""))
 }
 
-fn process_path<'a>(path: &str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
+fn process_path<'a, S: ContextSafety>(
+    path: &str,
+    call_stack: &CallStack<'a, S>,
+) -> Result<Val<'a>> {
     if !path.contains('[') {
         match call_stack.lookup(path) {
             Some(v) => Ok(v),
@@ -98,7 +105,7 @@ fn process_path<'a>(path: &str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
 }
 
 /// Processes the ast and renders the output
-pub struct Processor<'a> {
+pub struct Processor<'a, S: ContextSafety> {
     /// The template we're trying to render
     template: &'a Template,
     /// Root template of template to render - contains ast to use for rendering
@@ -107,7 +114,7 @@ pub struct Processor<'a> {
     /// The Tera object with template details
     tera: &'a Tera,
     /// The call stack for processing
-    call_stack: CallStack<'a>,
+    call_stack: CallStack<'a, S>,
     /// The macros organised by template and namespaces
     macros: MacroCollection<'a>,
     /// If set, rendering should be escaped
@@ -118,12 +125,12 @@ pub struct Processor<'a> {
     blocks: Vec<(&'a str, &'a str, usize)>,
 }
 
-impl<'a> Processor<'a> {
+impl<'a, S: ContextSafety> Processor<'a, S> {
     /// Create a new `Processor` that will do the rendering
     pub fn new(
         template: &'a Template,
         tera: &'a Tera,
-        context: &'a Context,
+        context: &'a Context<S>,
         should_escape: bool,
     ) -> Self {
         // Gets the root template if we are rendering something with inheritance or just return
