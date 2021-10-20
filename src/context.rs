@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::io::Write;
-use std::marker::PhantomData;
 use std::ops::Deref;
 use std::{collections::BTreeMap, iter};
 
@@ -51,7 +50,6 @@ pub struct Context<S: ContextSafety> {
     /// Ignored by PartialEq!
     //functions: BTreeMap<String, Arc<dyn FunctionRelaxed>>,
     functions: BTreeMap<String, S>,
-    _phantom: PhantomData<S>,
 }
 
 impl<S: ContextSafety> std::fmt::Debug for Context<S> {
@@ -72,7 +70,7 @@ impl<S: ContextSafety> PartialEq for Context<S> {
 impl Context<Arc<dyn Function>> {
     /// Initializes an empty context
     pub fn new() -> Self {
-        Context { data: BTreeMap::new(), functions: Default::default(), _phantom: PhantomData }
+        Context { data: BTreeMap::new(), functions: Default::default() }
     }
 
     /// Takes a serde-json `Value` and convert it into a `Context` with no overhead/cloning.
@@ -83,7 +81,7 @@ impl Context<Arc<dyn Function>> {
                 for (key, value) in m {
                     data.insert(key, value);
                 }
-                Ok(Context { data, functions: Default::default(), _phantom: Default::default() })
+                Ok(Context { data, functions: Default::default() })
             }
             _ => Err(Error::msg(
                 "Creating a Context from a Value/Serialize requires it being a JSON object",
@@ -108,7 +106,7 @@ impl Context<Arc<dyn Function>> {
 impl Context<Arc<dyn FunctionRelaxed>> {
     /// Initializes an empty context
     pub fn new_relaxed() -> Self {
-        Context { data: BTreeMap::new(), functions: Default::default(), _phantom: PhantomData }
+        Context { data: BTreeMap::new(), functions: Default::default() }
     }
 
     /// Registers Context-local function
