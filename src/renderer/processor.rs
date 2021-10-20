@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io::Write;
 
-use crate::builtins::functions::{ContextSafety, FunctionGeneral};
+use crate::builtins::functions::ContextSafety;
 use serde_json::{to_string_pretty, to_value, Number, Value};
 
 use crate::context::{ValueRender, ValueTruthy};

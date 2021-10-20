@@ -17,9 +17,7 @@ pub trait FunctionGeneral {
 }
 
 /// Sealed marker trait for allowing varying constrains on other traits for a `Context`.
-pub trait ContextSafety: private::Sealed + Clone {
-    type Inner: FunctionGeneral + Clone;
-}
+pub trait ContextSafety: private::Sealed + FunctionGeneral + Clone {}
 
 pub(crate) mod private {
     pub trait Sealed {}

@@ -132,7 +132,7 @@ impl<'a, S: ContextSafety> CallStack<'a, S> {
         None
     }
 
-    pub fn lookup_function(&self, fn_name: &str) -> Option<&S::Inner> {
+    pub fn lookup_function(&self, fn_name: &str) -> Option<&S> {
         self.context.inner.get_function(fn_name)
     }
 

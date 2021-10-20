@@ -13,15 +13,9 @@ use crate::errors::{Error, Result as TeraResult};
 use crate::{Function, FunctionRelaxed};
 use std::sync::Arc;
 
-/// Wrapper around `Arc<dyn Function>`
-#[derive(Clone)]
-pub struct FnSendSync(Arc<dyn Function>);
+impl Sealed for Arc<dyn Function> {}
 
-impl Sealed for FnSendSync {}
-
-impl ContextSafety for FnSendSync {
-    type Inner = Arc<dyn Function>;
-}
+impl ContextSafety for Arc<dyn Function> {}
 
 impl FunctionGeneral for Arc<dyn Function> {
     fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
@@ -33,14 +27,9 @@ impl FunctionGeneral for Arc<dyn Function> {
     }
 }
 
-#[derive(Clone)]
-pub struct FnRelaxed(Arc<dyn FunctionRelaxed>);
+impl Sealed for Arc<dyn FunctionRelaxed> {}
 
-impl Sealed for FnRelaxed {}
-
-impl ContextSafety for FnRelaxed {
-    type Inner = Arc<dyn FunctionRelaxed>;
-}
+impl ContextSafety for Arc<dyn FunctionRelaxed> {}
 
 impl FunctionGeneral for Arc<dyn FunctionRelaxed> {
     fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
@@ -61,7 +50,7 @@ pub struct Context<S: ContextSafety> {
     data: BTreeMap<String, Value>,
     /// Ignored by PartialEq!
     //functions: BTreeMap<String, Arc<dyn FunctionRelaxed>>,
-    functions: BTreeMap<String, S::Inner>,
+    functions: BTreeMap<String, S>,
     _phantom: PhantomData<S>,
 }
 
@@ -80,9 +69,9 @@ impl<S: ContextSafety> PartialEq for Context<S> {
     }
 }
 
-impl Context<FnSendSync> {
+impl Context<Arc<dyn Function>> {
     /// Initializes an empty context
-    pub fn new() -> Context<FnSendSync> {
+    pub fn new() -> Self {
         Context { data: BTreeMap::new(), functions: Default::default(), _phantom: PhantomData }
     }
 
@@ -116,9 +105,9 @@ impl Context<FnSendSync> {
     }
 }
 
-impl Context<FnRelaxed> {
+impl Context<Arc<dyn FunctionRelaxed>> {
     /// Initializes an empty context
-    pub fn new_relaxed() -> Context<FnRelaxed> {
+    pub fn new_relaxed() -> Self {
         Context { data: BTreeMap::new(), functions: Default::default(), _phantom: PhantomData }
     }
 
@@ -218,13 +207,13 @@ impl<S: ContextSafety> Context<S> {
 
     /// Looks up Context-local registered function
     #[inline]
-    pub fn get_function(&self, fn_name: &str) -> Option<&S::Inner> {
+    pub fn get_function(&self, fn_name: &str) -> Option<&S> {
         self.functions.get(fn_name)
     }
 }
 
-impl Default for Context<FnSendSync> {
-    fn default() -> Context<FnSendSync> {
+impl Default for Context<Arc<dyn Function>> {
+    fn default() -> Context<Arc<dyn Function>> {
         Context::new()
     }
 }
