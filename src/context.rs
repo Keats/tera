@@ -1,5 +1,5 @@
 use std::io::Write;
-use std::{collections::BTreeMap, iter};
+use std::{collections::HashMap, iter};
 
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
@@ -10,13 +10,13 @@ use std::sync::Arc;
 
 /// The struct that holds the context of a template rendering.
 ///
-/// Light wrapper around a `BTreeMap` for easier insertions of Serializable
+/// Light wrapper around a `HashMap` for easier insertions of Serializable
 /// values
 #[derive(Clone)]
 pub struct Context {
-    data: BTreeMap<String, Value>,
+    data: HashMap<String, Value>,
     /// Ignored by PartialEq!
-    functions: BTreeMap<String, Arc<dyn FunctionRelaxed>>,
+    functions: HashMap<String, Arc<dyn FunctionRelaxed>>,
 }
 
 impl std::fmt::Debug for Context {
@@ -37,7 +37,7 @@ impl PartialEq for Context {
 impl Context {
     /// Initializes an empty context
     pub fn new() -> Self {
-        Context { data: BTreeMap::new(), functions: Default::default() }
+        Context { data: HashMap::new(), functions: Default::default() }
     }
 
     /// Converts the `val` parameter to `Value` and insert it into the context.
@@ -104,8 +104,8 @@ impl Context {
     /// source.insert("d", &4);
     /// target.extend(source);
     /// ```
-    pub fn extend(&mut self, mut source: Context) {
-        self.data.append(&mut source.data);
+    pub fn extend(&mut self, source: Context) {
+        self.data.extend(source.data);
     }
 
     /// Converts the context to a `serde_json::Value` consuming the context.
@@ -121,7 +121,7 @@ impl Context {
     pub fn from_value(obj: Value) -> TeraResult<Self> {
         match obj {
             Value::Object(m) => {
-                let mut data = BTreeMap::new();
+                let mut data = HashMap::new();
                 for (key, value) in m {
                     data.insert(key, value);
                 }
