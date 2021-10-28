@@ -54,7 +54,6 @@ impl FunctionGeneral for CtxThreadLocal {
 pub struct Context<S: ContextSafety> {
     data: BTreeMap<String, Value>,
     /// Ignored by PartialEq!
-    //functions: BTreeMap<String, Arc<dyn FunctionRelaxed>>,
     functions: BTreeMap<String, S>,
 }
 
