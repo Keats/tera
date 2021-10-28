@@ -50,6 +50,9 @@ impl FunctionGeneral for CtxThreadLocal {
 ///
 /// Light wrapper around a `BTreeMap` for easier insertions of Serializable
 /// values
+///
+/// `ContextSafety` will be defined at creation time as either `CtxThreadSafe` or `CtxThreadLocal`,
+/// deciding what values `Context`-local functions may capture.  
 #[derive(Clone)]
 pub struct Context<S: ContextSafety> {
     data: BTreeMap<String, Value>,
@@ -73,7 +76,8 @@ impl<S: ContextSafety> PartialEq for Context<S> {
 }
 
 impl Context<CtxThreadSafe> {
-    /// Initializes an empty context
+    /// Initializes an empty context that is `Send` and `Sync` and can have functions
+    /// capturing only `Send` and `Sync` values.
     pub fn new() -> Self {
         Context { data: BTreeMap::new(), functions: Default::default() }
     }
@@ -109,8 +113,9 @@ impl Context<CtxThreadSafe> {
 }
 
 impl Context<CtxThreadLocal> {
-    /// Initializes an empty context
-    pub fn new_relaxed() -> Self {
+    /// Initializes an empty context that is neither `Send` nor `Sync` but can have functions
+    /// capturing non-`Send` and non-`Sync` values.
+    pub fn new_threadlocal() -> Self {
         Context { data: BTreeMap::new(), functions: Default::default() }
     }
 
