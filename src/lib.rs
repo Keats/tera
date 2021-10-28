@@ -28,7 +28,7 @@ pub use crate::builtins::functions::{
     Function, FunctionRelaxed, FunctionRelaxedSafe, FunctionSafe,
 };
 pub use crate::builtins::testers::Test;
-pub use crate::context::Context;
+pub use crate::context::{Context, CtxThreadLocal, CtxThreadSafe};
 pub use crate::errors::{Error, ErrorKind, Result};
 // Template and get_json_pointer are meant to be used internally only but is exported for test/bench.
 #[doc(hidden)]

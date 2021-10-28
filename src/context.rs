@@ -12,11 +12,17 @@ use crate::errors::{Error, Result as TeraResult};
 use crate::{Function, FunctionRelaxed};
 use std::sync::Arc;
 
-impl Sealed for Arc<dyn Function> {}
+/// Expressive name for the `ContextSafety` implying `Send` and `Sync`.
+pub type CtxThreadSafe = Arc<dyn Function>;
 
-impl ContextSafety for Arc<dyn Function> {}
+/// Expressive name for the `ContextSafety` implying only thread-local closures.
+pub type CtxThreadLocal = Arc<dyn FunctionRelaxed>;
 
-impl FunctionGeneral for Arc<dyn Function> {
+impl Sealed for CtxThreadSafe {}
+
+impl ContextSafety for CtxThreadSafe {}
+
+impl FunctionGeneral for CtxThreadSafe {
     fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
         self.deref().call(args)
     }
@@ -26,11 +32,11 @@ impl FunctionGeneral for Arc<dyn Function> {
     }
 }
 
-impl Sealed for Arc<dyn FunctionRelaxed> {}
+impl Sealed for CtxThreadLocal {}
 
-impl ContextSafety for Arc<dyn FunctionRelaxed> {}
+impl ContextSafety for CtxThreadLocal {}
 
-impl FunctionGeneral for Arc<dyn FunctionRelaxed> {
+impl FunctionGeneral for CtxThreadLocal {
     fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
         self.deref().call(args)
     }
@@ -67,7 +73,7 @@ impl<S: ContextSafety> PartialEq for Context<S> {
     }
 }
 
-impl Context<Arc<dyn Function>> {
+impl Context<CtxThreadSafe> {
     /// Initializes an empty context
     pub fn new() -> Self {
         Context { data: BTreeMap::new(), functions: Default::default() }
@@ -103,7 +109,7 @@ impl Context<Arc<dyn Function>> {
     }
 }
 
-impl Context<Arc<dyn FunctionRelaxed>> {
+impl Context<CtxThreadLocal> {
     /// Initializes an empty context
     pub fn new_relaxed() -> Self {
         Context { data: BTreeMap::new(), functions: Default::default() }
@@ -210,8 +216,8 @@ impl<S: ContextSafety> Context<S> {
     }
 }
 
-impl Default for Context<Arc<dyn Function>> {
-    fn default() -> Context<Arc<dyn Function>> {
+impl Default for Context<CtxThreadSafe> {
+    fn default() -> Context<CtxThreadSafe> {
         Context::new()
     }
 }
