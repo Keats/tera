@@ -392,4 +392,19 @@ mod tests {
         let mut context = Context::new();
         assert_eq!(context.remove("unknown"), None);
     }
+
+    #[test]
+    fn ensure_trait_bounds_for_context() {
+        fn takes_syncsend_thing<T>(_thing: T)
+        where
+            T: Send + Sync,
+        {
+            // nothing, compile-time check
+        }
+
+        takes_syncsend_thing(Context::new());
+
+        // this will not compile as CtxThreadLocal does not impl Send + Sync
+        // takes_syncsend_thing(Context::new_threadlocal());
+    }
 }
