@@ -1,5 +1,10 @@
 # Changelog
 
+
+## 1.14.0 (2021-11-01)
+
+- Ensure `Context` stays valid in Sync+Send, fixing an issue introduced in 1.13. 1.113 will be yanked.
+
 ## 1.13.0 (2021-10-17)
 
 - Add `default` parameter to `get` filter
