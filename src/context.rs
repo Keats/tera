@@ -1,25 +1,66 @@
+use std::collections::HashMap;
 use std::io::Write;
+use std::ops::Deref;
 use std::{collections::BTreeMap, iter};
 
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
 
+use crate::builtins::functions::private::Sealed;
+use crate::builtins::functions::{ContextSafety, FunctionGeneral};
 use crate::errors::{Error, Result as TeraResult};
-use crate::FunctionRelaxed;
+use crate::{Function, FunctionRelaxed};
 use std::sync::Arc;
+
+/// Expressive name for the `ContextSafety` implying `Send` and `Sync`.
+pub type CtxThreadSafe = Arc<dyn Function>;
+
+/// Expressive name for the `ContextSafety` implying only thread-local closures.
+pub type CtxThreadLocal = Arc<dyn FunctionRelaxed>;
+
+impl Sealed for CtxThreadSafe {}
+
+impl ContextSafety for CtxThreadSafe {}
+
+impl FunctionGeneral for CtxThreadSafe {
+    fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
+        self.deref().call(args)
+    }
+
+    fn is_safe(&self) -> bool {
+        self.deref().is_safe()
+    }
+}
+
+impl Sealed for CtxThreadLocal {}
+
+impl ContextSafety for CtxThreadLocal {}
+
+impl FunctionGeneral for CtxThreadLocal {
+    fn call(&self, args: &HashMap<String, Value>) -> TeraResult<Value> {
+        self.deref().call(args)
+    }
+
+    fn is_safe(&self) -> bool {
+        self.deref().is_safe()
+    }
+}
 
 /// The struct that holds the context of a template rendering.
 ///
 /// Light wrapper around a `BTreeMap` for easier insertions of Serializable
 /// values
+///
+/// `ContextSafety` will be defined at creation time as either `CtxThreadSafe` or `CtxThreadLocal`,
+/// deciding what values `Context`-local functions may capture.  
 #[derive(Clone)]
-pub struct Context {
+pub struct Context<S: ContextSafety> {
     data: BTreeMap<String, Value>,
     /// Ignored by PartialEq!
-    functions: BTreeMap<String, Arc<dyn FunctionRelaxed>>,
+    functions: BTreeMap<String, S>,
 }
 
-impl std::fmt::Debug for Context {
+impl<S: ContextSafety> std::fmt::Debug for Context<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Context")
             .field("data", &self.data)
@@ -28,93 +69,17 @@ impl std::fmt::Debug for Context {
     }
 }
 
-impl PartialEq for Context {
+impl<S: ContextSafety> PartialEq for Context<S> {
     fn eq(&self, other: &Self) -> bool {
         self.data.eq(&other.data)
     }
 }
 
-impl Context {
-    /// Initializes an empty context
+impl Context<CtxThreadSafe> {
+    /// Initializes an empty context that is `Send` and `Sync` and can have functions
+    /// capturing only `Send` and `Sync` values.
     pub fn new() -> Self {
         Context { data: BTreeMap::new(), functions: Default::default() }
-    }
-
-    /// Converts the `val` parameter to `Value` and insert it into the context.
-    ///
-    /// Panics if the serialization fails.
-    ///
-    /// ```rust
-    /// # use tera::Context;
-    /// let mut context = tera::Context::new();
-    /// context.insert("number_users", &42);
-    /// ```
-    pub fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) {
-        self.data.insert(key.into(), to_value(val).unwrap());
-    }
-
-    /// Converts the `val` parameter to `Value` and insert it into the context.
-    ///
-    /// Returns an error if the serialization fails.
-    ///
-    /// ```rust
-    /// # use tera::Context;
-    /// # struct CannotBeSerialized;
-    /// # impl serde::Serialize for CannotBeSerialized {
-    /// #     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-    /// #         Err(serde::ser::Error::custom("Error"))
-    /// #     }
-    /// # }
-    /// # let user = CannotBeSerialized;
-    /// let mut context = Context::new();
-    /// // user is an instance of a struct implementing `Serialize`
-    /// if let Err(_) = context.try_insert("number_users", &user) {
-    ///     // Serialization failed
-    /// }
-    /// ```
-    pub fn try_insert<T: Serialize + ?Sized, S: Into<String>>(
-        &mut self,
-        key: S,
-        val: &T,
-    ) -> TeraResult<()> {
-        self.data.insert(key.into(), to_value(val)?);
-
-        Ok(())
-    }
-
-    /// Registers Context-local function
-    pub fn register_function<T: FunctionRelaxed + 'static, S: Into<String>>(
-        &mut self,
-        key: S,
-        val: T,
-    ) {
-        self.functions.insert(key.into(), Arc::new(val));
-    }
-
-    /// Appends the data of the `source` parameter to `self`, overwriting existing keys.
-    /// The source context will be dropped.
-    ///
-    /// ```rust
-    /// # use tera::Context;
-    /// let mut target = Context::new();
-    /// target.insert("a", &1);
-    /// target.insert("b", &2);
-    /// let mut source = Context::new();
-    /// source.insert("b", &3);
-    /// source.insert("d", &4);
-    /// target.extend(source);
-    /// ```
-    pub fn extend(&mut self, mut source: Context) {
-        self.data.append(&mut source.data);
-    }
-
-    /// Converts the context to a `serde_json::Value` consuming the context.
-    pub fn into_json(self) -> Value {
-        let mut m = Map::new();
-        for (key, value) in self.data {
-            m.insert(key, value);
-        }
-        Value::Object(m)
     }
 
     /// Takes a serde-json `Value` and convert it into a `Context` with no overhead/cloning.
@@ -141,6 +106,98 @@ impl Context {
         Context::from_value(obj)
     }
 
+    /// Registers Context-local function
+    pub fn register_function<T: Function + 'static, S: Into<String>>(&mut self, key: S, val: T) {
+        self.functions.insert(key.into(), Arc::new(val));
+    }
+}
+
+impl Context<CtxThreadLocal> {
+    /// Initializes an empty context that is neither `Send` nor `Sync` but can have functions
+    /// capturing non-`Send` and non-`Sync` values.
+    pub fn new_threadlocal() -> Self {
+        Context { data: BTreeMap::new(), functions: Default::default() }
+    }
+
+    /// Registers Context-local function
+    pub fn register_function<T: FunctionRelaxed + 'static, S: Into<String>>(
+        &mut self,
+        key: S,
+        val: T,
+    ) {
+        self.functions.insert(key.into(), Arc::new(val));
+    }
+}
+
+impl<S: ContextSafety> Context<S> {
+    /// Converts the `val` parameter to `Value` and insert it into the context.
+    ///
+    /// Panics if the serialization fails.
+    ///
+    /// ```rust
+    /// # use tera::Context;
+    /// let mut context = tera::Context::new();
+    /// context.insert("number_users", &42);
+    /// ```
+    pub fn insert<T: Serialize + ?Sized, S1: Into<String>>(&mut self, key: S1, val: &T) {
+        self.data.insert(key.into(), to_value(val).unwrap());
+    }
+
+    /// Converts the `val` parameter to `Value` and insert it into the context.
+    ///
+    /// Returns an error if the serialization fails.
+    ///
+    /// ```rust
+    /// # use tera::Context;
+    /// # struct CannotBeSerialized;
+    /// # impl serde::Serialize for CannotBeSerialized {
+    /// #     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+    /// #         Err(serde::ser::Error::custom("Error"))
+    /// #     }
+    /// # }
+    /// # let user = CannotBeSerialized;
+    /// let mut context = Context::new();
+    /// // user is an instance of a struct implementing `Serialize`
+    /// if let Err(_) = context.try_insert("number_users", &user) {
+    ///     // Serialization failed
+    /// }
+    /// ```
+    pub fn try_insert<T: Serialize + ?Sized, S1: Into<String>>(
+        &mut self,
+        key: S1,
+        val: &T,
+    ) -> TeraResult<()> {
+        self.data.insert(key.into(), to_value(val)?);
+
+        Ok(())
+    }
+
+    /// Appends the data of the `source` parameter to `self`, overwriting existing keys.
+    /// The source context will be dropped.
+    ///
+    /// ```rust
+    /// # use tera::Context;
+    /// let mut target = Context::new();
+    /// target.insert("a", &1);
+    /// target.insert("b", &2);
+    /// let mut source = Context::new();
+    /// source.insert("b", &3);
+    /// source.insert("d", &4);
+    /// target.extend(source);
+    /// ```
+    pub fn extend<S2: ContextSafety>(&mut self, mut source: Context<S2>) {
+        self.data.append(&mut source.data);
+    }
+
+    /// Converts the context to a `serde_json::Value` consuming the context.
+    pub fn into_json(self) -> Value {
+        let mut m = Map::new();
+        for (key, value) in self.data {
+            m.insert(key, value);
+        }
+        Value::Object(m)
+    }
+
     /// Returns the value at a given key index.
     pub fn get(&self, index: &str) -> Option<&Value> {
         self.data.get(index)
@@ -158,13 +215,13 @@ impl Context {
 
     /// Looks up Context-local registered function
     #[inline]
-    pub fn get_function(&self, fn_name: &str) -> Option<&Arc<dyn FunctionRelaxed>> {
+    pub fn get_function(&self, fn_name: &str) -> Option<&S> {
         self.functions.get(fn_name)
     }
 }
 
-impl Default for Context {
-    fn default() -> Context {
+impl Default for Context<CtxThreadSafe> {
+    fn default() -> Context<CtxThreadSafe> {
         Context::new()
     }
 }
@@ -334,5 +391,20 @@ mod tests {
     fn remove_return_none_with_unknown_index() {
         let mut context = Context::new();
         assert_eq!(context.remove("unknown"), None);
+    }
+
+    #[test]
+    fn ensure_trait_bounds_for_context() {
+        fn takes_syncsend_thing<T>(_thing: T)
+        where
+            T: Send + Sync,
+        {
+            // nothing, compile-time check
+        }
+
+        takes_syncsend_thing(Context::new());
+
+        // this will not compile as CtxThreadLocal does not impl Send + Sync
+        // takes_syncsend_thing(Context::new_threadlocal());
     }
 }

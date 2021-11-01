@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 
+use crate::builtins::functions::ContextSafety;
 use serde_json::{to_value, Value};
 
 use crate::context::get_json_pointer;
@@ -8,19 +9,18 @@ use crate::errors::{Error, Result};
 use crate::renderer::for_loop::{ForLoop, ForLoopState};
 use crate::renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
 use crate::template::Template;
-use crate::{Context, FunctionRelaxed};
-use std::sync::Arc;
+use crate::Context;
 
 /// Contains the user data and allows no mutation
 #[derive(Debug)]
-pub struct UserContext<'a> {
+pub struct UserContext<'a, S: ContextSafety> {
     /// Read-only context
-    inner: &'a Context,
+    inner: &'a Context<S>,
 }
 
-impl<'a> UserContext<'a> {
+impl<'a, S: ContextSafety> UserContext<'a, S> {
     /// Create an immutable user context to be used in the call stack
-    pub fn new(context: &'a Context) -> Self {
+    pub fn new(context: &'a Context<S>) -> Self {
         UserContext { inner: context }
     }
 
@@ -38,16 +38,16 @@ impl<'a> UserContext<'a> {
 
 /// Contains the stack of frames
 #[derive(Debug)]
-pub struct CallStack<'a> {
+pub struct CallStack<'a, S: ContextSafety> {
     /// The stack of frames
     stack: Vec<StackFrame<'a>>,
     /// User supplied context for the render
-    context: UserContext<'a>,
+    context: UserContext<'a, S>,
 }
 
-impl<'a> CallStack<'a> {
+impl<'a, S: ContextSafety> CallStack<'a, S> {
     /// Create the initial call stack
-    pub fn new(context: &'a Context, template: &'a Template) -> CallStack<'a> {
+    pub fn new(context: &'a Context<S>, template: &'a Template) -> CallStack<'a, S> {
         CallStack {
             stack: vec![StackFrame::new(FrameType::Origin, "ORIGIN", template)],
             context: UserContext::new(context),
@@ -132,7 +132,7 @@ impl<'a> CallStack<'a> {
         None
     }
 
-    pub fn lookup_function(&self, fn_name: &str) -> Option<&Arc<dyn FunctionRelaxed>> {
+    pub fn lookup_function(&self, fn_name: &str) -> Option<&S> {
         self.context.inner.get_function(fn_name)
     }
 
