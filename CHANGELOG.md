@@ -1,11 +1,18 @@
 # Changelog
 
+## 1.15.0 (2021-11-03)
 
-## 1.14.0 (2021-11-01)
+- Add `default` parameter to `get` filter
+- `Tera::extend` now also copies over function
+- Remove the new Context-local Tera function support, it was an accidental breaking change and will be added in v2 in some ways
+instead
+
+
+## 1.14.0 (2021-11-01) - YANKED as it added a generic to Context, a breaking change
 
 - Ensure `Context` stays valid in Sync+Send, fixing an issue introduced in 1.13. 1.113 will be yanked.
 
-## 1.13.0 (2021-10-17)
+## 1.13.0 (2021-10-17) - YANKED as it made Context not Send+Sync
 
 - Add `default` parameter to `get` filter
 - `Tera::extend` now also copies over function
