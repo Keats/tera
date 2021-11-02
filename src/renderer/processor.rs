@@ -491,6 +491,9 @@ impl<'a> Processor<'a> {
         function_call: &'a FunctionCall,
         needs_escape: &mut bool,
     ) -> Result<Val<'a>> {
+        let tera_fn = self.tera.get_function(&function_call.name)?;
+        *needs_escape = !tera_fn.is_safe();
+
         let err_wrap = |e| Error::call_function(&function_call.name, e);
 
         let mut args = HashMap::new();
@@ -501,15 +504,7 @@ impl<'a> Processor<'a> {
             );
         }
 
-        if let Some(tera_fn) = self.call_stack.lookup_function(&function_call.name) {
-            *needs_escape = !tera_fn.is_safe();
-            Ok(Cow::Owned(tera_fn.call(&args).map_err(err_wrap)?))
-        } else {
-            let tera_fn = self.tera.get_function(&function_call.name)?;
-            *needs_escape = !tera_fn.is_safe();
-
-            Ok(Cow::Owned(tera_fn.call(&args).map_err(err_wrap)?))
-        }
+        Ok(Cow::Owned(tera_fn.call(&args).map_err(err_wrap)?))
     }
 
     fn eval_macro_call(&mut self, macro_call: &'a MacroCall, write: &mut impl Write) -> Result<()> {
