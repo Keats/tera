@@ -8,26 +8,6 @@ use serde_json::value::{from_value, to_value, Value};
 
 use crate::errors::{Error, Result};
 
-/// The context-local function type definition
-pub trait FunctionRelaxed {
-    /// The context-local function type definition
-    fn call(&self, args: &HashMap<String, Value>) -> Result<Value>;
-
-    /// Whether the current function's output should be treated as safe, defaults to `false`
-    fn is_safe(&self) -> bool {
-        false
-    }
-}
-
-impl<F> FunctionRelaxed for F
-where
-    F: Fn(&HashMap<String, Value>) -> Result<Value>,
-{
-    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
-        self(args)
-    }
-}
-
 /// The global function type definition
 pub trait Function: Sync + Send {
     /// The global function type definition
@@ -47,43 +27,6 @@ where
         self(args)
     }
 }
-
-macro_rules! safe_function {
-    ($function_trait:ident, $function_wrapper:ident) => {
-        /// Wrapper to make `is_safe` return `true` instead of `false` for a trait implementation.
-        pub struct $function_wrapper<F>
-        where
-            F: $function_trait,
-        {
-            inner: F,
-        }
-
-        impl<F> $function_trait for $function_wrapper<F>
-        where
-            F: $function_trait,
-        {
-            fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
-                self.inner.call(args)
-            }
-
-            fn is_safe(&self) -> bool {
-                true
-            }
-        }
-
-        impl<F> From<F> for $function_wrapper<F>
-        where
-            F: $function_trait,
-        {
-            fn from(func: F) -> Self {
-                $function_wrapper { inner: func }
-            }
-        }
-    };
-}
-
-safe_function!(FunctionRelaxed, FunctionRelaxedSafe);
-safe_function!(Function, FunctionSafe);
 
 pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
     let start = match args.get("start") {

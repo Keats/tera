@@ -7,7 +7,6 @@
 //! See the [site](https://tera.netlify.com) for features and to get started.
 
 #![deny(missing_docs)]
-#![deny(warnings)]
 
 #[macro_use]
 mod macros;
@@ -24,9 +23,7 @@ mod utils;
 // Library exports.
 
 pub use crate::builtins::filters::Filter;
-pub use crate::builtins::functions::{
-    Function, FunctionRelaxed, FunctionRelaxedSafe, FunctionSafe,
-};
+pub use crate::builtins::functions::Function;
 pub use crate::builtins::testers::Test;
 pub use crate::context::Context;
 pub use crate::errors::{Error, ErrorKind, Result};
