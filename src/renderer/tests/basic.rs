@@ -7,14 +7,14 @@ use lazy_static::lazy_static;
 use serde_derive::Serialize;
 use serde_json::{json, Value};
 
-use crate::builtins::functions::{ContextSafety, Function};
+use crate::builtins::functions::Function;
 use crate::context::Context;
 use crate::errors::Result;
 use crate::tera::Tera;
 
 use super::Review;
 
-fn render_template<S: ContextSafety>(content: &str, context: &Context<S>) -> Result<String> {
+fn render_template(content: &str, context: &Context) -> Result<String> {
     let mut tera = Tera::default();
     tera.add_raw_template("hello.html", content).unwrap();
     tera.register_function("get_number", |_: &HashMap<String, Value>| Ok(Value::Number(10.into())));

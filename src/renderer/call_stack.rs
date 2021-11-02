@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-use crate::builtins::functions::ContextSafety;
 use serde_json::{to_value, Value};
 
 use crate::context::get_json_pointer;
@@ -9,18 +8,19 @@ use crate::errors::{Error, Result};
 use crate::renderer::for_loop::{ForLoop, ForLoopState};
 use crate::renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
 use crate::template::Template;
-use crate::Context;
+use crate::{Context, FunctionRelaxed};
+use std::sync::Arc;
 
 /// Contains the user data and allows no mutation
 #[derive(Debug)]
-pub struct UserContext<'a, S: ContextSafety> {
+pub struct UserContext<'a> {
     /// Read-only context
-    inner: &'a Context<S>,
+    inner: &'a Context,
 }
 
-impl<'a, S: ContextSafety> UserContext<'a, S> {
+impl<'a> UserContext<'a> {
     /// Create an immutable user context to be used in the call stack
-    pub fn new(context: &'a Context<S>) -> Self {
+    pub fn new(context: &'a Context) -> Self {
         UserContext { inner: context }
     }
 
@@ -38,16 +38,16 @@ impl<'a, S: ContextSafety> UserContext<'a, S> {
 
 /// Contains the stack of frames
 #[derive(Debug)]
-pub struct CallStack<'a, S: ContextSafety> {
+pub struct CallStack<'a> {
     /// The stack of frames
     stack: Vec<StackFrame<'a>>,
     /// User supplied context for the render
-    context: UserContext<'a, S>,
+    context: UserContext<'a>,
 }
 
-impl<'a, S: ContextSafety> CallStack<'a, S> {
+impl<'a> CallStack<'a> {
     /// Create the initial call stack
-    pub fn new(context: &'a Context<S>, template: &'a Template) -> CallStack<'a, S> {
+    pub fn new(context: &'a Context, template: &'a Template) -> CallStack<'a> {
         CallStack {
             stack: vec![StackFrame::new(FrameType::Origin, "ORIGIN", template)],
             context: UserContext::new(context),
@@ -132,7 +132,7 @@ impl<'a, S: ContextSafety> CallStack<'a, S> {
         None
     }
 
-    pub fn lookup_function(&self, fn_name: &str) -> Option<&S> {
+    pub fn lookup_function(&self, fn_name: &str) -> Option<&Arc<dyn FunctionRelaxed>> {
         self.context.inner.get_function(fn_name)
     }
 

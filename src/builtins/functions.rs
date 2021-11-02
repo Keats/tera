@@ -8,21 +8,6 @@ use serde_json::value::{from_value, to_value, Value};
 
 use crate::errors::{Error, Result};
 
-/// Abstraction over both Function traits
-pub trait FunctionGeneral {
-    fn call(&self, args: &HashMap<String, Value>) -> Result<Value>;
-
-    /// Whether the current function's output should be treated as safe, defaults to `false`
-    fn is_safe(&self) -> bool;
-}
-
-/// Sealed marker trait for allowing varying constrains on other traits for a `Context`.
-pub trait ContextSafety: private::Sealed + FunctionGeneral + Clone {}
-
-pub(crate) mod private {
-    pub trait Sealed {}
-}
-
 /// The context-local function type definition
 pub trait FunctionRelaxed {
     /// The context-local function type definition
