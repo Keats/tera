@@ -919,6 +919,8 @@ The values in the array must be a sortable type:
 If you need to sort a list of structs or tuples, use the `attribute`
 argument to specify which field to sort by.
 
+Sorting is case-sensitive by default. If you need to sort an array of strings case-insensitively, use the `case-sensitive` argument (set it to false.)
+
 Example:
 
 Given `people` is an array of Person
@@ -942,6 +944,12 @@ or by age:
 
 ```jinja2
 {{ people | sort(attribute="age") }}
+```
+
+The `case-sensitive` argument can be used to sort case-insensitively:
+
+```jinja2
+{{ people | sort(attribute="name.0", case_sensitive=false) }}
 ```
 
 #### unique
