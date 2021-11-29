@@ -3,7 +3,9 @@ use std::collections::HashMap;
 
 use crate::context::{get_json_pointer, ValueRender};
 use crate::errors::{Error, Result};
-use crate::filter_utils::{get_sort_strategy_for_type, get_unique_strategy_for_type};
+use crate::filter_utils::{
+    get_sort_strategy_for_type, get_unique_strategy_for_type, SortStringsCaseInsensitive,
+};
 use crate::utils::render_to_string;
 use serde_json::value::{to_value, Map, Value};
 
@@ -74,6 +76,7 @@ pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Some(val) => try_get_value!("sort", "attribute", String, val),
         None => String::new(),
     };
+
     let ptr = match attribute.as_str() {
         "" => "".to_string(),
         s => get_json_pointer(s),
@@ -83,7 +86,16 @@ pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Error::msg(format!("attribute '{}' does not reference a field", attribute))
     })?;
 
-    let mut strategy = get_sort_strategy_for_type(first)?;
+    let case_sensitive = match args.get("case_sensitive") {
+        Some(val) => try_get_value!("sort", "case_sensitive", bool, val),
+        None => true,
+    };
+
+    let mut strategy = if !case_sensitive {
+        Box::new(SortStringsCaseInsensitive::default())
+    } else {
+        get_sort_strategy_for_type(first)?
+    };
     for v in &arr {
         let key = v.pointer(&ptr).ok_or_else(|| {
             Error::msg(format!("attribute '{}' does not reference a field", attribute))

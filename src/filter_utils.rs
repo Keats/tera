@@ -24,6 +24,9 @@ impl Ord for OrderedF64 {
     }
 }
 
+#[derive(PartialEq, PartialOrd, Default, Clone, Ord, Eq)]
+pub struct CaseInsensitiveString(String);
+
 #[derive(Default, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
 pub struct ArrayLen(usize);
 
@@ -58,6 +61,19 @@ impl GetValue for String {
     }
 }
 
+impl From<String> for CaseInsensitiveString {
+    fn from(s: String) -> CaseInsensitiveString {
+        CaseInsensitiveString(s)
+    }
+}
+
+impl GetValue for CaseInsensitiveString {
+    fn get_value(val: &Value) -> Result<Self> {
+        let s = val.as_str().ok_or_else(|| Error::msg(format!("expected string, got {}", val)));
+        Ok(CaseInsensitiveString::from(s?.to_lowercase()))
+    }
+}
+
 impl GetValue for ArrayLen {
     fn get_value(val: &Value) -> Result<Self> {
         let arr =
@@ -75,6 +91,7 @@ type SortNumbers = SortPairs<OrderedF64>;
 type SortBools = SortPairs<bool>;
 type SortStrings = SortPairs<String>;
 type SortArrays = SortPairs<ArrayLen>;
+pub(crate) type SortStringsCaseInsensitive = SortPairs<CaseInsensitiveString>;
 
 impl<K: GetValue> SortPairs<K> {
     fn try_add_pair(&mut self, val: &Value, key: &Value) -> Result<()> {
