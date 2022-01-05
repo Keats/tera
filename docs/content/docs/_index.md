@@ -21,7 +21,7 @@ default-features = false
 ```
 
 
-And add the following to your `lib.rs` or `main.rs` if you are not using Rust 2018:
+And add the following to your `lib.rs` or `main.rs` if you are not using Rust 2018 edition or later:
 
 ```rs
 extern crate tera;
