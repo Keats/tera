@@ -789,21 +789,20 @@ the `from` string replaced with the `to` string.
 Example: `{{ name | replace(from="Robert", to="Bob")}}`
 
 #### addslashes
-Adds slashes before quotes.
+Adds slashes before single quote (`'`), double quote (`"`) and backslash (`\`) chars.
 
 Example: `{{ value | addslashes }}`
 
-If value is "I'm using Tera", the output will be "I\\'m using Tera".
+If value is \`Alice said, "I'm using \\ in Tera"\`, the output will be \`Alice said, \\"I\\'m using \\\\ in Tera\\"\`.
 
 #### slugify
 Only available if the `builtins` feature is enabled.
 
-Transforms a string into ASCII, lowercases it, trims it, converts spaces to hyphens and
-removes all characters that are not numbers, lowercase letters or hyphens.
+Transforms a string into ASCII, lowercases it, trims it, converts all characters that are not numbers or lowercase letters to hyphens, replaces continuous sequence of hyphens with a single hyphen and removes leading and trailing hyphens if any.
 
 Example: `{{ value | slugify }}`
 
-If value is "-Hello world! ", the output will be "hello-world".
+If value is "  -This-- Is तेरा!   ", the output will be "this-is-teraa".
 
 #### title
 Capitalizes each word inside a sentence.
@@ -822,16 +821,16 @@ Removes leading whitespace if the variable is a string.
 Removes trailing whitespace if the variable is a string.
 
 #### trim_start_matches
-Removes leading characters that match the given pattern if the variable is a string.
+Repeatedly removes leading characters that match the given pattern if the variable is a string.
 
-Example: `{{ value | trim_start_matches(pat="//") }}`
+Example: `{{ value | trim_start_matches(pat="/") }}`
 
 If value is "//a/b/c//", the output will be "a/b/c//".
 
 #### trim_end_matches
-Removes trailing characters that match the given pattern if the variable is a string.
+Repeatedly removes trailing characters that match the given pattern if the variable is a string.
 
-Example: `{{ value | trim_end_matches(pat="//") }}`
+Example: `{{ value | trim_end_matches(pat="/") }}`
 
 If value is "//a/b/c//", the output will be "//a/b/c".
 
@@ -888,14 +887,14 @@ Returns the last element of an array.
 If the array is empty, returns empty string.
 
 #### nth
-Returns the nth element of an array.§
+Returns the nth element of an array.
 If the array is empty, returns empty string.
 It takes a required `n` argument, corresponding to the 0-based index you want to get.
 
 Example: `{{ value | nth(n=2) }}`
 
 #### join
-Joins an array with a string.
+Joins an array as a string.
 
 Example: `{{ value | join(sep=" // ") }}`
 
@@ -910,10 +909,10 @@ Returns a reversed string or array.
 #### sort
 Sorts an array into ascending order.
 
-The values in the array must be a sortable type:
-- numbers are sorted by their numerical value.
+All the values in the array must be of same type (either numbers, strings, arrays or bools):
+- numbers are sorted by their numerical values.
 - strings are sorted in alphabetical order.
-- arrays are sorted by their length.
+- arrays are sorted by their lengths.
 - bools are sorted as if false=0 and true=1
 
 If you need to sort a list of structs or tuples, use the `attribute`
@@ -969,7 +968,7 @@ The `attribute` argument can be used to select one Person for each age:
 or by last name:
 
 ```jinja2
-{{ people | unique(attribute="name.1", case_sensitive="true") }}
+{{ people | unique(attribute="name.1", case_sensitive=true) }}
 ```
 
 #### slice
@@ -1160,7 +1159,7 @@ singular suffix defaults to the empty string (i.e nothing).
 
 Example: `You have {{ num_messages }} message{{ num_messages | pluralize }}`
 
-If num_messages is 1, the output will be You have 1 message. If num_messages is 2 the output will be You have 2 messages. You can
+If num_messages is 1, the output will be "You have 1 message". If num_messages is 2 the output will be "You have 2 messages". You can
 also customize the singular and plural suffixes with the `singular` and `plural` arguments to the filter:
 
 Example: `{{ num_categories }} categor{{ num_categories | pluralize(singular="y", plural="ies") }}`
@@ -1176,9 +1175,11 @@ Example: `{{ num | round }} {{ num | round(method="ceil", precision=2) }}`
 #### filesizeformat
 Only available if the `builtins` feature is enabled.
 
-Returns a human-readable file size (i.e. '110 MB') from an integer.
+Returns a human-readable file size (i.e. '110 MB') from no. of bytes.
 
 Example: `{{ num | filesizeformat }}`
+
+If the num is 2048 then value will be "2 KB".
 
 #### date
 Only available if the `builtins` feature is enabled.
