@@ -268,11 +268,6 @@ pub fn slice(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         None => 0,
     };
 
-    // Not an error, but returns an empty Vec
-    if start > arr.len() {
-        return Ok(Vec::<Value>::new().into());
-    }
-
     let mut end = match args.get("end") {
         Some(val) => get_index(try_get_value!("slice", "end", f64, val), &arr),
         None => arr.len(),
@@ -280,6 +275,11 @@ pub fn slice(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     if end > arr.len() {
         end = arr.len();
+    }
+
+    // Not an error, but returns an empty Vec
+    if start >= end {
+        return Ok(Vec::<Value>::new().into());
     }
 
     Ok(arr[start..end].into())
@@ -646,6 +646,8 @@ mod tests {
             (make_args(Some(1), Some(2.0)), vec![2]),
             (make_args(None, Some(-2.0)), vec![1, 2, 3]),
             (make_args(None, None), vec![1, 2, 3, 4, 5]),
+            (make_args(Some(3), Some(1.0)), vec![]),
+            (make_args(Some(9), None), vec![]),
         ];
 
         for (args, expected) in inputs {
