@@ -229,15 +229,15 @@ impl Tera {
             }
         }
 
-        // TODO: if we can rewrite the 2 loops below to be only one loop, that'd be great
-        let mut tpl_parents = HashMap::new();
-        let mut tpl_block_definitions = HashMap::new();
-        for (name, template) in &self.templates {
+        // Used to build parent chain.
+        let cycled_templates = self.templates.clone();
+
+        for template in self.templates.values_mut() {
             if template.parent.is_none() && template.blocks.is_empty() {
                 continue;
             }
 
-            let parents = build_chain(&self.templates, template, template, vec![])?;
+            let parents = build_chain(&cycled_templates, template, template, vec![])?;
 
             let mut blocks_definitions = HashMap::new();
             for (block_name, def) in &template.blocks {
@@ -246,7 +246,10 @@ impl Tera {
 
                 // and then see if our parents have it
                 for parent in &parents {
-                    let t = self.get_template(parent)?;
+                    let t = match cycled_templates.get(parent) {
+                        Some(tpl) => tpl,
+                        None => return Err(Error::template_not_found(parent)),
+                    };
 
                     if let Some(b) = t.blocks.get(block_name) {
                         definitions.push((t.name.clone(), b.clone()));
@@ -254,24 +257,9 @@ impl Tera {
                 }
                 blocks_definitions.insert(block_name.clone(), definitions);
             }
-            tpl_parents.insert(name.clone(), parents);
-            tpl_block_definitions.insert(name.clone(), blocks_definitions);
-        }
 
-        for template in self.templates.values_mut() {
-            // Simple template: no inheritance or blocks -> nothing to do
-            if template.parent.is_none() && template.blocks.is_empty() {
-                continue;
-            }
-
-            template.parents = match tpl_parents.remove(&template.name) {
-                Some(parents) => parents,
-                None => vec![],
-            };
-            template.blocks_definitions = match tpl_block_definitions.remove(&template.name) {
-                Some(blocks) => blocks,
-                None => HashMap::new(),
-            };
+            template.parents = parents;
+            template.blocks_definitions = blocks_definitions;
         }
 
         Ok(())
