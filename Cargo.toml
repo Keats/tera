@@ -42,8 +42,8 @@ pretty_assertions = "1"
 tempfile = "3"
 
 [features]
-default = ["builtins"]
-builtins = ["slug", "percent-encoding", "humansize", "chrono", "chrono-tz", "rand"]
+default = ["builtins", "chrono", "chrono-tz"]
+builtins = ["slug", "percent-encoding", "humansize", "rand"]
 preserve_order = ["serde_json/preserve_order"]
 
 [badges]

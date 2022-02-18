@@ -1,4 +1,8 @@
 # Changelog
+## TBD (2022-02-18)
+
+- Move all `chrono` definition and use under `chrono` feature instead of bundling with `builtins`.  This
+allows optional use of `chrono` given it's not fully maintained.
 
 ## 1.15.0 (2021-11-03)
 
