@@ -580,9 +580,9 @@ impl Tera {
         self.register_filter("linebreaksbr", string::linebreaksbr);
         self.register_filter("striptags", string::striptags);
         self.register_filter("spaceless", string::spaceless);
-        #[cfg(feature = "builtins_urlencode")]
+        #[cfg(feature = "urlencode")]
         self.register_filter("urlencode", string::urlencode);
-        #[cfg(feature = "builtins_urlencode")]
+        #[cfg(feature = "urlencode")]
         self.register_filter("urlencode_strict", string::urlencode_strict);
         self.register_filter("escape", string::escape_html);
         self.register_filter("escape_xml", string::escape_xml);
