@@ -1189,7 +1189,7 @@ on [chrono docs](https://docs.rs/chrono/0.4/chrono/format/strftime/index.html).
 
 Example: `{{ ts | date }} {{ ts | date(format="%Y-%m-%d %H:%M") }}`
 
-If you are using ISO 8601 date strings you can optionally supply a timezone for the date to be rendered in.
+If you are using ISO 8601 date strings or a UTC timestamp, you can optionally supply a timezone for the date to be rendered in.
 
 Example:
 
@@ -1197,6 +1197,8 @@ Example:
 {{ "2019-09-19T13:18:48.731Z" | date(timezone="America/New_York") }}
 
 {{ "2019-09-19T13:18:48.731Z" | date(format="%Y-%m-%d %H:%M", timezone="Asia/Shanghai") }}
+
+{{ 1648252203 | date(timezone="Europe/Berlin") }}
 ```
 
 #### escape
