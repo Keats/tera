@@ -114,7 +114,7 @@ tera.autoescape_on(vec![".php.html"]);
 tera.autoescape_on(vec![]);
 ```
 
-Tera does not perform contextual auto-escaping, eg by parsing the template to know whether to escape JS, CSS or HTML (see 
+Tera does not perform contextual auto-escaping, e.g. by parsing the template to know whether to escape JS, CSS or HTML (see 
 <https://rawgit.com/mikesamuel/sanitized-jquery-templates/trunk/safetemplate.html> for more details on that).
 
 ## Advanced usage
@@ -622,7 +622,7 @@ If you want to do that, use macros.
 While you can `set` values in included templates, those values only exist while rendering
 them: the template calling `include` doesn't see them.
 
-You can mark an include with `ignore missing`, so that Tera will ignore the statement if the template to be inclued does not exist.
+You can mark an include with `ignore missing`, so that Tera will ignore the statement if the template to be included does not exist.
 
 ```jinja2
 {% include "header.html" ignore missing %}
@@ -1136,8 +1136,8 @@ The `with` attribute is mandatory.
 Only available if the `builtins` feature is enabled.
 
 Percent-encodes all the characters in a string which are not included in
-unreserved chars(according to [RFC3986](https://tools.ietf.org/html/rfc3986)) with the exception of forward
-slash(`/`).
+unreserved chars (according to [RFC3986](https://tools.ietf.org/html/rfc3986)) with the exception of forward
+slash (`/`).
 
 Example: `{{ value | urlencode }}`
 
@@ -1156,7 +1156,7 @@ also encoded.
 
 #### pluralize
 Returns a plural suffix if the value is not equal to ±1, or a singular suffix otherwise. The plural suffix defaults to `s` and the
-singular suffix defaults to the empty string (i.e nothing).
+singular suffix defaults to the empty string (i.e. nothing).
 
 Example: `You have {{ num_messages }} message{{ num_messages | pluralize }}`
 
@@ -1314,10 +1314,10 @@ Example:
 ```
 
 #### iterable
-Returns true if the given variable can be iterated over in Tera (ie is an array/tuple or an object).
+Returns true if the given variable can be iterated over in Tera (i.e. is an array/tuple or an object).
 
 #### object
-Returns true if the given variable is an object (ie can be iterated over key, value).
+Returns true if the given variable is an object (i.e. can be iterated over key, value).
 
 #### starting\_with
 Returns true if the given variable is a string and starts with the arg given.
