@@ -381,6 +381,16 @@ impl Tera {
         tera.render_str(input, context)
     }
 
+    /// Returns the glob.
+    pub fn get_glob(&self) -> Option<String> {
+        self.glob.clone()
+    }
+
+    /// Sets the glob. [Self::full_reload] needs to be called for it to take effect.
+    pub fn set_glob(&mut self, glob: Option<String>) {
+        self.glob = glob;
+    }
+
     #[doc(hidden)]
     #[inline]
     pub fn get_template(&self, template_name: &str) -> Result<&Template> {
