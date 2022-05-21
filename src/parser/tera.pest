@@ -1,3 +1,8 @@
+// More about pest syntax https://pest.rs/book/grammars/syntax.html
+// Built-in rules (WHITESPACE, ANY, SOI, DOI and others) https://pest.rs/book/grammars/built-ins.html
+
+// -----------------------------------------------
+
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 
 /// LITERALS
