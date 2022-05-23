@@ -76,7 +76,7 @@ impl Tera {
 
     /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
     ///
-    ///```ignore
+    ///```no_compile
     ///match Tera::new("templates/**/*") {
     ///    Ok(t) => t,
     ///    Err(e) => {
@@ -95,7 +95,7 @@ impl Tera {
     /// You will NOT get a working Tera instance using `Tera::parse`, you will need to call
     /// `tera.build_inheritance_chains()` to make it usable
     ///
-    ///```ignore
+    ///```no_compile
     ///let mut tera = match Tera::parse("templates/**/*") {
     ///    Ok(t) => t,
     ///    Err(e) => {
@@ -300,7 +300,7 @@ impl Tera {
     ///
     /// To render a template with an empty context, simply pass a new `tera::Context` object
     ///
-    /// ```rust,ignore
+    /// ```no_compile
     /// // Rendering a template with a normal context
     /// let mut context = Context::new();
     /// context.insert("age", 18);
@@ -321,7 +321,7 @@ impl Tera {
     ///
     /// Any i/o error will be reported in the result.
     ///
-    /// ```rust,ignore
+    /// ```no_compile
     /// // Rendering a template to an internal buffer
     /// let mut buffer = Vec::new();
     /// let mut context = Context::new();
@@ -346,7 +346,7 @@ impl Tera {
     /// Any errors will mention the `__tera_one_off` template: this is the name
     /// given to the template by Tera.
     ///
-    /// ```rust,ignore
+    /// ```no_compile
     /// let mut context = Context::new();
     /// context.insert("greeting", &"Hello");
     /// let string = tera.render_str("{{ greeting }} World!", &context)?;
@@ -366,7 +366,7 @@ impl Tera {
     /// Any errors will mention the `__tera_one_off` template: this is the name given to the template by
     /// Tera
     ///
-    /// ```rust,ignore
+    /// ```no_compile
     /// let mut context = Context::new();
     /// context.insert("greeting", &"hello");
     /// Tera::one_off("{{ greeting }} world", &context, true);
@@ -418,7 +418,7 @@ impl Tera {
     /// template without the parent one.
     /// If you want to add several templates, use [Tera::add_templates](struct.Tera.html#method.add_raw_templates)
     ///
-    /// ```rust,ignore
+    /// ```no_compile
     /// tera.add_raw_template("new.html", "Blabla");
     /// ```
     pub fn add_raw_template(&mut self, name: &str, content: &str) -> Result<()> {
@@ -435,7 +435,7 @@ impl Tera {
     /// This will error if the inheritance chain can't be built, such as adding a child
     /// template without the parent one.
     ///
-    /// ```rust,ignore
+    /// ```no_compile
     /// tera.add_raw_templates(vec![
     ///     ("new.html", "blabla"),
     ///     ("new2.html", "hello"),
@@ -465,7 +465,7 @@ impl Tera {
     /// template without the parent one.
     /// If you want to add several file, use [Tera::add_template_files](struct.Tera.html#method.add_template_files)
     ///
-    /// ```rust,ignore
+    /// ```no_compile
     /// // Use path as name
     /// tera.add_template_file(path, None);
     /// // Rename
@@ -484,7 +484,7 @@ impl Tera {
     /// This will error if the inheritance chain can't be built, such as adding a child
     /// template without the parent one.
     ///
-    /// ```rust,ignore
+    /// ```no_compile
     /// tera.add_template_files(vec![
     ///     (path1, None), // this template will have the value of path1 as name
     ///     (path2, Some("hey")), // this template will have `hey` as name
@@ -517,7 +517,7 @@ impl Tera {
     ///
     /// If a filter with that name already exists, it will be overwritten
     ///
-    /// ```rust,ignore
+    /// ```no_compile
     /// tera.register_filter("upper", string::upper);
     /// ```
     pub fn register_filter<F: Filter + 'static>(&mut self, name: &str, filter: F) {
@@ -537,7 +537,7 @@ impl Tera {
     ///
     /// If a tester with that name already exists, it will be overwritten
     ///
-    /// ```rust,ignore
+    /// ```no_compile
     /// tera.register_tester("odd", testers::odd);
     /// ```
     pub fn register_tester<T: Test + 'static>(&mut self, name: &str, tester: T) {
@@ -557,7 +557,7 @@ impl Tera {
     ///
     /// If a function with that name already exists, it will be overwritten
     ///
-    /// ```rust,ignore
+    /// ```no_compile
     /// tera.register_function("range", range);
     /// ```
     pub fn register_function<F: Function + 'static>(&mut self, name: &str, function: F) {
@@ -653,7 +653,7 @@ impl Tera {
     /// Only call this function if you wish to change the defaults.
     ///
     ///
-    ///```ignore
+    ///```no_compile
     /// // escape only files ending with `.php.html`
     /// tera.autoescape_on(vec![".php.html"]);
     /// // disable autoescaping completely
@@ -671,7 +671,7 @@ impl Tera {
 
     /// Set user-defined function which applied to a rendered content.
     ///
-    ///```rust,ignore
+    ///```no_compile
     /// fn escape_c_string(input: &str) -> String { ... }
     ///
     /// // make valid C string literal
@@ -713,7 +713,7 @@ impl Tera {
     /// to your own. If a template/filter/tester/function with the same name already exists in your instance,
     /// it will not be overwritten.
     ///
-    ///```rust,ignore
+    ///```no_compile
     /// // add all the templates from FRAMEWORK_TERA
     /// // except the ones that have an identical name to the ones in `my_tera`
     /// my_tera.extend(&FRAMEWORK_TERA);

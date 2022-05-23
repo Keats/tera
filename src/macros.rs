@@ -8,7 +8,7 @@
 /// - the expected type
 /// - the actual variable
 ///
-/// ```rust,ignore
+/// ```no_compile
 /// let arr = try_get_value!("first", "value", Vec<Value>, value);
 /// let val = try_get_value!("pluralize", "suffix", String, val.clone());
 /// ```
