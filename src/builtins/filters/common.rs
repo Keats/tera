@@ -7,7 +7,7 @@ use crate::utils::render_to_string;
 #[cfg(feature = "builtins")]
 use chrono::{
     format::{Item, StrftimeItems},
-    DateTime, FixedOffset, NaiveDate, NaiveDateTime, Utc,
+    DateTime, FixedOffset, NaiveDate, NaiveDateTime, TimeZone, Utc,
 };
 #[cfg(feature = "builtins")]
 use chrono_tz::Tz;
@@ -97,7 +97,13 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     let formatted = match value {
         Value::Number(n) => match n.as_i64() {
-            Some(i) => NaiveDateTime::from_timestamp(i, 0).format(&format),
+            Some(i) => {
+                let date = NaiveDateTime::from_timestamp(i, 0);
+                match timezone {
+                    Some(timezone) => timezone.from_utc_datetime(&date).format(&format),
+                    None => date.format(&format),
+                }
+            }
             None => return Err(Error::msg(format!("Filter `date` was invoked on a float: {}", n))),
         },
         Value::String(s) => {
@@ -331,6 +337,26 @@ mod tests {
         let result = date(&to_value("2019-09-19T01:48:44.581Z").unwrap(), &args);
         assert!(result.is_err());
         assert_eq!(result.err().unwrap().to_string(), "Error parsing `Narnia` as a timezone");
+    }
+
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn date_timestamp() {
+        let mut args = HashMap::new();
+        args.insert("format".to_string(), to_value("%Y-%m-%d").unwrap());
+        let result = date(&to_value(1648302603).unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("2022-03-26").unwrap());
+    }
+
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn date_timestamp_with_timezone() {
+        let mut args = HashMap::new();
+        args.insert("timezone".to_string(), to_value("Europe/Berlin").unwrap());
+        let result = date(&to_value(1648252203).unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("2022-03-26").unwrap());
     }
 
     #[test]
