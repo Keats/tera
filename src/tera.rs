@@ -306,7 +306,7 @@ impl Tera {
     /// context.insert("age", 18);
     /// tera.render("hello.html", context);
     /// // Rendering a template with an empty context
-    /// tera.render("hello.html", Context::new());
+    /// let output = tera.render("hello.html", Context::new());
     /// ```
     pub fn render(&self, template_name: &str, context: &Context) -> Result<String> {
         let template = self.get_template(template_name)?;

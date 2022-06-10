@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.16.0 (2022-06-10)
+
+- Add a feature just for the urlencode builtin
+- Fix bug in slice filter if start >= end
+- Allow supplying a timezone to a timestamp for the date filter
+
 ## 1.15.0 (2021-11-03)
 
 - Add `default` parameter to `get` filter
