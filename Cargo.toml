@@ -43,7 +43,8 @@ tempfile = "3"
 
 [features]
 default = ["builtins"]
-builtins = ["slug", "percent-encoding", "humansize", "chrono", "chrono-tz", "rand"]
+builtins = ["urlencode", "slug", "humansize", "chrono", "chrono-tz", "rand"]
+urlencode = ["percent-encoding"]
 preserve_order = ["serde_json/preserve_order"]
 
 [badges]
