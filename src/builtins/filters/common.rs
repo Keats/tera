@@ -4,12 +4,12 @@ use std::iter::FromIterator;
 
 use crate::errors::{Error, Result};
 use crate::utils::render_to_string;
-#[cfg(feature = "builtins")]
+#[cfg(feature = "chrono")]
 use chrono::{
     format::{Item, StrftimeItems},
     DateTime, FixedOffset, NaiveDate, NaiveDateTime, TimeZone, Utc,
 };
-#[cfg(feature = "builtins")]
+#[cfg(feature = "chrono")]
 use chrono_tz::Tz;
 use serde_json::value::{to_value, Value};
 use serde_json::{to_string, to_string_pretty};
@@ -65,7 +65,7 @@ pub fn json_encode(value: &Value, args: &HashMap<String, Value>) -> Result<Value
 ///
 /// a full reference for the time formatting syntax is available
 /// on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html)
-#[cfg(feature = "builtins")]
+#[cfg(feature = "chrono")]
 pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let format = match args.get("format") {
         Some(val) => try_get_value!("date", "format", String, val),
@@ -157,7 +157,7 @@ pub fn as_str(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(feature = "builtins")]
+    #[cfg(feature = "chrono")]
     use chrono::{DateTime, Local};
     use serde_json;
     use serde_json::value::to_value;
@@ -238,7 +238,7 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "builtins")]
+    #[cfg(feature = "chrono")]
     #[test]
     fn date_default() {
         let args = HashMap::new();
@@ -247,7 +247,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("2016-12-26").unwrap());
     }
 
-    #[cfg(feature = "builtins")]
+    #[cfg(feature = "chrono")]
     #[test]
     fn date_custom_format() {
         let mut args = HashMap::new();
@@ -259,7 +259,7 @@ mod tests {
 
     // https://zola.discourse.group/t/can-i-generate-a-random-number-within-a-range/238?u=keats
     // https://github.com/chronotope/chrono/issues/47
-    #[cfg(feature = "builtins")]
+    #[cfg(feature = "chrono")]
     #[test]
     fn date_errors_on_incorrect_format() {
         let mut args = HashMap::new();
@@ -268,7 +268,7 @@ mod tests {
         assert!(result.is_err());
     }
 
-    #[cfg(feature = "builtins")]
+    #[cfg(feature = "chrono")]
     #[test]
     fn date_rfc3339() {
         let args = HashMap::new();
@@ -278,7 +278,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value(dt.format("%Y-%m-%d").to_string()).unwrap());
     }
 
-    #[cfg(feature = "builtins")]
+    #[cfg(feature = "chrono")]
     #[test]
     fn date_rfc3339_preserves_timezone() {
         let mut args = HashMap::new();
@@ -288,7 +288,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("1996-12-19 -0800").unwrap());
     }
 
-    #[cfg(feature = "builtins")]
+    #[cfg(feature = "chrono")]
     #[test]
     fn date_yyyy_mm_dd() {
         let mut args = HashMap::new();
@@ -298,7 +298,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00 +0000").unwrap());
     }
 
-    #[cfg(feature = "builtins")]
+    #[cfg(feature = "chrono")]
     #[test]
     fn date_from_naive_datetime() {
         let mut args = HashMap::new();
@@ -310,7 +310,7 @@ mod tests {
     }
 
     // https://github.com/getzola/zola/issues/1279
-    #[cfg(feature = "builtins")]
+    #[cfg(feature = "chrono")]
     #[test]
     fn date_format_doesnt_panic() {
         let mut args = HashMap::new();
@@ -319,7 +319,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[cfg(feature = "builtins")]
+    #[cfg(feature = "chrono")]
     #[test]
     fn date_with_timezone() {
         let mut args = HashMap::new();
@@ -329,7 +329,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("2019-09-18").unwrap());
     }
 
-    #[cfg(feature = "builtins")]
+    #[cfg(feature = "chrono")]
     #[test]
     fn date_with_invalid_timezone() {
         let mut args = HashMap::new();

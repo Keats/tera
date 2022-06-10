@@ -613,7 +613,7 @@ impl Tera {
 
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
-        #[cfg(feature = "builtins")]
+        #[cfg(feature = "chrono")]
         self.register_filter("date", common::date);
         self.register_filter("json_encode", common::json_encode);
         self.register_filter("as_str", common::as_str);
@@ -639,7 +639,7 @@ impl Tera {
 
     fn register_tera_functions(&mut self) {
         self.register_function("range", functions::range);
-        #[cfg(feature = "builtins")]
+        #[cfg(feature = "chrono")]
         self.register_function("now", functions::now);
         self.register_function("throw", functions::throw);
         #[cfg(feature = "builtins")]
