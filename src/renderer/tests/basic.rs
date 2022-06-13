@@ -124,6 +124,10 @@ fn render_variable_block_ident() {
         ("{{ 1.9 + a | round - 1 }}", "3"),
         ("{{ 1.9 + a | round - 1.8 + a | round }}", "0"),
         ("{{ 1.9 + a | round - 1.8 + a | round - 1 }}", "-1"),
+        ("{{ 4 + 40 / (2 + 8) / 4 }}", "5"),
+        ("{{ ( ( 2 ) + ( 2 ) ) }}", "4"),
+        ("{{ ( ( 4 / 1 ) + ( 2 / 1 ) ) }}", "6"),
+        ("{{ ( ( 4 + 2 ) / ( 2 + 1 ) ) }}", "2"),
         // https://github.com/Keats/tera/issues/435
         (
             "{{ with_newline | replace(from='\n', to='<br>') | safe }}",
