@@ -15,9 +15,7 @@ By default, Tera comes with some additional dependencies required for the `trunc
 well as for the `now` function. You can disable them by setting the following in your `Cargo.toml`:
 
 ```toml
-[dependencies.tera]
-version = "1"
-default-features = false
+tera = { version = "1", default-features = false }
 ```
 
 
