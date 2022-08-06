@@ -1,5 +1,7 @@
 /// Filters operating on multiple types
 use std::collections::HashMap;
+#[cfg(feature = "date-locale")]
+use std::convert::TryFrom;
 use std::iter::FromIterator;
 
 use crate::errors::{Error, Result};
@@ -95,6 +97,76 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         None => None,
     };
 
+    #[cfg(feature = "date-locale")]
+    let formatted = {
+        let locale = match args.get("locale") {
+            Some(val) => {
+                let locale = try_get_value!("date", "locale", String, val);
+                chrono::Locale::try_from(locale.as_str()).or_else(|_| {
+                    Err(Error::msg(format!("Error parsing `{}` as a locale", locale)))
+                })?
+            }
+            None => chrono::Locale::POSIX,
+        };
+        match value {
+            Value::Number(n) => match n.as_i64() {
+                Some(i) => {
+                    let date = NaiveDateTime::from_timestamp(i, 0);
+                    match timezone {
+                        Some(timezone) => {
+                            timezone.from_utc_datetime(&date).format_localized(&format, locale)
+                        }
+                        None => date.format(&format),
+                    }
+                }
+                None => {
+                    return Err(Error::msg(format!("Filter `date` was invoked on a float: {}", n)))
+                }
+            },
+            Value::String(s) => {
+                if s.contains('T') {
+                    match s.parse::<DateTime<FixedOffset>>() {
+                        Ok(val) => match timezone {
+                            Some(timezone) => {
+                                val.with_timezone(&timezone).format_localized(&format, locale)
+                            }
+                            None => val.format_localized(&format, locale),
+                        },
+                        Err(_) => match s.parse::<NaiveDateTime>() {
+                            Ok(val) => DateTime::<Utc>::from_utc(val, Utc)
+                                .format_localized(&format, locale),
+                            Err(_) => {
+                                return Err(Error::msg(format!(
+                                    "Error parsing `{:?}` as rfc3339 date or naive datetime",
+                                    s
+                                )));
+                            }
+                        },
+                    }
+                } else {
+                    match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
+                        Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc)
+                            .format_localized(&format, locale),
+                        Err(_) => {
+                            return Err(Error::msg(format!(
+                                "Error parsing `{:?}` as YYYY-MM-DD date",
+                                s
+                            )));
+                        }
+                    }
+                }
+            }
+            _ => {
+                return Err(Error::msg(format!(
+                    "Filter `date` received an incorrect type for arg `value`: \
+                     got `{:?}` but expected i64|u64|String",
+                    value
+                )));
+            }
+        }
+    };
+
+    #[cfg(not(feature = "date-locale"))]
     let formatted = match value {
         Value::Number(n) => match n.as_i64() {
             Some(i) => {
@@ -357,6 +429,28 @@ mod tests {
         let result = date(&to_value(1648252203).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("2022-03-26").unwrap());
+    }
+
+    #[cfg(feature = "date-locale")]
+    #[test]
+    fn date_timestamp_with_timezone_and_locale() {
+        let mut args = HashMap::new();
+        args.insert("format".to_string(), to_value("%A %-d %B").unwrap());
+        args.insert("timezone".to_string(), to_value("Europe/Paris").unwrap());
+        args.insert("locale".to_string(), to_value("fr_FR").unwrap());
+        let result = date(&to_value(1659817310).unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("samedi 6 août").unwrap());
+    }
+
+    #[cfg(feature = "date-locale")]
+    #[test]
+    fn date_with_invalid_locale() {
+        let mut args = HashMap::new();
+        args.insert("locale".to_string(), to_value("xx_XX").unwrap());
+        let result = date(&to_value("2019-09-19T01:48:44.581Z").unwrap(), &args);
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap().to_string(), "Error parsing `xx_XX` as a locale");
     }
 
     #[test]

@@ -1199,6 +1199,10 @@ Example:
 {{ 1648252203 | date(timezone="Europe/Berlin") }}
 ```
 
+Locale can be specified (excepted when the input is a timestamp without timezone argument), default being POSIX. (only available if the `date-locale` feature is enabled)
+
+Example: `{{ 1648252203 | date(format="%A %-d %B", timezone="Europe/Paris", locale="fr_FR") }}`
+
 #### escape
 Escapes a string's HTML. Specifically, it makes these replacements:
 
