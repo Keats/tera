@@ -86,7 +86,7 @@ string_concat = { (fn_call | float | int | string | dotted_square_bracket_ident)
 // boolean first so they are not caught as identifiers
 basic_val  = _{ boolean | test_not | test | macro_call | fn_call | dotted_square_bracket_ident | float | int }
 basic_op   = _{ op_plus | op_minus | op_times | op_slash | op_modulo }
-basic_expr = { ("(" ~ basic_expr ~ ")" | basic_val) ~ (basic_op ~ basic_val)* }
+basic_expr = { ("(" ~ basic_expr ~ ")" | basic_val) ~ (basic_op ~ ("(" ~ basic_expr ~ ")" | basic_val))* }
 basic_expr_filter = !{ basic_expr ~ filter* }
 string_expr_filter = !{ (string_concat | string) ~ filter* }
 
