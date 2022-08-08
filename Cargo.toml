@@ -46,6 +46,7 @@ default = ["builtins"]
 builtins = ["urlencode", "slug", "humansize", "chrono", "chrono-tz", "rand"]
 urlencode = ["percent-encoding"]
 preserve_order = ["serde_json/preserve_order"]
+date-locale = ["builtins", "chrono/unstable-locales"]
 
 [badges]
 maintenance = { status = "actively-developed" }
