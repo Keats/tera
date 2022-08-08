@@ -151,6 +151,7 @@ fn render_variable_block_logic_expr() {
     hashmap.insert("b", 10);
     hashmap.insert("john", 100);
     context.insert("object", &hashmap);
+    context.insert("urls", &vec!["https://test"]);
 
     let inputs = vec![
         ("{{ (1.9 + a) | round > 10 }}", "false"),
@@ -177,6 +178,8 @@ fn render_variable_block_logic_expr() {
         ("{{ name not in 'hello' }}", "true"),
         ("{{ name in ['bob', 2, 'john'] }}", "true"),
         ("{{ a in ['bob', 2, 'john'] }}", "true"),
+        ("{{ \"https://test\" in [\"https://test\"] }}", "true"),
+        ("{{ \"https://test\" in urls }}", "true"),
         ("{{ 'n' in name }}", "true"),
         ("{{ '<' in malicious }}", "true"),
         ("{{ 'a' in object }}", "true"),

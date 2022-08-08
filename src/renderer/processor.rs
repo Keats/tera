@@ -303,8 +303,8 @@ impl<'a> Processor<'a> {
     }
 
     fn eval_in_condition(&mut self, in_cond: &'a In) -> Result<bool> {
-        let lhs = self.eval_expression(&in_cond.lhs)?;
-        let rhs = self.eval_expression(&in_cond.rhs)?;
+        let lhs = self.safe_eval_expression(&in_cond.lhs)?;
+        let rhs = self.safe_eval_expression(&in_cond.rhs)?;
 
         let present = match *rhs {
             Value::Array(ref v) => v.contains(&lhs),
