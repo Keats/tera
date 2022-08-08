@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.17.0 (unreleased)
+
+- Fix bug where operands in `in` operation were escaped before comparison
+- Force chrono dep to be 0.4.20 minimum
+- Better support for parenthesis in expression
+
 ## 1.16.0 (2022-06-10)
 
 - Add a feature just for the urlencode builtin
