@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.17.0 (unreleased)
+## 1.17.0 (2022-08-14)
 
 - Fix bug where operands in `in` operation were escaped before comparison
 - Force chrono dep to be 0.4.20 minimum
