@@ -145,7 +145,7 @@ pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Function `get_random` received start={} but `start` can only be a boolean",
+                    "Function `get_random` received start={} but `start` can only be a number",
                     val
                 )));
             }
@@ -158,7 +158,7 @@ pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Function `get_random` received end={} but `end` can only be a boolean",
+                    "Function `get_random` received end={} but `end` can only be a number",
                     val
                 )));
             }
