@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.17.1 (unreleased)
+## 1.17.1 (2022-09-19)
 
 - Make `get_random` use isize instead of i32 and bad error message
 - Fix variables lookup when the evaluated key has a `.` or quotes
