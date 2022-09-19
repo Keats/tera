@@ -4,6 +4,7 @@
 
 - Make `get_random` use isize instead of i32 and bad error message
 - Fix variables lookup when the evaluated key has a `.` or quotes
+- Fix changed output of f64 from serde_json 1.0.85
 
 ## 1.17.0 (2022-08-14)
 
