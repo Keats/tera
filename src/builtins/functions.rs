@@ -141,7 +141,7 @@ pub fn throw(args: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(feature = "builtins")]
 pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
     let start = match args.get("start") {
-        Some(val) => match from_value::<i32>(val.clone()) {
+        Some(val) => match from_value::<isize>(val.clone()) {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
@@ -154,7 +154,7 @@ pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
     };
 
     let end = match args.get("end") {
-        Some(val) => match from_value::<i32>(val.clone()) {
+        Some(val) => match from_value::<isize>(val.clone()) {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
