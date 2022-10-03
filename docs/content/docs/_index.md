@@ -547,7 +547,7 @@ Every `for` statement has to end with an `endfor` tag.
 You can also loop on maps and structs using the following syntax:
 ```jinja2
 {% for key, value in products %}
-  {{loop.index}}. {{product.name}}
+  {{key}}. {{value.name}}
 {% endfor %}
 ```
 `key` and `value` can be named however you want, they just need to be separated with a comma.
