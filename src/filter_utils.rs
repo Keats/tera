@@ -17,6 +17,7 @@ impl OrderedF64 {
 
 impl Eq for OrderedF64 {}
 
+#[allow(clippy::derive_ord_xor_partial_ord)]
 impl Ord for OrderedF64 {
     fn cmp(&self, other: &OrderedF64) -> Ordering {
         // unwrap is safe because self.0 is finite.

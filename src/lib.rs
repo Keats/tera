@@ -7,6 +7,7 @@
 //! See the [site](https://tera.netlify.com) for features and to get started.
 
 #![deny(missing_docs)]
+#![allow(clippy::approx_constant)]
 
 #[macro_use]
 mod macros;

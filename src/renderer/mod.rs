@@ -55,7 +55,7 @@ impl<'a> Renderer<'a> {
     /// Combines the context with the Template to write the end result to output
     pub fn render_to(&self, mut output: impl Write) -> Result<()> {
         let mut processor =
-            Processor::new(self.template, self.tera, &self.context, self.should_escape);
+            Processor::new(self.template, self.tera, self.context, self.should_escape);
 
         processor.render(&mut output)
     }

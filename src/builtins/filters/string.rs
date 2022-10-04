@@ -217,7 +217,7 @@ pub fn capitalize(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(feature = "urlencode")]
 pub fn urlencode(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("urlencode", "value", String, value);
-    let encoded = percent_encode(s.as_bytes(), &PYTHON_ENCODE_SET).to_string();
+    let encoded = percent_encode(s.as_bytes(), PYTHON_ENCODE_SET).to_string();
     Ok(Value::String(encoded))
 }
 
@@ -225,14 +225,14 @@ pub fn urlencode(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(feature = "urlencode")]
 pub fn urlencode_strict(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("urlencode_strict", "value", String, value);
-    let encoded = percent_encode(s.as_bytes(), &NON_ALPHANUMERIC).to_string();
+    let encoded = percent_encode(s.as_bytes(), NON_ALPHANUMERIC).to_string();
     Ok(Value::String(encoded))
 }
 
 /// Escapes quote characters
 pub fn addslashes(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("addslashes", "value", String, value);
-    Ok(to_value(&s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\'", "\\\'")).unwrap())
+    Ok(to_value(&s.replace('\\', "\\\\").replace('\"', "\\\"").replace('\'', "\\\'")).unwrap())
 }
 
 /// Transform a string into a slug
@@ -259,7 +259,7 @@ pub fn title(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 /// Example: The input "Hello\nWorld" turns into "Hello<br>World".
 pub fn linebreaksbr(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("title", "value", String, value);
-    Ok(to_value(&s.replace("\r\n", "<br>").replace("\n", "<br>")).unwrap())
+    Ok(to_value(&s.replace("\r\n", "<br>").replace('\n', "<br>")).unwrap())
 }
 
 /// Removes html tags from string

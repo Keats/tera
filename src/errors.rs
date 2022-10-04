@@ -4,6 +4,7 @@ use std::fmt;
 
 /// The kind of an error (non-exhaustive)
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum ErrorKind {
     /// Generic error
     Msg(String),
@@ -48,11 +49,6 @@ pub enum ErrorKind {
         /// The context that indicates where the error occurs in the rendering process
         context: String,
     },
-    /// This enum may grow additional variants, so this makes sure clients
-    /// don't count on exhaustive matching. (Otherwise, adding a new variant
-    /// could break existing code.)
-    #[doc(hidden)]
-    __Nonexhaustive,
 }
 
 /// The Error type
@@ -94,7 +90,6 @@ impl fmt::Display for Error {
             ErrorKind::Utf8Conversion { ref context } => {
                 write!(f, "UTF-8 conversion error occured while rendering template: {}", context)
             }
-            ErrorKind::__Nonexhaustive => write!(f, "Nonexhaustive"),
         }
     }
 }

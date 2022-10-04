@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 /// Whether to remove the whitespace of a `{% %}` tag
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct WS {
     /// `true` if the tag is `{%-`
     pub left: bool,
@@ -10,14 +10,8 @@ pub struct WS {
     pub right: bool,
 }
 
-impl Default for WS {
-    fn default() -> Self {
-        WS { left: false, right: false }
-    }
-}
-
 /// All math operators
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum MathOperator {
     /// +
     Add,
@@ -48,7 +42,7 @@ impl fmt::Display for MathOperator {
 }
 
 /// All logic operators
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum LogicOperator {
     /// >
     Gt,

@@ -6,7 +6,7 @@ use unic_segment::Graphemes;
 use crate::renderer::stack_frame::Val;
 
 /// Enumerates the two types of for loops
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ForLoopKind {
     /// Loop over values, eg an `Array`
     Value,
@@ -15,7 +15,7 @@ pub enum ForLoopKind {
 }
 
 /// Enumerates the states of a for loop
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ForLoopState {
     /// State during iteration
     Normal,

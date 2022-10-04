@@ -10,7 +10,7 @@ use crate::errors::{Error, Result as TeraResult};
 ///
 /// Light wrapper around a `BTreeMap` for easier insertions of Serializable
 /// values
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Context {
     data: BTreeMap<String, Value>,
 }
@@ -231,7 +231,7 @@ pub fn get_json_pointer(key: &str) -> String {
             .collect();
         segments.join("/")
     } else {
-        ["/", &key.replace(".", "/")].join("")
+        ["/", &key.replace('.', "/")].join("")
     }
 }
 
