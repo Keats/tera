@@ -109,6 +109,25 @@ impl Tera {
         Self::create(dir, true)
     }
 
+    /// Create a empty instance of Tera.
+    /// This is useful if you want to register filters and only render one off templates with custom filters.
+    pub fn empty() -> Tera {
+        let mut tera = Tera {
+            glob: None,
+            templates: HashMap::new(),
+            filters: HashMap::new(),
+            functions: HashMap::new(),
+            testers: HashMap::new(),
+            autoescape_suffixes: vec![".html", ".htm", ".xml"],
+            escape_fn: escape_html,
+        };
+
+        tera.register_tera_filters();
+        tera.register_tera_testers();
+        tera.register_tera_functions();
+        tera
+    }
+
     /// Loads all the templates found in the glob that was given to Tera::new
     fn load_from_glob(&mut self) -> Result<()> {
         if self.glob.is_none() {
@@ -1081,6 +1100,16 @@ mod tests {
         tera.full_reload().unwrap();
 
         assert!(tera.get_template("base.html").is_ok());
+    }
+
+    #[test]
+    fn test_empty_instance() {
+        let mut tera = Tera::empty();
+        let mut context = Context::new();
+        context.insert("test", &"hellO");
+
+        let res = Tera::one_off("{{test|upper}}", &context, false).unwrap();
+        assert_eq!(res, "HELLO");
     }
 
     #[test]
