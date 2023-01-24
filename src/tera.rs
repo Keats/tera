@@ -114,6 +114,15 @@ impl Tera {
         if self.glob.is_none() {
             return Err(Error::msg("Tera can only load from glob if a glob is provided"));
         }
+
+        let dir = self.glob.clone().unwrap();
+
+        if dir.starts_with("./") || dir.starts_with("../") {
+            // Because globwalk has issues with globs starting with ./ or ../
+            // jee https://github.com/Keats/tera/issues/574
+            return Err(Error::msg("Globs starting with './' or '../' are not supported, please canonicalize the path."));
+        }
+
         // We want to preserve templates that have been added through
         // Tera::extend so we only keep those
         self.templates = self
@@ -125,14 +134,9 @@ impl Tera {
 
         let mut errors = String::new();
 
-        let dir = self.glob.clone().unwrap();
         // We clean the filename by removing the dir given
         // to Tera so users don't have to prefix everytime
-        let mut parent_dir = dir.split_at(dir.find('*').unwrap()).0;
-        // Remove `./` from the glob if used as it would cause an error in strip_prefix
-        if parent_dir.starts_with("./") {
-            parent_dir = &parent_dir[2..];
-        }
+        let parent_dir = dir.split_at(dir.find('*').unwrap()).0;
 
         // We are parsing all the templates on instantiation
         for entry in glob_builder(&dir)
