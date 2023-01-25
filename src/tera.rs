@@ -578,6 +578,7 @@ impl Tera {
         self.register_filter("capitalize", string::capitalize);
         self.register_filter("title", string::title);
         self.register_filter("linebreaksbr", string::linebreaksbr);
+        self.register_filter("indent", string::indent);
         self.register_filter("striptags", string::striptags);
         self.register_filter("spaceless", string::spaceless);
         #[cfg(feature = "urlencode")]
