@@ -1135,6 +1135,36 @@ mod tests {
         assert_eq!(tera.templates.len(), 2);
     }
 
+    // Test for https://github.com/Keats/tera/issues/574
+    #[test]
+    fn glob_work_with_paths_starting_with_dots() {
+        use std::path::PathBuf;
+
+        let this_dir = std::env::current_dir()
+            .expect("Could not retrieve the executable's current directory.");
+
+        let scratch_dir = tempfile::Builder::new()
+            .prefix("tera_test_scratchspace")
+            .tempdir_in(&this_dir)
+            .expect(&format!(
+                "Could not create temporary directory for test in current directory ({}).",
+                this_dir.display()
+            ));
+        dbg!(&scratch_dir.path().display());
+
+        File::create(scratch_dir.path().join("hey.html")).expect("Failed to create a test file");
+        File::create(scratch_dir.path().join("ho.html")).expect("Failed to create a test file");
+        let glob = PathBuf::from("./")
+            .join(scratch_dir.path().file_name().unwrap())
+            .join("**")
+            .join("*.html")
+            .into_os_string()
+            .into_string()
+            .unwrap();
+        let tera = Tera::new(&glob).expect("Couldn't build Tera instance.");
+        assert_eq!(tera.templates.len(), 2);
+    }
+
     // https://github.com/Keats/tera/issues/396
     #[test]
     fn issues_found_fuzzing_expressions_are_fixed() {
