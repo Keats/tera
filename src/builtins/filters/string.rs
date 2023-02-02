@@ -269,17 +269,17 @@ pub fn linebreaksbr(value: &Value, _: &HashMap<String, Value>) -> Result<Value> 
 /// * `value`   - The string to indent.
 /// * `args`    - A set of key/value arguments that can take the following
 ///   keys.
-/// * `width`  - The number of spaces to indent.  The default value is 4.
+/// * `prefix`  - The prefix used for indentation. The default value is 4 spaces.
 /// * `first`  - True indents the first line.  The default is false.
 /// * `blank`  - True indents blank lines.  The default is false.
 ///
 pub fn indent(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("indent", "value", String, value);
 
-    let prefix = " ".repeat(match args.get("width") {
-        Some(w) => try_get_value!("indent", "width", usize, w),
-        None => 4,
-    });
+    let prefix = match args.get("prefix") {
+        Some(p) => try_get_value!("indent", "prefix", String, p),
+        None => "    ".to_string(),
+    };
     let first = match args.get("first") {
         Some(f) => try_get_value!("indent", "first", bool, f),
         None => false,
@@ -733,7 +733,7 @@ mod tests {
     fn test_indent_args() {
         let mut args = HashMap::new();
         args.insert("first".to_string(), to_value(true).unwrap());
-        args.insert("width".to_string(), to_value(1).unwrap());
+        args.insert("prefix".to_string(), to_value(" ").unwrap());
         args.insert("blank".to_string(), to_value(true).unwrap());
         let result = indent(&to_value("one\n\ntwo\nthree").unwrap(), &args);
         assert!(result.is_ok());
