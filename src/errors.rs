@@ -88,7 +88,6 @@ impl fmt::Display for Error {
             ErrorKind::Utf8Conversion { ref context } => {
                 write!(f, "UTF-8 conversion error occured while rendering template: {context}")
             }
-            _ => write!(f, "Nonexhaustive"),
         }
     }
 }
