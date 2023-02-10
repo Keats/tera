@@ -22,7 +22,7 @@ static MAGICAL_DUMP_VAR: &str = "__tera_context";
 
 /// This will convert a Tera variable to a json pointer if it is possible by replacing
 /// the index with their evaluated stringified value
-fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<String> {
+fn evaluate_sub_variables(key: &str, call_stack: &CallStack) -> Result<String> {
     let sub_vars_to_calc = pull_out_square_bracket(key);
     let mut new_key = key.to_string();
 
@@ -1019,11 +1019,8 @@ impl<'a> Processor<'a> {
 
         // which template are we in?
         if let Some(&(name, _template, ref level)) = self.blocks.last() {
-            let block_def = self
-                .template
-                .blocks_definitions
-                .get(&name.to_string())
-                .and_then(|b| b.get(*level));
+            let block_def =
+                self.template.blocks_definitions.get(&name.to_string()).and_then(|b| b.get(*level));
 
             if let Some((tpl_name, _)) = block_def {
                 if tpl_name != &self.template.name {
