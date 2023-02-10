@@ -123,7 +123,7 @@ impl<'a> CallStack<'a> {
             return self
                 .context
                 .find_value_by_pointer(&get_json_pointer(key))
-                .map(|v| Cow::Borrowed(v));
+                .map(Cow::Borrowed);
         } else if let Some(value) = self.context.find_value(key) {
             return Some(Cow::Borrowed(value));
         }
