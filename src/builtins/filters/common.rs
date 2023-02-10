@@ -165,10 +165,17 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let formatted = match value {
         Value::Number(n) => match n.as_i64() {
             Some(i) => {
-                let date = NaiveDateTime::from_timestamp(i, 0);
-                match timezone {
-                    Some(timezone) => timezone.from_utc_datetime(&date).format(&format),
-                    None => date.format(&format),
+                let datetime = NaiveDateTime::from_timestamp_opt(i, 0);
+                match datetime {
+                    Some(datetime) => match timezone {
+                        Some(timezone) => timezone.from_utc_datetime(&datetime).format(&format),
+                        None => datetime.format(&format),
+                    },
+                    None => {
+                        return Err(Error::msg(format!(
+                            "Filter `date` was invoked on a out-of-range number of seconds: {n}"
+                        )))
+                    }
                 }
             }
             None => return Err(Error::msg(format!("Filter `date` was invoked on a float: {n}"))),
@@ -191,7 +198,19 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                 }
             } else {
                 match NaiveDate::parse_from_str(s, "%Y-%m-%d") {
-                    Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format),
+                    Ok(val) => {
+                        let datetime = val.and_hms_opt(0, 0, 0);
+                        match datetime {
+                            Some(datetime) => {
+                                DateTime::<Utc>::from_utc(datetime, Utc).format(&format)
+                            }
+                            None => {
+                                return Err(Error::msg(format!(
+                                    "Error parsing `{s:?}` as YYYY-MM-DD date"
+                                )))
+                            }
+                        }
+                    }
                     Err(_) => {
                         return Err(Error::msg(format!(
                             "Error parsing `{s:?}` as YYYY-MM-DD date"
