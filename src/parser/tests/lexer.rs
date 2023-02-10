@@ -682,7 +682,7 @@ fn lex_requires_whitespace_between_things() {
 
     for i in inputs {
         let res = TeraParser::parse(Rule::template, i);
-        println!("{:?}", i);
+        println!("{i:?}");
         assert!(res.is_err());
     }
 }

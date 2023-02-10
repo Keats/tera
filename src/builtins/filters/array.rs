@@ -80,13 +80,13 @@ pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     };
 
     let first = arr[0].pointer(&ptr).ok_or_else(|| {
-        Error::msg(format!("attribute '{}' does not reference a field", attribute))
+        Error::msg(format!("attribute '{attribute}' does not reference a field"))
     })?;
 
     let mut strategy = get_sort_strategy_for_type(first)?;
     for v in &arr {
         let key = v.pointer(&ptr).ok_or_else(|| {
-            Error::msg(format!("attribute '{}' does not reference a field", attribute))
+            Error::msg(format!("attribute '{attribute}' does not reference a field"))
         })?;
         strategy.try_add_pair(v, key)?;
     }
@@ -119,7 +119,7 @@ pub fn unique(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     };
 
     let first = arr[0].pointer(&ptr).ok_or_else(|| {
-        Error::msg(format!("attribute '{}' does not reference a field", attribute))
+        Error::msg(format!("attribute '{attribute}' does not reference a field"))
     })?;
 
     let disc = std::mem::discriminant(first);
@@ -173,7 +173,7 @@ pub fn group_by(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
             let str_key = match key_val.as_str() {
                 Some(key) => key.to_owned(),
-                None => format!("{}", key_val),
+                None => format!("{key_val}"),
             };
 
             if let Some(vals) = grouped.get_mut(&str_key) {

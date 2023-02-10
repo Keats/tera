@@ -52,9 +52,8 @@ pub fn round(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         "ceil" => Ok(to_value((multiplier * num).ceil() / multiplier).unwrap()),
         "floor" => Ok(to_value((multiplier * num).floor() / multiplier).unwrap()),
         _ => Err(Error::msg(format!(
-            "Filter `round` received an incorrect value for arg `method`: got `{:?}`, \
-             only common, ceil and floor are allowed",
-            method
+            "Filter `round` received an incorrect value for arg `method`: got `{method:?}`, \
+             only common, ceil and floor are allowed"
         ))),
     }
 }
@@ -65,7 +64,7 @@ pub fn filesizeformat(value: &Value, _: &HashMap<String, Value>) -> Result<Value
     let num = try_get_value!("filesizeformat", "value", usize, value);
     num.file_size(file_size_opts::CONVENTIONAL)
         .map_err(|_| {
-            Error::msg(format!("Filter `filesizeformat` was called on a negative number: {}", num))
+            Error::msg(format!("Filter `filesizeformat` was called on a negative number: {num}"))
         })
         .map(to_value)
         .map(std::result::Result::unwrap)

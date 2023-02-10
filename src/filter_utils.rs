@@ -10,7 +10,7 @@ impl OrderedF64 {
         if n.is_finite() {
             Ok(OrderedF64(n))
         } else {
-            Err(Error::msg(format!("{} cannot be sorted", n)))
+            Err(Error::msg(format!("{n} cannot be sorted")))
         }
     }
 }
@@ -39,27 +39,27 @@ pub trait GetValue: Ord + Sized + Clone {
 
 impl GetValue for OrderedF64 {
     fn get_value(val: &Value) -> Result<Self> {
-        let n = val.as_f64().ok_or_else(|| Error::msg(format!("expected number got {}", val)))?;
+        let n = val.as_f64().ok_or_else(|| Error::msg(format!("expected number got {val}")))?;
         OrderedF64::new(n)
     }
 }
 
 impl GetValue for i64 {
     fn get_value(val: &Value) -> Result<Self> {
-        val.as_i64().ok_or_else(|| Error::msg(format!("expected number got {}", val)))
+        val.as_i64().ok_or_else(|| Error::msg(format!("expected number got {val}")))
     }
 }
 
 impl GetValue for bool {
     fn get_value(val: &Value) -> Result<Self> {
-        val.as_bool().ok_or_else(|| Error::msg(format!("expected bool got {}", val)))
+        val.as_bool().ok_or_else(|| Error::msg(format!("expected bool got {val}")))
     }
 }
 
 impl GetValue for String {
     fn get_value(val: &Value) -> Result<Self> {
         let str: Result<&str> =
-            val.as_str().ok_or_else(|| Error::msg(format!("expected string got {}", val)));
+            val.as_str().ok_or_else(|| Error::msg(format!("expected string got {val}")));
         Ok(str?.to_owned())
     }
 }
@@ -67,7 +67,7 @@ impl GetValue for String {
 impl GetValue for ArrayLen {
     fn get_value(val: &Value) -> Result<Self> {
         let arr =
-            val.as_array().ok_or_else(|| Error::msg(format!("expected array got {}", val)))?;
+            val.as_array().ok_or_else(|| Error::msg(format!("expected array got {val}")))?;
         Ok(ArrayLen(arr.len()))
     }
 }

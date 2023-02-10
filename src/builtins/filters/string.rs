@@ -249,7 +249,7 @@ pub fn title(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(&WORDS_RE.replace_all(&s, |caps: &Captures| {
         let first = caps["first"].to_uppercase();
         let rest = caps["rest"].to_lowercase();
-        format!("{}{}", first, rest)
+        format!("{first}{rest}")
     }))
     .unwrap())
 }

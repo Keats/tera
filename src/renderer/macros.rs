@@ -105,14 +105,12 @@ impl<'a> MacroCollection<'a> {
                 Ok(m)
             } else {
                 Err(Error::msg(format!(
-                    "Macro `{}::{}` not found in template `{}`",
-                    macro_namespace, macro_name, template_name
+                    "Macro `{macro_namespace}::{macro_name}` not found in template `{template_name}`"
                 )))
             }
         } else {
             Err(Error::msg(format!(
-                "Macro namespace `{}` was not found in template `{}`. Have you maybe forgotten to import it, or misspelled it?",
-                macro_namespace, template_name
+                "Macro namespace `{macro_namespace}` was not found in template `{template_name}`. Have you maybe forgotten to import it, or misspelled it?"
             )))
         }
     }

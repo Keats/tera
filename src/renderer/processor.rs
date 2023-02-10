@@ -31,19 +31,17 @@ fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<S
         match process_path(sub_var.as_ref(), call_stack) {
             Err(e) => {
                 return Err(Error::msg(format!(
-                    "Variable {} can not be evaluated because: {}",
-                    key, e
+                    "Variable {key} can not be evaluated because: {e}"
                 )));
             }
             Ok(post_var) => {
                 let post_var_as_str = match *post_var {
-                    Value::String(ref s) => format!(r#""{}""#, s),
+                    Value::String(ref s) => format!(r#""{s}""#),
                     Value::Number(ref n) => n.to_string(),
                     _ => {
                         return Err(Error::msg(format!(
                             "Only variables evaluating to String or Number can be used as \
-                             index (`{}` of `{}`)",
-                            sub_var, key,
+                             index (`{sub_var}` of `{key}`)",
                         )));
                     }
                 };
@@ -180,8 +178,7 @@ impl<'a> Processor<'a> {
             Value::Array(_) => {
                 if for_loop.key.is_some() {
                     return Err(Error::msg(format!(
-                        "Tried to iterate using key value on variable `{}`, but it isn't an object/map",
-                        container_name,
+                        "Tried to iterate using key value on variable `{container_name}`, but it isn't an object/map",
                     )));
                 }
                 ForLoop::from_array(&for_loop.value, container_val)
@@ -189,8 +186,7 @@ impl<'a> Processor<'a> {
             Value::String(_) => {
                 if for_loop.key.is_some() {
                     return Err(Error::msg(format!(
-                        "Tried to iterate using key value on variable `{}`, but it isn't an object/map",
-                        container_name,
+                        "Tried to iterate using key value on variable `{container_name}`, but it isn't an object/map",
                     )));
                 }
                 ForLoop::from_string(&for_loop.value, container_val)
@@ -198,8 +194,7 @@ impl<'a> Processor<'a> {
             Value::Object(_) => {
                 if for_loop.key.is_none() {
                     return Err(Error::msg(format!(
-                        "Tried to iterate using key value on variable `{}`, but it is missing a key",
-                        container_name,
+                        "Tried to iterate using key value on variable `{container_name}`, but it is missing a key",
                     )));
                 }
                 match container_val {
@@ -215,8 +210,7 @@ impl<'a> Processor<'a> {
             }
             _ => {
                 return Err(Error::msg(format!(
-                    "Tried to iterate on a container (`{}`) that has a unsupported type",
-                    container_name,
+                    "Tried to iterate on a container (`{container_name}`) that has a unsupported type",
                 )));
             }
         };
@@ -312,8 +306,7 @@ impl<'a> Processor<'a> {
                 Value::String(ref s2) => s.contains(s2),
                 _ => {
                     return Err(Error::msg(format!(
-                        "Tried to check if {:?} is in a string, but it isn't a string",
-                        lhs
+                        "Tried to check if {lhs:?} is in a string, but it isn't a string"
                     )))
                 }
             },
@@ -321,8 +314,7 @@ impl<'a> Processor<'a> {
                 Value::String(ref s2) => map.contains_key(s2),
                 _ => {
                     return Err(Error::msg(format!(
-                        "Tried to check if {:?} is in a object, but it isn't a string",
-                        lhs
+                        "Tried to check if {lhs:?} is in a object, but it isn't a string"
                     )))
                 }
             },
@@ -357,14 +349,13 @@ impl<'a> Processor<'a> {
                 for s in &str_concat.values {
                     match *s {
                         ExprVal::String(ref v) => res.push_str(&v),
-                        ExprVal::Int(ref v) => res.push_str(&format!("{}", v)),
-                        ExprVal::Float(ref v) => res.push_str(&format!("{}", v)),
+                        ExprVal::Int(ref v) => res.push_str(&format!("{v}")),
+                        ExprVal::Float(ref v) => res.push_str(&format!("{v}")),
                         ExprVal::Ident(ref i) => match *self.lookup_ident(i)? {
                             Value::String(ref v) => res.push_str(&v),
                             Value::Number(ref v) => res.push_str(&v.to_string()),
                             _ => return Err(Error::msg(format!(
-                                "Tried to concat a value that is not a string or a number from ident {}",
-                                i
+                                "Tried to concat a value that is not a string or a number from ident {i}"
                             ))),
                         },
                         ExprVal::FunctionCall(ref fn_call) => match *self.eval_tera_fn_call(fn_call, &mut needs_escape)? {
@@ -708,8 +699,7 @@ impl<'a> Processor<'a> {
                     Some(Number::from_f64(v.as_f64().unwrap()).unwrap())
                 } else {
                     return Err(Error::msg(format!(
-                        "Variable `{}` was used in a math operation but is not a number",
-                        ident
+                        "Variable `{ident}` was used in a math operation but is not a number"
                     )));
                 }
             }
@@ -731,8 +721,7 @@ impl<'a> Processor<'a> {
                                 Some(s) => s,
                                 None => {
                                     return Err(Error::msg(format!(
-                                        "{} x {} results in an out of bounds i64",
-                                        ll, rr
+                                        "{ll} x {rr} results in an out of bounds i64"
                                     )));
                                 }
                             };
@@ -745,8 +734,7 @@ impl<'a> Processor<'a> {
                                 Some(s) => s,
                                 None => {
                                     return Err(Error::msg(format!(
-                                        "{} x {} results in an out of bounds u64",
-                                        ll, rr
+                                        "{ll} x {rr} results in an out of bounds u64"
                                     )));
                                 }
                             };
@@ -779,8 +767,7 @@ impl<'a> Processor<'a> {
                                 Some(s) => s,
                                 None => {
                                     return Err(Error::msg(format!(
-                                        "{} + {} results in an out of bounds i64",
-                                        ll, rr
+                                        "{ll} + {rr} results in an out of bounds i64"
                                     )));
                                 }
                             };
@@ -792,8 +779,7 @@ impl<'a> Processor<'a> {
                                 Some(s) => s,
                                 None => {
                                     return Err(Error::msg(format!(
-                                        "{} + {} results in an out of bounds u64",
-                                        ll, rr
+                                        "{ll} + {rr} results in an out of bounds u64"
                                     )));
                                 }
                             };
@@ -812,8 +798,7 @@ impl<'a> Processor<'a> {
                                 Some(s) => s,
                                 None => {
                                     return Err(Error::msg(format!(
-                                        "{} - {} results in an out of bounds i64",
-                                        ll, rr
+                                        "{ll} - {rr} results in an out of bounds i64"
                                     )));
                                 }
                             };
@@ -825,8 +810,7 @@ impl<'a> Processor<'a> {
                                 Some(s) => s,
                                 None => {
                                     return Err(Error::msg(format!(
-                                        "{} - {} results in an out of bounds u64",
-                                        ll, rr
+                                        "{ll} - {rr} results in an out of bounds u64"
                                     )));
                                 }
                             };
@@ -843,8 +827,7 @@ impl<'a> Processor<'a> {
                             let rr = r.as_i64().unwrap();
                             if rr == 0 {
                                 return Err(Error::msg(format!(
-                                    "Tried to do a modulo by zero: {:?}/{:?}",
-                                    lhs, rhs
+                                    "Tried to do a modulo by zero: {lhs:?}/{rhs:?}"
                                 )));
                             }
                             Some(Number::from(ll % rr))
@@ -853,8 +836,7 @@ impl<'a> Processor<'a> {
                             let rr = r.as_u64().unwrap();
                             if rr == 0 {
                                 return Err(Error::msg(format!(
-                                    "Tried to do a modulo by zero: {:?}/{:?}",
-                                    lhs, rhs
+                                    "Tried to do a modulo by zero: {lhs:?}/{rhs:?}"
                                 )));
                             }
                             Some(Number::from(ll % rr))
@@ -882,10 +864,10 @@ impl<'a> Processor<'a> {
                 }
             }
             ExprVal::String(ref val) => {
-                return Err(Error::msg(format!("Tried to do math with a string: `{}`", val)));
+                return Err(Error::msg(format!("Tried to do math with a string: `{val}`")));
             }
             ExprVal::Bool(val) => {
-                return Err(Error::msg(format!("Tried to do math with a boolean: `{}`", val)));
+                return Err(Error::msg(format!("Tried to do math with a boolean: `{val}`")));
             }
             ExprVal::StringConcat(ref val) => {
                 return Err(Error::msg(format!(
@@ -959,7 +941,7 @@ impl<'a> Processor<'a> {
         match *node {
             // Comments are ignored when rendering
             Node::Comment(_, _) => (),
-            Node::Text(ref s) | Node::Raw(_, ref s, _) => write!(write, "{}", s)?,
+            Node::Text(ref s) | Node::Raw(_, ref s, _) => write!(write, "{s}")?,
             Node::VariableBlock(_, ref expr) => self.eval_expression(expr)?.render(write)?,
             Node::Set(_, ref set) => self.eval_set(set)?,
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
@@ -969,7 +951,7 @@ impl<'a> Processor<'a> {
                 )?;
                 // the safe filter doesn't actually exist
                 if filter.name == "safe" {
-                    write!(write, "{}", body)?;
+                    write!(write, "{body}")?;
                 } else {
                     self.eval_filter(&Cow::Owned(Value::String(body)), filter, &mut false)?
                         .render(write)?;
@@ -1010,8 +992,7 @@ impl<'a> Processor<'a> {
             }
             Node::Extends(_, ref name) => {
                 return Err(Error::msg(format!(
-                    "Inheritance in included templates is currently not supported: extended `{}`",
-                    name
+                    "Inheritance in included templates is currently not supported: extended `{name}`"
                 )));
             }
             // TODO: make that a compile time error
@@ -1048,14 +1029,14 @@ impl<'a> Processor<'a> {
 
             if let Some(&(ref tpl_name, _)) = block_def {
                 if tpl_name != &self.template.name {
-                    error_location += &format!(" (error happened in '{}').", tpl_name);
+                    error_location += &format!(" (error happened in '{tpl_name}').");
                 }
             } else {
                 error_location += " (error happened in a parent template)";
             }
         } else if let Some(parent) = self.template.parents.last() {
             // Error happened in the base template, outside of blocks
-            error_location += &format!(" (error happened in '{}').", parent);
+            error_location += &format!(" (error happened in '{parent}').");
         }
 
         error_location

@@ -48,8 +48,7 @@ impl Tera {
     fn create(dir: &str, parse_only: bool) -> Result<Tera> {
         if dir.find('*').is_none() {
             return Err(Error::msg(format!(
-                "Tera expects a glob as input, no * were found in `{}`",
-                dir
+                "Tera expects a glob as input, no * were found in `{dir}`"
             )));
         }
 
@@ -158,10 +157,10 @@ impl Tera {
                 if let Err(e) = self.add_file(Some(&filepath), path) {
                     use std::error::Error;
 
-                    errors += &format!("\n* {}", e);
+                    errors += &format!("\n* {e}");
                     let mut cause = e.source();
                     while let Some(e) = cause {
-                        errors += &format!("\n{}", e);
+                        errors += &format!("\n{e}");
                         cause = e.source();
                     }
                 }
@@ -183,14 +182,14 @@ impl Tera {
         let tpl_name = name.unwrap_or_else(|| path.to_str().unwrap());
 
         let mut f = File::open(path)
-            .map_err(|e| Error::chain(format!("Couldn't open template '{:?}'", path), e))?;
+            .map_err(|e| Error::chain(format!("Couldn't open template '{path:?}'"), e))?;
 
         let mut input = String::new();
         f.read_to_string(&mut input)
-            .map_err(|e| Error::chain(format!("Failed to read template '{:?}'", path), e))?;
+            .map_err(|e| Error::chain(format!("Failed to read template '{path:?}'"), e))?;
 
         let tpl = Template::new(tpl_name, Some(path.to_str().unwrap().to_string()), &input)
-            .map_err(|e| Error::chain(format!("Failed to parse {:?}", path), e))?;
+            .map_err(|e| Error::chain(format!("Failed to parse {path:?}"), e))?;
 
         self.templates.insert(tpl_name.to_string(), tpl);
         Ok(())
@@ -423,7 +422,7 @@ impl Tera {
     /// ```
     pub fn add_raw_template(&mut self, name: &str, content: &str) -> Result<()> {
         let tpl = Template::new(name, None, content)
-            .map_err(|e| Error::chain(format!("Failed to parse '{}'", name), e))?;
+            .map_err(|e| Error::chain(format!("Failed to parse '{name}'"), e))?;
         self.templates.insert(name.to_string(), tpl);
         self.build_inheritance_chains()?;
         self.check_macro_files()?;
@@ -450,7 +449,7 @@ impl Tera {
         for (name, content) in templates {
             let name = name.as_ref();
             let tpl = Template::new(name, None, content.as_ref())
-                .map_err(|e| Error::chain(format!("Failed to parse '{}'", name), e))?;
+                .map_err(|e| Error::chain(format!("Failed to parse '{name}'"), e))?;
             self.templates.insert(name.to_string(), tpl);
         }
         self.build_inheritance_chains()?;
@@ -776,19 +775,19 @@ impl fmt::Debug for Tera {
         writeln!(f, "\n\ttemplates: [")?;
 
         for template in self.templates.keys() {
-            writeln!(f, "\t\t{},", template)?;
+            writeln!(f, "\t\t{template},")?;
         }
         write!(f, "\t]")?;
         writeln!(f, "\n\tfilters: [")?;
 
         for filter in self.filters.keys() {
-            writeln!(f, "\t\t{},", filter)?;
+            writeln!(f, "\t\t{filter},")?;
         }
         write!(f, "\t]")?;
         writeln!(f, "\n\ttesters: [")?;
 
         for tester in self.testers.keys() {
-            writeln!(f, "\t\t{},", tester)?;
+            writeln!(f, "\t\t{tester},")?;
         }
         writeln!(f, "\t]")?;
 
@@ -1104,7 +1103,7 @@ mod tests {
         for tpl in tera.templates.values_mut() {
             tpl.name = format!("a-theme/templates/{}", tpl.name);
             if let Some(ref parent) = tpl.parent.clone() {
-                tpl.parent = Some(format!("a-theme/templates/{}", parent));
+                tpl.parent = Some(format!("a-theme/templates/{parent}"));
             }
         }
         // Will panic here as we changed the parent and it won't be able
@@ -1172,9 +1171,9 @@ mod tests {
         ];
 
         for (sample, expected_output) in samples {
-            println!("{}, {:?}", sample, expected_output);
+            println!("{sample}, {expected_output:?}");
             let res = Tera::one_off(
-                &format!("{{% if {} %}}true{{% endif %}}", sample),
+                &format!("{{% if {sample} %}}true{{% endif %}}"),
                 &Context::new(),
                 true,
             );

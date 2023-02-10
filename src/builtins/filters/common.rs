@@ -41,8 +41,7 @@ pub fn reverse(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
         Value::String(s) => to_value(&String::from_iter(s.chars().rev())).map_err(Error::json),
         _ => Err(Error::msg(format!(
             "Filter `reverse` received an incorrect type for arg `value`: \
-             got `{}` but expected Array|String",
-            value
+             got `{value}` but expected Array|String"
         ))),
     }
 }
@@ -81,7 +80,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         })
         .collect();
     if !items.is_empty() {
-        return Err(Error::msg(format!("Invalid date format `{}`", format)));
+        return Err(Error::msg(format!("Invalid date format `{format}`")));
     }
 
     let timezone = match args.get("timezone") {
@@ -90,7 +89,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
             match timezone.parse::<Tz>() {
                 Ok(timezone) => Some(timezone),
                 Err(_) => {
-                    return Err(Error::msg(format!("Error parsing `{}` as a timezone", timezone)))
+                    return Err(Error::msg(format!("Error parsing `{timezone}` as a timezone")))
                 }
             }
         }
@@ -176,7 +175,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                     None => date.format(&format),
                 }
             }
-            None => return Err(Error::msg(format!("Filter `date` was invoked on a float: {}", n))),
+            None => return Err(Error::msg(format!("Filter `date` was invoked on a float: {n}"))),
         },
         Value::String(s) => {
             if s.contains('T') {
@@ -189,8 +188,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                         Ok(val) => DateTime::<Utc>::from_utc(val, Utc).format(&format),
                         Err(_) => {
                             return Err(Error::msg(format!(
-                                "Error parsing `{:?}` as rfc3339 date or naive datetime",
-                                s
+                                "Error parsing `{s:?}` as rfc3339 date or naive datetime"
                             )));
                         }
                     },
@@ -200,8 +198,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                     Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format),
                     Err(_) => {
                         return Err(Error::msg(format!(
-                            "Error parsing `{:?}` as YYYY-MM-DD date",
-                            s
+                            "Error parsing `{s:?}` as YYYY-MM-DD date"
                         )));
                     }
                 }
@@ -210,8 +207,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         _ => {
             return Err(Error::msg(format!(
                 "Filter `date` received an incorrect type for arg `value`: \
-                 got `{:?}` but expected i64|u64|String",
-                value
+                 got `{value:?}` but expected i64|u64|String"
             )));
         }
     };
@@ -222,7 +218,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 // Returns the given value as a string.
 pub fn as_str(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let value =
-        render_to_string(|| format!("as_str for value of kind {}", value), |w| value.render(w))?;
+        render_to_string(|| format!("as_str for value of kind {value}"), |w| value.render(w))?;
     to_value(value).map_err(Error::json)
 }
 
@@ -376,7 +372,7 @@ mod tests {
         let mut args = HashMap::new();
         args.insert("format".to_string(), to_value("%a, %d %b %Y %H:%M:%S").unwrap());
         let result = date(&to_value("2017-03-05T00:00:00.602").unwrap(), &args);
-        println!("{:?}", result);
+        println!("{result:?}");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("Sun, 05 Mar 2017 00:00:00").unwrap());
     }

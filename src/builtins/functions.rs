@@ -34,8 +34,7 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Function `range` received start={} but `start` can only be a number",
-                    val
+                    "Function `range` received start={val} but `start` can only be a number"
                 )));
             }
         },
@@ -46,8 +45,7 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Function `range` received step_by={} but `step` can only be a number",
-                    val
+                    "Function `range` received step_by={val} but `step` can only be a number"
                 )));
             }
         },
@@ -58,8 +56,7 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Function `range` received end={} but `end` can only be a number",
-                    val
+                    "Function `range` received end={val} but `end` can only be a number"
                 )));
             }
         },
@@ -90,8 +87,7 @@ pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Function `now` received utc={} but `utc` can only be a boolean",
-                    val
+                    "Function `now` received utc={val} but `utc` can only be a boolean"
                 )));
             }
         },
@@ -102,8 +98,7 @@ pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Function `now` received timestamp={} but `timestamp` can only be a boolean",
-                    val
+                    "Function `now` received timestamp={val} but `timestamp` can only be a boolean"
                 )));
             }
         },
@@ -130,8 +125,7 @@ pub fn throw(args: &HashMap<String, Value>) -> Result<Value> {
         Some(val) => match from_value::<String>(val.clone()) {
             Ok(v) => Err(Error::msg(v)),
             Err(_) => Err(Error::msg(format!(
-                "Function `throw` received message={} but `message` can only be a string",
-                val
+                "Function `throw` received message={val} but `message` can only be a string"
             ))),
         },
         None => Err(Error::msg("Function `throw` was called without a `message` argument")),
@@ -145,8 +139,7 @@ pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Function `get_random` received start={} but `start` can only be a number",
-                    val
+                    "Function `get_random` received start={val} but `start` can only be a number"
                 )));
             }
         },
@@ -158,8 +151,7 @@ pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Function `get_random` received end={} but `end` can only be a number",
-                    val
+                    "Function `get_random` received end={val} but `end` can only be a number"
                 )));
             }
         },
@@ -177,8 +169,7 @@ pub fn get_env(args: &HashMap<String, Value>) -> Result<Value> {
             Ok(v) => v,
             Err(_) => {
                 return Err(Error::msg(format!(
-                    "Function `get_env` received name={} but `name` can only be a string",
-                    val
+                    "Function `get_env` received name={val} but `name` can only be a string"
                 )));
             }
         },
@@ -259,7 +250,7 @@ mod tests {
         let res = now(&args).unwrap();
         assert!(res.is_string());
         let val = res.as_str().unwrap();
-        println!("{}", val);
+        println!("{val}");
         assert!(val.contains("T"));
         assert!(val.contains("+00:00"));
     }
@@ -291,7 +282,7 @@ mod tests {
         let mut args = HashMap::new();
         args.insert("end".to_string(), to_value(10).unwrap());
         let res = get_random(&args).unwrap();
-        println!("{}", res);
+        println!("{res}");
         assert!(res.is_number());
         assert!(res.as_i64().unwrap() >= 0);
         assert!(res.as_i64().unwrap() < 10);
@@ -304,7 +295,7 @@ mod tests {
         args.insert("start".to_string(), to_value(5).unwrap());
         args.insert("end".to_string(), to_value(10).unwrap());
         let res = get_random(&args).unwrap();
-        println!("{}", res);
+        println!("{res}");
         assert!(res.is_number());
         assert!(res.as_i64().unwrap() >= 5);
         assert!(res.as_i64().unwrap() < 10);

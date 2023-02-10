@@ -64,7 +64,7 @@ fn render_variable_block_lit_expr() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &Context::new()).unwrap(), expected);
     }
 }
@@ -136,7 +136,7 @@ fn render_variable_block_ident() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
@@ -191,7 +191,7 @@ fn render_variable_block_logic_expr() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
@@ -227,7 +227,7 @@ fn comments_are_ignored() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &Context::new()).unwrap(), expected);
     }
 }
@@ -323,7 +323,7 @@ fn render_raw_tag() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &Context::new()).unwrap(), expected);
     }
 }
@@ -354,7 +354,7 @@ fn add_set_values_in_context() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
@@ -375,7 +375,7 @@ fn render_filter_section() {
 
     let context = Context::new();
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
@@ -412,7 +412,7 @@ fn render_tests() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
@@ -479,7 +479,7 @@ fn render_if_elif_else() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
@@ -570,7 +570,7 @@ fn render_for() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
@@ -647,7 +647,7 @@ fn default_filter_works() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
@@ -666,7 +666,7 @@ fn filter_filter_works() {
         vec![(r#"{{ authors | filter(attribute="id", value=1) | first | get(key="id") }}"#, "1")];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
@@ -685,7 +685,7 @@ fn filter_on_array_literal_works() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }
@@ -714,7 +714,7 @@ fn can_do_string_concat() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(render_template(input, &context).unwrap(), expected);
     }
 }

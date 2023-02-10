@@ -41,7 +41,7 @@ fn error_loading_macro_from_unloaded_namespace() {
     .unwrap();
 
     let result = tera.render("tpl", &Context::new());
-    println!("{:#?}", result);
+    println!("{result:#?}");
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
         "Macro namespace `macro` was not found in template `tpl`. Have you maybe forgotten to import it, or misspelled it?"
@@ -270,7 +270,7 @@ fn error_gives_source_on_tests() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![("tpl", "{% if a is undefined(1) %}-{% endif %}")]).unwrap();
     let result = tera.render("tpl", &Context::new());
-    println!("{:?}", result);
+    println!("{result:?}");
     let err = result.unwrap_err();
 
     let source = err.source().unwrap();

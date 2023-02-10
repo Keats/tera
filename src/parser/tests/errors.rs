@@ -5,10 +5,10 @@ fn assert_err_msg(input: &str, needles: &[&str]) {
     assert!(res.is_err());
     let err = res.unwrap_err();
     let err_msg = err.to_string();
-    println!("{}", err_msg);
+    println!("{err_msg}");
     println!("Looking for:");
     for needle in needles {
-        println!("{}", needle);
+        println!("{needle}");
         assert!(err_msg.contains(needle));
     }
 }

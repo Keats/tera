@@ -130,7 +130,7 @@ impl StringConcat {
         let mut res = Vec::new();
         for value in &self.values {
             match value {
-                ExprVal::String(ref s) => res.push(format!("'{}'", s)),
+                ExprVal::String(ref s) => res.push(format!("'{s}'")),
                 ExprVal::Ident(ref s) => res.push(s.to_string()),
                 _ => res.push("unknown".to_string()),
             }

@@ -22,15 +22,13 @@ where
 pub fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Result<()> {
     if max == 0 && args_len > max {
         return Err(Error::msg(format!(
-            "Tester `{}` was called with some args but this test doesn't take args",
-            tester_name
+            "Tester `{tester_name}` was called with some args but this test doesn't take args"
         )));
     }
 
     if args_len > max {
         return Err(Error::msg(format!(
-            "Tester `{}` was called with {} args, the max number is {}",
-            tester_name, args_len, max
+            "Tester `{tester_name}` was called with {args_len} args, the max number is {max}"
         )));
     }
 
@@ -41,8 +39,7 @@ pub fn number_args_allowed(tester_name: &str, max: usize, args_len: usize) -> Re
 pub fn value_defined(tester_name: &str, value: Option<&Value>) -> Result<()> {
     if value.is_none() {
         return Err(Error::msg(format!(
-            "Tester `{}` was called on an undefined variable",
-            tester_name
+            "Tester `{tester_name}` was called on an undefined variable"
         )));
     }
 
@@ -59,8 +56,7 @@ pub fn extract_string<'a>(
     match value.and_then(Value::as_str) {
         Some(s) => Ok(s),
         None => Err(Error::msg(format!(
-            "Tester `{}` was called {} that isn't a string",
-            tester_name, part
+            "Tester `{tester_name}` was called {part} that isn't a string"
         ))),
     }
 }
@@ -208,8 +204,7 @@ pub fn matching(value: Option<&Value>, params: &[Value]) -> Result<bool> {
         Ok(regex) => regex,
         Err(err) => {
             return Err(Error::msg(format!(
-                "Tester `matching`: Invalid regular expression: {}",
-                err
+                "Tester `matching`: Invalid regular expression: {err}"
             )));
         }
     };

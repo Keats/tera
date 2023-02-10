@@ -45,7 +45,7 @@ fn var_access_by_square_brackets() {
     ];
 
     for (input, expected) in inputs {
-        println!("{:?} -> {:?}", input, expected);
+        println!("{input:?} -> {expected:?}");
         assert_eq!(Tera::one_off(input, &context, true).unwrap(), expected);
     }
 }
