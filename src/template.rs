@@ -137,7 +137,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
-        assert_eq!(tpl.blocks.contains_key("hey"), true);
+        assert!(tpl.blocks.contains_key("hey"));
     }
 
     #[test]
@@ -149,14 +149,14 @@ mod tests {
         ).unwrap();
 
         assert_eq!(tpl.parent.unwrap(), "base.html".to_string());
-        assert_eq!(tpl.blocks.contains_key("hey"), true);
-        assert_eq!(tpl.blocks.contains_key("extrahey"), true);
+        assert!(tpl.blocks.contains_key("hey"));
+        assert!(tpl.blocks.contains_key("extrahey"));
     }
 
     #[test]
     fn can_find_macros() {
         let tpl = Template::new("hello", None, "{% macro hey() %}{% endmacro hey %}").unwrap();
-        assert_eq!(tpl.macros.contains_key("hey"), true);
+        assert!(tpl.macros.contains_key("hey"));
     }
 
     #[test]
