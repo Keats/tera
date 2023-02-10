@@ -152,7 +152,7 @@ impl Tera {
                     .unwrap()
                     .to_string_lossy()
                     // unify on forward slash
-                    .replace("\\", "/");
+                    .replace('\\', "/");
 
                 if let Err(e) = self.add_file(Some(&filepath), path) {
                     use std::error::Error;
