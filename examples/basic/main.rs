@@ -15,7 +15,7 @@ lazy_static! {
         let mut tera = match Tera::new("examples/basic/templates/**/*") {
             Ok(t) => t,
             Err(e) => {
-                println!("Parsing error(s): {}", e);
+                println!("Parsing error(s): {e}");
                 ::std::process::exit(1);
             }
         };
@@ -27,7 +27,7 @@ lazy_static! {
 
 pub fn do_nothing_filter(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("do_nothing_filter", "value", String, value);
-    Ok(to_value(&s).unwrap())
+    Ok(to_value(s).unwrap())
 }
 
 fn main() {
@@ -41,12 +41,12 @@ fn main() {
     Tera::one_off("hello", &Context::new(), true).unwrap();
 
     match TEMPLATES.render("users/profile.html", &context) {
-        Ok(s) => println!("{:?}", s),
+        Ok(s) => println!("{s:?}"),
         Err(e) => {
-            println!("Error: {}", e);
+            println!("Error: {e}");
             let mut cause = e.source();
             while let Some(e) = cause {
-                println!("Reason: {}", e);
+                println!("Reason: {e}");
                 cause = e.source();
             }
         }

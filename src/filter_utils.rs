@@ -2,7 +2,7 @@ use crate::errors::{Error, Result};
 use serde_json::Value;
 use std::cmp::Ordering;
 
-#[derive(PartialEq, PartialOrd, Default, Copy, Clone)]
+#[derive(PartialEq, Default, Copy, Clone)]
 pub struct OrderedF64(f64);
 
 impl OrderedF64 {
@@ -21,6 +21,12 @@ impl Ord for OrderedF64 {
     fn cmp(&self, other: &OrderedF64) -> Ordering {
         // unwrap is safe because self.0 is finite.
         self.partial_cmp(other).unwrap()
+    }
+}
+
+impl PartialOrd for OrderedF64 {
+    fn partial_cmp(&self, other: &OrderedF64) -> Option<Ordering> {
+       Some(self.cmp(other))
     }
 }
 

@@ -167,7 +167,7 @@ impl ManyFields {
         }
         let mut e = Vec::new();
         for i in 0..100 {
-            e.push(format!("This is String({})", i));
+            e.push(format!("This is String({i})"));
         }
 
         ManyFields { a: "A".into(), b: "B".into(), c: "C".into(), d, e }

@@ -109,9 +109,9 @@ fn parse_variable_tag_ident_with_simple_filters() {
 
 #[test]
 fn parse_variable_tag_lit() {
-    let ast = parse("{{ 2 }}{{ 3.14 }}{{ \"hey\" }}{{ true }}").unwrap();
+    let ast = parse("{{ 2 }}{{ 3.18 }}{{ \"hey\" }}{{ true }}").unwrap();
     assert_eq!(ast[0], Node::VariableBlock(WS::default(), Expr::new(ExprVal::Int(2))));
-    assert_eq!(ast[1], Node::VariableBlock(WS::default(), Expr::new(ExprVal::Float(3.14))));
+    assert_eq!(ast[1], Node::VariableBlock(WS::default(), Expr::new(ExprVal::Float(3.18))));
     assert_eq!(
         ast[2],
         Node::VariableBlock(WS::default(), Expr::new(ExprVal::String("hey".to_string()))),

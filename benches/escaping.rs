@@ -4,13 +4,13 @@ extern crate test;
 
 use tera::escape_html;
 
-const NO_HTML_SHORT: &'static str = "A paragraph without HTML characters that need to be escaped.";
-const NO_HTML_LONG: &'static str = "Another paragraph without characters that need to be escaped. This paragraph is a bit longer, as sometimes there can be large paragraphs that don't any special characters, e.g., in novels or whatever.";
-const HTML_SHORT: &'static str = "Here->An <<example>> of rust codefn foo(u: &u32) -> &u32 {u}";
-const HTML_LONG: &'static str = "A somewhat longer paragraph containing a character that needs to be escaped, because e.g. the author mentions the movie Fast&Furious in it. This paragraph is also quite long to match the non-html one.";
+const NO_HTML_SHORT: &str = "A paragraph without HTML characters that need to be escaped.";
+const NO_HTML_LONG: &str = "Another paragraph without characters that need to be escaped. This paragraph is a bit longer, as sometimes there can be large paragraphs that don't any special characters, e.g., in novels or whatever.";
+const HTML_SHORT: &str = "Here->An <<example>> of rust codefn foo(u: &u32) -> &u32 {u}";
+const HTML_LONG: &str = "A somewhat longer paragraph containing a character that needs to be escaped, because e.g. the author mentions the movie Fast&Furious in it. This paragraph is also quite long to match the non-html one.";
 
 // taken from https://github.com/djc/askama/blob/master/askama_escape/benches/all.rs
-const NO_HTML_VERY_LONG: &'static str = r#"
+const NO_HTML_VERY_LONG: &str = r#"
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin scelerisque eu urna in aliquet.
 Phasellus ac nulla a urna sagittis consequat id quis est. Nullam eu ex eget erat accumsan dictum
 ac lobortis urna. Etiam fermentum ut quam at dignissim. Curabitur vestibulum luctus tellus, sit
@@ -24,7 +24,7 @@ vulputate euismod lectus vestibulum nec. Donec sit amet massa magna. Nunc ipsum 
 quis lacus at, gravida maximus elit. Duis tristique, nisl nullam.
     "#;
 
-const HTML_VERY_LONG: &'static str = r#"
+const HTML_VERY_LONG: &str = r#"
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris consequat tellus sit
     amet ornare fermentum. Etiam nec erat ante. In at metus a orci mollis scelerisque.
     Sed eget ultrices turpis, at sollicitudin erat. Integer hendrerit nec magna quis

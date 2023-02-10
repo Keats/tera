@@ -836,10 +836,10 @@ mod tests {
             assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
 
-        args.insert("default".to_string(), to_value(3.14).unwrap());
+        args.insert("default".to_string(), to_value(3.18).unwrap());
         let result = float(&to_value("bad_val").unwrap(), &args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(3.14).unwrap());
+        assert_eq!(result.unwrap(), to_value(3.18).unwrap());
 
         let result = float(&to_value(1.23).unwrap(), &args);
         assert!(result.is_ok());
