@@ -2,16 +2,44 @@ use crate::errors::{Error, Result};
 use serde_json::Value;
 use std::cmp::Ordering;
 
+pub fn compare_values(a: &Value, b: &Value) -> Result<Ordering> {
+    if std::mem::discriminant(a) != std::mem::discriminant(b) {
+        return Err(Error::msg(format!("expected same types but got {a} and {b}")));
+    }
+    match a {
+        Value::Null => Ok(Ordering::Equal),
+        Value::Bool(a) => Ok(a.cmp(&b.as_bool().unwrap())),
+        Value::Number(a) => {
+            if let Some(a) = a.as_f64() {
+                if let Some(b) = b.as_f64() {
+                return  Ok(a.total_cmp(&b));
+                }
+            }
+            if let Some(a) = a.as_i64() {
+                if let Some(b) = b.as_i64() {
+                return Ok(a.cmp(&b));
+                }
+            }
+            if let Some(a) = a.as_u64() {
+                if let Some(b) = b.as_u64() {
+                return Ok(a.cmp(&b));
+                }
+            }
+            Err(Error::msg(format!("{a} cannot be sorted")))
+        }
+        Value::String(a) => Ok(a.as_str().cmp(b.as_str().unwrap())),
+        Value::Array(a) => Ok(a.len().cmp(&b.as_array().unwrap().len())),
+        Value::Object(a) => Ok(a.len().cmp(&b.as_array().unwrap().len())),
+    }
+}
+
+
 #[derive(PartialEq, Default, Copy, Clone)]
 pub struct OrderedF64(f64);
 
 impl OrderedF64 {
-    fn new(n: f64) -> Result<Self> {
-        if n.is_finite() {
-            Ok(OrderedF64(n))
-        } else {
-            Err(Error::msg(format!("{n} cannot be sorted")))
-        }
+    fn new(n: f64) -> Self {
+        OrderedF64(n)
     }
 }
 
@@ -19,14 +47,14 @@ impl Eq for OrderedF64 {}
 
 impl Ord for OrderedF64 {
     fn cmp(&self, other: &OrderedF64) -> Ordering {
-        // unwrap is safe because self.0 is finite.
-        self.partial_cmp(other).unwrap()
+        
+        self.0.total_cmp(&other.0)
     }
 }
 
 impl PartialOrd for OrderedF64 {
     fn partial_cmp(&self, other: &OrderedF64) -> Option<Ordering> {
-        Some(self.cmp(other))
+        Some(self.0.total_cmp(&other.0))
     }
 }
 
@@ -40,7 +68,7 @@ pub trait GetValue: Ord + Sized + Clone {
 impl GetValue for OrderedF64 {
     fn get_value(val: &Value) -> Result<Self> {
         let n = val.as_f64().ok_or_else(|| Error::msg(format!("expected number got {val}")))?;
-        OrderedF64::new(n)
+        Ok(OrderedF64::new(n))
     }
 }
 
@@ -71,55 +99,6 @@ impl GetValue for ArrayLen {
     }
 }
 
-#[derive(Default)]
-pub struct SortPairs<K: Ord> {
-    pairs: Vec<(Value, K)>,
-}
-
-type SortNumbers = SortPairs<OrderedF64>;
-type SortBools = SortPairs<bool>;
-type SortStrings = SortPairs<String>;
-type SortArrays = SortPairs<ArrayLen>;
-
-impl<K: GetValue> SortPairs<K> {
-    fn try_add_pair(&mut self, val: &Value, key: &Value) -> Result<()> {
-        let key = K::get_value(key)?;
-        self.pairs.push((val.clone(), key));
-        Ok(())
-    }
-
-    fn sort(&mut self) -> Vec<Value> {
-        self.pairs.sort_by_key(|a| a.1.clone());
-        self.pairs.iter().map(|a| a.0.clone()).collect()
-    }
-}
-
-pub trait SortStrategy {
-    fn try_add_pair(&mut self, val: &Value, key: &Value) -> Result<()>;
-    fn sort(&mut self) -> Vec<Value>;
-}
-
-impl<K: GetValue> SortStrategy for SortPairs<K> {
-    fn try_add_pair(&mut self, val: &Value, key: &Value) -> Result<()> {
-        SortPairs::try_add_pair(self, val, key)
-    }
-
-    fn sort(&mut self) -> Vec<Value> {
-        SortPairs::sort(self)
-    }
-}
-
-pub fn get_sort_strategy_for_type(ty: &Value) -> Result<Box<dyn SortStrategy>> {
-    use crate::Value::*;
-    match *ty {
-        Null => Err(Error::msg("Null is not a sortable value")),
-        Bool(_) => Ok(Box::<SortBools>::default()),
-        Number(_) => Ok(Box::<SortNumbers>::default()),
-        String(_) => Ok(Box::<SortStrings>::default()),
-        Array(_) => Ok(Box::<SortArrays>::default()),
-        Object(_) => Err(Error::msg("Object is not a sortable value")),
-    }
-}
 
 #[derive(Default)]
 pub struct Unique<K: Eq + std::hash::Hash> {

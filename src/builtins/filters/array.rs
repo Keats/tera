@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::context::{get_json_pointer, ValueRender};
 use crate::errors::{Error, Result};
-use crate::filter_utils::{get_sort_strategy_for_type, get_unique_strategy_for_type};
+use crate::filter_utils::{compare_values, get_unique_strategy_for_type};
 use crate::utils::render_to_string;
 use serde_json::value::{to_value, Map, Value};
 
@@ -65,11 +65,10 @@ pub fn join(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 /// Sorts the array in ascending order.
 /// Use the 'attribute' argument to define a field to sort by.
 pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
-    let arr = try_get_value!("sort", "value", Vec<Value>, value);
+    let mut arr = try_get_value!("sort", "value", Vec<Value>, value);
     if arr.is_empty() {
         return Ok(arr.into());
     }
-
     let attribute = match args.get("attribute") {
         Some(val) => try_get_value!("sort", "attribute", String, val),
         None => String::new(),
@@ -79,20 +78,34 @@ pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         s => get_json_pointer(s),
     };
 
-    let first = arr[0].pointer(&ptr).ok_or_else(|| {
-        Error::msg(format!("attribute '{attribute}' does not reference a field"))
-    })?;
+    // make sure the types are identical, and the field exists
+    let first = arr[0]
+        .pointer(&ptr)
+        .ok_or_else(|| Error::msg(format!("attribute '{attribute}' does not reference a field")))?;
+    let discriminant = std::mem::discriminant(first);
+    let misfits = arr[1..].iter().find_map(|item| 
+        {   
+            let a = item.pointer(&ptr).ok_or(Error::msg(format!("attribute '{attribute}' does not reference a field for {item}")));
+            if a.is_err() {
+                return a.err();
+            }
 
-    let mut strategy = get_sort_strategy_for_type(first)?;
-    for v in &arr {
-        let key = v.pointer(&ptr).ok_or_else(|| {
-            Error::msg(format!("attribute '{attribute}' does not reference a field"))
-        })?;
-        strategy.try_add_pair(v, key)?;
+            if std::mem::discriminant(a.unwrap()) != discriminant {
+                return Some(Error::msg(format!("expected same types but got {first} and {item}")));
+            }
+            None
+        });
+    if let Some(err) = misfits {
+        return Err(err);
     }
-    let sorted = strategy.sort();
 
-    Ok(sorted.into())
+    arr.sort_unstable_by(|a, b| {
+        compare_values(
+            a.pointer(&ptr).expect("attribute '{attribute}' does not reference a field"),
+            b.pointer(&ptr).expect("attribute '{attribute}' does not reference a field"),
+        ).expect("values should be compareable")
+    });
+    Ok(arr.into())
 }
 
 /// Remove duplicates from an array.
@@ -118,9 +131,9 @@ pub fn unique(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         s => get_json_pointer(s),
     };
 
-    let first = arr[0].pointer(&ptr).ok_or_else(|| {
-        Error::msg(format!("attribute '{attribute}' does not reference a field"))
-    })?;
+    let first = arr[0]
+        .pointer(&ptr)
+        .ok_or_else(|| Error::msg(format!("attribute '{attribute}' does not reference a field")))?;
 
     let disc = std::mem::discriminant(first);
     let mut strategy = get_unique_strategy_for_type(first, case_sensitive)?;
@@ -469,7 +482,7 @@ mod tests {
 
         let result = sort(&v, &args);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "expected number got []");
+        assert_eq!(result.unwrap_err().to_string(), "expected same types but got 12 and []");
     }
 
     #[test]
@@ -482,8 +495,15 @@ mod tests {
         let args = HashMap::new();
 
         let result = sort(&v, &args);
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Null is not a sortable value");
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            to_value(vec![
+                ::std::f64::NAN, // NaN and friends get deserialized as Null by serde.
+                ::std::f64::NAN,
+            ])
+            .unwrap()
+        );
     }
 
     #[derive(Deserialize, Eq, Hash, PartialEq, Serialize)]
