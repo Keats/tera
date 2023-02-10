@@ -3,6 +3,7 @@ use std::fmt;
 
 /// Whether to remove the whitespace of a `{% %}` tag
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Default)]
 pub struct WS {
     /// `true` if the tag is `{%-`
     pub left: bool,
@@ -10,11 +11,7 @@ pub struct WS {
     pub right: bool,
 }
 
-impl Default for WS {
-    fn default() -> Self {
-        WS { left: false, right: false }
-    }
-}
+
 
 /// All math operators
 #[derive(Copy, Clone, Debug, PartialEq)]
