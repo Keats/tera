@@ -52,7 +52,7 @@ impl<'a> MacroCollection<'a> {
             macro_namespace_map.insert("self", (template_name, &template.macros));
         }
 
-        for &(ref filename, ref namespace) in &template.imported_macro_files {
+        for (filename, namespace) in &template.imported_macro_files {
             let macro_tpl = tera.get_template(filename)?;
             macro_namespace_map.insert(namespace, (filename, &macro_tpl.macros));
             self.add_macros_from_template(tera, macro_tpl)?;
