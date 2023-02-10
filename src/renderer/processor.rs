@@ -751,12 +751,10 @@ impl<'a> Processor<'a> {
                         let res = ll / rr;
                         if res.is_nan() {
                             None
+                        } else if res.round() == res && res.is_finite() {
+                            Some(Number::from(res as i64))
                         } else {
-                            if res.round() == res && res.is_finite() {
-                                Some(Number::from(res as i64))
-                            } else {
-                                Number::from_f64(res)
-                            }
+                            Number::from_f64(res)
                         }
                     }
                     MathOperator::Add => {
