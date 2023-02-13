@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 #[cfg(feature = "builtins")]
-use humansize::{file_size_opts, FileSize};
+use humansize::format_size;
 use serde_json::value::{to_value, Value};
 
 use crate::errors::{Error, Result};
@@ -62,12 +62,7 @@ pub fn round(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(feature = "builtins")]
 pub fn filesizeformat(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("filesizeformat", "value", usize, value);
-    num.file_size(file_size_opts::CONVENTIONAL)
-        .map_err(|_| {
-            Error::msg(format!("Filter `filesizeformat` was called on a negative number: {num}"))
-        })
-        .map(to_value)
-        .map(std::result::Result::unwrap)
+    Ok(to_value(format_size(num, humansize::DECIMAL)).expect("json serializing should always be possible for a string"))
 }
 
 #[cfg(test)]

@@ -29,7 +29,7 @@ slug = {version = "0.1.4", optional = true}
 # used in urlencode filter
 percent-encoding = {version = "2.2", optional = true}
 # used in filesizeformat filter
-humansize = {version = "1", optional = true}
+humansize = {version = "2.1.3", optional = true}
 # used in date format filter
 chrono = {version = "0.4.23", optional = true, default-features = false, features = ["std", "clock"]}
 chrono-tz = {version = "0.8.1", optional = true}
