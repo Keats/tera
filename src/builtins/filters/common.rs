@@ -97,25 +97,23 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         let locale = match args.get("locale") {
             Some(val) => {
                 let locale = try_get_value!("date", "locale", String, val);
-                chrono::Locale::try_from(locale.as_str()).or_else(|_| {
-                    Err(Error::msg(format!("Error parsing `{}` as a locale", locale)))
-                })?
+                chrono::Locale::try_from(locale.as_str()).map_err(|_| Error::msg(format!("Error parsing `{locale}` as a locale")))?
             }
             None => chrono::Locale::POSIX,
         };
         match value {
             Value::Number(n) => match n.as_i64() {
                 Some(i) => {
-                    let date = NaiveDateTime::from_timestamp(i, 0);
+                    let datetime = NaiveDateTime::from_timestamp_opt(i, 0).expect("out of bound seconds should not appear, as we set nanoseconds to zero");
                     match timezone {
                         Some(timezone) => {
-                            timezone.from_utc_datetime(&date).format_localized(&format, locale)
+                            timezone.from_utc_datetime(&datetime).format_localized(&format, locale)
                         }
-                        None => date.format(&format),
+                        None => datetime.format(&format),
                     }
                 }
                 None => {
-                    return Err(Error::msg(format!("Filter `date` was invoked on a float: {}", n)))
+                    return Err(Error::msg(format!("Filter `date` was invoked on a float: {n}")))
                 }
             },
             Value::String(s) => {
@@ -132,20 +130,18 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                                 .format_localized(&format, locale),
                             Err(_) => {
                                 return Err(Error::msg(format!(
-                                    "Error parsing `{:?}` as rfc3339 date or naive datetime",
-                                    s
+                                    "Error parsing `{s:?}` as rfc3339 date or naive datetime"
                                 )));
                             }
                         },
                     }
                 } else {
-                    match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
-                        Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc)
+                    match NaiveDate::parse_from_str(s, "%Y-%m-%d") {
+                        Ok(val) => DateTime::<Utc>::from_utc(val.and_hms_opt(0, 0, 0).expect("out of bound should not appear, as we set the time to zero"), Utc)
                             .format_localized(&format, locale),
                         Err(_) => {
                             return Err(Error::msg(format!(
-                                "Error parsing `{:?}` as YYYY-MM-DD date",
-                                s
+                                "Error parsing `{s:?}` as YYYY-MM-DD date"
                             )));
                         }
                     }
@@ -154,8 +150,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
             _ => {
                 return Err(Error::msg(format!(
                     "Filter `date` received an incorrect type for arg `value`: \
-                     got `{:?}` but expected i64|u64|String",
-                    value
+                     got `{value:?}` but expected i64|u64|String"
                 )));
             }
         }
