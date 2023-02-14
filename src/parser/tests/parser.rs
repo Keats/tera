@@ -999,7 +999,7 @@ fn parse_if() {
                         vec![Node::Text("A ".to_string())],
                     ),
                     (
-                        end_ws.clone(),
+                        end_ws,
                         Expr::new(ExprVal::Logic(LogicExpr {
                             lhs: Box::new(Expr::new(ExprVal::Int(1))),
                             operator: LogicOperator::Gt,
