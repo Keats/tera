@@ -141,7 +141,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                         },
                     }
                 } else {
-                    match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
+                    match NaiveDate::parse_from_str(s, "%Y-%m-%d") {
                         Ok(val) => DateTime::<Utc>::from_utc(
                             val.and_hms_opt(0, 0, 0).expect(
                                 "out of bound should not appear, as we set the time to zero",
