@@ -264,18 +264,18 @@ mod tests {
 
     #[test]
     fn test_iterable() {
-        assert_eq!(iterable(Some(&to_value(vec!["1"]).unwrap()), &[]).unwrap(), true);
-        assert_eq!(iterable(Some(&to_value(1).unwrap()), &[]).unwrap(), false);
-        assert_eq!(iterable(Some(&to_value("hello").unwrap()), &[]).unwrap(), false);
+        assert!(iterable(Some(&to_value(vec!["1"]).unwrap()), &[]).unwrap());
+        assert!(!iterable(Some(&to_value(1).unwrap()), &[]).unwrap());
+        assert!(!iterable(Some(&to_value("hello").unwrap()), &[]).unwrap());
     }
 
     #[test]
     fn test_object() {
         let mut h = HashMap::new();
         h.insert("a", 1);
-        assert_eq!(object(Some(&to_value(h).unwrap()), &[]).unwrap(), true);
-        assert_eq!(object(Some(&to_value(1).unwrap()), &[]).unwrap(), false);
-        assert_eq!(object(Some(&to_value("hello").unwrap()), &[]).unwrap(), false);
+        assert!(object(Some(&to_value(h).unwrap()), &[]).unwrap());
+        assert!(!object(Some(&to_value(1).unwrap()), &[]).unwrap());
+        assert!(!object(Some(&to_value("hello").unwrap()), &[]).unwrap());
     }
 
     #[test]
