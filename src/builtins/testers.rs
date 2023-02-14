@@ -230,12 +230,12 @@ mod tests {
 
     #[test]
     fn test_number_args_ok() {
-        assert!(defined(None, &vec![]).is_ok())
+        assert!(defined(None, &[]).is_ok())
     }
 
     #[test]
     fn test_too_many_args() {
-        assert!(defined(None, &vec![to_value(1).unwrap()]).is_err())
+        assert!(defined(None, &[to_value(1).unwrap()]).is_err())
     }
 
     #[test]

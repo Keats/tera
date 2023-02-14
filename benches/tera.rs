@@ -197,8 +197,7 @@ fn bench_huge_loop(b: &mut test::Bencher) {
         real: Vec<DataWrapper>,
         dummy: Vec<DataWrapper>,
     }
-    let real: Vec<DataWrapper> =
-        (1..1000).map(|i| DataWrapper { v: format!("n={}", i) }).collect();
+    let real: Vec<DataWrapper> = (1..1000).map(|i| DataWrapper { v: format!("n={}", i) }).collect();
     let dummy: Vec<DataWrapper> =
         (1..1000).map(|i| DataWrapper { v: format!("n={}", i) }).collect();
     let rows = RowWrapper { real, dummy };
