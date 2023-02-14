@@ -198,9 +198,9 @@ fn bench_huge_loop(b: &mut test::Bencher) {
         dummy: Vec<DataWrapper>,
     }
     let real: Vec<DataWrapper> =
-        (1..1000).into_iter().map(|i| DataWrapper { v: format!("n={}", i) }).collect();
+        (1..1000).map(|i| DataWrapper { v: format!("n={}", i) }).collect();
     let dummy: Vec<DataWrapper> =
-        (1..1000).into_iter().map(|i| DataWrapper { v: format!("n={}", i) }).collect();
+        (1..1000).map(|i| DataWrapper { v: format!("n={}", i) }).collect();
     let rows = RowWrapper { real, dummy };
 
     let mut tera = Tera::default();
