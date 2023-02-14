@@ -74,12 +74,8 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         None => "%Y-%m-%d".to_string(),
     };
 
-    let items: Vec<Item> = StrftimeItems::new(&format)
-        .filter(|item| match item {
-            Item::Error => true,
-            _ => false,
-        })
-        .collect();
+    let items: Vec<Item> =
+        StrftimeItems::new(&format).filter(|item| matches!(item, Item::Error)).collect();
     if !items.is_empty() {
         return Err(Error::msg(format!("Invalid date format `{}`", format)));
     }
