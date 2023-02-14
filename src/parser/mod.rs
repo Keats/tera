@@ -217,7 +217,7 @@ fn parse_string_concat(pair: Pair<Rule>) -> TeraResult<ExprVal> {
 }
 
 fn parse_basic_expression(pair: Pair<Rule>) -> TeraResult<ExprVal> {
-    let primary = |pair| parse_basic_expression(pair);
+    let primary = parse_basic_expression;
 
     let infix = |lhs: TeraResult<ExprVal>, op: Pair<Rule>, rhs: TeraResult<ExprVal>| {
         Ok(ExprVal::Math(MathExpr {
@@ -359,7 +359,7 @@ fn parse_in_condition(pair: Pair<Rule>) -> TeraResult<Expr> {
 
 /// A basic expression with optional filters with prece
 fn parse_comparison_val(pair: Pair<Rule>) -> TeraResult<Expr> {
-    let primary = |pair| parse_comparison_val(pair);
+    let primary = parse_comparison_val;
 
     let infix = |lhs: TeraResult<Expr>, op: Pair<Rule>, rhs: TeraResult<Expr>| {
         Ok(Expr::new(ExprVal::Math(MathExpr {
@@ -387,7 +387,7 @@ fn parse_comparison_val(pair: Pair<Rule>) -> TeraResult<Expr> {
 }
 
 fn parse_comparison_expression(pair: Pair<Rule>) -> TeraResult<Expr> {
-    let primary = |pair| parse_comparison_expression(pair);
+    let primary = parse_comparison_expression;
 
     let infix = |lhs: TeraResult<Expr>, op: Pair<Rule>, rhs: TeraResult<Expr>| {
         Ok(Expr::new(ExprVal::Logic(LogicExpr {
@@ -437,7 +437,7 @@ fn parse_logic_val(pair: Pair<Rule>) -> TeraResult<Expr> {
 }
 
 fn parse_logic_expr(pair: Pair<Rule>) -> TeraResult<Expr> {
-    let primary = |pair: Pair<Rule>| parse_logic_expr(pair);
+    let primary = parse_logic_expr;
 
     let infix = |lhs: TeraResult<Expr>, op: Pair<Rule>, rhs: TeraResult<Expr>| match op.as_rule() {
         Rule::op_or => Ok(Expr::new(ExprVal::Logic(LogicExpr {
