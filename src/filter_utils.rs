@@ -2,16 +2,12 @@ use crate::errors::{Error, Result};
 use serde_json::Value;
 use std::cmp::Ordering;
 
-#[derive(PartialEq, PartialOrd, Default, Copy, Clone)]
+#[derive(PartialEq, Default, Copy, Clone)]
 pub struct OrderedF64(f64);
 
 impl OrderedF64 {
-    fn new(n: f64) -> Result<Self> {
-        if n.is_finite() {
-            Ok(OrderedF64(n))
-        } else {
-            Err(Error::msg(format!("{} cannot be sorted", n)))
-        }
+    fn new(n: f64) -> Self {
+        OrderedF64(n)
     }
 }
 
@@ -21,6 +17,12 @@ impl Ord for OrderedF64 {
     fn cmp(&self, other: &OrderedF64) -> Ordering {
         // unwrap is safe because self.0 is finite.
         self.partial_cmp(other).unwrap()
+    }
+}
+
+impl PartialOrd for OrderedF64 {
+    fn partial_cmp(&self, other: &OrderedF64) -> Option<Ordering> {
+        Some(self.0.total_cmp(&other.0))
     }
 }
 
@@ -34,7 +36,7 @@ pub trait GetValue: Ord + Sized + Clone {
 impl GetValue for OrderedF64 {
     fn get_value(val: &Value) -> Result<Self> {
         let n = val.as_f64().ok_or_else(|| Error::msg(format!("expected number got {}", val)))?;
-        OrderedF64::new(n)
+        Ok(OrderedF64::new(n))
     }
 }
 
