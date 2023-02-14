@@ -110,10 +110,10 @@ pub fn get_sort_strategy_for_type(ty: &Value) -> Result<Box<dyn SortStrategy>> {
     use crate::Value::*;
     match *ty {
         Null => Err(Error::msg("Null is not a sortable value")),
-        Bool(_) => Ok(Box::new(SortBools::default())),
-        Number(_) => Ok(Box::new(SortNumbers::default())),
-        String(_) => Ok(Box::new(SortStrings::default())),
-        Array(_) => Ok(Box::new(SortArrays::default())),
+        Bool(_) => Ok(Box::<SortBools>::default()),
+        Number(_) => Ok(Box::<SortNumbers>::default()),
+        String(_) => Ok(Box::<SortStrings>::default()),
+        Array(_) => Ok(Box::<SortArrays>::default()),
         Object(_) => Err(Error::msg("Object is not a sortable value")),
     }
 }
@@ -163,12 +163,12 @@ pub fn get_unique_strategy_for_type(
     use crate::Value::*;
     match *ty {
         Null => Err(Error::msg("Null is not a unique value")),
-        Bool(_) => Ok(Box::new(UniqueBools::default())),
+        Bool(_) => Ok(Box::<UniqueBools>::default()),
         Number(ref val) => {
             if val.is_f64() {
                 Err(Error::msg("Unique floats are not implemented"))
             } else {
-                Ok(Box::new(UniqueNumbers::default()))
+                Ok(Box::<UniqueNumbers>::default())
             }
         }
         String(_) => Ok(Box::new(UniqueStrings::new(case_sensitive))),
