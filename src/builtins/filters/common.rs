@@ -98,9 +98,8 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         let locale = match args.get("locale") {
             Some(val) => {
                 let locale = try_get_value!("date", "locale", String, val);
-                chrono::Locale::try_from(locale.as_str()).or_else(|_| {
-                    Err(Error::msg(format!("Error parsing `{}` as a locale", locale)))
-                })?
+                chrono::Locale::try_from(locale.as_str())
+                    .map_err(|_| Error::msg(format!("Error parsing `{}` as a locale", locale)))?
             }
             None => chrono::Locale::POSIX,
         };
