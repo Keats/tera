@@ -111,7 +111,9 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         match value {
             Value::Number(n) => match n.as_i64() {
                 Some(i) => {
-                    let date = NaiveDateTime::from_timestamp(i, 0);
+                    let date = NaiveDateTime::from_timestamp_opt(i, 0).expect(
+                        "out of bound seconds should not appear, as we set nanoseconds to zero",
+                    );
                     match timezone {
                         Some(timezone) => {
                             timezone.from_utc_datetime(&date).format_localized(&format, locale)
@@ -145,8 +147,13 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                     }
                 } else {
                     match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
-                        Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc)
-                            .format_localized(&format, locale),
+                        Ok(val) => DateTime::<Utc>::from_utc(
+                            val.and_hms_opt(0, 0, 0).expect(
+                                "out of bound should not appear, as we set the time to zero",
+                            ),
+                            Utc,
+                        )
+                        .format_localized(&format, locale),
                         Err(_) => {
                             return Err(Error::msg(format!(
                                 "Error parsing `{:?}` as YYYY-MM-DD date",
@@ -170,7 +177,9 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let formatted = match value {
         Value::Number(n) => match n.as_i64() {
             Some(i) => {
-                let date = NaiveDateTime::from_timestamp(i, 0);
+                let date = NaiveDateTime::from_timestamp_opt(i, 0).expect(
+                    "out of bound seconds should not appear, as we set nanoseconds to zero",
+                );
                 match timezone {
                     Some(timezone) => timezone.from_utc_datetime(&date).format(&format),
                     None => date.format(&format),
@@ -197,7 +206,12 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                 }
             } else {
                 match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
-                    Ok(val) => DateTime::<Utc>::from_utc(val.and_hms(0, 0, 0), Utc).format(&format),
+                    Ok(val) => DateTime::<Utc>::from_utc(
+                        val.and_hms_opt(0, 0, 0)
+                            .expect("out of bound should not appear, as we set the time to zero"),
+                        Utc,
+                    )
+                    .format(&format),
                     Err(_) => {
                         return Err(Error::msg(format!(
                             "Error parsing `{:?}` as YYYY-MM-DD date",
