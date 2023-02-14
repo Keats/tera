@@ -13,6 +13,10 @@
 /// let val = try_get_value!("pluralize", "suffix", String, val.clone());
 /// ```
 #[macro_export]
+#[deprecated(
+    since = "1.18.0",
+    note = "the try_get_value was replaced with the utils::try_get_value generic function"
+)]
 macro_rules! try_get_value {
     ($filter_name:expr, $var_name:expr, $ty:ty, $val:expr) => {{
         match $crate::from_value::<$ty>($val.clone()) {

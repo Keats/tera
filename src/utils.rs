@@ -1,3 +1,6 @@
+use serde::de::DeserializeOwned;
+use serde_json::Value;
+
 use crate::errors::Error;
 
 /// Escape HTML following [OWASP](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
@@ -51,6 +54,46 @@ where
     F: FnOnce() -> String,
 {
     String::from_utf8(buffer).map_err(|error| Error::utf8_conversion_error(error, context()))
+}
+
+/// Helper function to get real values out of Value while retaining
+/// proper errors in filters
+///
+/// Takes 3 args:
+///
+/// - the filter name,
+/// - the variable name: use "value" if you are using it on the variable the filter is ran on
+/// - the actual variable
+///
+/// ```no_compile
+/// let arr: Vec<Value> = try_get_value("first", "value", value);
+/// let val: String = try_get_value("pluralize", "suffix", value);
+/// ```
+#[inline]
+pub fn try_get_value<T>(filter_name: &str, var_name: &str, val: &Value) -> Result<T, Error>
+where
+    T: DeserializeOwned,
+{
+    match serde_json::from_value(val.clone()) {
+        Ok(s) => Ok(s),
+        Err(_) => {
+            if var_name == "value" {
+                return Err(Error::msg(format!(
+                    "Filter `{}` was called on an incorrect value: got `{}` but expected a {}",
+                    filter_name,
+                    &val,
+                    std::any::type_name::<T>()
+                )));
+            }
+            Err(Error::msg(format!(
+                "Filter `{}` received an incorrect type for arg `{}`: got `{}` but expected a {}",
+                filter_name,
+                var_name,
+                &val,
+                std::any::type_name::<T>()
+            )))
+        }
+    }
 }
 
 #[cfg(test)]

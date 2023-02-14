@@ -38,6 +38,8 @@ pub use crate::utils::escape_html;
 /// so apps/tools can encode data in Tera types
 pub use serde_json::value::{from_value, to_value, Map, Number, Value};
 
+pub use crate::utils::try_get_value as try_get_value_as_type;
+
 // Exposes the AST if one needs it but changing the AST is not considered
 // a breaking change so it isn't public
 #[doc(hidden)]

@@ -1,6 +1,4 @@
 #[macro_use]
-extern crate tera;
-#[macro_use]
 extern crate lazy_static;
 extern crate serde_json;
 
@@ -8,6 +6,7 @@ use std::collections::HashMap;
 
 use serde_json::value::{to_value, Value};
 use std::error::Error;
+use tera::try_get_value_as_type;
 use tera::{Context, Result, Tera};
 
 lazy_static! {
@@ -26,7 +25,7 @@ lazy_static! {
 }
 
 pub fn do_nothing_filter(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
-    let s = try_get_value!("do_nothing_filter", "value", String, value);
+    let s: String = try_get_value_as_type("do_nothing_filter", "value", value)?;
     Ok(to_value(&s).unwrap())
 }
 

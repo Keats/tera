@@ -4,12 +4,13 @@ use std::collections::HashMap;
 use serde_json::value::Value;
 
 use crate::errors::{Error, Result};
+use crate::utils::try_get_value;
 
 /// Returns a value by a `key` argument from a given object
 pub fn get(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let default = args.get("default");
-    let key = match args.get("key") {
-        Some(val) => try_get_value!("get", "key", String, val),
+    let key: String = match args.get("key") {
+        Some(val) => try_get_value("get", "key", val)?,
         None => return Err(Error::msg("The `get` filter has to have an `key` argument")),
     };
 

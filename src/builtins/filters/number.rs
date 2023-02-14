@@ -1,25 +1,25 @@
 /// Filters operating on numbers
 use std::collections::HashMap;
 
+use crate::errors::{Error, Result};
+use crate::utils::try_get_value;
 #[cfg(feature = "builtins")]
 use humansize::{file_size_opts, FileSize};
 use serde_json::value::{to_value, Value};
-
-use crate::errors::{Error, Result};
 
 /// Returns a plural suffix if the value is not equal to ±1, or a singular
 /// suffix otherwise. The plural suffix defaults to `s` and the singular suffix
 /// defaults to the empty string (i.e nothing).
 pub fn pluralize(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
-    let num = try_get_value!("pluralize", "value", f64, value);
+    let num: f64 = try_get_value("pluralize", "value", value)?;
 
-    let plural = match args.get("plural") {
-        Some(val) => try_get_value!("pluralize", "plural", String, val),
+    let plural: String = match args.get("plural") {
+        Some(val) => try_get_value("pluralize", "plural", val)?,
         None => "s".to_string(),
     };
 
-    let singular = match args.get("singular") {
-        Some(val) => try_get_value!("pluralize", "singular", String, val),
+    let singular: String = match args.get("singular") {
+        Some(val) => try_get_value("pluralize", "singular", val)?,
         None => "".to_string(),
     };
 
@@ -36,13 +36,13 @@ pub fn pluralize(value: &Value, args: &HashMap<String, Value>) -> Result<Value> 
 /// `ceil` and `floor` are also available as method.
 /// `precision` defaults to `0`, meaning it will round to an integer
 pub fn round(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
-    let num = try_get_value!("round", "value", f64, value);
+    let num: f64 = try_get_value("round", "value", value)?;
     let method = match args.get("method") {
-        Some(val) => try_get_value!("round", "method", String, val),
+        Some(val) => try_get_value("round", "method", val)?,
         None => "common".to_string(),
     };
-    let precision = match args.get("precision") {
-        Some(val) => try_get_value!("round", "precision", i32, val),
+    let precision: i32 = match args.get("precision") {
+        Some(val) => try_get_value("round", "precision", val)?,
         None => 0,
     };
     let multiplier = if precision == 0 { 1.0 } else { 10.0_f64.powi(precision) };
@@ -62,7 +62,7 @@ pub fn round(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 /// Returns a human-readable file size (i.e. '110 MB') from an integer
 #[cfg(feature = "builtins")]
 pub fn filesizeformat(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
-    let num = try_get_value!("filesizeformat", "value", usize, value);
+    let num: usize = try_get_value("filesizeformat", "value", value)?;
     num.file_size(file_size_opts::CONVENTIONAL)
         .map_err(|_| {
             Error::msg(format!("Filter `filesizeformat` was called on a negative number: {}", num))

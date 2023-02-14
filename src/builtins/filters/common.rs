@@ -6,6 +6,7 @@ use std::iter::FromIterator;
 
 use crate::errors::{Error, Result};
 use crate::utils::render_to_string;
+use crate::utils::try_get_value;
 #[cfg(feature = "builtins")]
 use chrono::{
     format::{Item, StrftimeItems},
@@ -69,8 +70,8 @@ pub fn json_encode(value: &Value, args: &HashMap<String, Value>) -> Result<Value
 /// on [chrono docs](https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html)
 #[cfg(feature = "builtins")]
 pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
-    let format = match args.get("format") {
-        Some(val) => try_get_value!("date", "format", String, val),
+    let format: String = match args.get("format") {
+        Some(val) => try_get_value("date", "format", val)?,
         None => "%Y-%m-%d".to_string(),
     };
 
@@ -86,7 +87,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     let timezone = match args.get("timezone") {
         Some(val) => {
-            let timezone = try_get_value!("date", "timezone", String, val);
+            let timezone: String = try_get_value("date", "timezone", val)?;
             match timezone.parse::<Tz>() {
                 Ok(timezone) => Some(timezone),
                 Err(_) => {
@@ -101,7 +102,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let formatted = {
         let locale = match args.get("locale") {
             Some(val) => {
-                let locale = try_get_value!("date", "locale", String, val);
+                let locale: String = try_get_value("date", "locale", val)?;
                 chrono::Locale::try_from(locale.as_str()).or_else(|_| {
                     Err(Error::msg(format!("Error parsing `{}` as a locale", locale)))
                 })?
