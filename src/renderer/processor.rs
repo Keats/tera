@@ -496,7 +496,7 @@ impl<'a> Processor<'a> {
 
         let err_wrap = |e| Error::call_function(&function_call.name, e);
 
-        let mut args = HashMap::new();
+        let mut args = HashMap::with_capacity(function_call.args.len());
         for (arg_name, expr) in &function_call.args {
             args.insert(
                 arg_name.to_string(),
@@ -566,7 +566,7 @@ impl<'a> Processor<'a> {
 
         let err_wrap = |e| Error::call_filter(&fn_call.name, e);
 
-        let mut args = HashMap::new();
+        let mut args = HashMap::with_capacity(fn_call.args.len());
         for (arg_name, expr) in &fn_call.args {
             args.insert(
                 arg_name.to_string(),
