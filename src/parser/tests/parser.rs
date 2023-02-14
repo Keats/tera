@@ -730,10 +730,8 @@ fn parse_set_global_tag() {
 #[test]
 fn parse_raw_tag() {
     let ast = parse("{% raw -%}{{hey}}{%- endraw %}").unwrap();
-    let mut start_ws = WS::default();
-    start_ws.right = true;
-    let mut end_ws = WS::default();
-    end_ws.left = true;
+    let start_ws = WS { right: true, ..Default::default() };
+    let end_ws = WS { left: true, ..Default::default() };
 
     assert_eq!(ast[0], Node::Raw(start_ws, "{{hey}}".to_string(), end_ws));
 }
@@ -752,10 +750,8 @@ fn parse_raw_tag_with_ws() {
 #[test]
 fn parse_filter_section_without_args() {
     let ast = parse("{% filter upper -%}A{%- endfilter %}").unwrap();
-    let mut start_ws = WS::default();
-    start_ws.right = true;
-    let mut end_ws = WS::default();
-    end_ws.left = true;
+    let start_ws = WS { right: true, ..Default::default() };
+    let end_ws = WS { left: true, ..Default::default() };
 
     assert_eq!(
         ast[0],
@@ -773,10 +769,8 @@ fn parse_filter_section_without_args() {
 #[test]
 fn parse_filter_section_with_args() {
     let ast = parse("{% filter upper(attr=1) -%}A{%- endfilter %}").unwrap();
-    let mut start_ws = WS::default();
-    start_ws.right = true;
-    let mut end_ws = WS::default();
-    end_ws.left = true;
+    let start_ws = WS { right: true, ..Default::default() };
+    let end_ws = WS { left: true, ..Default::default() };
 
     let mut args = HashMap::new();
     args.insert("attr".to_string(), Expr::new(ExprVal::Int(1)));
@@ -819,8 +813,7 @@ fn parse_filter_section_preserves_ws() {
 fn parse_block() {
     let ast = parse("{% block hello %}{{super()}} hey{%- endblock hello %}").unwrap();
     let start_ws = WS::default();
-    let mut end_ws = WS::default();
-    end_ws.left = true;
+    let end_ws = WS { left: true, ..Default::default() };
 
     assert_eq!(
         ast[0],
@@ -864,8 +857,7 @@ fn parse_simple_macro_definition() {
 fn parse_value_forloop() {
     let ast = parse("{% for item in items | reverse %}A{%- endfor %}").unwrap();
     let start_ws = WS::default();
-    let mut end_ws = WS::default();
-    end_ws.left = true;
+    let end_ws = WS { left: true, ..Default::default() };
 
     assert_eq!(
         ast[0],
@@ -890,8 +882,7 @@ fn parse_value_forloop() {
 fn parse_key_value_forloop() {
     let ast = parse("{% for key, item in get_map() %}A{%- endfor %}").unwrap();
     let start_ws = WS::default();
-    let mut end_ws = WS::default();
-    end_ws.left = true;
+    let end_ws = WS { left: true, ..Default::default() };
 
     assert_eq!(
         ast[0],
@@ -916,8 +907,7 @@ fn parse_key_value_forloop() {
 fn parse_value_forloop_array() {
     let ast = parse("{% for item in [1,2,] %}A{%- endfor %}").unwrap();
     let start_ws = WS::default();
-    let mut end_ws = WS::default();
-    end_ws.left = true;
+    let end_ws = WS { left: true, ..Default::default() };
 
     assert_eq!(
         ast[0],
@@ -942,8 +932,7 @@ fn parse_value_forloop_array() {
 fn parse_value_forloop_array_with_filter() {
     let ast = parse("{% for item in [1,2,] | reverse %}A{%- endfor %}").unwrap();
     let start_ws = WS::default();
-    let mut end_ws = WS::default();
-    end_ws.left = true;
+    let end_ws = WS { left: true, ..Default::default() };
 
     assert_eq!(
         ast[0],
@@ -968,8 +957,7 @@ fn parse_value_forloop_array_with_filter() {
 fn parse_value_forloop_empty() {
     let ast = parse("{% for item in [1,2,] %}A{% else %}B{%- endfor %}").unwrap();
     let start_ws = WS::default();
-    let mut end_ws = WS::default();
-    end_ws.left = true;
+    let end_ws = WS { left: true, ..Default::default() };
 
     assert_eq!(
         ast[0],
@@ -993,11 +981,8 @@ fn parse_value_forloop_empty() {
 #[test]
 fn parse_if() {
     let ast = parse("{% if item or admin %}A {%- elif 1 > 2 %}B{% else -%} C{%- endif %}").unwrap();
-    let mut end_ws = WS::default();
-    end_ws.left = true;
-
-    let mut else_ws = WS::default();
-    else_ws.right = true;
+    let end_ws = WS { left: true, ..Default::default() };
+    let else_ws = WS { right: true, ..Default::default() };
 
     assert_eq!(
         ast[0],
