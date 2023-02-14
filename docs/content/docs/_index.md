@@ -1151,6 +1151,12 @@ Example: `{{ value | urlencode_strict }}`
 If value is `/foo?a=b&c=d`, the output will be `%2Ffoo%3Fa%3Db%26c%3Dd`. `/` is
 also encoded.
 
+#### abs
+Returns the absolute value
+
+Example: `{{ negative_number | abs }}`
+
+If negative_number is -1, the output will be 1. If num_messages is -2.0 the output will be 2.
 
 #### pluralize
 Returns a plural suffix if the value is not equal to ±1, or a singular suffix otherwise. The plural suffix defaults to `s` and the
