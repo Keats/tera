@@ -244,45 +244,49 @@ pub fn map(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(arr).unwrap())
 }
 
-#[inline]
-fn get_index(i: f64, array: &[Value]) -> usize {
-    if i >= 0.0 {
-        i as usize
-    } else {
-        (array.len() as f64 + i) as usize
-    }
-}
-
 /// Slice the array
 /// Use the `start` argument to define where to start (inclusive, default to `0`)
 /// and `end` argument to define where to stop (exclusive, default to the length of the array)
-/// `start` and `end` are 0-indexed
+/// `start` and `end` are 0-indexed and are allowed to be negative indexed
 pub fn slice(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("slice", "value", Vec<Value>, value);
     if arr.is_empty() {
         return Ok(arr.into());
     }
 
-    let start = match args.get("start") {
-        Some(val) => get_index(try_get_value!("slice", "start", f64, val), &arr),
+    let len = arr.len() as i64;
+
+    let mut start = match args.get("start") {
+        Some(val) => try_get_value!("slice", "start", i64, val),
         None => 0,
     };
 
+    if start < 0 && len + start >= 0 {
+        start += len;
+    }
+    if start < 0 {
+        start = 0;
+    }
+
     let mut end = match args.get("end") {
-        Some(val) => get_index(try_get_value!("slice", "end", f64, val), &arr),
-        None => arr.len(),
+        Some(val) => try_get_value!("slice", "end", i64, val),
+        None => len,
     };
 
-    if end > arr.len() {
-        end = arr.len();
+    if end > len {
+        end = len;
     }
-
+    if end < 0 && len + end >= 0 {
+        end += len;
+    }
+    println!("{} {}", start, end);
     // Not an error, but returns an empty Vec
-    if start >= end {
+    if start >= end || end < 0 {
         return Ok(Vec::<Value>::new().into());
     }
-
-    Ok(arr[start..end].into())
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
+    Ok(arr[start as usize..end as usize].into())
 }
 
 /// Concat the array with another one if the `with` parameter is an array or
@@ -627,7 +631,7 @@ mod tests {
 
     #[test]
     fn test_slice() {
-        fn make_args(start: Option<usize>, end: Option<f64>) -> HashMap<String, Value> {
+        fn make_args(start: Option<i64>, end: Option<i64>) -> HashMap<String, Value> {
             let mut args = HashMap::new();
             if let Some(s) = start {
                 args.insert("start".to_string(), to_value(s).unwrap());
@@ -642,12 +646,18 @@ mod tests {
 
         let inputs = vec![
             (make_args(Some(1), None), vec![2, 3, 4, 5]),
-            (make_args(None, Some(2.0)), vec![1, 2]),
-            (make_args(Some(1), Some(2.0)), vec![2]),
-            (make_args(None, Some(-2.0)), vec![1, 2, 3]),
+            (make_args(None, Some(2)), vec![1, 2]),
+            (make_args(Some(1), Some(2)), vec![2]),
+            (make_args(None, Some(-2)), vec![1, 2, 3]),
             (make_args(None, None), vec![1, 2, 3, 4, 5]),
-            (make_args(Some(3), Some(1.0)), vec![]),
+            (make_args(Some(3), Some(1)), vec![]),
             (make_args(Some(9), None), vec![]),
+            (make_args(Some(-1), None), vec![5]),
+            (make_args(Some(-2), Some(-1)), vec![4]),
+            (make_args(Some(-10), Some(-1)), vec![1, 2, 3, 4]),
+            (make_args(Some(-10), None), vec![1, 2, 3, 4, 5]),
+            (make_args(Some(-5), None), vec![1, 2, 3, 4, 5]),
+            (make_args(Some(-10), Some(-10)), vec![]),
         ];
 
         for (args, expected) in inputs {
