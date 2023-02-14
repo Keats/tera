@@ -16,24 +16,24 @@ rust-version = "1.56.0"
 [dependencies]
 globwalk = "0.8.1"
 serde = "1.0"
-serde_json = "1.0.11"
-pest = "2.3.0"
-pest_derive = "2.3.0"
-lazy_static = "1.0"
+serde_json = "1.0"
+pest = "2.5.5"
+pest_derive = "2.5.5"
+lazy_static = "1.4"
 # used in striptags, spaceless & titles filters. Already pulled by globwalk
-regex = "1.0"
+regex = "1.7"
 # used in truncate filter and string iteration
 unic-segment = "0.9"
 
 # used in slugify filter
-slug = {version = "0.1.1", optional = true}
+slug = {version = "0.1", optional = true}
 # used in urlencode filter
-percent-encoding = {version = "2.1", optional = true}
+percent-encoding = {version = "2.2", optional = true}
 # used in filesizeformat filter
-humansize = {version = "1", optional = true}
+humansize = {version = "2.1", optional = true}
 # used in date format filter
-chrono = {version = "0.4.20", optional = true, default-features = false, features = ["std", "clock"]}
-chrono-tz = {version = "0.6", optional = true}
+chrono = {version = "0.4.23", optional = true, default-features = false, features = ["std", "clock"]}
+chrono-tz = {version = "0.8", optional = true}
 # used in get_random function
 rand = {version = "0.8", optional = true}
 

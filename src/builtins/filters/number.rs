@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 #[cfg(feature = "builtins")]
-use humansize::{file_size_opts, FileSize};
+use humansize::format_size;
 use serde_json::value::{to_value, Value};
 
 use crate::errors::{Error, Result};
@@ -61,14 +61,15 @@ pub fn round(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
 /// Returns a human-readable file size (i.e. '110 MB') from an integer
 #[cfg(feature = "builtins")]
-pub fn filesizeformat(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+pub fn filesizeformat(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("filesizeformat", "value", usize, value);
-    num.file_size(file_size_opts::CONVENTIONAL)
-        .map_err(|_| {
-            Error::msg(format!("Filter `filesizeformat` was called on a negative number: {}", num))
-        })
-        .map(to_value)
-        .map(std::result::Result::unwrap)
+    let binary = match args.get("binary") {
+        Some(binary) => try_get_value!("filesizeformat", "binary", bool, binary),
+        None => false,
+    };
+    let format = if binary { humansize::BINARY } else { humansize::WINDOWS };
+    Ok(to_value(format_size(num, format))
+        .expect("json serializing should always be possible for a string"))
 }
 
 #[cfg(test)]
@@ -177,5 +178,15 @@ mod tests {
         let result = filesizeformat(&to_value(123456789).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("117.74 MB").unwrap());
+    }
+
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn test_filesizeformat_binary() {
+        let mut args = HashMap::new();
+        args.insert("binary".to_string(), to_value(true).unwrap());
+        let result = filesizeformat(&to_value(123456789).unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("117.74 MiB").unwrap());
     }
 }
