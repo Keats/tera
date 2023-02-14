@@ -17,7 +17,7 @@ fn remove_previous_ws_if_single_opening_tag_requires_it() {
     ];
 
     assert_eq!(
-        remove_whitespace(ast.clone(), None),
+        remove_whitespace(ast, None),
         vec![
             Node::Text("hey".to_string()), // it removed the trailing space
             Node::ImportMacro(ws, "hey ".to_string(), "ho".to_string()),
@@ -34,7 +34,7 @@ fn remove_next_ws_if_single_opening_tag_requires_it() {
     ];
 
     assert_eq!(
-        remove_whitespace(ast.clone(), None),
+        remove_whitespace(ast, None),
         vec![
             Node::ImportMacro(ws, "hey ".to_string(), "ho".to_string()),
             Node::Text("hey".to_string()), // it removed the leading space
@@ -50,7 +50,7 @@ fn handle_ws_both_sides_for_raw_tag() {
         vec![Node::Raw(start_ws, "  hey ".to_string(), end_ws), Node::Text("  hey".to_string())];
 
     assert_eq!(
-        remove_whitespace(ast.clone(), None),
+        remove_whitespace(ast, None),
         vec![
             // it removed only the space at the end
             Node::Raw(start_ws, "  hey".to_string(), end_ws),
@@ -78,7 +78,7 @@ fn handle_ws_both_sides_for_macro_definitions() {
     )];
 
     assert_eq!(
-        remove_whitespace(ast.clone(), None),
+        remove_whitespace(ast, None),
         vec![Node::MacroDefinition(
             start_ws,
             MacroDefinition {
@@ -112,7 +112,7 @@ fn handle_ws_both_sides_for_forloop_tag_and_remove_empty_node() {
     ];
 
     assert_eq!(
-        remove_whitespace(ast.clone(), None),
+        remove_whitespace(ast, None),
         vec![
             Node::Forloop(
                 start_ws,
@@ -163,7 +163,7 @@ fn handle_ws_for_if_nodes() {
     ];
 
     assert_eq!(
-        remove_whitespace(ast.clone(), None),
+        remove_whitespace(ast, None),
         vec![
             Node::Text("C".to_string()),
             Node::If(
@@ -229,7 +229,7 @@ fn handle_ws_for_if_nodes_with_else() {
     ];
 
     assert_eq!(
-        remove_whitespace(ast.clone(), None),
+        remove_whitespace(ast, None),
         vec![
             Node::Text("C".to_string()),
             Node::If(
