@@ -33,7 +33,7 @@ percent-encoding = {version = "2.2", optional = true}
 humansize = {version = "2.1", optional = true}
 # used in date format filter
 chrono = {version = "0.4.23", optional = true, default-features = false, features = ["std", "clock"]}
-chrono-tz = {version = "0.8", optional = true}
+chrono-tz = {version = "0.6", optional = true}
 # used in get_random function
 rand = {version = "0.8", optional = true}
 
