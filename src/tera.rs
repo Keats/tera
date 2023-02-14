@@ -283,7 +283,7 @@ impl Tera {
     /// As with `self::build_inheritance_chains`, you don't usually need to call that yourself.
     pub fn check_macro_files(&self) -> Result<()> {
         for template in self.templates.values() {
-            for &(ref tpl_name, _) in &template.imported_macro_files {
+            for (tpl_name, _) in &template.imported_macro_files {
                 if !self.templates.contains_key(tpl_name) {
                     return Err(Error::msg(format!(
                         "Template `{}` loads macros from `{}` which isn't present in Tera",

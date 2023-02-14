@@ -246,7 +246,7 @@ impl<'a> Processor<'a> {
     }
 
     fn render_if_node(&mut self, if_node: &'a If, write: &mut impl Write) -> Result<()> {
-        for &(_, ref expr, ref body) in &if_node.conditions {
+        for (_, expr, body) in &if_node.conditions {
             if self.eval_as_bool(expr)? {
                 return self.render_body(body, write);
             }
@@ -1046,7 +1046,7 @@ impl<'a> Processor<'a> {
                 .get(&name.to_string())
                 .and_then(|b| b.get(*level));
 
-            if let Some(&(ref tpl_name, _)) = block_def {
+            if let Some((tpl_name, _)) = block_def {
                 if tpl_name != &self.template.name {
                     error_location += &format!(" (error happened in '{}').", tpl_name);
                 }
