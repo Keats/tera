@@ -247,7 +247,7 @@ mod tests {
 
         let res = now(&args).unwrap();
         assert!(res.is_string());
-        assert!(res.as_str().unwrap().contains("T"));
+        assert!(res.as_str().unwrap().contains('T'));
     }
 
     #[cfg(feature = "builtins")]
@@ -260,7 +260,7 @@ mod tests {
         assert!(res.is_string());
         let val = res.as_str().unwrap();
         println!("{}", val);
-        assert!(val.contains("T"));
+        assert!(val.contains('T'));
         assert!(val.contains("+00:00"));
     }
 

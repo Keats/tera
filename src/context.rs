@@ -231,7 +231,7 @@ pub fn get_json_pointer(key: &str) -> String {
             .collect();
         segments.join("/")
     } else {
-        ["/", &key.replace(".", "/")].join("")
+        ["/", &key.replace('.', "/")].join("")
     }
 }
 
