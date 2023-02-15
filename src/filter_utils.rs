@@ -22,8 +22,52 @@ impl Ord for OrderedF64 {
 
 impl PartialOrd for OrderedF64 {
     fn partial_cmp(&self, other: &OrderedF64) -> Option<Ordering> {
-        Some(self.0.total_cmp(&other.0))
+        Some(total_cmp(&self.0, &other.0))
     }
+}
+
+/// Return the ordering between `self` and `other` f64.
+///
+/// https://doc.rust-lang.org/std/primitive.f64.html#method.total_cmp
+///
+/// Backported from Rust 1.62 to keep MSRV at 1.56
+///
+/// Unlike the standard partial comparison between floating point numbers,
+/// this comparison always produces an ordering in accordance to
+/// the `totalOrder` predicate as defined in the IEEE 754 (2008 revision)
+/// floating point standard. The values are ordered in the following sequence:
+///
+/// - negative quiet NaN
+/// - negative signaling NaN
+/// - negative infinity
+/// - negative numbers
+/// - negative subnormal numbers
+/// - negative zero
+/// - positive zero
+/// - positive subnormal numbers
+/// - positive numbers
+/// - positive infinity
+/// - positive signaling NaN
+/// - positive quiet NaN.
+///
+/// The ordering established by this function does not always agree with the
+/// [`PartialOrd`] and [`PartialEq`] implementations of `f64`. For example,
+/// they consider negative and positive zero equal, while `total_cmp`
+/// doesn't.
+///
+/// The interpretation of the signaling NaN bit follows the definition in
+/// the IEEE 754 standard, which may not match the interpretation by some of
+/// the older, non-conformant (e.g. MIPS) hardware implementations.
+///
+#[must_use]
+#[inline]
+fn total_cmp(a: &f64, b: &f64) -> Ordering {
+    let mut left = a.to_bits() as i64;
+    let mut right = b.to_bits() as i64;
+    left ^= (((left >> 63) as u64) >> 1) as i64;
+    right ^= (((right >> 63) as u64) >> 1) as i64;
+
+    left.cmp(&right)
 }
 
 #[derive(Default, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
