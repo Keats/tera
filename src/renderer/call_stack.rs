@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde_json::{to_value, Value};
 
-use crate::context::get_json_pointer;
+use crate::context::dotted_pointer;
 use crate::errors::{Error, Result};
 use crate::renderer::for_loop::{ForLoop, ForLoopState};
 use crate::renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
@@ -32,6 +32,12 @@ impl<'a> UserContext<'a> {
         let root = pointer.split('/').nth(1).unwrap().replace("~1", "/").replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
         self.inner.get(&root).and_then(|val| val.pointer(rest))
+    }
+
+    pub fn find_value_by_dotted_pointer(&self, pointer: &'a str) -> Option<&'a Value> {
+        let root = pointer.split('.').nth(1).unwrap().replace("~1", "/").replace("~0", "~");
+        let rest = &pointer[root.len() + 1..];
+        self.inner.get(&root).and_then(|val| dotted_pointer(val, &rest))
     }
 }
 
@@ -104,7 +110,7 @@ impl<'a> CallStack<'a> {
         self.stack.pop().expect("Mistakenly popped Origin frame");
     }
 
-    pub fn lookup(&self, key: &str) -> Option<Val<'a>> {
+    pub fn lookup(&self, key: &'a str) -> Option<Val<'a>> {
         for stack_frame in self.stack.iter().rev() {
             let found = stack_frame.find_value(key);
             if found.is_some() {
@@ -120,10 +126,7 @@ impl<'a> CallStack<'a> {
 
         // Not in stack frame, look in user supplied context
         if key.contains('.') {
-            return self
-                .context
-                .find_value_by_pointer(&get_json_pointer(key))
-                .map(|v| Cow::Borrowed(v));
+            return self.context.find_value_by_dotted_pointer(key).map(|v| Cow::Borrowed(v));
         } else if let Some(value) = self.context.find_value(key) {
             return Some(Cow::Borrowed(value));
         }

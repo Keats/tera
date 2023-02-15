@@ -1,5 +1,5 @@
+use std::collections::BTreeMap;
 use std::io::Write;
-use std::{collections::BTreeMap, iter};
 
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
@@ -218,6 +218,10 @@ impl ValueTruthy for Value {
 
 /// Converts a dotted path to a json pointer one
 #[inline]
+#[deprecated(
+    since = "1.8",
+    note = "`get_json_pointer` converted a dotted pointer to a json pointer, use dotted_pointer for direct lookups of values"
+)]
 pub fn get_json_pointer(key: &str) -> String {
     lazy_static::lazy_static! {
         // Split the key into dot-separated segments, respecting quoted strings as single units
@@ -235,6 +239,32 @@ pub fn get_json_pointer(key: &str) -> String {
         res.push_str(&key.replace('.', "/"));
     }
     res
+}
+
+/// Looksup a dotted path in a json value
+/// contrary to the json slash pointer it's not allowed to begin with a dot
+#[inline]
+pub fn dotted_pointer<'a>(value: &'a Value, pointer: &'a str) -> Option<&'a Value> {
+    if pointer.is_empty() {
+        return Some(value);
+    }
+    pointer.split('.').map(|x| x.replace("~1", "/").replace("~0", "~")).try_fold(
+        value,
+        |target, token| match target {
+            Value::Object(map) => map.get(&token),
+            Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
+            _ => None,
+        },
+    )
+}
+
+/// serde jsons parse_index
+#[inline]
+fn parse_index(s: &str) -> Option<usize> {
+    if s.starts_with('+') || (s.starts_with('0') && s.len() != 1) {
+        return None;
+    }
+    s.parse().ok()
 }
 
 #[cfg(test)]
