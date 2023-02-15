@@ -1,16 +1,14 @@
 use std::collections::HashMap;
+
 use std::fmt;
 use std::fs::File;
+use std::hash::BuildHasherDefault;
 use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
 
 use globwalk::glob_builder;
 
-#[cfg(feature = "fxhash")]
-use rustc_hash::FxHasher;
-#[cfg(feature = "fxhash")]
-use std::hash::BuildHasherDefault;
 
 use crate::ast::Block;
 use crate::builtins::filters::{array, common, number, object, string, Filter};
@@ -23,10 +21,12 @@ use crate::template::Template;
 use crate::utils::escape_html;
 
 
-#[cfg(feature = "fxhash")]
-pub type TeraHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FxHasher>>;
-#[cfg(not(feature = "fxhash"))]
-pub type TeraHashMap<K, V> = HashMap<K, V>;
+#[cfg(feature = "ahash")]
+pub type TeraHashMap<K, V> = HashMap<K, V, BuildHasherDefault<ahash::AHasher>>;
+#[cfg(all(feature = "seahash", not(feature = "ahash")))]
+pub type TeraHashMap<K, V> = HashMap<K, V, BuildHasherDefault<seahash::SeaHasher>>;
+#[cfg(all(not(feature = "seahash"), not(feature = "ahash")))]
+pub type TeraHashMap<K, V> = HashMap<K, V, std::collections::hash_map::RandomState>;
 
 /// Default template name used for `Tera::render_str` and `Tera::one_off`.
 const ONE_OFF_TEMPLATE_NAME: &str = "__tera_one_off";
