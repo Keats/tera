@@ -149,7 +149,7 @@ impl Tera {
                 }
 
                 let filepath = path
-                    .strip_prefix(&parent_dir)
+                    .strip_prefix(parent_dir)
                     .unwrap()
                     .to_string_lossy()
                     // unify on forward slash
@@ -223,7 +223,7 @@ impl Tera {
                         parents.push(parent.name.clone());
                         build_chain(templates, start, parent, parents)
                     }
-                    None => Err(Error::missing_parent(&template.name, &p)),
+                    None => Err(Error::missing_parent(&template.name, p)),
                 },
                 None => Ok(parents),
             }
@@ -354,7 +354,7 @@ impl Tera {
     /// ```
     pub fn render_str(&mut self, input: &str, context: &Context) -> Result<String> {
         self.add_raw_template(ONE_OFF_TEMPLATE_NAME, input)?;
-        let result = self.render(ONE_OFF_TEMPLATE_NAME, &context);
+        let result = self.render(ONE_OFF_TEMPLATE_NAME, context);
         self.templates.remove(ONE_OFF_TEMPLATE_NAME);
         result
     }

@@ -21,9 +21,9 @@ use crate::context::ValueRender;
 // Returns the number of items in an array or an object, or the number of characters in a string.
 pub fn length(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     match value {
-        Value::Array(arr) => Ok(to_value(&arr.len()).unwrap()),
-        Value::Object(m) => Ok(to_value(&m.len()).unwrap()),
-        Value::String(s) => Ok(to_value(&s.chars().count()).unwrap()),
+        Value::Array(arr) => Ok(to_value(arr.len()).unwrap()),
+        Value::Object(m) => Ok(to_value(m.len()).unwrap()),
+        Value::String(s) => Ok(to_value(s.chars().count()).unwrap()),
         _ => Err(Error::msg(
             "Filter `length` was used on a value that isn't an array, an object, or a string.",
         )),
@@ -38,7 +38,7 @@ pub fn reverse(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
             rev.reverse();
             to_value(&rev).map_err(Error::json)
         }
-        Value::String(s) => to_value(&String::from_iter(s.chars().rev())).map_err(Error::json),
+        Value::String(s) => to_value(String::from_iter(s.chars().rev())).map_err(Error::json),
         _ => Err(Error::msg(format!(
             "Filter `reverse` received an incorrect type for arg `value`: \
              got `{}` but expected Array|String",
@@ -205,7 +205,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                     },
                 }
             } else {
-                match NaiveDate::parse_from_str(&s, "%Y-%m-%d") {
+                match NaiveDate::parse_from_str(s, "%Y-%m-%d") {
                     Ok(val) => DateTime::<Utc>::from_utc(
                         val.and_hms_opt(0, 0, 0)
                             .expect("out of bound should not appear, as we set the time to zero"),
@@ -230,7 +230,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         }
     };
 
-    to_value(&formatted.to_string()).map_err(Error::json)
+    to_value(formatted.to_string()).map_err(Error::json)
 }
 
 // Returns the given value as a string.
@@ -252,23 +252,23 @@ mod tests {
     #[test]
     fn as_str_object() {
         let map: HashMap<String, String> = HashMap::new();
-        let result = as_str(&to_value(&map).unwrap(), &HashMap::new());
+        let result = as_str(&to_value(map).unwrap(), &HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&"[object]").unwrap());
+        assert_eq!(result.unwrap(), to_value("[object]").unwrap());
     }
 
     #[test]
     fn as_str_vec() {
-        let result = as_str(&to_value(&vec![1, 2, 3, 4]).unwrap(), &HashMap::new());
+        let result = as_str(&to_value(vec![1, 2, 3, 4]).unwrap(), &HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&"[1, 2, 3, 4]").unwrap());
+        assert_eq!(result.unwrap(), to_value("[1, 2, 3, 4]").unwrap());
     }
 
     #[test]
     fn length_vec() {
-        let result = length(&to_value(&vec![1, 2, 3, 4]).unwrap(), &HashMap::new());
+        let result = length(&to_value(vec![1, 2, 3, 4]).unwrap(), &HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&4).unwrap());
+        assert_eq!(result.unwrap(), to_value(4).unwrap());
     }
 
     #[test]
@@ -277,46 +277,46 @@ mod tests {
         map.insert("foo".to_string(), "bar".to_string());
         let result = length(&to_value(&map).unwrap(), &HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&1).unwrap());
+        assert_eq!(result.unwrap(), to_value(1).unwrap());
     }
 
     #[test]
     fn length_str() {
-        let result = length(&to_value(&"Hello World").unwrap(), &HashMap::new());
+        let result = length(&to_value("Hello World").unwrap(), &HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&11).unwrap());
+        assert_eq!(result.unwrap(), to_value(11).unwrap());
     }
 
     #[test]
     fn length_str_nonascii() {
-        let result = length(&to_value(&"日本語").unwrap(), &HashMap::new());
+        let result = length(&to_value("日本語").unwrap(), &HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&3).unwrap());
+        assert_eq!(result.unwrap(), to_value(3).unwrap());
     }
 
     #[test]
     fn length_num() {
-        let result = length(&to_value(&15).unwrap(), &HashMap::new());
+        let result = length(&to_value(15).unwrap(), &HashMap::new());
         assert!(result.is_err());
     }
 
     #[test]
     fn reverse_vec() {
-        let result = reverse(&to_value(&vec![1, 2, 3, 4]).unwrap(), &HashMap::new());
+        let result = reverse(&to_value(vec![1, 2, 3, 4]).unwrap(), &HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&vec![4, 3, 2, 1]).unwrap());
+        assert_eq!(result.unwrap(), to_value(vec![4, 3, 2, 1]).unwrap());
     }
 
     #[test]
     fn reverse_str() {
-        let result = reverse(&to_value(&"Hello World").unwrap(), &HashMap::new());
+        let result = reverse(&to_value("Hello World").unwrap(), &HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(&"dlroW olleH").unwrap());
+        assert_eq!(result.unwrap(), to_value("dlroW olleH").unwrap());
     }
 
     #[test]
     fn reverse_num() {
-        let result = reverse(&to_value(&1.23).unwrap(), &HashMap::new());
+        let result = reverse(&to_value(1.23).unwrap(), &HashMap::new());
         assert!(result.is_err());
         assert_eq!(
             result.err().unwrap().to_string(),
