@@ -7,6 +7,12 @@ use std::sync::Arc;
 
 use globwalk::glob_builder;
 
+#[cfg(feature = "fxhash")]
+use rustc_hash::FxHasher;
+#[cfg(feature = "fxhash")]
+use std::hash::BuildHasherDefault;
+
+use crate::ast::Block;
 use crate::builtins::filters::{array, common, number, object, string, Filter};
 use crate::builtins::functions::{self, Function};
 use crate::builtins::testers::{self, Test};
@@ -15,6 +21,12 @@ use crate::errors::{Error, Result};
 use crate::renderer::Renderer;
 use crate::template::Template;
 use crate::utils::escape_html;
+
+
+#[cfg(feature = "fxhash")]
+pub type TeraHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FxHasher>>;
+#[cfg(not(feature = "fxhash"))]
+pub type TeraHashMap<K, V> = HashMap<K, V>;
 
 /// Default template name used for `Tera::render_str` and `Tera::one_off`.
 const ONE_OFF_TEMPLATE_NAME: &str = "__tera_one_off";
@@ -29,13 +41,13 @@ pub struct Tera {
     #[doc(hidden)]
     glob: Option<String>,
     #[doc(hidden)]
-    pub templates: HashMap<String, Template>,
+    pub templates: TeraHashMap<String, Template>,
     #[doc(hidden)]
-    pub filters: HashMap<String, Arc<dyn Filter>>,
+    pub filters: TeraHashMap<String, Arc<dyn Filter>>,
     #[doc(hidden)]
-    pub testers: HashMap<String, Arc<dyn Test>>,
+    pub testers: TeraHashMap<String, Arc<dyn Test>>,
     #[doc(hidden)]
-    pub functions: HashMap<String, Arc<dyn Function>>,
+    pub functions: TeraHashMap<String, Arc<dyn Function>>,
     // Which extensions does Tera automatically autoescape on.
     // Defaults to [".html", ".htm", ".xml"]
     #[doc(hidden)]
@@ -55,10 +67,10 @@ impl Tera {
 
         let mut tera = Tera {
             glob: Some(dir.to_string()),
-            templates: HashMap::new(),
-            filters: HashMap::new(),
-            functions: HashMap::new(),
-            testers: HashMap::new(),
+            templates: TeraHashMap::default(),
+            filters: TeraHashMap::default(),
+            functions: TeraHashMap::default(),
+            testers: TeraHashMap::default(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
             escape_fn: escape_html,
         };
@@ -208,7 +220,7 @@ impl Tera {
         // Recursive fn that finds all the parents and put them in an ordered Vec from closest to first parent
         // parent template
         fn build_chain(
-            templates: &HashMap<String, Template>,
+            templates: &TeraHashMap<String, Template>,
             start: &Template,
             template: &Template,
             mut parents: Vec<String>,
@@ -230,8 +242,8 @@ impl Tera {
         }
 
         // TODO: if we can rewrite the 2 loops below to be only one loop, that'd be great
-        let mut tpl_parents = HashMap::new();
-        let mut tpl_block_definitions = HashMap::new();
+        let mut tpl_parents: TeraHashMap<String, Vec<String>> = TeraHashMap::default();
+        let mut tpl_block_definitions: TeraHashMap<String, TeraHashMap<String, Vec<(String, Block)>>> = TeraHashMap::default();
         for (name, template) in &self.templates {
             if template.parent.is_none() && template.blocks.is_empty() {
                 continue;
@@ -239,7 +251,7 @@ impl Tera {
 
             let parents = build_chain(&self.templates, template, template, vec![])?;
 
-            let mut blocks_definitions = HashMap::new();
+            let mut blocks_definitions = TeraHashMap::default();
             for (block_name, def) in &template.blocks {
                 // push our own block first
                 let mut definitions = vec![(template.name.clone(), def.clone())];
@@ -270,7 +282,7 @@ impl Tera {
             };
             template.blocks_definitions = match tpl_block_definitions.remove(&template.name) {
                 Some(blocks) => blocks,
-                None => HashMap::new(),
+                None => TeraHashMap::default(),
             };
         }
 
@@ -754,10 +766,10 @@ impl Default for Tera {
     fn default() -> Tera {
         let mut tera = Tera {
             glob: None,
-            templates: HashMap::new(),
-            filters: HashMap::new(),
-            testers: HashMap::new(),
-            functions: HashMap::new(),
+            templates: TeraHashMap::default(),
+            filters: TeraHashMap::default(),
+            testers: TeraHashMap::default(),
+            functions: TeraHashMap::default(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
             escape_fn: escape_html,
         };

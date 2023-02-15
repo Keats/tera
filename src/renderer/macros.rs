@@ -1,17 +1,16 @@
 use crate::errors::{Error, Result};
 use crate::parser::ast::MacroDefinition;
 use crate::template::Template;
-use crate::tera::Tera;
-use std::collections::HashMap;
+use crate::tera::{Tera, TeraHashMap};
 
 // Types around Macros get complicated, simplify it a bit by using aliases
 
 /// Maps { macro => macro_definition }
-pub type MacroDefinitionMap = HashMap<String, MacroDefinition>;
+pub type MacroDefinitionMap = TeraHashMap<String, MacroDefinition>;
 /// Maps { namespace => ( macro_template, { macro => macro_definition }) }
-pub type MacroNamespaceMap<'a> = HashMap<&'a str, (&'a str, &'a MacroDefinitionMap)>;
+pub type MacroNamespaceMap<'a> = TeraHashMap<&'a str, (&'a str, &'a MacroDefinitionMap)>;
 /// Maps { template => { namespace => ( macro_template, { macro => macro_definition }) }
-pub type MacroTemplateMap<'a> = HashMap<&'a str, MacroNamespaceMap<'a>>;
+pub type MacroTemplateMap<'a> = TeraHashMap<&'a str, MacroNamespaceMap<'a>>;
 
 /// Collection of all macro templates by file
 #[derive(Clone, Debug, Default)]
@@ -21,7 +20,7 @@ pub struct MacroCollection<'a> {
 
 impl<'a> MacroCollection<'a> {
     pub fn from_original_template(tpl: &'a Template, tera: &'a Tera) -> MacroCollection<'a> {
-        let mut macro_collection = MacroCollection { macros: MacroTemplateMap::new() };
+        let mut macro_collection = MacroCollection { macros: MacroTemplateMap::default() };
 
         macro_collection
             .add_macros_from_template(tera, tpl)
@@ -46,7 +45,7 @@ impl<'a> MacroCollection<'a> {
             return Ok(());
         }
 
-        let mut macro_namespace_map = MacroNamespaceMap::new();
+        let mut macro_namespace_map = MacroNamespaceMap::default();
 
         if !template.macros.is_empty() {
             macro_namespace_map.insert("self", (template_name, &template.macros));

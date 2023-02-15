@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use crate::errors::{Error, Result};
 use crate::parser::ast::{Block, MacroDefinition, Node};
 use crate::parser::{parse, remove_whitespace};
+use crate::tera::TeraHashMap;
+
 
 /// This is the parsed equivalent of a template file.
 /// It also does some pre-processing to ensure it does as little as possible at runtime
@@ -21,14 +23,14 @@ pub struct Template {
     pub from_extend: bool,
 
     /// Macros defined in that file: name -> definition ast
-    pub macros: HashMap<String, MacroDefinition>,
+    pub macros: TeraHashMap<String, MacroDefinition>,
     /// (filename, namespace) for the macros imported in that file
     pub imported_macro_files: Vec<(String, String)>,
 
     /// Only used during initial parsing. Rendering will use `self.parents`
     pub parent: Option<String>,
     /// Only used during initial parsing. Rendering will use `self.blocks_definitions`
-    pub blocks: HashMap<String, Block>,
+    pub blocks: TeraHashMap<String, Block>,
 
     // Below are filled when all templates have been parsed so we know the full hierarchy of templates
     /// The full list of parent templates
@@ -39,7 +41,7 @@ pub struct Template {
     /// The type corresponds to the following `block_name -> [(template name, definition)]`
     /// The order of the Vec is from the first in hierarchy to the current template and the template
     /// name is needed in order to load its macros if necessary.
-    pub blocks_definitions: HashMap<String, Vec<(String, Block)>>,
+    pub blocks_definitions: TeraHashMap<String, Vec<(String, Block)>>,
 }
 
 impl Template {
@@ -49,8 +51,9 @@ impl Template {
 
         // First we want all the blocks used in that template
         // This is recursive as we can have blocks inside blocks
-        let mut blocks = HashMap::new();
-        fn find_blocks(ast: &[Node], blocks: &mut HashMap<String, Block>) -> Result<()> {
+
+        let mut blocks = TeraHashMap::default();
+        fn find_blocks(ast: &[Node], blocks: &mut TeraHashMap<String, Block>) -> Result<()> {
             for node in ast {
                 match *node {
                     Node::Block(_, ref block, _) => {
@@ -73,7 +76,7 @@ impl Template {
         find_blocks(&ast, &mut blocks)?;
 
         // And now we find the potential parent and everything macro related (definition, import)
-        let mut macros = HashMap::new();
+        let mut macros = TeraHashMap::default();
         let mut imported_macro_files = vec![];
         let mut parent = None;
 
@@ -105,7 +108,7 @@ impl Template {
             macros,
             imported_macro_files,
             parents: vec![],
-            blocks_definitions: HashMap::new(),
+            blocks_definitions: TeraHashMap::default(),
             from_extend: false,
         })
     }
