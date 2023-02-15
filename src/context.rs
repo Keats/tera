@@ -226,15 +226,17 @@ pub fn get_json_pointer(key: &str) -> String {
     }
 
     if key.find('"').is_some() {
-        let segments: Vec<&str> = iter::once("")
-            .chain(JSON_POINTER_REGEX.find_iter(key).map(|mat| mat.as_str().trim_matches('"')))
-            .collect();
-        segments.join("/")
+        let mut res = String::with_capacity(key.len() + 1);
+        for mat in JSON_POINTER_REGEX.find_iter(key) {
+            res.push('/');
+            res.push_str(mat.as_str().trim_matches('"'));
+        }
+        res
     } else {
-        let mut out = String::with_capacity(key.len() + 1);
-        out.push('/');
-        out.push_str(&key.replace('.', "/"));
-        out
+        let mut res = String::with_capacity(key.len() + 1);
+        res.push('/');
+        res.push_str(&key.replace('.', "/"));
+        res
     }
 }
 
