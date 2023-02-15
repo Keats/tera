@@ -226,6 +226,12 @@ pub fn as_str(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     to_value(value).map_err(Error::json)
 }
 
+/// Prints the passed value to stdout before returning it
+pub fn dbg(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+    println!("{:#?}", value);
+    Ok(value.clone())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

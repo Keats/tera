@@ -607,6 +607,7 @@ impl Tera {
 
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
+        self.register_filter("format", number::format);
 
         #[cfg(feature = "builtins")]
         self.register_filter("filesizeformat", number::filesizeformat);
@@ -617,6 +618,7 @@ impl Tera {
         self.register_filter("date", common::date);
         self.register_filter("json_encode", common::json_encode);
         self.register_filter("as_str", common::as_str);
+        self.register_filter("dbg", common::dbg);
 
         self.register_filter("get", object::get);
     }
