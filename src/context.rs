@@ -224,20 +224,17 @@ pub fn get_json_pointer(key: &str) -> String {
         // to fix https://github.com/Keats/tera/issues/590
         static ref JSON_POINTER_REGEX: regex::Regex = regex::Regex::new(r#""[^"]*"|[^.]+"#).unwrap();
     }
-
+    let mut res = String::with_capacity(key.len() + 1);
     if key.find('"').is_some() {
-        let mut res = String::with_capacity(key.len() + 1);
         for mat in JSON_POINTER_REGEX.find_iter(key) {
             res.push('/');
             res.push_str(mat.as_str().trim_matches('"'));
         }
-        res
     } else {
-        let mut res = String::with_capacity(key.len() + 1);
         res.push('/');
         res.push_str(&key.replace('.', "/"));
-        res
     }
+    res
 }
 
 #[cfg(test)]
