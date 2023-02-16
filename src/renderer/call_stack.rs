@@ -27,15 +27,8 @@ impl<'a> UserContext<'a> {
         self.inner.get(key)
     }
 
-    pub fn find_value_by_pointer(&self, pointer: &str) -> Option<&'a Value> {
-        assert!(pointer.starts_with('/'));
-        let root = pointer.split('/').nth(1).unwrap().replace("~1", "/").replace("~0", "~");
-        let rest = &pointer[root.len() + 1..];
-        self.inner.get(&root).and_then(|val| val.pointer(rest))
-    }
-
     pub fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&'a Value> {
-        let root = pointer.split('.').nth(0).unwrap().replace("~1", "/").replace("~0", "~");
+        let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
         self.inner.get(&root).and_then(|val| dotted_pointer(val, rest))
     }

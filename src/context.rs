@@ -219,7 +219,7 @@ impl ValueTruthy for Value {
 /// Converts a dotted path to a json pointer one
 #[inline]
 #[deprecated(
-    since = "1.8",
+    since = "1.8.0",
     note = "`get_json_pointer` converted a dotted pointer to a json pointer, use dotted_pointer for direct lookups of values"
 )]
 pub fn get_json_pointer(key: &str) -> String {
@@ -244,18 +244,35 @@ pub fn get_json_pointer(key: &str) -> String {
 /// Looksup a dotted path in a json value
 /// contrary to the json slash pointer it's not allowed to begin with a dot
 #[inline]
+#[must_use]
 pub fn dotted_pointer<'a>(value: &'a Value, pointer: &str) -> Option<&'a Value> {
+    lazy_static::lazy_static! {
+        // Split the key into dot-separated segments, respecting quoted strings as single units
+        // to fix https://github.com/Keats/tera/issues/590
+        static ref JSON_POINTER_REGEX: regex::Regex = regex::Regex::new(r#""[^"]*"|[^.]+"#).unwrap();
+    }
     if pointer.is_empty() {
         return Some(value);
     }
-    pointer.split('.').map(|x| x.replace("~1", "/").replace("~0", "~")).try_fold(
-        value,
-        |target, token| match target {
-            Value::Object(map) => map.get(&token),
-            Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
-            _ => None,
-        },
-    )
+    if pointer.find('"').is_none() {
+        return pointer.split('.').map(|x| x.replace("~1", "/").replace("~0", "~")).try_fold(
+            value,
+            |target, token| match target {
+                Value::Object(map) => map.get(&token),
+                Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
+                _ => None,
+            },
+        );
+    } else {
+        JSON_POINTER_REGEX
+            .find_iter(pointer)
+            .map(|mat| mat.as_str().trim_matches('"').replace("~1", "/").replace("~0", "~"))
+            .try_fold(value, |target, token| match target {
+                Value::Object(map) => map.get(&token),
+                Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
+                _ => None,
+            })
+    }
 }
 
 /// serde jsons parse_index
