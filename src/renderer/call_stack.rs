@@ -34,7 +34,7 @@ impl<'a> UserContext<'a> {
         self.inner.get(&root).and_then(|val| val.pointer(rest))
     }
 
-    pub fn find_value_by_dotted_pointer(&self, pointer: &'a str) -> Option<&'a Value> {
+    pub fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&Value> {
         let root = pointer.split('.').nth(1).unwrap().replace("~1", "/").replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
         self.inner.get(&root).and_then(|val| dotted_pointer(val, &rest))
@@ -110,7 +110,7 @@ impl<'a> CallStack<'a> {
         self.stack.pop().expect("Mistakenly popped Origin frame");
     }
 
-    pub fn lookup(&self, key: &'a str) -> Option<Val<'a>> {
+    pub fn lookup(&self, key: &str) -> Option<Val> {
         for stack_frame in self.stack.iter().rev() {
             let found = stack_frame.find_value(key);
             if found.is_some() {

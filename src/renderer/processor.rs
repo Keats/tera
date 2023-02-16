@@ -71,7 +71,7 @@ fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<S
         .replace("]", ""))
 }
 
-fn process_path<'a>(path: &'a str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
+fn process_path<'a>(path: &str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
     if !path.contains('[') {
         match call_stack.lookup(path) {
             Some(v) => Ok(v),
@@ -84,7 +84,7 @@ fn process_path<'a>(path: &'a str, call_stack: &CallStack<'a>) -> Result<Val<'a>
     } else {
         let full_path = evaluate_sub_variables(path, call_stack)?;
 
-        match call_stack.lookup(full_path.as_ref()) {
+        match call_stack.lookup(&full_path) {
             Some(v) => Ok(v),
             None => Err(Error::msg(format!(
                 "Variable `{}` not found in context while rendering '{}': \
@@ -938,7 +938,7 @@ impl<'a> Processor<'a> {
     }
 
     /// Looks up identifier and returns its value
-    fn lookup_ident(&self, key: &'a str) -> Result<Val<'a>> {
+    fn lookup_ident(&self, key: &str) -> Result<Val<'a>> {
         // Magical variable that just dumps the context
         if key == MAGICAL_DUMP_VAR {
             // Unwraps are safe since we are dealing with things that are already Value

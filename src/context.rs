@@ -244,7 +244,7 @@ pub fn get_json_pointer(key: &str) -> String {
 /// Looksup a dotted path in a json value
 /// contrary to the json slash pointer it's not allowed to begin with a dot
 #[inline]
-pub fn dotted_pointer<'a>(value: &'a Value, pointer: &'a str) -> Option<&'a Value> {
+pub fn dotted_pointer<'a>(value: &'a Value, pointer: &str) -> Option<&'a Value> {
     if pointer.is_empty() {
         return Some(value);
     }
