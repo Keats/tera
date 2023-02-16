@@ -34,10 +34,10 @@ impl<'a> UserContext<'a> {
         self.inner.get(&root).and_then(|val| val.pointer(rest))
     }
 
-    pub fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&Value> {
+    pub fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&'a Value> {
         let root = pointer.split('.').nth(1).unwrap().replace("~1", "/").replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
-        self.inner.get(&root).and_then(|val| dotted_pointer(val, &rest))
+        self.inner.get(&root).and_then(|val| dotted_pointer(val, rest))
     }
 }
 
@@ -110,7 +110,7 @@ impl<'a> CallStack<'a> {
         self.stack.pop().expect("Mistakenly popped Origin frame");
     }
 
-    pub fn lookup(&self, key: &str) -> Option<Val> {
+    pub fn lookup(&self, key: &str) -> Option<Val<'a>> {
         for stack_frame in self.stack.iter().rev() {
             let found = stack_frame.find_value(key);
             if found.is_some() {
@@ -126,7 +126,7 @@ impl<'a> CallStack<'a> {
 
         // Not in stack frame, look in user supplied context
         if key.contains('.') {
-            return self.context.find_value_by_dotted_pointer(key).map(|v| Cow::Borrowed(v));
+            return self.context.find_value_by_dotted_pointer(key).map(Cow::Borrowed);
         } else if let Some(value) = self.context.find_value(key) {
             return Some(Cow::Borrowed(value));
         }
