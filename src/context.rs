@@ -255,14 +255,14 @@ pub fn dotted_pointer<'a>(value: &'a Value, pointer: &str) -> Option<&'a Value> 
         return Some(value);
     }
     if pointer.find('"').is_none() {
-        return pointer.split('.').map(|x| x.replace("~1", "/").replace("~0", "~")).try_fold(
+        pointer.split('.').map(|x| x.replace("~1", "/").replace("~0", "~")).try_fold(
             value,
             |target, token| match target {
                 Value::Object(map) => map.get(&token),
                 Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
                 _ => None,
             },
-        );
+        )
     } else {
         JSON_POINTER_REGEX
             .find_iter(pointer)
