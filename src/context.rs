@@ -249,30 +249,19 @@ pub fn dotted_pointer<'a>(value: &'a Value, pointer: &str) -> Option<&'a Value> 
     lazy_static::lazy_static! {
         // Split the key into dot-separated segments, respecting quoted strings as single units
         // to fix https://github.com/Keats/tera/issues/590
-        static ref JSON_POINTER_REGEX: regex::Regex = regex::Regex::new(r#""[^"]*"|[^.]+"#).unwrap();
+        static ref JSON_POINTER_REGEX: regex::Regex = regex::Regex::new(r#""[^"]*"|[^.\[\]]+"#).unwrap();
     }
     if pointer.is_empty() {
         return Some(value);
     }
-    if pointer.find('"').is_none() {
-        pointer.split('.').map(|x| x.replace("~1", "/").replace("~0", "~")).try_fold(
-            value,
-            |target, token| match target {
-                Value::Object(map) => map.get(&token),
-                Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
-                _ => None,
-            },
-        )
-    } else {
-        JSON_POINTER_REGEX
-            .find_iter(pointer)
-            .map(|mat| mat.as_str().trim_matches('"').replace("~1", "/").replace("~0", "~"))
-            .try_fold(value, |target, token| match target {
-                Value::Object(map) => map.get(&token),
-                Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
-                _ => None,
-            })
-    }
+    JSON_POINTER_REGEX
+        .find_iter(pointer)
+        .map(|mat| mat.as_str().trim_matches('"').replace("~1", "/").replace("~0", "~"))
+        .try_fold(value, |target, token| match target {
+            Value::Object(map) => map.get(&token),
+            Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
+            _ => None,
+        })
 }
 
 /// serde jsons parse_index
@@ -292,14 +281,71 @@ mod tests {
     use std::collections::HashMap;
 
     #[test]
-    fn test_get_json_pointer() {
-        assert_eq!(get_json_pointer(""), "/");
-        assert_eq!(get_json_pointer("foo"), "/foo");
-        assert_eq!(get_json_pointer("foo.bar.baz"), "/foo/bar/baz");
-        assert_eq!(get_json_pointer(r#"foo["bar"].baz"#), r#"/foo["bar"]/baz"#);
+    fn test_dotted_pointer() {
+        let data = r#"{
+            "foo": {
+                "bar": {
+                    "goo": {
+                        "moo": {
+                            "cows": [
+                                {
+                                    "name": "betsy",
+                                    "age" : 2,
+                                    "temperament": "calm"
+                                },
+                                {
+                                    "name": "elsie",
+                                    "age": 3,
+                                    "temperament": "calm"
+                                },
+                                {
+                                    "name": "veal",
+                                    "age": 1,
+                                    "temperament": "ornery"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "http://example.com/": {
+                    "goo": {
+                        "moo": {
+                            "cows": [
+                                {
+                                    "name": "betsy",
+                                    "age" : 2,
+                                    "temperament": "calm"
+                                },
+                                {
+                                    "name": "elsie",
+                                    "age": 3,
+                                    "temperament": "calm"
+                                },
+                                {
+                                    "name": "veal",
+                                    "age": 1,
+                                    "temperament": "ornery"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+            }"#;
+
+        let value = serde_json::from_str(data).unwrap();
+
+        assert_eq!(dotted_pointer(&value, ""), Some(&value));
+        assert_eq!(dotted_pointer(&value, "foo"), value.pointer("/foo"));
+        assert_eq!(dotted_pointer(&value, "foo.bar.goo"), value.pointer("/foo/bar/goo"));
+        assert_eq!(dotted_pointer(&value, "skrr"), value.pointer("/skrr"));
         assert_eq!(
-            get_json_pointer(r#"foo["bar"].baz["qux"].blub"#),
-            r#"/foo["bar"]/baz["qux"]/blub"#
+            dotted_pointer(&value, r#"foo["bar"].baz"#),
+            value.pointer(r#"/foo["bar"]/baz"#)
+        );
+        assert_eq!(
+            dotted_pointer(&value, r#"foo["bar"].baz["qux"].blub"#),
+            value.pointer(r#"/foo["bar"]/baz["qux"]/blub"#)
         );
     }
 

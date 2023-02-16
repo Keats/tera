@@ -31,7 +31,7 @@ fn deep_object() -> Value {
                             }
                         },
                         "http://example.com/": {
-                            "bar": {
+                            "goo": {
                                 "moo": {
                                     "cows": [
                                         {
@@ -68,5 +68,5 @@ fn bench_get_dotted_pointer(b: &mut test::Bencher) {
 #[bench]
 fn bench_get_dotted_pointer_with_map(b: &mut test::Bencher) {
     let value = deep_object();
-    b.iter(|| tera::dotted_pointer(&value, "foo[\"http://example.com/\"].bar"))
+    b.iter(|| tera::dotted_pointer(&value, "foo[\"http://example.com/\"].goo"))
 }
