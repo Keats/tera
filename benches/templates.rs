@@ -29,7 +29,7 @@ pub fn big_table(b: &mut test::Bencher) {
     b.iter(|| tera.render("big-table.html", &ctx));
 }
 
-static BIG_TABLE_TEMPLATE: &'static str = "<table>
+static BIG_TABLE_TEMPLATE: &str = "<table>
 {% for row in table %}
 <tr>{% for col in row %}<td>{{ col }}</td>{% endfor %}</tr>
 {% endfor %}
@@ -60,7 +60,7 @@ pub fn teams(b: &mut test::Bencher) {
     b.iter(|| tera.render("teams.html", &ctx));
 }
 
-static TEAMS_TEMPLATE: &'static str = "<html>
+static TEAMS_TEMPLATE: &str = "<html>
   <head>
     <title>{{ year }}</title>
   </head>

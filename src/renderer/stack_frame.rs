@@ -14,8 +14,8 @@ pub type FrameContext<'a> = HashMap<&'a str, Val<'a>>;
 #[inline]
 pub fn value_by_pointer<'a>(pointer: &str, val: &Val<'a>) -> Option<Val<'a>> {
     match *val {
-        Cow::Borrowed(r) => dotted_pointer(&r, pointer).map(|found| Cow::Borrowed(found)),
-        Cow::Owned(ref r) => dotted_pointer(&r, pointer).map(|found| Cow::Owned(found.clone())),
+        Cow::Borrowed(r) => dotted_pointer(r, pointer).map(Cow::Borrowed),
+        Cow::Owned(ref r) => dotted_pointer(r, pointer).map(|found| Cow::Owned(found.clone())),
     }
 }
 

@@ -6,7 +6,7 @@ use tera::{Context, Tera};
 #[global_allocator]
 static GLOBAL: System = System;
 
-static BIG_TABLE_TEMPLATE: &'static str = "<table>
+static BIG_TABLE_TEMPLATE: &str = "<table>
 {% for row in table %}
 <tr>{% for col in row %}<td>{{ col }}</td>{% endfor %}</tr>
 {% endfor %}

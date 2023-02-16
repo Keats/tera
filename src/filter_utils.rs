@@ -2,16 +2,12 @@ use crate::errors::{Error, Result};
 use serde_json::Value;
 use std::cmp::Ordering;
 
-#[derive(PartialEq, PartialOrd, Default, Copy, Clone)]
+#[derive(PartialEq, Default, Copy, Clone)]
 pub struct OrderedF64(f64);
 
 impl OrderedF64 {
-    fn new(n: f64) -> Result<Self> {
-        if n.is_finite() {
-            Ok(OrderedF64(n))
-        } else {
-            Err(Error::msg(format!("{} cannot be sorted", n)))
-        }
+    fn new(n: f64) -> Self {
+        OrderedF64(n)
     }
 }
 
@@ -24,6 +20,56 @@ impl Ord for OrderedF64 {
     }
 }
 
+impl PartialOrd for OrderedF64 {
+    fn partial_cmp(&self, other: &OrderedF64) -> Option<Ordering> {
+        Some(total_cmp(&self.0, &other.0))
+    }
+}
+
+/// Return the ordering between `self` and `other` f64.
+///
+/// https://doc.rust-lang.org/std/primitive.f64.html#method.total_cmp
+///
+/// Backported from Rust 1.62 to keep MSRV at 1.56
+///
+/// Unlike the standard partial comparison between floating point numbers,
+/// this comparison always produces an ordering in accordance to
+/// the `totalOrder` predicate as defined in the IEEE 754 (2008 revision)
+/// floating point standard. The values are ordered in the following sequence:
+///
+/// - negative quiet NaN
+/// - negative signaling NaN
+/// - negative infinity
+/// - negative numbers
+/// - negative subnormal numbers
+/// - negative zero
+/// - positive zero
+/// - positive subnormal numbers
+/// - positive numbers
+/// - positive infinity
+/// - positive signaling NaN
+/// - positive quiet NaN.
+///
+/// The ordering established by this function does not always agree with the
+/// [`PartialOrd`] and [`PartialEq`] implementations of `f64`. For example,
+/// they consider negative and positive zero equal, while `total_cmp`
+/// doesn't.
+///
+/// The interpretation of the signaling NaN bit follows the definition in
+/// the IEEE 754 standard, which may not match the interpretation by some of
+/// the older, non-conformant (e.g. MIPS) hardware implementations.
+///
+#[must_use]
+#[inline]
+fn total_cmp(a: &f64, b: &f64) -> Ordering {
+    let mut left = a.to_bits() as i64;
+    let mut right = b.to_bits() as i64;
+    left ^= (((left >> 63) as u64) >> 1) as i64;
+    right ^= (((right >> 63) as u64) >> 1) as i64;
+
+    left.cmp(&right)
+}
+
 #[derive(Default, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
 pub struct ArrayLen(usize);
 
@@ -34,7 +80,7 @@ pub trait GetValue: Ord + Sized + Clone {
 impl GetValue for OrderedF64 {
     fn get_value(val: &Value) -> Result<Self> {
         let n = val.as_f64().ok_or_else(|| Error::msg(format!("expected number got {}", val)))?;
-        OrderedF64::new(n)
+        Ok(OrderedF64::new(n))
     }
 }
 
@@ -108,10 +154,10 @@ pub fn get_sort_strategy_for_type(ty: &Value) -> Result<Box<dyn SortStrategy>> {
     use crate::Value::*;
     match *ty {
         Null => Err(Error::msg("Null is not a sortable value")),
-        Bool(_) => Ok(Box::new(SortBools::default())),
-        Number(_) => Ok(Box::new(SortNumbers::default())),
-        String(_) => Ok(Box::new(SortStrings::default())),
-        Array(_) => Ok(Box::new(SortArrays::default())),
+        Bool(_) => Ok(Box::<SortBools>::default()),
+        Number(_) => Ok(Box::<SortNumbers>::default()),
+        String(_) => Ok(Box::<SortStrings>::default()),
+        Array(_) => Ok(Box::<SortArrays>::default()),
         Object(_) => Err(Error::msg("Object is not a sortable value")),
     }
 }
@@ -161,12 +207,12 @@ pub fn get_unique_strategy_for_type(
     use crate::Value::*;
     match *ty {
         Null => Err(Error::msg("Null is not a unique value")),
-        Bool(_) => Ok(Box::new(UniqueBools::default())),
+        Bool(_) => Ok(Box::<UniqueBools>::default()),
         Number(ref val) => {
             if val.is_f64() {
                 Err(Error::msg("Unique floats are not implemented"))
             } else {
-                Ok(Box::new(UniqueNumbers::default()))
+                Ok(Box::<UniqueNumbers>::default())
             }
         }
         String(_) => Ok(Box::new(UniqueStrings::new(case_sensitive))),
