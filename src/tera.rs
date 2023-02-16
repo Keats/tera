@@ -149,11 +149,11 @@ impl Tera {
                 }
 
                 let filepath = path
-                    .strip_prefix(&parent_dir)
+                    .strip_prefix(parent_dir)
                     .unwrap()
                     .to_string_lossy()
                     // unify on forward slash
-                    .replace("\\", "/");
+                    .replace('\\', "/");
 
                 if let Err(e) = self.add_file(Some(&filepath), path) {
                     use std::error::Error;
@@ -223,7 +223,7 @@ impl Tera {
                         parents.push(parent.name.clone());
                         build_chain(templates, start, parent, parents)
                     }
-                    None => Err(Error::missing_parent(&template.name, &p)),
+                    None => Err(Error::missing_parent(&template.name, p)),
                 },
                 None => Ok(parents),
             }
@@ -283,7 +283,7 @@ impl Tera {
     /// As with `self::build_inheritance_chains`, you don't usually need to call that yourself.
     pub fn check_macro_files(&self) -> Result<()> {
         for template in self.templates.values() {
-            for &(ref tpl_name, _) in &template.imported_macro_files {
+            for (tpl_name, _) in &template.imported_macro_files {
                 if !self.templates.contains_key(tpl_name) {
                     return Err(Error::msg(format!(
                         "Template `{}` loads macros from `{}` which isn't present in Tera",
@@ -354,7 +354,7 @@ impl Tera {
     /// ```
     pub fn render_str(&mut self, input: &str, context: &Context) -> Result<String> {
         self.add_raw_template(ONE_OFF_TEMPLATE_NAME, input)?;
-        let result = self.render(ONE_OFF_TEMPLATE_NAME, &context);
+        let result = self.render(ONE_OFF_TEMPLATE_NAME, context);
         self.templates.remove(ONE_OFF_TEMPLATE_NAME);
         result
     }

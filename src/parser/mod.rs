@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use lazy_static::lazy_static;
 use pest::iterators::Pair;
-use pest::prec_climber::{Assoc, Operator, PrecClimber};
+use pest::pratt_parser::{Assoc, Op, PrattParser};
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -27,24 +27,19 @@ use self::ast::*;
 pub use self::whitespace::remove_whitespace;
 
 lazy_static! {
-    static ref MATH_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
-        // +, -
-        Operator::new(Rule::op_plus, Assoc::Left) | Operator::new(Rule::op_minus, Assoc::Left),
-        // *, /, %
-        Operator::new(Rule::op_times, Assoc::Left) |
-        Operator::new(Rule::op_slash, Assoc::Left) |
-        Operator::new(Rule::op_modulo, Assoc::Left),
-    ]);
-    static ref COMPARISON_EXPR_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
-        // <, <=, >, >=, ==, !=
-        Operator::new(Rule::op_lt, Assoc::Left) | Operator::new(Rule::op_lte, Assoc::Left)
-        | Operator::new(Rule::op_gt, Assoc::Left) | Operator::new(Rule::op_gte, Assoc::Left)
-        | Operator::new(Rule::op_eq, Assoc::Left) | Operator::new(Rule::op_ineq, Assoc::Left),
-    ]);
-    static ref LOGIC_EXPR_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
-        Operator::new(Rule::op_or, Assoc::Left),
-        Operator::new(Rule::op_and, Assoc::Left),
-    ]);
+    static ref MATH_PARSER: PrattParser<Rule> = PrattParser::new()
+        .op(Op::infix(Rule::op_plus, Assoc::Left) | Op::infix(Rule::op_minus, Assoc::Left)) // +, -
+        .op(Op::infix(Rule::op_times, Assoc::Left)
+            | Op::infix(Rule::op_slash, Assoc::Left)
+            | Op::infix(Rule::op_modulo, Assoc::Left)); // *, /, %
+
+    static ref COMPARISON_EXPR_PARSER: PrattParser<Rule> = PrattParser::new()
+        .op(Op::infix(Rule::op_lt, Assoc::Left) | Op::infix(Rule::op_lte, Assoc::Left) | Op::infix(Rule::op_gt, Assoc::Left)
+            | Op::infix(Rule::op_gte, Assoc::Left)
+            | Op::infix(Rule::op_eq, Assoc::Left)| Op::infix(Rule::op_ineq, Assoc::Left)); // <, <=, >, >=, ==, !=
+
+    static ref LOGIC_EXPR_PARSER: PrattParser<Rule> = PrattParser::new()
+        .op(Op::infix(Rule::op_or, Assoc::Left)).op(Op::infix(Rule::op_and, Assoc::Left));
 }
 
 /// Strings are delimited by double quotes, single quotes and backticks
@@ -222,7 +217,7 @@ fn parse_string_concat(pair: Pair<Rule>) -> TeraResult<ExprVal> {
 }
 
 fn parse_basic_expression(pair: Pair<Rule>) -> TeraResult<ExprVal> {
-    let primary = |pair| parse_basic_expression(pair);
+    let primary = parse_basic_expression;
 
     let infix = |lhs: TeraResult<ExprVal>, op: Pair<Rule>, rhs: TeraResult<ExprVal>| {
         Ok(ExprVal::Math(MathExpr {
@@ -266,7 +261,9 @@ fn parse_basic_expression(pair: Pair<Rule>) -> TeraResult<ExprVal> {
         Rule::fn_call => ExprVal::FunctionCall(parse_fn_call(pair)?),
         Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)?),
         Rule::dotted_square_bracket_ident => ExprVal::Ident(pair.as_str().to_string()),
-        Rule::basic_expr => MATH_CLIMBER.climb(pair.into_inner(), primary, infix)?,
+        Rule::basic_expr => {
+            MATH_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
+        }
         _ => unreachable!("Got {:?} in parse_basic_expression: {}", pair.as_rule(), pair.as_str()),
     };
     Ok(expr)
@@ -362,7 +359,7 @@ fn parse_in_condition(pair: Pair<Rule>) -> TeraResult<Expr> {
 
 /// A basic expression with optional filters with prece
 fn parse_comparison_val(pair: Pair<Rule>) -> TeraResult<Expr> {
-    let primary = |pair| parse_comparison_val(pair);
+    let primary = parse_comparison_val;
 
     let infix = |lhs: TeraResult<Expr>, op: Pair<Rule>, rhs: TeraResult<Expr>| {
         Ok(Expr::new(ExprVal::Math(MathExpr {
@@ -381,14 +378,16 @@ fn parse_comparison_val(pair: Pair<Rule>) -> TeraResult<Expr> {
 
     let expr = match pair.as_rule() {
         Rule::basic_expr_filter => parse_basic_expr_with_filters(pair)?,
-        Rule::comparison_val => MATH_CLIMBER.climb(pair.into_inner(), primary, infix)?,
+        Rule::comparison_val => {
+            MATH_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
+        }
         _ => unreachable!("Got {:?} in parse_comparison_val", pair.as_rule()),
     };
     Ok(expr)
 }
 
 fn parse_comparison_expression(pair: Pair<Rule>) -> TeraResult<Expr> {
-    let primary = |pair| parse_comparison_expression(pair);
+    let primary = parse_comparison_expression;
 
     let infix = |lhs: TeraResult<Expr>, op: Pair<Rule>, rhs: TeraResult<Expr>| {
         Ok(Expr::new(ExprVal::Logic(LogicExpr {
@@ -410,7 +409,7 @@ fn parse_comparison_expression(pair: Pair<Rule>) -> TeraResult<Expr> {
         Rule::comparison_val => parse_comparison_val(pair)?,
         Rule::string_expr_filter => parse_string_expr_with_filters(pair)?,
         Rule::comparison_expr => {
-            COMPARISON_EXPR_CLIMBER.climb(pair.into_inner(), primary, infix)?
+            COMPARISON_EXPR_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
         }
         _ => unreachable!("Got {:?} in parse_comparison_expression", pair.as_rule()),
     };
@@ -438,7 +437,7 @@ fn parse_logic_val(pair: Pair<Rule>) -> TeraResult<Expr> {
 }
 
 fn parse_logic_expr(pair: Pair<Rule>) -> TeraResult<Expr> {
-    let primary = |pair: Pair<Rule>| parse_logic_expr(pair);
+    let primary = parse_logic_expr;
 
     let infix = |lhs: TeraResult<Expr>, op: Pair<Rule>, rhs: TeraResult<Expr>| match op.as_rule() {
         Rule::op_or => Ok(Expr::new(ExprVal::Logic(LogicExpr {
@@ -459,7 +458,9 @@ fn parse_logic_expr(pair: Pair<Rule>) -> TeraResult<Expr> {
 
     let expr = match pair.as_rule() {
         Rule::logic_val => parse_logic_val(pair)?,
-        Rule::logic_expr => LOGIC_EXPR_CLIMBER.climb(pair.into_inner(), primary, infix)?,
+        Rule::logic_expr => {
+            LOGIC_EXPR_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
+        }
         _ => unreachable!("Got {:?} in parse_logic_expr", pair.as_rule()),
     };
     Ok(expr)
@@ -765,7 +766,7 @@ fn parse_macro_arg(p: Pair<Rule>) -> TeraResult<ExprVal> {
             "False" => Some(ExprVal::Bool(false)),
             _ => unreachable!(),
         },
-        Rule::string => Some(ExprVal::String(replace_string_markers(&p.as_str()))),
+        Rule::string => Some(ExprVal::String(replace_string_markers(p.as_str()))),
         _ => unreachable!("Got {:?} in parse_macro_arg: {}", p.as_rule(), p.as_str()),
     };
 

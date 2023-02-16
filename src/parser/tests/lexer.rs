@@ -116,9 +116,9 @@ fn lex_string_concat() {
     let inputs = vec![
         "'hello' ~ `hey`",
         "'hello' ~ 1",
-        "'hello' ~ 3.14",
+        "'hello' ~ 3.18",
         "1 ~ 'hello'",
-        "3.14 ~ 'hello'",
+        "3.18 ~ 'hello'",
         "'hello' ~ ident",
         "ident ~ 'hello'",
         "'hello' ~ ident[0]",

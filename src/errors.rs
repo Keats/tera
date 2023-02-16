@@ -4,6 +4,7 @@ use std::fmt;
 
 /// The kind of an error (non-exhaustive)
 #[derive(Debug)]
+#[allow(clippy::manual_non_exhaustive)] // reason = "we want to stay backwards compatible, therefore we keep the manual implementation of non_exhaustive"
 pub enum ErrorKind {
     /// Generic error
     Msg(String),

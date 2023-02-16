@@ -22,7 +22,7 @@ static MAGICAL_DUMP_VAR: &str = "__tera_context";
 
 /// This will convert a Tera variable to a json pointer if it is possible by replacing
 /// the index with their evaluated stringified value
-fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<String> {
+fn evaluate_sub_variables(key: &str, call_stack: &CallStack) -> Result<String> {
     let sub_vars_to_calc = pull_out_square_bracket(key);
     let mut new_key = key.to_string();
 
@@ -62,13 +62,13 @@ fn evaluate_sub_variables<'a>(key: &str, call_stack: &CallStack<'a>) -> Result<S
     }
 
     Ok(new_key
-        .replace("/", "~1") // https://tools.ietf.org/html/rfc6901#section-3
+        .replace('/', "~1") // https://tools.ietf.org/html/rfc6901#section-3
         .replace("['", ".\"")
         .replace("[\"", ".\"")
-        .replace("[", ".")
+        .replace('[', ".")
         .replace("']", "\"")
         .replace("\"]", "\"")
-        .replace("]", ""))
+        .replace(']', ""))
 }
 
 fn process_path<'a>(path: &str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
@@ -134,14 +134,14 @@ impl<'a> Processor<'a> {
             .map(|parent| tera.get_template(parent).unwrap())
             .unwrap_or(template);
 
-        let call_stack = CallStack::new(&context, template);
+        let call_stack = CallStack::new(context, template);
 
         Processor {
             template,
             template_root,
             tera,
             call_stack,
-            macros: MacroCollection::from_original_template(&template, &tera),
+            macros: MacroCollection::from_original_template(template, tera),
             should_escape,
             blocks: Vec::new(),
         }
@@ -204,10 +204,10 @@ impl<'a> Processor<'a> {
                 }
                 match container_val {
                     Cow::Borrowed(c) => {
-                        ForLoop::from_object(&for_loop.key.as_ref().unwrap(), &for_loop.value, c)
+                        ForLoop::from_object(for_loop.key.as_ref().unwrap(), &for_loop.value, c)
                     }
                     Cow::Owned(c) => ForLoop::from_object_owned(
-                        &for_loop.key.as_ref().unwrap(),
+                        for_loop.key.as_ref().unwrap(),
                         &for_loop.value,
                         c,
                     ),
@@ -223,13 +223,13 @@ impl<'a> Processor<'a> {
 
         let len = for_loop.len();
         match (len, for_loop_empty_body) {
-            (0, Some(empty_body)) => self.render_body(&empty_body, write),
+            (0, Some(empty_body)) => self.render_body(empty_body, write),
             (0, _) => Ok(()),
             (_, _) => {
                 self.call_stack.push_for_loop_frame(for_loop_name, for_loop);
 
                 for _ in 0..len {
-                    self.render_body(&for_loop_body, write)?;
+                    self.render_body(for_loop_body, write)?;
 
                     if self.call_stack.should_break_for_loop() {
                         break;
@@ -246,7 +246,7 @@ impl<'a> Processor<'a> {
     }
 
     fn render_if_node(&mut self, if_node: &'a If, write: &mut impl Write) -> Result<()> {
-        for &(_, ref expr, ref body) in &if_node.conditions {
+        for (_, expr, body) in &if_node.conditions {
             if self.eval_as_bool(expr)? {
                 return self.render_body(body, write);
             }
@@ -356,11 +356,11 @@ impl<'a> Processor<'a> {
                 let mut res = String::new();
                 for s in &str_concat.values {
                     match *s {
-                        ExprVal::String(ref v) => res.push_str(&v),
+                        ExprVal::String(ref v) => res.push_str(v),
                         ExprVal::Int(ref v) => res.push_str(&format!("{}", v)),
                         ExprVal::Float(ref v) => res.push_str(&format!("{}", v)),
                         ExprVal::Ident(ref i) => match *self.lookup_ident(i)? {
-                            Value::String(ref v) => res.push_str(&v),
+                            Value::String(ref v) => res.push_str(v),
                             Value::Number(ref v) => res.push_str(&v.to_string()),
                             _ => return Err(Error::msg(format!(
                                 "Tried to concat a value that is not a string or a number from ident {}",
@@ -368,7 +368,7 @@ impl<'a> Processor<'a> {
                             ))),
                         },
                         ExprVal::FunctionCall(ref fn_call) => match *self.eval_tera_fn_call(fn_call, &mut needs_escape)? {
-                            Value::String(ref v) => res.push_str(&v),
+                            Value::String(ref v) => res.push_str(v),
                             Value::Number(ref v) => res.push_str(&v.to_string()),
                             _ => return Err(Error::msg(format!(
                                 "Tried to concat a value that is not a string or a number from function call {}",
@@ -538,7 +538,7 @@ impl<'a> Processor<'a> {
                     }
                 },
             };
-            frame_context.insert(&arg_name, value);
+            frame_context.insert(arg_name, value);
         }
 
         self.call_stack.push_macro_frame(
@@ -574,7 +574,7 @@ impl<'a> Processor<'a> {
             );
         }
 
-        Ok(Cow::Owned(filter_fn.filter(&value, &args).map_err(err_wrap)?))
+        Ok(Cow::Owned(filter_fn.filter(value, &args).map_err(err_wrap)?))
     }
 
     fn eval_as_bool(&mut self, bool_expr: &'a Expr) -> Result<bool> {
@@ -631,7 +631,7 @@ impl<'a> Processor<'a> {
             }
             ExprVal::Ident(_) => {
                 let mut res = self
-                    .eval_expression(&bool_expr)
+                    .eval_expression(bool_expr)
                     .unwrap_or(Cow::Owned(Value::Bool(false)))
                     .is_truthy();
                 if bool_expr.negated {
@@ -645,7 +645,7 @@ impl<'a> Processor<'a> {
                     None => false,
                 }
             }
-            ExprVal::In(ref in_cond) => self.eval_in_condition(&in_cond)?,
+            ExprVal::In(ref in_cond) => self.eval_in_condition(in_cond)?,
             ExprVal::Test(ref test) => self.eval_test(test)?,
             ExprVal::Bool(val) => val,
             ExprVal::String(ref string) => !string.is_empty(),
@@ -667,7 +667,7 @@ impl<'a> Processor<'a> {
             }
             ExprVal::MacroCall(ref macro_call) => {
                 let mut buf = Vec::new();
-                self.eval_macro_call(&macro_call, &mut buf)?;
+                self.eval_macro_call(macro_call, &mut buf)?;
                 !buf.is_empty()
             }
             _ => unreachable!("unimplemented logic operation for {:?}", bool_expr),
@@ -763,12 +763,10 @@ impl<'a> Processor<'a> {
                         let res = ll / rr;
                         if res.is_nan() {
                             None
+                        } else if res.round() == res && res.is_finite() {
+                            Some(Number::from(res as i64))
                         } else {
-                            if res.round() == res && res.is_finite() {
-                                Some(Number::from(res as i64))
-                            } else {
-                                Number::from_f64(res)
-                            }
+                            Number::from_f64(res)
                         }
                     }
                     MathOperator::Add => {
@@ -995,7 +993,7 @@ impl<'a> Processor<'a> {
                         continue;
                     }
                     let template = template.unwrap();
-                    self.macros.add_macros_from_template(&self.tera, template)?;
+                    self.macros.add_macros_from_template(self.tera, template)?;
                     self.call_stack.push_include_frame(tpl_name, template);
                     self.render_body(&template.ast, write)?;
                     self.call_stack.pop();
@@ -1039,14 +1037,11 @@ impl<'a> Processor<'a> {
         }
 
         // which template are we in?
-        if let Some(&(ref name, ref _template, ref level)) = self.blocks.last() {
-            let block_def = self
-                .template
-                .blocks_definitions
-                .get(&(*name).to_string())
-                .and_then(|b| b.get(*level));
+        if let Some(&(name, _template, ref level)) = self.blocks.last() {
+            let block_def =
+                self.template.blocks_definitions.get(&name.to_string()).and_then(|b| b.get(*level));
 
-            if let Some(&(ref tpl_name, _)) = block_def {
+            if let Some((tpl_name, _)) = block_def {
                 if tpl_name != &self.template.name {
                     error_location += &format!(" (error happened in '{}').", tpl_name);
                 }

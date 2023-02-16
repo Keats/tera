@@ -25,7 +25,7 @@ fn render_tpl(tpl_name: &str) -> Result<String> {
 fn test_error_render_field_unknown() {
     let result = render_tpl("field_unknown.html");
 
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
         "Variable `hey` not found in context while rendering \'field_unknown.html\'"
@@ -36,7 +36,7 @@ fn test_error_render_field_unknown() {
 fn test_error_render_field_unknown_in_forloop() {
     let result = render_tpl("field_unknown_forloop.html");
 
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     let err = result.unwrap_err();
     assert_eq!(
         err.source().unwrap().to_string(),
@@ -48,7 +48,7 @@ fn test_error_render_field_unknown_in_forloop() {
 fn test_error_render_non_math() {
     let result = render_tpl("non_math_operation.html");
 
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
         "Variable `username` was used in a math operation but is not a number"
@@ -58,7 +58,7 @@ fn test_error_render_non_math() {
 #[test]
 fn test_error_render_filter_section_invalid() {
     let result = render_tpl("filter_section_invalid.html");
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     let err = result.unwrap_err();
     let source = err.source().unwrap();
 
@@ -74,7 +74,7 @@ fn test_error_render_filter_section_invalid() {
 fn test_error_render_iterate_non_array() {
     let result = render_tpl("iterate_on_non_array.html");
 
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
         "Tried to iterate on a container (`friend_reviewed`) that has a unsupported type"
@@ -85,7 +85,7 @@ fn test_error_render_iterate_non_array() {
 fn test_error_wrong_args_macros() {
     let result = render_tpl("macro_wrong_args.html");
 
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     assert!(result
         .unwrap_err()
         .source()
@@ -98,7 +98,7 @@ fn test_error_wrong_args_macros() {
 fn test_error_macros_self_inexisting() {
     let result = render_tpl("macro_self_inexisting.html");
 
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
         "Macro `self::inexisting` not found in template `macros.html`"
@@ -109,7 +109,7 @@ fn test_error_macros_self_inexisting() {
 fn test_error_in_child_template_location() {
     let result = render_tpl("error-location/error_in_child.html");
 
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     let errs = result.unwrap_err();
     assert_eq!(errs.to_string(), "Failed to render 'error-location/error_in_child.html'");
 }
@@ -118,7 +118,7 @@ fn test_error_in_child_template_location() {
 fn test_error_in_grandchild_template_location() {
     let result = render_tpl("error-location/error_in_grand_child.html");
 
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     let errs = result.unwrap_err();
     assert_eq!(errs.to_string(), "Failed to render 'error-location/error_in_grand_child.html'");
 }
@@ -127,7 +127,7 @@ fn test_error_in_grandchild_template_location() {
 fn test_error_in_parent_template_location() {
     let result = render_tpl("error-location/error_in_parent.html");
 
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     let errs = result.unwrap_err();
     assert_eq!(
         errs.to_string(),
@@ -139,7 +139,7 @@ fn test_error_in_parent_template_location() {
 fn test_error_in_macro_location() {
     let result = render_tpl("error-location/error_in_macro.html");
 
-    assert_eq!(result.is_err(), true);
+    assert!(result.is_err());
     let errs = result.unwrap_err();
     assert_eq!(
         errs.to_string(),

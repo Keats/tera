@@ -120,10 +120,7 @@ impl<'a> CallStack<'a> {
 
         // Not in stack frame, look in user supplied context
         if key.contains('.') {
-            return self
-                .context
-                .find_value_by_pointer(&get_json_pointer(key))
-                .map(|v| Cow::Borrowed(v));
+            return self.context.find_value_by_pointer(&get_json_pointer(key)).map(Cow::Borrowed);
         } else if let Some(value) = self.context.find_value(key) {
             return Some(Cow::Borrowed(value));
         }
