@@ -1,32 +1,60 @@
 name: Benchmarking
 on:
-  push:
-    branches:
-      - master
+  pull_request:
 
 permissions:
-  contents: write
-  deployments: write
+  contents: read
+  deployments: read
 
 jobs:
   benchmark:
     name: Run Rust benchmark example
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - run: rustup toolchain update
-      - name: Run benchmark
-        run: cargo bench | tee benchmark_output.txt
-      - name: Store benchmark result
+      - uses: actions/checkout@v3
+      - name: Install Rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: stable
+      - name: Build System Info
+        run: rustc --version
+      - name: Run benchmark on mr
+        run: cargo bench | tee benchmark_output_mr.txt
+      - name: Fetch master branch
+        run: |
+          git fetch origin master --depth 1
+          git checkout origin/master
+      - name: Run benchmark on master
+        run: cargo bench | tee benchmark_output_master.txt
+      - name: Parse Master Benchmark
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Rust Benchmark
           tool: 'cargo'
-          output-file-path: benchmark_output.txt
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: true
+          output-file-path: benchmark_output_master.txt
+          # we don't use gh-pages
+          auto-push: false
           # Show alert with commit comment on detecting possible performance regression
-          alert-threshold: '5%'
+          alert-threshold: '30%'
+          comment-always: false
+          comment-on-alert: false
+          fail-on-alert: false
+          save-data-file: true
+          external-data-json-path: benchmark_output.json
+      - name: Parse MR Benchmark and Comment on benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Rust Benchmark
+          tool: 'cargo'
+          output-file-path: benchmark_output_mr.txt
+          # we don't use gh-pages
+          auto-push: false
+          # Show alert with commit comment on detecting possible performance regression
+          alert-threshold: '30%'
+          # GitHub API token to make a commit comment
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-always: true
           comment-on-alert: true
           fail-on-alert: true
-          alert-comment-cc-users: '@keats'
+          save-data-file: true
+          external-data-json-path: benchmark_output.json
