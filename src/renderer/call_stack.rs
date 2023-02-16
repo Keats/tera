@@ -35,7 +35,7 @@ impl<'a> UserContext<'a> {
     }
 
     pub fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&'a Value> {
-        let root = pointer.split('.').nth(1).unwrap().replace("~1", "/").replace("~0", "~");
+        let root = pointer.split('.').nth(0).unwrap().replace("~1", "/").replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
         self.inner.get(&root).and_then(|val| dotted_pointer(val, rest))
     }
