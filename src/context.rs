@@ -241,27 +241,130 @@ pub fn get_json_pointer(key: &str) -> String {
     res
 }
 
+/// following iterator immitates regex::Regex::new(r#""[^"]*"|[^.\[\]]+"#) but also strips `"` and `'`
+struct PointerMachina<'a> {
+    pointer: &'a str,
+    single_quoted: bool,
+    dual_quoted: bool,
+    escaped: bool,
+    last_position: usize,
+}
+
+impl PointerMachina<'_> {
+    fn new(pointer: &str) -> PointerMachina {
+        PointerMachina {
+            pointer,
+            single_quoted: false,
+            dual_quoted: false,
+            escaped: false,
+            last_position: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for PointerMachina<'a> {
+    type Item = &'a str;
+
+    // next() is the only required method
+    fn next(&mut self) -> Option<Self::Item> {
+        let forwarded = &self.pointer[self.last_position..];
+        let mut offset: usize = 0;
+        for (i, character) in forwarded.chars().enumerate() {
+            match character {
+                '"' => {
+                    if !self.escaped {
+                        self.dual_quoted = !self.dual_quoted;
+                        if i == offset {
+                            offset += 1;
+                        } else {
+                            let result =
+                                &self.pointer[self.last_position + offset..self.last_position + i];
+
+                            self.last_position += i + 1; // +1 for skipping this quote
+                            if !result.is_empty() {
+                                return Some(result);
+                            }
+                        }
+                    }
+                }
+                '\'' => {
+                    if !self.escaped {
+                        self.single_quoted = !self.single_quoted;
+                        if i == offset {
+                            offset += 1;
+                        } else {
+                            let result =
+                                &self.pointer[self.last_position + offset..self.last_position + i];
+                            self.last_position += i + 1; // +1 for skipping this quote
+                            if !result.is_empty() {
+                                return Some(result);
+                            }
+                        }
+                    }
+                }
+                '\\' => {
+                    self.escaped = true;
+                    continue;
+                }
+                '[' => {
+                    if !self.single_quoted && !self.dual_quoted && !self.escaped {
+                        let result =
+                            &self.pointer[self.last_position + offset..self.last_position + i];
+                        self.last_position += i + 1;
+                        if !result.is_empty() {
+                            return Some(result);
+                        }
+                    }
+                }
+                ']' => {
+                    if !self.single_quoted && !self.dual_quoted && !self.escaped {
+                        offset += 1;
+                    }
+                }
+                '.' => {
+                    if !self.single_quoted && !self.dual_quoted && !self.escaped {
+                        if i == offset {
+                            offset += 1;
+                        } else {
+                            let result =
+                                &self.pointer[self.last_position + offset..self.last_position + i];
+                            self.last_position += i + 1;
+                            if !result.is_empty() {
+                                return Some(result);
+                            }
+                        }
+                    }
+                }
+                _ => (),
+            }
+            self.escaped = false;
+        }
+        if self.last_position + offset < self.pointer.len() {
+            let result = &self.pointer[self.last_position + offset..];
+            self.last_position = self.pointer.len();
+            return Some(result);
+        }
+        None
+    }
+}
+
 /// Looksup a dotted path in a json value
 /// contrary to the json slash pointer it's not allowed to begin with a dot
 #[inline]
 #[must_use]
 pub fn dotted_pointer<'a>(value: &'a Value, pointer: &str) -> Option<&'a Value> {
-    lazy_static::lazy_static! {
-        // Split the key into dot-separated segments, respecting quoted strings as single units
-        // to fix https://github.com/Keats/tera/issues/590
-        static ref JSON_POINTER_REGEX: regex::Regex = regex::Regex::new(r#""[^"]*"|[^.\[\]]+"#).unwrap();
-    }
     if pointer.is_empty() {
         return Some(value);
     }
-    JSON_POINTER_REGEX
-        .find_iter(pointer)
-        .map(|mat| mat.as_str().trim_matches('"').replace("~1", "/").replace("~0", "~"))
-        .try_fold(value, |target, token| match target {
+
+    PointerMachina::new(pointer).map(|mat| mat.replace("~1", "/").replace("~0", "~")).try_fold(
+        value,
+        |target, token| match target {
             Value::Object(map) => map.get(&token),
             Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
             _ => None,
-        })
+        },
+    )
 }
 
 /// serde jsons parse_index
