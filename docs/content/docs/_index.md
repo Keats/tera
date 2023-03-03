@@ -852,7 +852,7 @@ Example: `{{ value | linebreaksbr }}`
 
 If value is "Hello\r\nworld\n", the output will be "Hello&lt;br&gt;world&lt;br&gt;".
 
-Note that if the template you using it in is automatically escaped, you will
+Note that if the template you are using it in is automatically escaped, you will
 need to call the `safe` filter before `linebreaksbr`.
 
 #### spaceless
@@ -864,7 +864,7 @@ If the value is "&lt;p&gt;\n&lt;a&gt; &lt;/a&gt;\r\n &lt;/p&gt;", the output wil
 
 Note that only whitespace between successive opening tags and successive closing tags is removed.
 
-Also note that if the template you using it in is automatically escaped, you will
+Also note that if the template you are using it in is automatically escaped, you will
 need to call the `safe` filter before `spaceless`.
 
 #### striptags
