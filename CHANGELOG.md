@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.18.0 (2023-03-08)
+
+- Add `abs` filter
+- Add `indent` filter
+- Deprecate `get_json_pointer` in favour of `dotted_pointer`, a faster alternative
+- Always canonicalize glob paths passed to Tera to workaround a globwalk bug
+- Handle apostrophes in title case filter
+- Some performance improvement
+
 ## 1.17.1 (2022-09-19)
 
 - Make `get_random` use isize instead of i32 and bad error message

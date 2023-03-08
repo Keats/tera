@@ -31,6 +31,7 @@ pub use crate::errors::{Error, ErrorKind, Result};
 #[doc(hidden)]
 pub use crate::context::dotted_pointer;
 #[doc(hidden)]
+#[allow(deprecated)]
 pub use crate::context::get_json_pointer;
 #[doc(hidden)]
 pub use crate::template::Template;

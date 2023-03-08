@@ -11,14 +11,12 @@ use crate::errors::{Error, Result};
 pub fn abs(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     if value.as_u64().is_some() {
         Ok(value.clone())
-    } else if let Some(num) = value.as_i64() { 
+    } else if let Some(num) = value.as_i64() {
         Ok(to_value(num.abs()).unwrap())
-    } else if let Some(num) = value.as_f64() { 
+    } else if let Some(num) = value.as_f64() {
         Ok(to_value(num.abs()).unwrap())
     } else {
-        Err(Error::msg(
-            "Filter `abs` was used on a value that isn't a number.",
-        ))
+        Err(Error::msg("Filter `abs` was used on a value that isn't a number."))
     }
 }
 
