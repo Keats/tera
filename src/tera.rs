@@ -150,7 +150,7 @@ impl Tera {
                 }
 
                 let filepath = path
-                    .strip_prefix(parent_dir)
+                    .strip_prefix(&parent_dir)
                     .unwrap()
                     .to_string_lossy()
                     // unify on forward slash

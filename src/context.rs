@@ -348,7 +348,7 @@ impl<'a> Iterator for PointerMachina<'a> {
     }
 }
 
-/// Looksup a dotted path in a json value
+/// Lookups a dotted path in a json value
 /// contrary to the json slash pointer it's not allowed to begin with a dot
 #[inline]
 #[must_use]
