@@ -1,7 +1,7 @@
 /// Filters operating on array
 use std::collections::HashMap;
 
-use crate::context::{get_json_pointer, ValueRender};
+use crate::context::{dotted_pointer, ValueRender};
 use crate::errors::{Error, Result};
 use crate::filter_utils::{get_sort_strategy_for_type, get_unique_strategy_for_type};
 use crate::utils::render_to_string;
@@ -74,18 +74,14 @@ pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Some(val) => try_get_value!("sort", "attribute", String, val),
         None => String::new(),
     };
-    let ptr = match attribute.as_str() {
-        "" => "".to_string(),
-        s => get_json_pointer(s),
-    };
 
-    let first = arr[0].pointer(&ptr).ok_or_else(|| {
+    let first = dotted_pointer(&arr[0], &attribute).ok_or_else(|| {
         Error::msg(format!("attribute '{}' does not reference a field", attribute))
     })?;
 
     let mut strategy = get_sort_strategy_for_type(first)?;
     for v in &arr {
-        let key = v.pointer(&ptr).ok_or_else(|| {
+        let key = dotted_pointer(v, &attribute).ok_or_else(|| {
             Error::msg(format!("attribute '{}' does not reference a field", attribute))
         })?;
         strategy.try_add_pair(v, key)?;
@@ -113,12 +109,8 @@ pub fn unique(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Some(val) => try_get_value!("unique", "attribute", String, val),
         None => String::new(),
     };
-    let ptr = match attribute.as_str() {
-        "" => "".to_string(),
-        s => get_json_pointer(s),
-    };
 
-    let first = arr[0].pointer(&ptr).ok_or_else(|| {
+    let first = dotted_pointer(&arr[0], &attribute).ok_or_else(|| {
         Error::msg(format!("attribute '{}' does not reference a field", attribute))
     })?;
 
@@ -127,7 +119,7 @@ pub fn unique(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     let arr = arr
         .into_iter()
-        .filter_map(|v| match v.pointer(&ptr) {
+        .filter_map(|v| match dotted_pointer(&v, &attribute) {
             Some(key) => {
                 if disc == std::mem::discriminant(key) {
                     match strategy.insert(key) {
@@ -163,10 +155,9 @@ pub fn group_by(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     };
 
     let mut grouped = Map::new();
-    let json_pointer = get_json_pointer(&key);
 
     for val in arr {
-        if let Some(key_val) = val.pointer(&json_pointer).cloned() {
+        if let Some(key_val) = dotted_pointer(&val, &key).cloned() {
             if key_val.is_null() {
                 continue;
             }
@@ -203,11 +194,10 @@ pub fn filter(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     };
     let value = args.get("value").unwrap_or(&Value::Null);
 
-    let json_pointer = get_json_pointer(&key);
     arr = arr
         .into_iter()
         .filter(|v| {
-            let val = v.pointer(&json_pointer).unwrap_or(&Value::Null);
+            let val = dotted_pointer(v, &key).unwrap_or(&Value::Null);
             if value.is_null() {
                 !val.is_null()
             } else {
@@ -232,10 +222,9 @@ pub fn map(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         None => return Err(Error::msg("The `map` filter has to have an `attribute` argument")),
     };
 
-    let json_pointer = get_json_pointer(&attribute);
     let arr = arr
         .into_iter()
-        .filter_map(|v| match v.pointer(&json_pointer) {
+        .filter_map(|v| match dotted_pointer(&v, &attribute) {
             Some(val) if !val.is_null() => Some(val.clone()),
             _ => None,
         })

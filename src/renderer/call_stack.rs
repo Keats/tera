@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde_json::{to_value, Value};
 
-use crate::context::get_json_pointer;
+use crate::context::dotted_pointer;
 use crate::errors::{Error, Result};
 use crate::renderer::for_loop::{ForLoop, ForLoopState};
 use crate::renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
@@ -27,11 +27,10 @@ impl<'a> UserContext<'a> {
         self.inner.get(key)
     }
 
-    pub fn find_value_by_pointer(&self, pointer: &str) -> Option<&'a Value> {
-        assert!(pointer.starts_with('/'));
-        let root = pointer.split('/').nth(1).unwrap().replace("~1", "/").replace("~0", "~");
+    pub fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&'a Value> {
+        let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
-        self.inner.get(&root).and_then(|val| val.pointer(rest))
+        self.inner.get(&root).and_then(|val| dotted_pointer(val, rest))
     }
 }
 
@@ -120,7 +119,7 @@ impl<'a> CallStack<'a> {
 
         // Not in stack frame, look in user supplied context
         if key.contains('.') {
-            return self.context.find_value_by_pointer(&get_json_pointer(key)).map(Cow::Borrowed);
+            return self.context.find_value_by_dotted_pointer(key).map(Cow::Borrowed);
         } else if let Some(value) = self.context.find_value(key) {
             return Some(Cow::Borrowed(value));
         }

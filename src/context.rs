@@ -1,5 +1,5 @@
+use std::collections::BTreeMap;
 use std::io::Write;
-use std::{collections::BTreeMap, iter};
 
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
@@ -218,6 +218,10 @@ impl ValueTruthy for Value {
 
 /// Converts a dotted path to a json pointer one
 #[inline]
+#[deprecated(
+    since = "1.8.0",
+    note = "`get_json_pointer` converted a dotted pointer to a json pointer, use dotted_pointer for direct lookups of values"
+)]
 pub fn get_json_pointer(key: &str) -> String {
     lazy_static::lazy_static! {
         // Split the key into dot-separated segments, respecting quoted strings as single units
@@ -237,6 +241,141 @@ pub fn get_json_pointer(key: &str) -> String {
     res
 }
 
+/// following iterator immitates regex::Regex::new(r#""[^"]*"|[^.\[\]]+"#) but also strips `"` and `'`
+struct PointerMachina<'a> {
+    pointer: &'a str,
+    single_quoted: bool,
+    dual_quoted: bool,
+    escaped: bool,
+    last_position: usize,
+}
+
+impl PointerMachina<'_> {
+    fn new(pointer: &str) -> PointerMachina {
+        PointerMachina {
+            pointer,
+            single_quoted: false,
+            dual_quoted: false,
+            escaped: false,
+            last_position: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for PointerMachina<'a> {
+    type Item = &'a str;
+
+    // next() is the only required method
+    fn next(&mut self) -> Option<Self::Item> {
+        let forwarded = &self.pointer[self.last_position..];
+        let mut offset: usize = 0;
+        for (i, character) in forwarded.chars().enumerate() {
+            match character {
+                '"' => {
+                    if !self.escaped {
+                        self.dual_quoted = !self.dual_quoted;
+                        if i == offset {
+                            offset += 1;
+                        } else {
+                            let result =
+                                &self.pointer[self.last_position + offset..self.last_position + i];
+
+                            self.last_position += i + 1; // +1 for skipping this quote
+                            if !result.is_empty() {
+                                return Some(result);
+                            }
+                        }
+                    }
+                }
+                '\'' => {
+                    if !self.escaped {
+                        self.single_quoted = !self.single_quoted;
+                        if i == offset {
+                            offset += 1;
+                        } else {
+                            let result =
+                                &self.pointer[self.last_position + offset..self.last_position + i];
+                            self.last_position += i + 1; // +1 for skipping this quote
+                            if !result.is_empty() {
+                                return Some(result);
+                            }
+                        }
+                    }
+                }
+                '\\' => {
+                    self.escaped = true;
+                    continue;
+                }
+                '[' => {
+                    if !self.single_quoted && !self.dual_quoted && !self.escaped {
+                        let result =
+                            &self.pointer[self.last_position + offset..self.last_position + i];
+                        self.last_position += i + 1;
+                        if !result.is_empty() {
+                            return Some(result);
+                        }
+                    }
+                }
+                ']' => {
+                    if !self.single_quoted && !self.dual_quoted && !self.escaped {
+                        offset += 1;
+                    }
+                }
+                '.' => {
+                    if !self.single_quoted && !self.dual_quoted && !self.escaped {
+                        if i == offset {
+                            offset += 1;
+                        } else {
+                            let result =
+                                &self.pointer[self.last_position + offset..self.last_position + i];
+                            self.last_position += i + 1;
+                            if !result.is_empty() {
+                                return Some(result);
+                            }
+                        }
+                    }
+                }
+                _ => (),
+            }
+            self.escaped = false;
+        }
+        if self.last_position + offset < self.pointer.len() {
+            let result = &self.pointer[self.last_position + offset..];
+            self.last_position = self.pointer.len();
+            return Some(result);
+        }
+        None
+    }
+}
+
+/// Looksup a dotted path in a json value
+/// contrary to the json slash pointer it's not allowed to begin with a dot
+#[inline]
+#[must_use]
+pub fn dotted_pointer<'a>(value: &'a Value, pointer: &str) -> Option<&'a Value> {
+    if pointer.is_empty() {
+        return Some(value);
+    }
+
+    PointerMachina::new(pointer).map(|mat| mat.replace("~1", "/").replace("~0", "~")).try_fold(
+        value,
+        |target, token| match target {
+            Value::Object(map) => map.get(&token),
+            Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
+            _ => None,
+        },
+    )
+}
+
+/// serde jsons parse_index
+#[inline]
+fn parse_index(s: &str) -> Option<usize> {
+    if s.starts_with('+') || (s.starts_with('0') && s.len() != 1) {
+        return None;
+    }
+    s.parse().ok()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -245,14 +384,71 @@ mod tests {
     use std::collections::HashMap;
 
     #[test]
-    fn test_get_json_pointer() {
-        assert_eq!(get_json_pointer(""), "/");
-        assert_eq!(get_json_pointer("foo"), "/foo");
-        assert_eq!(get_json_pointer("foo.bar.baz"), "/foo/bar/baz");
-        assert_eq!(get_json_pointer(r#"foo["bar"].baz"#), r#"/foo["bar"]/baz"#);
+    fn test_dotted_pointer() {
+        let data = r#"{
+            "foo": {
+                "bar": {
+                    "goo": {
+                        "moo": {
+                            "cows": [
+                                {
+                                    "name": "betsy",
+                                    "age" : 2,
+                                    "temperament": "calm"
+                                },
+                                {
+                                    "name": "elsie",
+                                    "age": 3,
+                                    "temperament": "calm"
+                                },
+                                {
+                                    "name": "veal",
+                                    "age": 1,
+                                    "temperament": "ornery"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "http://example.com/": {
+                    "goo": {
+                        "moo": {
+                            "cows": [
+                                {
+                                    "name": "betsy",
+                                    "age" : 2,
+                                    "temperament": "calm"
+                                },
+                                {
+                                    "name": "elsie",
+                                    "age": 3,
+                                    "temperament": "calm"
+                                },
+                                {
+                                    "name": "veal",
+                                    "age": 1,
+                                    "temperament": "ornery"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+            }"#;
+
+        let value = serde_json::from_str(data).unwrap();
+
+        assert_eq!(dotted_pointer(&value, ""), Some(&value));
+        assert_eq!(dotted_pointer(&value, "foo"), value.pointer("/foo"));
+        assert_eq!(dotted_pointer(&value, "foo.bar.goo"), value.pointer("/foo/bar/goo"));
+        assert_eq!(dotted_pointer(&value, "skrr"), value.pointer("/skrr"));
         assert_eq!(
-            get_json_pointer(r#"foo["bar"].baz["qux"].blub"#),
-            r#"/foo["bar"]/baz["qux"]/blub"#
+            dotted_pointer(&value, r#"foo["bar"].baz"#),
+            value.pointer(r#"/foo["bar"]/baz"#)
+        );
+        assert_eq!(
+            dotted_pointer(&value, r#"foo["bar"].baz["qux"].blub"#),
+            value.pointer(r#"/foo["bar"]/baz["qux"]/blub"#)
         );
     }
 

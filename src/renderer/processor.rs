@@ -84,7 +84,7 @@ fn process_path<'a>(path: &str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
     } else {
         let full_path = evaluate_sub_variables(path, call_stack)?;
 
-        match call_stack.lookup(full_path.as_ref()) {
+        match call_stack.lookup(&full_path) {
             Some(v) => Ok(v),
             None => Err(Error::msg(format!(
                 "Variable `{}` not found in context while rendering '{}': \

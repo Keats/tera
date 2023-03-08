@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::context::get_json_pointer;
+use crate::context::dotted_pointer;
 use crate::renderer::for_loop::ForLoop;
 use crate::template::Template;
 
@@ -14,10 +14,8 @@ pub type FrameContext<'a> = HashMap<&'a str, Val<'a>>;
 #[inline]
 pub fn value_by_pointer<'a>(pointer: &str, val: &Val<'a>) -> Option<Val<'a>> {
     match *val {
-        Cow::Borrowed(r) => r.pointer(&get_json_pointer(pointer)).map(Cow::Borrowed),
-        Cow::Owned(ref r) => {
-            r.pointer(&get_json_pointer(pointer)).map(|found| Cow::Owned(found.clone()))
-        }
+        Cow::Borrowed(r) => dotted_pointer(r, pointer).map(Cow::Borrowed),
+        Cow::Owned(ref r) => dotted_pointer(r, pointer).map(|found| Cow::Owned(found.clone())),
     }
 }
 
