@@ -7,6 +7,21 @@ use serde_json::value::{to_value, Value};
 
 use crate::errors::{Error, Result};
 
+/// Returns the absolute value of the argument.
+pub fn abs(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
+    if value.as_u64().is_some() {
+        Ok(value.clone())
+    } else if let Some(num) = value.as_i64() { 
+        Ok(to_value(num.abs()).unwrap())
+    } else if let Some(num) = value.as_f64() { 
+        Ok(to_value(num.abs()).unwrap())
+    } else {
+        Err(Error::msg(
+            "Filter `abs` was used on a value that isn't a number.",
+        ))
+    }
+}
+
 /// Returns a plural suffix if the value is not equal to ±1, or a singular
 /// suffix otherwise. The plural suffix defaults to `s` and the singular suffix
 /// defaults to the empty string (i.e nothing).
@@ -77,6 +92,37 @@ mod tests {
     use super::*;
     use serde_json::value::to_value;
     use std::collections::HashMap;
+
+    #[test]
+    fn test_abs_unsigend() {
+        let result = abs(&to_value(1).unwrap(), &HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(1).unwrap());
+    }
+
+    #[test]
+    fn test_abs_negative_integer() {
+        let result = abs(&to_value(-1).unwrap(), &HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(1).unwrap());
+    }
+
+    #[test]
+    fn test_abs_negative_float() {
+        let result = abs(&to_value(-1.0).unwrap(), &HashMap::new());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(1.0).unwrap());
+    }
+
+    #[test]
+    fn test_abs_non_number() {
+        let result = abs(&to_value("nan").unwrap(), &HashMap::new());
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Filter `abs` was used on a value that isn't a number."
+        );
+    }
 
     #[test]
     fn test_pluralize_single() {
