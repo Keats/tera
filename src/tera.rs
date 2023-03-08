@@ -111,9 +111,11 @@ impl Tera {
 
     /// Loads all the templates found in the glob that was given to Tera::new
     fn load_from_glob(&mut self) -> Result<()> {
-        if self.glob.is_none() {
-            return Err(Error::msg("Tera can only load from glob if a glob is provided"));
-        }
+        let glob = match &self.glob {
+            Some(g) => g,
+            None => return Err(Error::msg("Tera can only load from glob if a glob is provided")),
+        };
+
         // We want to preserve templates that have been added through
         // Tera::extend so we only keep those
         self.templates = self
@@ -125,14 +127,13 @@ impl Tera {
 
         let mut errors = String::new();
 
-        let dir = self.glob.clone().unwrap();
-        // We clean the filename by removing the dir given
-        // to Tera so users don't have to prefix everytime
-        let mut parent_dir = dir.split_at(dir.find('*').unwrap()).0;
-        // Remove `./` from the glob if used as it would cause an error in strip_prefix
-        if parent_dir.starts_with("./") {
-            parent_dir = &parent_dir[2..];
-        }
+        // Need to canonicalize the glob path because globwalk always returns
+        // an empty list for paths starting with `./` or `../`.
+        // See https://github.com/Keats/tera/issues/574 for the Tera discussion
+        // and https://github.com/Gilnaa/globwalk/issues/28 for the upstream issue.
+        let (parent_dir, glob_end) = glob.split_at(glob.find('*').unwrap());
+        let parent_dir = std::fs::canonicalize(parent_dir).unwrap();
+        let dir = parent_dir.join(glob_end).into_os_string().into_string().unwrap();
 
         // We are parsing all the templates on instantiation
         for entry in glob_builder(&dir)
@@ -1133,6 +1134,36 @@ mod tests {
         File::create(cwd.join("ho.html")).expect("Failed to create a test file");
         let glob = cwd.join("**").join("*.html").into_os_string().into_string().unwrap();
         let tera = Tera::new(&glob).expect("Couldn't build Tera instance");
+        assert_eq!(tera.templates.len(), 2);
+    }
+
+    // Test for https://github.com/Keats/tera/issues/574
+    #[test]
+    fn glob_work_with_paths_starting_with_dots() {
+        use std::path::PathBuf;
+
+        let this_dir = std::env::current_dir()
+            .expect("Could not retrieve the executable's current directory.");
+
+        let scratch_dir = tempfile::Builder::new()
+            .prefix("tera_test_scratchspace")
+            .tempdir_in(&this_dir)
+            .expect(&format!(
+                "Could not create temporary directory for test in current directory ({}).",
+                this_dir.display()
+            ));
+        dbg!(&scratch_dir.path().display());
+
+        File::create(scratch_dir.path().join("hey.html")).expect("Failed to create a test file");
+        File::create(scratch_dir.path().join("ho.html")).expect("Failed to create a test file");
+        let glob = PathBuf::from("./")
+            .join(scratch_dir.path().file_name().unwrap())
+            .join("**")
+            .join("*.html")
+            .into_os_string()
+            .into_string()
+            .unwrap();
+        let tera = Tera::new(&glob).expect("Couldn't build Tera instance.");
         assert_eq!(tera.templates.len(), 2);
     }
 
