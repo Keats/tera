@@ -262,6 +262,57 @@ pub fn linebreaksbr(value: &Value, _: &HashMap<String, Value>) -> Result<Value> 
     Ok(to_value(s.replace("\r\n", "<br>").replace('\n', "<br>")).unwrap())
 }
 
+/// Indents a string by the specified width.
+///
+/// # Arguments
+///
+/// * `value`   - The string to indent.
+/// * `args`    - A set of key/value arguments that can take the following
+///   keys.
+/// * `prefix`  - The prefix used for indentation. The default value is 4 spaces.
+/// * `first`  - True indents the first line.  The default is false.
+/// * `blank`  - True indents blank lines.  The default is false.
+///
+pub fn indent(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("indent", "value", String, value);
+
+    let prefix = match args.get("prefix") {
+        Some(p) => try_get_value!("indent", "prefix", String, p),
+        None => "    ".to_string(),
+    };
+    let first = match args.get("first") {
+        Some(f) => try_get_value!("indent", "first", bool, f),
+        None => false,
+    };
+    let blank = match args.get("blank") {
+        Some(b) => try_get_value!("indent", "blank", bool, b),
+        None => false,
+    };
+
+    // Attempt to pre-allocate enough space to prevent additional allocations/copies
+    let mut out = String::with_capacity(
+        s.len() + (prefix.len() * (s.chars().filter(|&c| c == '\n').count() + 1)),
+    );
+    let mut first_pass = true;
+
+    for line in s.lines() {
+        if first_pass {
+            if first {
+                out.push_str(&prefix);
+            }
+            first_pass = false;
+        } else {
+            out.push('\n');
+            if blank || !line.trim_start().is_empty() {
+                out.push_str(&prefix);
+            }
+        }
+        out.push_str(line);
+    }
+
+    Ok(to_value(&out).unwrap())
+}
+
 /// Removes html tags from string
 pub fn striptags(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("striptags", "value", String, value);
@@ -669,6 +720,25 @@ mod tests {
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
+    }
+
+    #[test]
+    fn test_indent_defaults() {
+        let args = HashMap::new();
+        let result = indent(&to_value("one\n\ntwo\nthree").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("one\n\n    two\n    three").unwrap());
+    }
+
+    #[test]
+    fn test_indent_args() {
+        let mut args = HashMap::new();
+        args.insert("first".to_string(), to_value(true).unwrap());
+        args.insert("prefix".to_string(), to_value(" ").unwrap());
+        args.insert("blank".to_string(), to_value(true).unwrap());
+        let result = indent(&to_value("one\n\ntwo\nthree").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(" one\n \n two\n three").unwrap());
     }
 
     #[test]

@@ -867,6 +867,9 @@ Note that only whitespace between successive opening tags and successive closing
 Also note that if the template you are using it in is automatically escaped, you will
 need to call the `safe` filter after `spaceless`.
 
+#### indent
+Indents a string by injecting a prefix at the start of each line.  The `prefix` argument (default 4 spaces) specifies the prefix to insert per line.  If the `first` argument (default false) is set true spaces are inserted for the first line.  If the `blank` argument (default false) is set true spaces are inserted for blank/whitespace lines.
+
 #### striptags
 Tries to remove HTML tags from input. Does not guarantee well formed output if input is not valid HTML.
 
