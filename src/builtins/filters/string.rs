@@ -61,7 +61,7 @@ const PYTHON_ENCODE_SET: &AsciiSet = &USERINFO_ENCODE_SET
 
 lazy_static! {
     static ref STRIPTAGS_RE: Regex = Regex::new(r"(<!--.*?-->|<[^>]*>)").unwrap();
-    static ref WORDS_RE: Regex = Regex::new(r"\b(?P<first>\w)(?P<rest>\w*)\b").unwrap();
+    static ref WORDS_RE: Regex = Regex::new(r"\b(?P<first>[\w'])(?P<rest>[\w']*)\b").unwrap();
     static ref SPACELESS_RE: Regex = Regex::new(r">\s+<").unwrap();
 }
 
@@ -662,6 +662,7 @@ mod tests {
             ("\tfoo\tbar\t", "\tFoo\tBar\t"),
             ("foo bar ", "Foo Bar "),
             ("foo bar\t", "Foo Bar\t"),
+            ("foo's bar", "Foo's Bar"),
         ];
         for (input, expected) in tests {
             let result = title(&to_value(input).unwrap(), &HashMap::new());
