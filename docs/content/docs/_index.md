@@ -852,8 +852,8 @@ Example: `{{ value | linebreaksbr }}`
 
 If value is "Hello\r\nworld\n", the output will be "Hello&lt;br&gt;world&lt;br&gt;".
 
-Note that if the template you using it in is automatically escaped, you will
-need to call the `safe` filter before `linebreaksbr`.
+Note that if the template you are using it in is automatically escaped, you will
+need to call the `safe` filter after `linebreaksbr`.
 
 #### spaceless
 Remove space (` `) and line breaks (`\n` or `\r\n`) between HTML tags
@@ -864,8 +864,8 @@ If the value is "&lt;p&gt;\n&lt;a&gt; &lt;/a&gt;\r\n &lt;/p&gt;", the output wil
 
 Note that only whitespace between successive opening tags and successive closing tags is removed.
 
-Also note that if the template you using it in is automatically escaped, you will
-need to call the `safe` filter before `spaceless`.
+Also note that if the template you are using it in is automatically escaped, you will
+need to call the `safe` filter after `spaceless`.
 
 #### striptags
 Tries to remove HTML tags from input. Does not guarantee well formed output if input is not valid HTML.
@@ -875,7 +875,7 @@ Example: `{{ value | striptags }}`
 If value is "&lt;b&gt;Joel&lt;/b&gt;", the output will be "Joel".
 
 Note that if the template you are using it in is automatically escaped, you will need to call the `safe` filter
-before `striptags`.
+after `striptags`.
 
 #### first
 Returns the first element of an array.
