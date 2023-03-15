@@ -132,7 +132,7 @@ impl Tera {
         // See https://github.com/Keats/tera/issues/574 for the Tera discussion
         // and https://github.com/Gilnaa/globwalk/issues/28 for the upstream issue.
         let (parent_dir, glob_end) = glob.split_at(glob.find('*').unwrap());
-        let parent_dir = std::fs::canonicalize(parent_dir).unwrap();
+        let parent_dir = std::fs::canonicalize(parent_dir)?;
         let dir = parent_dir.join(glob_end).into_os_string().into_string().unwrap();
 
         // We are parsing all the templates on instantiation
@@ -1218,5 +1218,13 @@ mod tests {
                 assert!(res.is_err());
             }
         }
+    }
+
+    // https://github.com/Keats/tera/issues/819
+    #[test]
+    fn doesnt_panic_on_invalid_glob() {
+        let tera = Tera::new("\\dev/null/*");
+        println!("{:?}", tera);
+        assert!(tera.is_err());
     }
 }
