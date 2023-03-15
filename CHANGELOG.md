@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.18.1 (2023-03-15)
+
+- Fix panic on invalid globs to Tera::new
+
 ## 1.18.0 (2023-03-08)
 
 - Add `abs` filter
