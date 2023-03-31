@@ -636,7 +636,6 @@ You can also provide a list of templates that are checked for existence before i
 ### Macros
 
 Think of macros as functions or components that you can call and return some text.
-Macros currently need to be defined in a separate file and imported to be useable.
 
 They are defined as follows:
 
@@ -650,7 +649,7 @@ They are defined as follows:
 ```
 As shown in the example above, macro arguments can have a default [literal](@/docs/_index.md#literals) value.
 
-In order to use them, you need to import the file containing the macros:
+If a macro is defined in a separate file, you need to import the file containing the macros:
 
 ```jinja2
 {% import "macros.html" as macros %}
