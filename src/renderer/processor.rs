@@ -1012,10 +1012,8 @@ impl<'a> Processor<'a> {
                     name
                 )));
             }
-            // TODO: make that a compile time error
-            Node::MacroDefinition(_, ref def, _) => {
-                return Err(Error::invalid_macro_def(&def.name));
-            }
+            // Macro definitions are ignored when rendering
+            Node::MacroDefinition(_, _, _) => (),
         };
 
         Ok(())

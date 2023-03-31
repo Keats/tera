@@ -21,6 +21,19 @@ fn render_macros() {
 }
 
 #[test]
+fn render_macros_defined_in_template() {
+    let mut tera = Tera::default();
+    tera.add_raw_templates(vec![
+        ("tpl", "{% macro hello()%}Hello{% endmacro hello %}{% block hey %}{{self::hello()}}{% endblock hey %}"),
+    ])
+        .unwrap();
+
+    let result = tera.render("tpl", &Context::new());
+
+    assert_eq!(result.unwrap(), "Hello".to_string());
+}
+
+#[test]
 fn render_macros_expression_arg() {
     let mut context = Context::new();
     context.insert("pages", &vec![1, 2, 3, 4, 5]);
