@@ -204,32 +204,6 @@ fn right_variable_name_is_needed_in_for_loop() {
     );
 }
 
-// https://github.com/Keats/tera/issues/370#issuecomment-453893826
-#[test]
-fn errors_when_calling_macros_defined_in_file() {
-    let mut tera = Tera::default();
-    tera.add_raw_template(
-        "tpl",
-        r#"
-{% macro path_item(path) %}
-    <span class="path" title="{{ path }}">{{ path }}</span>
-{% endmacro path_item %}
-
-...
-
-<td>{{ self::path_item(path=hello) }}</td>
-        "#,
-    )
-    .unwrap();
-    let mut context = Context::new();
-    context.insert("hello", &true);
-    let result = tera.render("tpl", &context);
-    assert_eq!(
-        result.unwrap_err().source().unwrap().to_string(),
-        "Invalid macro definition: `path_item`"
-    );
-}
-
 // https://github.com/Keats/tera/issues/385
 // https://github.com/Keats/tera/issues/370
 #[test]

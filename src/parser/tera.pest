@@ -286,7 +286,6 @@ content = @{
     comment_tag |
     set_tag |
     set_global_tag |
-    macro_definition |
     block |
     content_if |
     forloop |
@@ -316,6 +315,6 @@ template = ${
     SOI
     ~ comment_tag*
     ~ top_imports?
-    ~ content*
+    ~ (content | macro_definition)* // macro_definition must be top-level
     ~ EOI
 }
