@@ -14,13 +14,13 @@ jobs:
         build: [pinned, stable, nightly, macos, win-msvc]
         include:
         - build: pinned
-          os: ubuntu-18.04
+          os: ubuntu-latest
           rust: 1.56.0
         - build: stable
-          os: ubuntu-18.04
+          os: ubuntu-latest
           rust: stable
         - build: nightly
-          os: ubuntu-18.04
+          os: ubuntu-latest
           rust: nightly
         - build: macos
           os: macOS-latest
