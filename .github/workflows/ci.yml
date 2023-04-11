@@ -29,7 +29,7 @@ jobs:
           os: windows-2019
           rust: stable
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     - name: Install Rust
       uses: hecrj/setup-rust-action@v1
       with:
@@ -47,7 +47,7 @@ jobs:
     name: wasm
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
