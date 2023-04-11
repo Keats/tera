@@ -31,9 +31,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install Rust
-      uses: hecrj/setup-rust-action@v1
+      uses: dtolnay/rust-toolchain@master
       with:
-        rust-version: ${{ matrix.rust }}
+        toolchain: ${{ matrix.rust }}
     - name: Build System Info
       run: rustc --version
     - name: tests with default feature
