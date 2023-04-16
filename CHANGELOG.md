@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.19.0 (2023-04-16)
+
+- Revert change to glob path to not error if the path doesn't exist
+- Allow macro definition in renderable template
+
 ## 1.18.1 (2023-03-15)
 
 - Fix panic on invalid globs to Tera::new
