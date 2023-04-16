@@ -1055,7 +1055,6 @@ fn parse_content(pair: Pair<Rule>) -> TeraResult<Vec<Node>> {
             Rule::set_global_tag => nodes.push(parse_set_tag(p, true)?),
             Rule::raw => nodes.push(parse_raw_tag(p)),
             Rule::variable_tag => nodes.push(parse_variable_tag(p)?),
-            Rule::macro_definition => nodes.push(parse_macro_definition(p)?),
             Rule::forloop => nodes.push(parse_forloop(p)?),
             Rule::break_tag => nodes.push(parse_break_tag(p)),
             Rule::continue_tag => nodes.push(parse_continue_tag(p)),
@@ -1130,7 +1129,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::test_not => "a negated test".to_string(),
                     Rule::test_call => "a test call".to_string(),
                     Rule::test_arg => "a test argument (any expressions including arrays)".to_string(),
-                    Rule::test_args => "a list of test arguments (any expression including arrayss)".to_string(),
+                    Rule::test_args => "a list of test arguments (any expression including arrays)".to_string(),
                     Rule::macro_fn | Rule::macro_fn_wrapper => "a macro function".to_string(),
                     Rule::macro_call => "a macro function call".to_string(),
                     Rule::macro_def_arg => {
@@ -1177,7 +1176,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     | Rule::macro_if
                     | Rule::for_if
                     | Rule::filter_section_if => {
-                        "a `if` tag".to_string()
+                        "an `if` tag".to_string()
                     }
                     Rule::elif_tag => "an `elif` tag".to_string(),
                     Rule::else_tag => "an `else` tag".to_string(),
@@ -1214,6 +1213,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
             Rule::extends_tag => nodes.push(parse_extends(p)),
             Rule::import_macro_tag => nodes.push(parse_import_macro(p)),
             Rule::content => nodes.extend(parse_content(p)?),
+            Rule::macro_definition => nodes.push(parse_macro_definition(p)?),
             Rule::comment_tag => (),
             Rule::EOI => (),
             _ => unreachable!("unknown tpl rule: {:?}", p.as_rule()),

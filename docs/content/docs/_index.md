@@ -636,7 +636,6 @@ You can also provide a list of templates that are checked for existence before i
 ### Macros
 
 Think of macros as functions or components that you can call and return some text.
-Macros currently need to be defined in a separate file and imported to be useable.
 
 They are defined as follows:
 
@@ -650,7 +649,7 @@ They are defined as follows:
 ```
 As shown in the example above, macro arguments can have a default [literal](@/docs/_index.md#literals) value.
 
-In order to use them, you need to import the file containing the macros:
+If a macro is defined in a separate file, you need to import the file containing the macros:
 
 ```jinja2
 {% import "macros.html" as macros %}
@@ -663,8 +662,9 @@ A macro is called like this:
 {{ macros::input(label="Name", type="text") }}
 ```
 Do note that macros, like filters, require keyword arguments.
-If you are trying to call a macro defined in the same file or itself, you will need to use the `self` namespace.
-The `self` namespace can only be used in macros.
+Use the `self` namespace when calling a macro defined in the same file. Macros must be defined top-level (they cannot be nested in an if, for, etc.) and should only reference arguments, not template variables directly.
+
+
 Macros can be called recursively but there is no limit to recursion so make sure your macro ends.
 
 Here's an example of a recursive macro:

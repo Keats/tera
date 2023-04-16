@@ -102,6 +102,19 @@ fn invalid_macro_content() {
 }
 
 #[test]
+fn invalid_macro_not_toplevel() {
+    assert_err_msg(
+        r#"
+{% if val %}
+    {% macro input(label, type) %}
+    {% endmacro input %}
+{% endif %}
+    "#,
+        &["3:5", "unexpected tag; expected an `elif` tag, an `else` tag, an endif tag (`{% endif %}`), or some content"],
+    );
+}
+
+#[test]
 fn invalid_macro_default_arg_value() {
     assert_err_msg(
         r#"
@@ -145,7 +158,7 @@ fn invalid_extends_position() {
 hello
 {% extends "hey.html" %}
     "#,
-        &["3:1", "unexpected tag; expected end of input or some content"],
+        &["3:1", "unexpected tag; expected end of input, a macro definition tag (`{% macro my_macro() %}`, or some content"],
     );
 }
 
