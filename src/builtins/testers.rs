@@ -49,7 +49,7 @@ pub fn value_defined(tester_name: &str, value: Option<&Value>) -> Result<()> {
     Ok(())
 }
 
-/// Helper function to extract string from an Option<Value> to remove boilerplate
+/// Helper function to extract string from an [`Option<Value>`] to remove boilerplate
 /// with tester error handling
 pub fn extract_string<'a>(
     tester_name: &str,

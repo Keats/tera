@@ -1,10 +1,60 @@
 #![doc(html_root_url = "https://docs.rs/tera")]
-
 //! # Tera
-//! Tera is a template engine based on [Jinja2](http://jinja.pocoo.org/)
-//! and the [Django template language](https://docs.djangoproject.com/en/3.1/topics/templates/).
 //!
-//! See the [site](https://tera.netlify.com) for features and to get started.
+//! A powerful, fast and easy-to-use template engine for Rust
+//!
+//! This crate provides an implementation of the Tera template engine, which is designed for use in
+//! Rust applications. Inspired by [Jinja2] and [Django] templates, Tera provides a familiar and
+//! expressive syntax for creating dynamic HTML, XML, and other text-based documents. It supports
+//! template inheritance, variable interpolation, conditionals, loops, filters, and custom
+//! functions, enabling developers to build complex applications with ease.
+//!
+//! See the [site](https://tera.netlify.com) for more information and to get started.
+//!
+//! ## Features
+//!
+//! - High-performance template rendering
+//! - Safe and sandboxed execution environment
+//! - Template inheritance and includes
+//! - Expressive and familiar syntax
+//! - Extensible with custom filters and functions
+//! - Automatic escaping of HTML/XML by default
+//! - Strict mode for enforcing variable existence
+//! - Template caching and auto-reloading for efficient development
+//! - Built-in support for JSON and other data formats
+//! - Comprehensive error messages and debugging information
+//!
+//! ## Example
+//!
+//! ```rust
+//! use tera::Tera;
+//!
+//! // Create a new Tera instance and add a template from a string
+//! let mut tera = Tera::new("templates/**/*").unwrap();
+//! tera.add_raw_template("hello", "Hello, {{ name }}!").unwrap();
+//! // Prepare the context with some data
+//! let mut context = tera::Context::new();
+//! context.insert("name", "World");
+//!
+//! // Render the template with the given context
+//! let rendered = tera.render("hello", &context).unwrap();
+//! assert_eq!(rendered, "Hello, World!");
+//! ```
+//!
+//! ## Getting Started
+//!
+//! Add the following to your Cargo.toml file:
+//!
+//! ```toml
+//! [dependencies]
+//! tera = "1.0"
+//! ```
+//!
+//! Then, consult the official documentation and examples to learn more about using Tera in your
+//! Rust projects.
+//!
+//! [Jinja2]: http://jinja.pocoo.org/
+//! [Django]: https://docs.djangoproject.com/en/3.1/topics/templates/
 
 #![deny(missing_docs)]
 
@@ -37,8 +87,8 @@ pub use crate::context::get_json_pointer;
 pub use crate::template::Template;
 pub use crate::tera::Tera;
 pub use crate::utils::escape_html;
-/// Re-export Value and other useful things from serde
-/// so apps/tools can encode data in Tera types
+// Re-export Value and other useful things from serde
+// so apps/tools can encode data in Tera types
 pub use serde_json::value::{from_value, to_value, Map, Number, Value};
 
 // Exposes the AST if one needs it but changing the AST is not considered

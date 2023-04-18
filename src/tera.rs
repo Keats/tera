@@ -22,7 +22,41 @@ const ONE_OFF_TEMPLATE_NAME: &str = "__tera_one_off";
 /// The escape function type definition
 pub type EscapeFn = fn(&str) -> String;
 
-/// The main point of interaction in this library.
+/// Main point of interaction in this library.
+///
+/// The [`Tera`] struct is the primary interface for working with the Tera template engine. It contains parsed templates, registered filters (which can filter
+/// data), functions, and testers. It also contains some configuration options, such as a list of
+/// suffixes for files that have autoescaping turned on.
+///
+/// It is responsible for:
+///
+/// - Loading and managing templates from files or strings
+/// - Parsing templates and checking for syntax errors
+/// - Maintaining a cache of compiled templates for efficient rendering
+/// - Providing an interface for rendering templates with given contexts
+/// - Managing template inheritance and includes
+/// - Handling custom filters and functions
+/// - Overriding settings, such as autoescape rules
+///
+/// # Example
+///
+/// Basic usage:
+///
+/// ```
+/// use tera::Tera;
+///
+/// // Create a new Tera instance and add a template from a string
+/// let mut tera = Tera::new("templates/**/*").unwrap();
+/// tera.add_raw_template("hello", "Hello, {{ name }}!").unwrap();
+///
+/// // Prepare the context with some data
+/// let mut context = tera::Context::new();
+/// context.insert("name", "World");
+///
+/// // Render the template with the given context
+/// let rendered = tera.render("hello", &context).unwrap();
+/// assert_eq!(rendered, "Hello, World!");
+/// ```
 #[derive(Clone)]
 pub struct Tera {
     // The glob used in `Tera::new`, None if Tera was instantiated differently
@@ -74,42 +108,57 @@ impl Tera {
         Ok(tera)
     }
 
-    /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
+    /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob.
     ///
-    ///```no_compile
-    ///match Tera::new("templates/**/*") {
-    ///    Ok(t) => t,
-    ///    Err(e) => {
-    ///        println!("Parsing error(s): {}", e);
-    ///        ::std::process::exit(1);
-    ///    }
-    ///}
-    ///```
+    /// A glob is a pattern for matching multiple file paths, employing special characters such as
+    /// the single asterisk (`*`) to match any sequence of characters within a single directory
+    /// level, and the double asterisk (`**`) to match any sequence of characters across multiple
+    /// directory levels, thereby providing a flexible and concise way to select files based on
+    /// their names, extensions, or hierarchical relationships. For example, the glob pattern
+    /// `templates/*.html` will match all files with the `.html` extension located directly inside
+    /// the `templates` folder, while the glob pattern `templates/**/*.html` will match all files
+    /// with the `.html` extension directly inside or in a subdirectory of `templates`.
+    ///
+    /// In order to create an empty [`Tera`] instance, you can use the [`Default`] implementation.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```no_run
+    /// # use tera::Tera;
+    /// let tera = Tera::new("examples/basic/templates/**/*").unwrap();
+    /// ```
     pub fn new(dir: &str) -> Result<Tera> {
         Self::create(dir, false)
     }
 
-    /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob
-    /// The difference with `Tera::new` is that it won't build the inheritance chains automatically
-    /// so you are free to modify the templates if you need to.
-    /// You will NOT get a working Tera instance using `Tera::parse`, you will need to call
-    /// `tera.build_inheritance_chains()` to make it usable
+    /// Create a new instance of Tera, containing all the parsed templates found in the `dir` glob.
     ///
-    ///```no_compile
-    ///let mut tera = match Tera::parse("templates/**/*") {
-    ///    Ok(t) => t,
-    ///    Err(e) => {
-    ///        println!("Parsing error(s): {}", e);
-    ///        ::std::process::exit(1);
-    ///    }
-    ///};
-    ///tera.build_inheritance_chains()?;
-    ///```
+    /// The difference to [`Tera::new`] is that it won't build the inheritance chains
+    /// automatically, so you are free to modify the templates if you need to.
+    ///
+    /// # Inheritance Chains
+    ///
+    /// You will *not* get a working Tera instance using this method. You will need to call
+    /// [`build_inheritance_chains()`](Tera::build_inheritance_chains) to make it usable.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```no_run
+    /// # use tera::Tera;
+    /// let mut tera = Tera::parse("examples/basic/templates/**/*").unwrap();
+    ///
+    /// // do not forget to build the inheritance chains
+    /// tera.build_inheritance_chains().unwrap();
+    /// ```
     pub fn parse(dir: &str) -> Result<Tera> {
         Self::create(dir, true)
     }
 
-    /// Loads all the templates found in the glob that was given to Tera::new
+    /// Loads all the templates found in the glob that was given to [`Tera::new`].
     fn load_from_glob(&mut self) -> Result<()> {
         let glob = match &self.glob {
             Some(g) => g,
@@ -203,14 +252,15 @@ impl Tera {
         Ok(())
     }
 
-    /// We need to know the hierarchy of templates to be able to render multiple extends level
-    /// This happens at compile-time to avoid checking it every time we want to render a template
-    /// This also checks for soundness issues in the inheritance chains, such as missing template or
-    /// circular extends.
-    /// It also builds the block inheritance chain and detects when super() is called in a place
-    /// where it can't possibly work
+    /// Build inheritance chains for loaded templates.
     ///
-    /// You generally don't need to call that yourself, unless you used `Tera::parse`
+    /// We need to know the hierarchy of templates to be able to render multiple extends level.
+    /// This happens at compile-time to avoid checking it every time we want to render a template.
+    /// This also checks for soundness issues in the inheritance chains, such as missing template
+    /// or circular extends.  It also builds the block inheritance chain and detects when super()
+    /// is called in a place where it can't possibly work
+    ///
+    /// You generally don't need to call that yourself, unless you used [`Tera::parse()`].
     pub fn build_inheritance_chains(&mut self) -> Result<()> {
         // Recursive fn that finds all the parents and put them in an ordered Vec from closest to first parent
         // parent template
@@ -287,7 +337,7 @@ impl Tera {
     /// We keep track of macro files loaded in each Template so we can know whether one or them
     /// is missing and error accordingly before the user tries to render a template.
     ///
-    /// As with `self::build_inheritance_chains`, you don't usually need to call that yourself.
+    /// As with [`build_inheritance_chains()`](Self::build_inheritance_chains), you don't usually need to call that yourself.
     pub fn check_macro_files(&self) -> Result<()> {
         for template in self.templates.values() {
             for (tpl_name, _) in &template.imported_macro_files {
@@ -303,17 +353,38 @@ impl Tera {
         Ok(())
     }
 
-    /// Renders a Tera template given a `tera::Context`,
+    /// Renders a Tera template given a [`Context`].
     ///
-    /// To render a template with an empty context, simply pass a new `tera::Context` object
+    /// # Examples
     ///
-    /// ```no_compile
-    /// // Rendering a template with a normal context
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use tera::{Tera, Context};
+    /// // Create new tera instance with sample template
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template("info", "My age is {{ age }}.");
+    ///
+    /// // Create new context
     /// let mut context = Context::new();
-    /// context.insert("age", 18);
-    /// tera.render("hello.html", context);
-    /// // Rendering a template with an empty context
-    /// let output = tera.render("hello.html", Context::new());
+    /// context.insert("age", &18);
+    ///
+    /// // Render template using the context
+    /// let output = tera.render("info", &context).unwrap();
+    /// assert_eq!(output, "My age is 18.");
+    /// ```
+    ///
+    /// To render a template with an empty context, simply pass an empty [`Context`] object.
+    ///
+    /// ```
+    /// # use tera::{Tera, Context};
+    /// // Create new tera instance with demo template
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template("hello.html", "<h1>Hello</h1>");
+    ///
+    /// // Render a template with an empty context
+    /// let output = tera.render("hello.html", &Context::new()).unwrap();
+    /// assert_eq!(output, "<h1>Hello</h1>");
     /// ```
     pub fn render(&self, template_name: &str, context: &Context) -> Result<String> {
         let template = self.get_template(template_name)?;
@@ -321,19 +392,29 @@ impl Tera {
         renderer.render()
     }
 
-    /// Renders a Tera template given a `tera::Context` to a [std::io::Write],
+    /// Renders a Tera template given a [`Context`] to something that implements [`Write`].
     ///
-    /// The only difference from [Self::render] is that this version doesn't convert buffer to a String,
-    /// allowing to render directly to anything that implements [std::io::Write].
+    /// The only difference from [`render()`](Self::render) is that this version doesn't convert
+    /// buffer to a String, allowing to render directly to anything that implements [`Write`]. For
+    /// example, this could be used to write directly to a [`File`](std::fs::File).
     ///
-    /// Any i/o error will be reported in the result.
+    /// Any I/O error will be reported in the result.
     ///
-    /// ```no_compile
+    /// # Examples
+    ///
+    /// Rendering into a `Vec<u8>`:
+    ///
+    /// ```
+    /// # use tera::{Context, Tera};
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template("index.html", "<p>{{ name }}</p>");
+    ///
     /// // Rendering a template to an internal buffer
     /// let mut buffer = Vec::new();
     /// let mut context = Context::new();
-    /// context.insert("age", 18);
-    /// tera.render_to("hello.html", context, &mut buffer);
+    /// context.insert("name", "John Wick");
+    /// tera.render_to("index.html", &context, &mut buffer).unwrap();
+    /// assert_eq!(buffer, b"<p>John Wick</p>");
     /// ```
     pub fn render_to(
         &self,
@@ -419,14 +500,24 @@ impl Tera {
         self.templates.keys().map(|s| s.as_str())
     }
 
-    /// Add a single template to the Tera instance
+    /// Add a single template to the Tera instance.
     ///
     /// This will error if the inheritance chain can't be built, such as adding a child
     /// template without the parent one.
-    /// If you want to add several templates, use [Tera::add_templates](struct.Tera.html#method.add_raw_templates)
     ///
-    /// ```no_compile
-    /// tera.add_raw_template("new.html", "Blabla");
+    /// # Bulk loading
+    ///
+    /// If you want to add several templates, use
+    /// [`add_raw_templates()`](Tera::add_raw_templates).
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use tera::Tera;
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template("new.html", "Blabla").unwrap();
     /// ```
     pub fn add_raw_template(&mut self, name: &str, content: &str) -> Result<()> {
         let tpl = Template::new(name, None, content)
@@ -472,11 +563,13 @@ impl Tera {
     /// template without the parent one.
     /// If you want to add several file, use [Tera::add_template_files](struct.Tera.html#method.add_template_files)
     ///
-    /// ```no_compile
+    /// ```
+    /// # use tera::Tera;
+    /// let mut tera = Tera::default();
+    /// // Rename template with custom name
+    /// tera.add_template_file("examples/basic/templates/macros.html", Some("macros.html")).unwrap();
     /// // Use path as name
-    /// tera.add_template_file(path, None);
-    /// // Rename
-    /// tera.add_template_file(path, Some("index"));
+    /// tera.add_template_file("examples/basic/templates/base.html", None).unwrap();
     /// ```
     pub fn add_template_file<P: AsRef<Path>>(&mut self, path: P, name: Option<&str>) -> Result<()> {
         self.add_file(name, path)?;
@@ -485,16 +578,20 @@ impl Tera {
         Ok(())
     }
 
-    /// Add several templates from paths to the Tera instance. The default name for the template is
-    /// the path given, but this can be renamed with the second parameter of the tuple
+    /// Add several templates from paths to the Tera instance.
+    ///
+    /// The default name for the template is the path given, but this can be renamed with the
+    /// second parameter of the tuple
     ///
     /// This will error if the inheritance chain can't be built, such as adding a child
     /// template without the parent one.
     ///
-    /// ```no_compile
+    /// ```no_run
+    /// # use tera::Tera;
+    /// let mut tera = Tera::default();
     /// tera.add_template_files(vec![
-    ///     (path1, None), // this template will have the value of path1 as name
-    ///     (path2, Some("hey")), // this template will have `hey` as name
+    ///     ("./path/to/template.tera", None), // this template will have the value of path1 as name
+    ///     ("./path/to/other.tera", Some("hey")), // this template will have `hey` as name
     /// ]);
     /// ```
     pub fn add_template_files<I, P, N>(&mut self, files: I) -> Result<()>
@@ -562,7 +659,8 @@ impl Tera {
 
     /// Register a function with Tera.
     ///
-    /// If a function with that name already exists, it will be overwritten
+    /// This registers an arbitrary function to make it callable from within a template. If a
+    /// function with that name already exists, it will be overwritten.
     ///
     /// ```no_compile
     /// tera.register_function("range", range);
@@ -656,18 +754,23 @@ impl Tera {
         self.register_function("get_env", functions::get_env);
     }
 
-    /// Select which suffix(es) to automatically do HTML escaping on,
-    ///`[".html", ".htm", ".xml"]` by default.
+    /// Select which suffix(es) to automatically do HTML escaping on.
     ///
-    /// Only call this function if you wish to change the defaults.
+    /// By default, autoescaping is performed on `.html`, `.htm` and `.xml` template files. Only
+    /// call this function if you wish to change the defaults.
     ///
+    /// # Examples
     ///
-    ///```no_compile
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use tera::Tera;
+    /// let mut tera = Tera::default();
     /// // escape only files ending with `.php.html`
     /// tera.autoescape_on(vec![".php.html"]);
     /// // disable autoescaping completely
     /// tera.autoescape_on(vec![]);
-    ///```
+    /// ```
     pub fn autoescape_on(&mut self, suffixes: Vec<&'static str>) {
         self.autoescape_suffixes = suffixes;
     }
@@ -678,35 +781,59 @@ impl Tera {
         &self.escape_fn
     }
 
-    /// Set user-defined function which applied to a rendered content.
+    /// Set user-defined function that is used to escape content.
     ///
-    ///```no_compile
-    /// fn escape_c_string(input: &str) -> String { ... }
+    /// Often times, arbitrary data needs to be injected into a template without allowing injection
+    /// attacks. For this reason, typically escaping is performed on all input. By default, the
+    /// escaping function will produce HTML escapes, but it can be overridden to produce escapes
+    /// more appropriate to the language being used.
     ///
-    /// // make valid C string literal
-    /// tera.set_escape_fn(escape_c_string);
-    /// tera.add_raw_template("foo", "\"{{ content }}\"").unwrap();
-    /// tera.autoescape_on(vec!["foo"]);
+    /// Inside templates, escaping can be turned off for specific content using the `safe` filter.
+    /// For example, the string `{{ data }}` inside a template will escape data, while `{{ data |
+    /// safe }}` will not.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use tera::{Tera, Context};
+    /// // Create new Tera instance
+    /// let mut tera = Tera::default();
+    ///
+    /// // Override escape function
+    /// tera.set_escape_fn(|input| {
+    ///     input.escape_default().collect()
+    /// });
+    ///
+    /// // Create template and enable autoescape
+    /// tera.add_raw_template("hello.js", "const data = \"{{ content }}\";").unwrap();
+    /// tera.autoescape_on(vec!["js"]);
+    ///
+    /// // Create context with some data
     /// let mut context = Context::new();
     /// context.insert("content", &"Hello\n\'world\"!");
-    /// let result = tera.render("foo", &context).unwrap();
-    /// assert_eq!(result, r#""Hello\n\'world\"!""#);
-    ///```
+    ///
+    /// // Render template
+    /// let result = tera.render("hello.js", &context).unwrap();
+    /// assert_eq!(result, r#"const data = "Hello\n\'world\"!";"#);
+    /// ```
     pub fn set_escape_fn(&mut self, function: EscapeFn) {
         self.escape_fn = function;
     }
 
-    /// Reset escape function to default `tera::escape_html`.
+    /// Reset escape function to default [`escape_html()`].
     pub fn reset_escape_fn(&mut self) {
         self.escape_fn = escape_html;
     }
 
-    /// Re-parse all templates found in the glob given to Tera
+    /// Re-parse all templates found in the glob given to Tera.
+    ///
     /// Use this when you are watching a directory and want to reload everything,
     /// for example when a file is added.
     ///
     /// If you are adding templates without using a glob, we can't know when a template
-    /// is deleted, which would result in an error if we are trying to reload that file
+    /// is deleted, which would result in an error if we are trying to reload that file.
     pub fn full_reload(&mut self) -> Result<()> {
         if self.glob.is_some() {
             self.load_from_glob()?;
@@ -718,6 +845,9 @@ impl Tera {
         self.check_macro_files()
     }
 
+    /// Extend this [`Tera`] instance with the templates, filters, testers and functions defined in
+    /// another instance.
+    ///
     /// Use that method when you want to add a given Tera instance templates/filters/testers/functions
     /// to your own. If a template/filter/tester/function with the same name already exists in your instance,
     /// it will not be overwritten.
