@@ -154,7 +154,7 @@ tera.add_raw_templates(vec![
     ("parent", "{% extends \"grandparent\" %}{% block hey %}Parent{% endblock hey %}"),
 ])?;
 ```
-If some templates are related, for example one extending the other, you will need to the `add_raw_templates` method
+If some templates are related, for example one extending the other, you will need to use the `add_raw_templates` method
 as Tera will error if it find inconsistencies such as extending a template that Tera doesn't know about.
 
 ### Render a one off template
