@@ -8,20 +8,22 @@ use crate::errors::{Error, Result};
 use crate::renderer::for_loop::{ForLoop, ForLoopState};
 use crate::renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
 use crate::template::Template;
-use crate::Context;
 
 /// Contains the stack of frames
 #[derive(Debug)]
-pub struct CallStack<'a> {
+pub struct CallStack<'a, C: ContextProvider + Clone> {
     /// The stack of frames
     stack: Vec<StackFrame<'a>>,
     /// User supplied context for the render
-    context: &'a Context,
+    context: &'a C,
 }
 
-impl<'a> CallStack<'a> {
+impl<'a, C> CallStack<'a, C>
+where
+    C: ContextProvider + Clone,
+{
     /// Create the initial call stack
-    pub fn new(context: &'a Context, template: &'a Template) -> CallStack<'a> {
+    pub fn new(context: &'a C, template: &'a Template) -> CallStack<'a, C> {
         CallStack { stack: vec![StackFrame::new(FrameType::Origin, "ORIGIN", template)], context }
     }
 
