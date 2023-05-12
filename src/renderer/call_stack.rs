@@ -10,27 +10,20 @@ use crate::renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
 use crate::template::Template;
 use crate::Context;
 
-/// Contains the user data and allows no mutation
-#[derive(Debug)]
-pub struct UserContext<'a> {
-    /// Read-only context
-    inner: &'a Context,
+pub trait ContextProvider {
+    fn find_value(&self, key: &str) -> Option<&Value>;
+    fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&Value>;
 }
 
-impl<'a> UserContext<'a> {
-    /// Create an immutable user context to be used in the call stack
-    pub fn new(context: &'a Context) -> Self {
-        UserContext { inner: context }
+impl ContextProvider for Context {
+    fn find_value(&self, key: &str) -> Option<&Value> {
+        self.get(key)
     }
 
-    pub fn find_value(&self, key: &str) -> Option<&'a Value> {
-        self.inner.get(key)
-    }
-
-    pub fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&'a Value> {
+    fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&Value> {
         let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
-        self.inner.get(&root).and_then(|val| dotted_pointer(val, rest))
+        self.get(&root).and_then(|val| dotted_pointer(val, rest))
     }
 }
 
@@ -40,16 +33,13 @@ pub struct CallStack<'a> {
     /// The stack of frames
     stack: Vec<StackFrame<'a>>,
     /// User supplied context for the render
-    context: UserContext<'a>,
+    context: &'a Context,
 }
 
 impl<'a> CallStack<'a> {
     /// Create the initial call stack
     pub fn new(context: &'a Context, template: &'a Template) -> CallStack<'a> {
-        CallStack {
-            stack: vec![StackFrame::new(FrameType::Origin, "ORIGIN", template)],
-            context: UserContext::new(context),
-        }
+        CallStack { stack: vec![StackFrame::new(FrameType::Origin, "ORIGIN", template)], context }
     }
 
     pub fn push_for_loop_frame(&mut self, name: &'a str, for_loop: ForLoop<'a>) {
@@ -221,7 +211,7 @@ impl<'a> CallStack<'a> {
         // If we are here we take the user context
         // and add the values found in the stack to it.
         // We do it this way as we can override global variable temporarily in forloops
-        let mut new_ctx = self.context.inner.clone();
+        let mut new_ctx = self.context.clone();
         for (key, val) in context {
             new_ctx.insert(key, &val)
         }
