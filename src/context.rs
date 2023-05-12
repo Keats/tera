@@ -6,16 +6,26 @@ use serde_json::value::{to_value, Map, Value};
 
 use crate::errors::{Error, Result as TeraResult};
 
+/// The interface trait of a Context towards Tera
+///
+/// Implement this if you want to provide your own custom context implementation.
 pub trait ContextProvider {
+    /// Converts the `val` parameter to `Value` and insert it into the context.
+    ///
+    /// Panics if the serialization fails.
     fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T);
+
+    /// Return a value for a given key.
     fn find_value(&self, key: &str) -> Option<&Value>;
 
+    /// Return a value given a dotted pointer path.
     fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&Value> {
         let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
         self.find_value(&root).and_then(|val| dotted_pointer(val, rest))
     }
 
+    /// Convert the context into JSON.
     fn into_json(self) -> Value;
 }
 
