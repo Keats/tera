@@ -6,6 +6,23 @@ use serde_json::value::{to_value, Map, Value};
 
 use crate::errors::{Error, Result as TeraResult};
 
+pub trait ContextProvider {
+    fn find_value(&self, key: &str) -> Option<&Value>;
+    fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&Value>;
+}
+
+impl ContextProvider for Context {
+    fn find_value(&self, key: &str) -> Option<&Value> {
+        self.get(key)
+    }
+
+    fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&Value> {
+        let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
+        let rest = &pointer[root.len() + 1..];
+        self.get(&root).and_then(|val| dotted_pointer(val, rest))
+    }
+}
+
 /// The struct that holds the context of a template rendering.
 ///
 /// Light wrapper around a `BTreeMap` for easier insertions of Serializable

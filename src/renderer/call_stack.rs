@@ -3,29 +3,12 @@ use std::collections::HashMap;
 
 use serde_json::{to_value, Value};
 
-use crate::context::dotted_pointer;
+use crate::context::ContextProvider;
 use crate::errors::{Error, Result};
 use crate::renderer::for_loop::{ForLoop, ForLoopState};
 use crate::renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
 use crate::template::Template;
 use crate::Context;
-
-pub trait ContextProvider {
-    fn find_value(&self, key: &str) -> Option<&Value>;
-    fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&Value>;
-}
-
-impl ContextProvider for Context {
-    fn find_value(&self, key: &str) -> Option<&Value> {
-        self.get(key)
-    }
-
-    fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&Value> {
-        let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
-        let rest = &pointer[root.len() + 1..];
-        self.get(&root).and_then(|val| dotted_pointer(val, rest))
-    }
-}
 
 /// Contains the stack of frames
 #[derive(Debug)]
