@@ -13,7 +13,18 @@ pub trait ContextProvider {
     /// Converts the `val` parameter to `Value` and insert it into the context.
     ///
     /// Panics if the serialization fails.
-    fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T);
+    fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) {
+        self.try_insert(key, val).unwrap();
+    }
+
+    /// Converts the `val` parameter to `Value` and insert it into the context.
+    ///
+    /// Returns an error if the serialization fails.
+    fn try_insert<T: Serialize + ?Sized, S: Into<String>>(
+        &mut self,
+        key: S,
+        val: &T,
+    ) -> TeraResult<()>;
 
     /// Return a value for a given key.
     fn find_value(&self, key: &str) -> Option<&Value>;
@@ -30,8 +41,12 @@ pub trait ContextProvider {
 }
 
 impl ContextProvider for Context {
-    fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) {
-        self.insert(key, val);
+    fn try_insert<T: Serialize + ?Sized, S: Into<String>>(
+        &mut self,
+        key: S,
+        val: &T,
+    ) -> TeraResult<()> {
+        self.try_insert(key, val)
     }
 
     fn find_value(&self, key: &str) -> Option<&Value> {
