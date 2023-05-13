@@ -1,10 +1,11 @@
-use std::collections::BTreeMap;
 use std::io::Write;
+use std::{borrow::Cow, collections::BTreeMap};
 
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
 
 use crate::errors::{Error, Result as TeraResult};
+use crate::renderer::stack_frame::value_by_pointer;
 
 /// The interface trait of a Context towards Tera
 ///
@@ -27,13 +28,13 @@ pub trait ContextProvider {
     ) -> TeraResult<()>;
 
     /// Return a value for a given key.
-    fn find_value(&self, key: &str) -> Option<&Value>;
+    fn find_value(&self, key: &str) -> Option<Cow<Value>>;
 
     /// Return a value given a dotted pointer path.
-    fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&Value> {
+    fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<Cow<Value>> {
         let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
-        self.find_value(&root).and_then(|val| dotted_pointer(val, rest))
+        self.find_value(&root).and_then(|val| value_by_pointer(rest, &val))
     }
 
     /// Convert the context into JSON.
@@ -49,8 +50,8 @@ impl ContextProvider for Context {
         self.try_insert(key, val)
     }
 
-    fn find_value(&self, key: &str) -> Option<&Value> {
-        self.get(key)
+    fn find_value(&self, key: &str) -> Option<Cow<Value>> {
+        self.get(key).map(Cow::Borrowed)
     }
 
     fn into_json(self) -> Value {

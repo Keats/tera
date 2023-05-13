@@ -6,7 +6,7 @@ mod call_stack;
 mod for_loop;
 mod macros;
 mod processor;
-mod stack_frame;
+pub(crate) mod stack_frame;
 
 use std::io::Write;
 

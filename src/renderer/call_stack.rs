@@ -94,9 +94,9 @@ where
 
         // Not in stack frame, look in user supplied context
         if key.contains('.') {
-            return self.context.find_value_by_dotted_pointer(key).map(Cow::Borrowed);
+            return self.context.find_value_by_dotted_pointer(key);
         } else if let Some(value) = self.context.find_value(key) {
-            return Some(Cow::Borrowed(value));
+            return Some(value);
         }
 
         None
