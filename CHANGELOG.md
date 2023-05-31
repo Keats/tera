@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.19.0 (2023-04-16)
+## 1.19.0 (2023-05-31)
 
 - Revert change to glob path to not error if the path doesn't exist
 - Allow macro definition in renderable template
