@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Minimum supported Rust version (MSRV) is now 1.63 due to transitive dependencies.
+
 ## 1.19.0 (2023-05-31)
 
 - Revert change to glob path to not error if the path doesn't exist

@@ -11,11 +11,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        build: [pinned, stable, nightly, macos, win-msvc]
+        build: [msrv, stable, nightly, macos, win-msvc]
         include:
-        - build: pinned
+        - build: msrv
           os: ubuntu-latest
-          rust: 1.56.0
+          rust: 1.63.0
         - build: stable
           os: ubuntu-latest
           rust: stable
