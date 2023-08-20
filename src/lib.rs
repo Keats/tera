@@ -9,7 +9,7 @@
 //! template inheritance, variable interpolation, conditionals, loops, filters, and custom
 //! functions, enabling developers to build complex applications with ease.
 //!
-//! See the [site](https://tera.netlify.com) for more information and to get started.
+//! See the [site](http://keats.github.io/tera/) for more information and to get started.
 //!
 //! ## Features
 //!

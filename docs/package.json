@@ -10,7 +10,7 @@
   },
   "author": "Vincent Prouillet <balthek@gmail.com>",
   "license": "(MIT OR Apache-2.0)",
-  "homepage": "https://tera.netlify.app/",
+  "homepage": "http://keats.github.io/tera/",
   "dependencies": {
     "tera-web": "file:playground/pkg/"
   },
