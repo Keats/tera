@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.19.1 (2023-09-03)
 
 - Minimum supported Rust version (MSRV) is now 1.63 due to transitive dependencies.
+- Update crates.io metadata for the website
 
 ## 1.19.0 (2023-05-31)
 
