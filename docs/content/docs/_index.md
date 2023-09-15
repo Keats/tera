@@ -240,7 +240,7 @@ Tera has a few literals that can be used:
 - booleans: `true` (or `True`) and `false` (or `False`)
 - integers
 - floats
-- strings: text delimited by `""`, `''` or `` `` ``
+- strings: text delimited by `""`, `''` or ` `` `
 - arrays: a comma-separated list of literals and/or idents surrounded by `[` and `]` (trailing comma allowed)
 
 ### Variables
