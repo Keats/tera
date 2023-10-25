@@ -1002,7 +1002,7 @@ impl<'a> Processor<'a> {
                 }
                 if !found && !ignore_missing {
                     return Err(Error::template_not_found(
-                        vec!["[", &tpl_names.join(", "), "]"].join(""),
+                        ["[", &tpl_names.join(", "), "]"].join(""),
                     ));
                 }
             }
