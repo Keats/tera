@@ -13,24 +13,33 @@ use crate::Context;
 /// Contains the user data and allows no mutation
 #[derive(Debug)]
 pub struct UserContext<'a> {
-    /// Read-only context
+    /// Read-only shared context
     inner: &'a Context,
+    /// Read-only fall back, per render context
+    fallback: &'a Context,
 }
 
 impl<'a> UserContext<'a> {
     /// Create an immutable user context to be used in the call stack
-    pub fn new(context: &'a Context) -> Self {
-        UserContext { inner: context }
+    pub fn new_with_shared_fallback(context: &'a Context, fallback: &'a Context) -> Self {
+        UserContext { inner: context, fallback }
     }
 
     pub fn find_value(&self, key: &str) -> Option<&'a Value> {
-        self.inner.get(key)
+        self.inner.get(key).or_else(|| self.fallback.get(key))
     }
 
     pub fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&'a Value> {
         let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
-        self.inner.get(&root).and_then(|val| dotted_pointer(val, rest))
+        let result = self.inner.get(&root).and_then(|val| dotted_pointer(val, rest));
+        result.or_else(|| self.fallback.get(&root).and_then(|val| dotted_pointer(val, rest)))
+    }
+
+    fn clone_inner_context(&self) -> Context {
+        let mut context_with_fallback = self.fallback.clone();
+        context_with_fallback.extend(self.inner.clone());
+        context_with_fallback
     }
 }
 
@@ -45,10 +54,14 @@ pub struct CallStack<'a> {
 
 impl<'a> CallStack<'a> {
     /// Create the initial call stack
-    pub fn new(context: &'a Context, template: &'a Template) -> CallStack<'a> {
+    pub fn new(
+        context: &'a Context,
+        per_render_context: &'a Context,
+        template: &'a Template,
+    ) -> CallStack<'a> {
         CallStack {
             stack: vec![StackFrame::new(FrameType::Origin, "ORIGIN", template)],
-            context: UserContext::new(context),
+            context: UserContext::new_with_shared_fallback(context, per_render_context),
         }
     }
 
@@ -221,7 +234,7 @@ impl<'a> CallStack<'a> {
         // If we are here we take the user context
         // and add the values found in the stack to it.
         // We do it this way as we can override global variable temporarily in forloops
-        let mut new_ctx = self.context.inner.clone();
+        let mut new_ctx = self.context.clone_inner_context();
         for (key, val) in context {
             new_ctx.insert(key, &val)
         }

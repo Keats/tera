@@ -45,18 +45,39 @@ impl<'a> Renderer<'a> {
         Renderer { template, tera, context, should_escape }
     }
 
-    /// Combines the context with the Template to generate the end result
-    pub fn render(&self) -> Result<String> {
+    /// Combines the context with the Template to generate the end result and choose values unique to this render call
+    pub fn render_with_per_render_context(&self, per_render_context: Context) -> Result<String> {
         let mut output = Vec::with_capacity(2000);
-        self.render_to(&mut output)?;
+        self.render_to_with_per_render_context(&mut output, per_render_context)?;
         buffer_to_string(|| "converting rendered buffer to string".to_string(), output)
     }
 
-    /// Combines the context with the Template to write the end result to output
-    pub fn render_to(&self, mut output: impl Write) -> Result<()> {
-        let mut processor =
-            Processor::new(self.template, self.tera, self.context, self.should_escape);
+    /// Combines the context with the Template to generate the end result
+    pub fn render(&self) -> Result<String> {
+        let empty_context = Context::new();
+        self.render_with_per_render_context(empty_context)
+    }
+
+    /// Combines the context with the Template to write the end result to output and choose values unique to this render call
+    pub fn render_to_with_per_render_context(
+        &self,
+        mut output: impl Write,
+        per_render_context: Context,
+    ) -> Result<()> {
+        let mut processor = Processor::new(
+            self.template,
+            self.tera,
+            self.context,
+            &per_render_context,
+            self.should_escape,
+        );
 
         processor.render(&mut output)
+    }
+
+    /// Combines the context with the Template to write the end result to output
+    pub fn render_to(&self, output: impl Write) -> Result<()> {
+        let empty_context = Context::new();
+        self.render_to_with_per_render_context(output, empty_context)
     }
 }

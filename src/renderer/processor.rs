@@ -124,6 +124,7 @@ impl<'a> Processor<'a> {
         template: &'a Template,
         tera: &'a Tera,
         context: &'a Context,
+        per_render_context: &'a Context,
         should_escape: bool,
     ) -> Self {
         // Gets the root template if we are rendering something with inheritance or just return
@@ -134,7 +135,7 @@ impl<'a> Processor<'a> {
             .map(|parent| tera.get_template(parent).unwrap())
             .unwrap_or(template);
 
-        let call_stack = CallStack::new(context, template);
+        let call_stack = CallStack::new(context, per_render_context, template);
 
         Processor {
             template,
