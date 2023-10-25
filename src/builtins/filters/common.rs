@@ -130,7 +130,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                             None => val.format_localized(&format, locale),
                         },
                         Err(_) => match s.parse::<NaiveDateTime>() {
-                            Ok(val) => DateTime::<Utc>::from_utc(val, Utc)
+                            Ok(val) => DateTime::<Utc>::from_naive_utc_and_offset(val, Utc)
                                 .format_localized(&format, locale),
                             Err(_) => {
                                 return Err(Error::msg(format!(
@@ -142,7 +142,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                     }
                 } else {
                     match NaiveDate::parse_from_str(s, "%Y-%m-%d") {
-                        Ok(val) => DateTime::<Utc>::from_utc(
+                        Ok(val) => DateTime::<Utc>::from_naive_utc_and_offset(
                             val.and_hms_opt(0, 0, 0).expect(
                                 "out of bound should not appear, as we set the time to zero",
                             ),
@@ -190,7 +190,9 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                         None => val.format(&format),
                     },
                     Err(_) => match s.parse::<NaiveDateTime>() {
-                        Ok(val) => DateTime::<Utc>::from_utc(val, Utc).format(&format),
+                        Ok(val) => {
+                            DateTime::<Utc>::from_naive_utc_and_offset(val, Utc).format(&format)
+                        }
                         Err(_) => {
                             return Err(Error::msg(format!(
                                 "Error parsing `{:?}` as rfc3339 date or naive datetime",
@@ -201,7 +203,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                 }
             } else {
                 match NaiveDate::parse_from_str(s, "%Y-%m-%d") {
-                    Ok(val) => DateTime::<Utc>::from_utc(
+                    Ok(val) => DateTime::<Utc>::from_naive_utc_and_offset(
                         val.and_hms_opt(0, 0, 0)
                             .expect("out of bound should not appear, as we set the time to zero"),
                         Utc,
