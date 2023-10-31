@@ -11,7 +11,7 @@ keywords = ["template", "html", "django", "markup", "jinja2"]
 categories = ["template-engine"]
 edition = "2018"
 include = ["/src/**/*", "/LICENSE", "/README.md", "/CHANGELOG.md"]
-rust-version = "1.63"
+rust-version = "1.65"
 
 [dependencies]
 globwalk = "0.8.1"
