@@ -602,6 +602,9 @@ To skip even-numbered items:
 
 ### Include
 
+Includes work similar to other engines, with the exception that the current version of Tera doesn't allow extensions within included files. Practically
+speaking this means you have to choose between using `include`s or `extends` to organise your site, without mixing them. 
+
 You can include a template to be rendered using the current context with the `include` tag.
 
 ```jinja
@@ -761,6 +764,8 @@ which also contains a `super()` so we render the `hey` block of the `grandparent
 - See `ending` block in `child`, render it and also render the `ending` block of `parent` as there is a `super()`
 
 The end result of that rendering (not counting whitespace) will be: "dad says hi and grandma says hello sincerely with love".
+
+See the note in the includes section regarding mixing inheritance and includes.
 
 ## Built-ins
 
