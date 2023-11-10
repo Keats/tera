@@ -765,7 +765,10 @@ which also contains a `super()` so we render the `hey` block of the `grandparent
 
 The end result of that rendering (not counting whitespace) will be: "dad says hi and grandma says hello sincerely with love".
 
-See the note in the includes section regarding mixing inheritance and includes.
+This example explicitly terminates named blocks with `{% endblock hey %}`. It's not required to give the name of the block 
+being terminated `{% endblock %}`, though it may add some clarity.
+
+See the note in the [Include](@/docs/_index.md#include) section regarding mixing inheritance and includes.
 
 ## Built-ins
 
