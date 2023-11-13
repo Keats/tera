@@ -602,9 +602,6 @@ To skip even-numbered items:
 
 ### Include
 
-Includes work similar to other engines, with the exception that the current version of Tera doesn't allow extensions within included files. Practically
-speaking this means you have to choose between using `include`s or `extends` to organise your site, without mixing them. 
-
 You can include a template to be rendered using the current context with the `include` tag.
 
 ```jinja
@@ -635,6 +632,9 @@ You can also provide a list of templates that are checked for existence before i
 {% include ["custom/header.html", "header.html"] %}
 {% include ["special_sidebar.html", "sidebar.html"] ignore missing %}
 ```
+
+Note: `include` works similar to how it does in other engines like Jinja, with the exception that the current version of Tera doesn't allow inheritance within included files. Practically
+speaking this means you have to choose between using `include`s or `extends` to organise your site, without mixing them. 
 
 ### Macros
 
