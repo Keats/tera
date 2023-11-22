@@ -633,6 +633,9 @@ You can also provide a list of templates that are checked for existence before i
 {% include ["special_sidebar.html", "sidebar.html"] ignore missing %}
 ```
 
+Note: `include` works similar to how it does in other engines like Jinja, with the exception that the current version of Tera doesn't allow inheritance within included files. Practically
+speaking this means you have to choose between using `include`s or `extends` to organise your site, without mixing them. 
+
 ### Macros
 
 Think of macros as functions or components that you can call and return some text.
@@ -761,6 +764,11 @@ which also contains a `super()` so we render the `hey` block of the `grandparent
 - See `ending` block in `child`, render it and also render the `ending` block of `parent` as there is a `super()`
 
 The end result of that rendering (not counting whitespace) will be: "dad says hi and grandma says hello sincerely with love".
+
+This example explicitly terminates named blocks with `{% endblock hey %}`. It's not required to give the name of the block 
+being terminated `{% endblock %}`, though it may add some clarity.
+
+See the note in the [Include](@/docs/_index.md#include) section regarding mixing inheritance and includes.
 
 ## Built-ins
 
