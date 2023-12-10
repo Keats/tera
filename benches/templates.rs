@@ -1,12 +1,12 @@
 #![feature(test)]
-extern crate tera;
+extern crate rio_templates;
 extern crate test;
 #[macro_use]
 extern crate serde_derive;
 
 // Benches from https://github.com/djc/template-benchmarks-rs
 
-use tera::{Context, Tera};
+use rio_templates::{Context, Engine};
 
 #[bench]
 pub fn big_table(b: &mut test::Bencher) {
@@ -21,12 +21,12 @@ pub fn big_table(b: &mut test::Bencher) {
         table.push(inner);
     }
 
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("big-table.html", BIG_TABLE_TEMPLATE)]).unwrap();
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![("big-table.html", BIG_TABLE_TEMPLATE)]).unwrap();
     let mut ctx = Context::new();
     ctx.insert("table", &table);
 
-    b.iter(|| tera.render("big-table.html", &ctx));
+    b.iter(|| engine.render("big-table.html", &ctx));
 }
 
 static BIG_TABLE_TEMPLATE: &str = "<table>
@@ -43,8 +43,8 @@ struct Team {
 
 #[bench]
 pub fn teams(b: &mut test::Bencher) {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("teams.html", TEAMS_TEMPLATE)]).unwrap();
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![("teams.html", TEAMS_TEMPLATE)]).unwrap();
     let mut ctx = Context::new();
     ctx.insert("year", &2015);
     ctx.insert(
@@ -57,7 +57,7 @@ pub fn teams(b: &mut test::Bencher) {
         ],
     );
 
-    b.iter(|| tera.render("teams.html", &ctx));
+    b.iter(|| engine.render("teams.html", &ctx));
 }
 
 static TEAMS_TEMPLATE: &str = "<html>

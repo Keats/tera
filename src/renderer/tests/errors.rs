@@ -2,28 +2,28 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use crate::context::Context;
-use crate::tera::Tera;
+use crate::engine::Engine;
 
 #[test]
 fn error_location_basic() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("tpl", "{{ 1 + true }}")]).unwrap();
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![("tpl", "{{ 1 + true }}")]).unwrap();
 
-    let result = tera.render("tpl", &Context::new());
+    let result = engine.render("tpl", &Context::new());
 
     assert_eq!(result.unwrap_err().to_string(), "Failed to render \'tpl\'");
 }
 
 #[test]
 fn error_location_inside_macro() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![
         ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
         ("tpl", "{% import \"macros\" as macros %}{{ macros::hello() }}"),
     ])
     .unwrap();
 
-    let result = tera.render("tpl", &Context::new());
+    let result = engine.render("tpl", &Context::new());
 
     assert_eq!(
         result.unwrap_err().to_string(),
@@ -33,14 +33,14 @@ fn error_location_inside_macro() {
 
 #[test]
 fn error_loading_macro_from_unloaded_namespace() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![
         ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
         ("tpl", "{% import \"macros\" as macros %}{{ macro::hello() }}"),
     ])
     .unwrap();
 
-    let result = tera.render("tpl", &Context::new());
+    let result = engine.render("tpl", &Context::new());
     println!("{:#?}", result);
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -50,14 +50,14 @@ fn error_loading_macro_from_unloaded_namespace() {
 
 #[test]
 fn error_location_base_template() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![
         ("parent", "Hello {{ greeting + 1}} {% block bob %}{% endblock bob %}"),
         ("child", "{% extends \"parent\" %}{% block bob %}Hey{% endblock bob %}"),
     ])
     .unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = engine.render("child", &Context::new());
 
     assert_eq!(
         result.unwrap_err().to_string(),
@@ -67,14 +67,14 @@ fn error_location_base_template() {
 
 #[test]
 fn error_location_in_parent_block() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![
         ("parent", "Hello {{ greeting }} {% block bob %}{{ 1 + true }}{% endblock bob %}"),
         ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}"),
     ])
     .unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = engine.render("child", &Context::new());
 
     assert_eq!(
         result.unwrap_err().to_string(),
@@ -84,14 +84,14 @@ fn error_location_in_parent_block() {
 
 #[test]
 fn error_location_in_parent_in_macro() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![
         ("macros", "{% macro hello()%}{{ 1 + true }}{% endmacro hello %}"),
         ("parent", "{% import \"macros\" as macros %}{{ macros::hello() }}{% block bob %}{% endblock bob %}"),
         ("child", "{% extends \"parent\" %}{% block bob %}{{ super() }}Hey{% endblock bob %}"),
     ]).unwrap();
 
-    let result = tera.render("child", &Context::new());
+    let result = engine.render("child", &Context::new());
 
     assert_eq!(
         result.unwrap_err().to_string(),
@@ -101,12 +101,12 @@ fn error_location_in_parent_in_macro() {
 
 #[test]
 fn error_out_of_range_index() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("tpl", "{{ arr[10] }}")]).unwrap();
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![("tpl", "{{ arr[10] }}")]).unwrap();
     let mut context = Context::new();
     context.insert("arr", &[1, 2, 3]);
 
-    let result = tera.render("tpl", &Context::new());
+    let result = engine.render("tpl", &Context::new());
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -116,12 +116,12 @@ fn error_out_of_range_index() {
 
 #[test]
 fn error_unknown_index_variable() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("tpl", "{{ arr[a] }}")]).unwrap();
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![("tpl", "{{ arr[a] }}")]).unwrap();
     let mut context = Context::new();
     context.insert("arr", &[1, 2, 3]);
 
-    let result = tera.render("tpl", &context);
+    let result = engine.render("tpl", &context);
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -131,14 +131,14 @@ fn error_unknown_index_variable() {
 
 #[test]
 fn error_invalid_type_index_variable() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("tpl", "{{ arr[a] }}")]).unwrap();
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![("tpl", "{{ arr[a] }}")]).unwrap();
 
     let mut context = Context::new();
     context.insert("arr", &[1, 2, 3]);
     context.insert("a", &true);
 
-    let result = tera.render("tpl", &context);
+    let result = engine.render("tpl", &context);
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -148,28 +148,28 @@ fn error_invalid_type_index_variable() {
 
 #[test]
 fn error_when_missing_macro_templates() {
-    let mut tera = Tera::default();
-    let result = tera.add_raw_templates(vec![(
+    let mut engine = Engine::default();
+    let result = engine.add_raw_templates(vec![(
         "parent",
         "{% import \"macros\" as macros %}{{ macros::hello() }}{% block bob %}{% endblock bob %}",
     )]);
     assert_eq!(
         result.unwrap_err().to_string(),
-        "Template `parent` loads macros from `macros` which isn\'t present in Tera"
+        "Template `parent` loads macros from `macros` which isn\'t present in Engine"
     );
 }
 
 #[test]
 fn error_when_using_variable_set_in_included_templates_outside() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![
         ("included", r#"{{a}}{% set b = "hi" %}-{{b}}"#),
         ("base", r#"{{a}}{% include "included" %}{{b}}"#),
     ])
     .unwrap();
     let mut context = Context::new();
     context.insert("a", &10);
-    let result = tera.render("base", &context);
+    let result = engine.render("base", &context);
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -185,8 +185,8 @@ fn right_variable_name_is_needed_in_for_loop() {
     data.insert("content", "hello");
     let mut context = Context::new();
     context.insert("comments", &vec![data]);
-    let mut tera = Tera::default();
-    tera.add_raw_template(
+    let mut engine = Engine::default();
+    engine.add_raw_template(
         "tpl",
         r#"
 {%- for comment in comments -%}
@@ -196,7 +196,7 @@ fn right_variable_name_is_needed_in_for_loop() {
 {% endfor -%}"#,
     )
     .unwrap();
-    let result = tera.render("tpl", &context);
+    let result = engine.render("tpl", &context);
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -208,15 +208,15 @@ fn right_variable_name_is_needed_in_for_loop() {
 // https://github.com/Keats/tera/issues/370
 #[test]
 fn errors_with_inheritance_in_included_template() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![
         ("base", "Base - {% include \"child\" %}"),
         ("parent", "{% block title %}Parent{% endblock %}"),
         ("child", "{% extends \"parent\" %}{% block title %}{{ super() }} - Child{% endblock %}"),
     ])
     .unwrap();
 
-    let result = tera.render("base", &Context::new());
+    let result = engine.render("base", &Context::new());
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -226,12 +226,12 @@ fn errors_with_inheritance_in_included_template() {
 
 #[test]
 fn error_string_concat_math_logic() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("tpl", "{{ 'ho' ~ name < 10 }}")]).unwrap();
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![("tpl", "{{ 'ho' ~ name < 10 }}")]).unwrap();
     let mut context = Context::new();
     context.insert("name", &"john");
 
-    let result = tera.render("tpl", &context);
+    let result = engine.render("tpl", &context);
 
     assert_eq!(
         result.unwrap_err().source().unwrap().to_string(),
@@ -241,9 +241,9 @@ fn error_string_concat_math_logic() {
 
 #[test]
 fn error_gives_source_on_tests() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("tpl", "{% if a is undefined(1) %}-{% endif %}")]).unwrap();
-    let result = tera.render("tpl", &Context::new());
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![("tpl", "{% if a is undefined(1) %}-{% endif %}")]).unwrap();
+    let result = engine.render("tpl", &Context::new());
     println!("{:?}", result);
     let err = result.unwrap_err();
 

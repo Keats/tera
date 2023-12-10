@@ -1,8 +1,8 @@
 #![feature(test)]
-extern crate tera;
+extern crate rio_templates;
 extern crate test;
 
-use tera::Value;
+use rio_templates::Value;
 
 fn deep_object() -> Value {
     let data = r#"{
@@ -62,11 +62,11 @@ fn deep_object() -> Value {
 #[bench]
 fn bench_get_dotted_pointer(b: &mut test::Bencher) {
     let value = deep_object();
-    b.iter(|| tera::dotted_pointer(&value, "foo.bar.goo"))
+    b.iter(|| rio_templates::dotted_pointer(&value, "foo.bar.goo"))
 }
 
 #[bench]
 fn bench_get_dotted_pointer_with_map(b: &mut test::Bencher) {
     let value = deep_object();
-    b.iter(|| tera::dotted_pointer(&value, "foo[\"http://example.com/\"].goo"))
+    b.iter(|| rio_templates::dotted_pointer(&value, "foo[\"http://example.com/\"].goo"))
 }

@@ -13,14 +13,14 @@ use crate::renderer::macros::MacroCollection;
 use crate::renderer::square_brackets::pull_out_square_bracket;
 use crate::renderer::stack_frame::{FrameContext, FrameType, Val};
 use crate::template::Template;
-use crate::tera::Tera;
+use crate::engine::Engine;
 use crate::utils::render_to_string;
 use crate::Context;
 
 /// Special string indicating request to dump context
 static MAGICAL_DUMP_VAR: &str = "__tera_context";
 
-/// This will convert a Tera variable to a json pointer if it is possible by replacing
+/// This will convert a variable to a json pointer if it is possible by replacing
 /// the index with their evaluated stringified value
 fn evaluate_sub_variables(key: &str, call_stack: &CallStack) -> Result<String> {
     let sub_vars_to_calc = pull_out_square_bracket(key);
@@ -104,8 +104,8 @@ pub struct Processor<'a> {
     /// Root template of template to render - contains ast to use for rendering
     /// Can be the same as `template` if a template has no inheritance
     template_root: &'a Template,
-    /// The Tera object with template details
-    tera: &'a Tera,
+    /// The Engine object with template details
+    engine: &'a Engine,
     /// The call stack for processing
     call_stack: CallStack<'a>,
     /// The macros organised by template and namespaces
@@ -122,7 +122,7 @@ impl<'a> Processor<'a> {
     /// Create a new `Processor` that will do the rendering
     pub fn new(
         template: &'a Template,
-        tera: &'a Tera,
+        engine: &'a Engine,
         context: &'a Context,
         should_escape: bool,
     ) -> Self {
@@ -131,7 +131,7 @@ impl<'a> Processor<'a> {
         let template_root = template
             .parents
             .last()
-            .map(|parent| tera.get_template(parent).unwrap())
+            .map(|parent| engine.get_template(parent).unwrap())
             .unwrap_or(template);
 
         let call_stack = CallStack::new(context, template);
@@ -139,9 +139,9 @@ impl<'a> Processor<'a> {
         Processor {
             template,
             template_root,
-            tera,
+            engine,
             call_stack,
-            macros: MacroCollection::from_original_template(template, tera),
+            macros: MacroCollection::from_original_template(template, engine),
             should_escape,
             blocks: Vec::new(),
         }
@@ -271,7 +271,7 @@ impl<'a> Processor<'a> {
         let level_template = match level {
             0 => self.call_stack.active_template(),
             _ => self
-                .tera
+                .engine
                 .get_template(&self.call_stack.active_template().parents[level - 1])
                 .unwrap(),
         };
@@ -443,7 +443,7 @@ impl<'a> Processor<'a> {
         // Checks if it's a string and we need to escape it (if the last filter is `safe` we don't)
         if self.should_escape && needs_escape && res.is_string() && !expr.is_marked_safe() {
             res = Cow::Owned(
-                to_value(self.tera.get_escape_fn()(res.as_str().unwrap())).map_err(Error::json)?,
+                to_value(self.engine.get_escape_fn()(res.as_str().unwrap())).map_err(Error::json)?,
             );
         }
 
@@ -467,7 +467,7 @@ impl<'a> Processor<'a> {
     }
 
     fn eval_test(&mut self, test: &'a Test) -> Result<bool> {
-        let tester_fn = self.tera.get_tester(&test.name)?;
+        let tester_fn = self.engine.get_tester(&test.name)?;
         let err_wrap = |e| Error::call_test(&test.name, e);
 
         let mut tester_args = vec![];
@@ -491,7 +491,7 @@ impl<'a> Processor<'a> {
         function_call: &'a FunctionCall,
         needs_escape: &mut bool,
     ) -> Result<Val<'a>> {
-        let tera_fn = self.tera.get_function(&function_call.name)?;
+        let tera_fn = self.engine.get_function(&function_call.name)?;
         *needs_escape = !tera_fn.is_safe();
 
         let err_wrap = |e| Error::call_function(&function_call.name, e);
@@ -545,7 +545,7 @@ impl<'a> Processor<'a> {
             &macro_call.namespace,
             &macro_call.name,
             frame_context,
-            self.tera.get_template(macro_template_name)?,
+            self.engine.get_template(macro_template_name)?,
         );
 
         self.render_body(&macro_definition.body, write)?;
@@ -561,7 +561,7 @@ impl<'a> Processor<'a> {
         fn_call: &'a FunctionCall,
         needs_escape: &mut bool,
     ) -> Result<Val<'a>> {
-        let filter_fn = self.tera.get_filter(&fn_call.name)?;
+        let filter_fn = self.engine.get_filter(&fn_call.name)?;
         *needs_escape = !filter_fn.is_safe();
 
         let err_wrap = |e| Error::call_filter(&fn_call.name, e);
@@ -909,7 +909,7 @@ impl<'a> Processor<'a> {
 
         while next_level <= self.template.parents.len() {
             let blocks_definitions = &self
-                .tera
+                .engine
                 .get_template(&self.template.parents[next_level - 1])
                 .unwrap()
                 .blocks_definitions;
@@ -988,12 +988,12 @@ impl<'a> Processor<'a> {
             Node::Include(_, ref tpl_names, ignore_missing) => {
                 let mut found = false;
                 for tpl_name in tpl_names {
-                    let template = self.tera.get_template(tpl_name);
+                    let template = self.engine.get_template(tpl_name);
                     if template.is_err() {
                         continue;
                     }
                     let template = template.unwrap();
-                    self.macros.add_macros_from_template(self.tera, template)?;
+                    self.macros.add_macros_from_template(self.engine, template)?;
                     self.call_stack.push_include_frame(tpl_name, template);
                     self.render_body(&template.ast, write)?;
                     self.call_stack.pop();

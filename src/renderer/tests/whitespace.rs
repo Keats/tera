@@ -1,5 +1,5 @@
 use crate::context::Context;
-use crate::tera::Tera;
+use crate::engine::Engine;
 
 #[test]
 fn can_remove_whitespace_basic() {
@@ -29,10 +29,10 @@ fn can_remove_whitespace_basic() {
     ];
 
     for (input, expected) in inputs {
-        let mut tera = Tera::default();
-        tera.add_raw_template("tpl", input).unwrap();
+        let mut engine = Engine::default();
+        engine.add_raw_template("tpl", input).unwrap();
         println!("{} -> {:?}", input, expected);
-        assert_eq!(tera.render("tpl", &context).unwrap(), expected);
+        assert_eq!(engine.render("tpl", &context).unwrap(), expected);
     }
 }
 
@@ -48,9 +48,9 @@ fn can_remove_whitespace_include() {
     ];
 
     for (input, expected) in inputs {
-        let mut tera = Tera::default();
-        tera.add_raw_templates(vec![("include", "Included"), ("tpl", input)]).unwrap();
-        assert_eq!(tera.render("tpl", &context).unwrap(), expected);
+        let mut engine = Engine::default();
+        engine.add_raw_templates(vec![("include", "Included"), ("tpl", input)]).unwrap();
+        assert_eq!(engine.render("tpl", &context).unwrap(), expected);
     }
 }
 
@@ -66,13 +66,13 @@ fn can_remove_whitespace_macros() {
     ];
 
     for (input, expected) in inputs {
-        let mut tera = Tera::default();
-        tera.add_raw_templates(vec![
+        let mut engine = Engine::default();
+        engine.add_raw_templates(vec![
             ("macros", "{% macro hey() -%} Hey! {%- endmacro %}"),
             ("tpl", input),
         ])
         .unwrap();
-        assert_eq!(tera.render("tpl", &context).unwrap(), expected);
+        assert_eq!(engine.render("tpl", &context).unwrap(), expected);
     }
 }
 
@@ -88,13 +88,13 @@ fn can_remove_whitespace_inheritance() {
     ];
 
     for (input, expected) in inputs {
-        let mut tera = Tera::default();
-        tera.add_raw_templates(vec![
+        let mut engine = Engine::default();
+        engine.add_raw_templates(vec![
             ("base", "{% block content %} Hey! {% endblock %}"),
             ("tpl", input),
         ])
         .unwrap();
-        assert_eq!(tera.render("tpl", &context).unwrap(), expected);
+        assert_eq!(engine.render("tpl", &context).unwrap(), expected);
     }
 }
 
@@ -104,7 +104,7 @@ fn works_with_filter_section() {
     let mut context = Context::new();
     context.insert("d", "d");
     let input = r#"{% filter upper %}  {{ "c" }}   d{% endfilter %}"#;
-    let res = Tera::one_off(input, &context, true).unwrap();
+    let res = Engine::one_off(input, &context, true).unwrap();
     assert_eq!(res, "  C   D");
 }
 
@@ -113,6 +113,6 @@ fn make_sure_not_to_delete_whitespaces() {
     let mut context = Context::new();
     context.insert("d", "d");
     let input = r#"{% raw %}    yaml_test:     {% endraw %}"#;
-    let res = Tera::one_off(input, &context, true).unwrap();
+    let res = Engine::one_off(input, &context, true).unwrap();
     assert_eq!(res, "    yaml_test:     ");
 }

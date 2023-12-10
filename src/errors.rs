@@ -15,7 +15,7 @@ pub enum ErrorKind {
         /// All the parents templates we found so far
         inheritance_chain: Vec<String>,
     },
-    /// A template is extending a template that wasn't found in the Tera instance
+    /// A template is extending a template that wasn't found in the Engine instance
     MissingParent {
         /// The template we are currently looking at
         current: String,

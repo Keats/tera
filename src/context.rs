@@ -4,7 +4,7 @@ use std::io::Write;
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
 
-use crate::errors::{Error, Result as TeraResult};
+use crate::errors::{Error, Result as TemplateResult};
 
 /// The struct that holds the context of a template rendering.
 ///
@@ -57,7 +57,7 @@ impl Context {
         &mut self,
         key: S,
         val: &T,
-    ) -> TeraResult<()> {
+    ) -> TemplateResult<()> {
         self.data.insert(key.into(), to_value(val)?);
 
         Ok(())
@@ -90,7 +90,7 @@ impl Context {
     }
 
     /// Takes a serde-json `Value` and convert it into a `Context` with no overhead/cloning.
-    pub fn from_value(obj: Value) -> TeraResult<Self> {
+    pub fn from_value(obj: Value) -> TemplateResult<Self> {
         match obj {
             Value::Object(m) => {
                 let mut data = BTreeMap::new();
@@ -108,7 +108,7 @@ impl Context {
     /// Takes something that impl Serialize and create a context with it.
     /// Meant to be used if you have a hashmap or a struct and don't want to insert values
     /// one by one in the context.
-    pub fn from_serialize(value: impl Serialize) -> TeraResult<Self> {
+    pub fn from_serialize(value: impl Serialize) -> TemplateResult<Self> {
         let obj = to_value(value).map_err(Error::json)?;
         Context::from_value(obj)
     }

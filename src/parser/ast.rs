@@ -302,7 +302,7 @@ pub struct If {
     pub otherwise: Option<(WS, Vec<Node>)>,
 }
 
-/// All Tera nodes that can be encountered
+/// All nodes that can be encountered
 #[derive(Clone, Debug, PartialEq)]
 pub enum Node {
     /// A call to `{{ super() }}` in a block

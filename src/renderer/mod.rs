@@ -13,17 +13,17 @@ use std::io::Write;
 use self::processor::Processor;
 use crate::errors::Result;
 use crate::template::Template;
-use crate::tera::Tera;
+use crate::engine::Engine;
 use crate::utils::buffer_to_string;
 use crate::Context;
 
-/// Given a `Tera` and reference to `Template` and a `Context`, renders text
+/// Given an `Engine` and reference to `Template` and a `Context`, renders text
 #[derive(Debug)]
 pub struct Renderer<'a> {
     /// Template to render
     template: &'a Template,
     /// Houses other templates, filters, global functions, etc
-    tera: &'a Tera,
+    engine: &'a Engine,
     /// Read-only context to be bound to template˝
     context: &'a Context,
     /// If set rendering should be escaped
@@ -33,8 +33,8 @@ pub struct Renderer<'a> {
 impl<'a> Renderer<'a> {
     /// Create a new `Renderer`
     #[inline]
-    pub fn new(template: &'a Template, tera: &'a Tera, context: &'a Context) -> Renderer<'a> {
-        let should_escape = tera.autoescape_suffixes.iter().any(|ext| {
+    pub fn new(template: &'a Template, engine: &'a Engine, context: &'a Context) -> Renderer<'a> {
+        let should_escape = engine.autoescape_suffixes.iter().any(|ext| {
             // We prefer a `path` if set, otherwise use the `name`
             if let Some(ref p) = template.path {
                 return p.ends_with(ext);
@@ -42,7 +42,7 @@ impl<'a> Renderer<'a> {
             template.name.ends_with(ext)
         });
 
-        Renderer { template, tera, context, should_escape }
+        Renderer { template, engine, context, should_escape }
     }
 
     /// Combines the context with the Template to generate the end result
@@ -55,7 +55,7 @@ impl<'a> Renderer<'a> {
     /// Combines the context with the Template to write the end result to output
     pub fn render_to(&self, mut output: impl Write) -> Result<()> {
         let mut processor =
-            Processor::new(self.template, self.tera, self.context, self.should_escape);
+            Processor::new(self.template, self.engine, self.context, self.should_escape);
 
         processor.render(&mut output)
     }

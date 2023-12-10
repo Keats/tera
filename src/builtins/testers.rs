@@ -139,7 +139,7 @@ pub fn divisible_by(value: Option<&Value>, params: &[Value]) -> Result<bool> {
     }
 }
 
-/// Returns true if `value` can be iterated over in Tera (ie is an array/tuple or an object).
+/// Returns true if `value` can be iterated over in Engine (ie is an array/tuple or an object).
 /// Otherwise, returns false.
 pub fn iterable(value: Option<&Value>, params: &[Value]) -> Result<bool> {
     number_args_allowed("iterable", 0, params.len())?;

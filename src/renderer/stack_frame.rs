@@ -139,7 +139,7 @@ impl<'a> StackFrame<'a> {
                 (key, "")
             };
 
-            // 2nd case: one of Tera loop built-in variable
+            // 2nd case: one of loop built-in variable
             if real_key == "loop" {
                 match tail {
                     "index" => {

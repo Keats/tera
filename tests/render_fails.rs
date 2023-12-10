@@ -3,13 +3,13 @@ extern crate rio_templates;
 extern crate serde_derive;
 
 use std::error::Error;
-use rio_templates::{Context, Result, Tera};
+use rio_templates::{Context, Result, Engine};
 
 mod common;
 use crate::common::{Product, Review};
 
 fn render_tpl(tpl_name: &str) -> Result<String> {
-    let tera = Tera::new("tests/render-failures/**/*").unwrap();
+    let engine = Engine::new("tests/render-failures/**/*").unwrap();
     let mut context = Context::new();
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
@@ -18,7 +18,7 @@ fn render_tpl(tpl_name: &str) -> Result<String> {
     context.insert("show_more", &true);
     context.insert("reviews", &vec![Review::new(), Review::new()]);
 
-    tera.render(tpl_name, &context)
+    engine.render(tpl_name, &context)
 }
 
 #[test]

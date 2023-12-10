@@ -10,20 +10,20 @@ use serde_json::{json, Value};
 use crate::builtins::functions::Function;
 use crate::context::Context;
 use crate::errors::Result;
-use crate::tera::Tera;
+use crate::engine::Engine;
 
 use super::Review;
 
 fn render_template(content: &str, context: &Context) -> Result<String> {
-    let mut tera = Tera::default();
-    tera.add_raw_template("hello.html", content).unwrap();
-    tera.register_function("get_number", |_: &HashMap<String, Value>| Ok(Value::Number(10.into())));
-    tera.register_function("get_true", |_: &HashMap<String, Value>| Ok(Value::Bool(true)));
-    tera.register_function("get_string", |_: &HashMap<String, Value>| {
+    let mut engine = Engine::default();
+    engine.add_raw_template("hello.html", content).unwrap();
+    engine.register_function("get_number", |_: &HashMap<String, Value>| Ok(Value::Number(10.into())));
+    engine.register_function("get_true", |_: &HashMap<String, Value>| Ok(Value::Bool(true)));
+    engine.register_function("get_string", |_: &HashMap<String, Value>| {
         Ok(Value::String("Hello".to_string()))
     });
 
-    tera.render("hello.html", context)
+    engine.render("hello.html", context)
 }
 
 #[test]
@@ -212,9 +212,9 @@ fn render_variable_block_autoescaping_disabled() {
     ];
 
     for (input, expected) in inputs {
-        let mut tera = Tera::default();
-        tera.add_raw_template("hello.sql", input).unwrap();
-        assert_eq!(tera.render("hello.sql", &context).unwrap(), expected);
+        let mut engine = Engine::default();
+        engine.add_raw_template("hello.sql", input).unwrap();
+        assert_eq!(engine.render("hello.sql", &context).unwrap(), expected);
     }
 }
 
@@ -262,55 +262,55 @@ fn filter_args_are_not_escaped() {
 
 #[test]
 fn render_include_tag() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![
         ("world", "world"),
         ("hello", "<h1>Hello {% include \"world\" %}</h1>"),
     ])
     .unwrap();
-    let result = tera.render("hello", &Context::new()).unwrap();
+    let result = engine.render("hello", &Context::new()).unwrap();
     assert_eq!(result, "<h1>Hello world</h1>".to_owned());
 }
 
 #[test]
 fn render_include_array_tag() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![
         ("world", "world"),
         ("hello", "<h1>Hello {% include [\"custom/world\", \"world\"] %}</h1>"),
     ])
     .unwrap();
-    let result = tera.render("hello", &Context::new()).unwrap();
+    let result = engine.render("hello", &Context::new()).unwrap();
     assert_eq!(result, "<h1>Hello world</h1>".to_owned());
 
-    tera.add_raw_template("custom/world", "custom world").unwrap();
-    let result = tera.render("hello", &Context::new()).unwrap();
+    engine.add_raw_template("custom/world", "custom world").unwrap();
+    let result = engine.render("hello", &Context::new()).unwrap();
     assert_eq!(result, "<h1>Hello custom world</h1>".to_owned());
 }
 
 #[test]
 fn render_include_tag_missing() {
-    let mut tera = Tera::default();
-    tera.add_raw_template("hello", "<h1>Hello {% include \"world\" %}</h1>").unwrap();
-    let result = tera.render("hello", &Context::new());
+    let mut engine = Engine::default();
+    engine.add_raw_template("hello", "<h1>Hello {% include \"world\" %}</h1>").unwrap();
+    let result = engine.render("hello", &Context::new());
     assert!(result.is_err());
 
-    let mut tera = Tera::default();
-    tera.add_raw_template("hello", "<h1>Hello {% include \"world\" ignore missing %}</h1>")
+    let mut engine = Engine::default();
+    engine.add_raw_template("hello", "<h1>Hello {% include \"world\" ignore missing %}</h1>")
         .unwrap();
-    let result = tera.render("hello", &Context::new()).unwrap();
+    let result = engine.render("hello", &Context::new()).unwrap();
     assert_eq!(result, "<h1>Hello </h1>".to_owned());
 }
 
 #[test]
 fn can_set_variables_in_included_templates() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![
         ("world", r#"{% set a = "world" %}{{a}}"#),
         ("hello", "<h1>Hello {% include \"world\" %}</h1>"),
     ])
     .unwrap();
-    let result = tera.render("hello", &Context::new()).unwrap();
+    let result = engine.render("hello", &Context::new()).unwrap();
     assert_eq!(result, "<h1>Hello world</h1>".to_owned());
 }
 
@@ -812,13 +812,13 @@ fn render_magic_variable_macro_doesnt_leak() {
     context.insert("num", &1);
     context.insert("i", &10);
 
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
+    let mut engine = Engine::default();
+    engine.add_raw_templates(vec![
         ("macros", "{% macro hello(arg=1) %}{{ __tera_context }}{% endmacro hello %}"),
         ("tpl", "{% import \"macros\" as macros %}{{macros::hello()}}"),
     ])
     .unwrap();
-    let result = tera.render("tpl", &context);
+    let result = engine.render("tpl", &context);
 
     assert_eq!(
         result.unwrap(),
@@ -832,8 +832,8 @@ fn render_magic_variable_macro_doesnt_leak() {
 // https://github.com/Keats/tera/issues/342
 #[test]
 fn redefining_loop_value_doesnt_break_loop() {
-    let mut tera = Tera::default();
-    tera.add_raw_template(
+    let mut engine = Engine::default();
+    engine.add_raw_template(
         "tpl",
         r#"
 {%- set string = "abcdefghdijklm" | split(pat="d") -%}
@@ -845,15 +845,15 @@ fn redefining_loop_value_doesnt_break_loop() {
     )
     .unwrap();
     let context = Context::new();
-    let result = tera.render("tpl", &context);
+    let result = engine.render("tpl", &context);
 
     assert_eq!(result.unwrap(), "abclol efghlol ijklmlol ");
 }
 
 #[test]
 fn can_use_concat_to_push_to_array() {
-    let mut tera = Tera::default();
-    tera.add_raw_template(
+    let mut engine = Engine::default();
+    engine.add_raw_template(
         "tpl",
         r#"
 {%- set ids = [] -%}
@@ -864,7 +864,7 @@ fn can_use_concat_to_push_to_array() {
     )
     .unwrap();
     let context = Context::new();
-    let result = tera.render("tpl", &context);
+    let result = engine.render("tpl", &context);
 
     assert_eq!(result.unwrap(), "[0, 1, 2, 3, 4]");
 }
@@ -892,17 +892,17 @@ lazy_static! {
 
 #[test]
 fn stateful_global_fn() {
-    fn make_tera() -> Tera {
-        let mut tera = Tera::default();
-        tera.add_raw_template(
+    fn make_tera() -> Engine {
+        let mut engine = Engine::default();
+        engine.add_raw_template(
             "fn.html",
             "<h1>{{ get_next() }}, {{ get_next_shared() }}, {{ get_next() }}...</h1>",
         )
         .unwrap();
 
-        tera.register_function("get_next", Next(AtomicUsize::new(1)));
-        tera.register_function("get_next_shared", NEXT_GLOBAL.clone());
-        tera
+        engine.register_function("get_next", Next(AtomicUsize::new(1)));
+        engine.register_function("get_next_shared", NEXT_GLOBAL.clone());
+        engine
     }
 
     assert_eq!(
@@ -918,21 +918,21 @@ fn stateful_global_fn() {
 // https://github.com/Keats/tera/issues/373
 #[test]
 fn split_on_context_value() {
-    let mut tera = Tera::default();
-    tera.add_raw_template("split.html", r#"{{ body | split(pat="\n") }}"#).unwrap();
+    let mut engine = Engine::default();
+    engine.add_raw_template("split.html", r#"{{ body | split(pat="\n") }}"#).unwrap();
     let mut context = Context::new();
     context.insert("body", "multi\nple\nlines");
-    let res = tera.render("split.html", &context);
+    let res = engine.render("split.html", &context);
     assert_eq!(res.unwrap(), "[multi, ple, lines]");
 }
 
 // https://github.com/Keats/tera/issues/422
 #[test]
 fn default_filter_works_in_condition() {
-    let mut tera = Tera::default();
-    tera.add_raw_template("test.html", r#"{% if frobnicate|default(value=True) %}here{% endif %}"#)
+    let mut engine = Engine::default();
+    engine.add_raw_template("test.html", r#"{% if frobnicate|default(value=True) %}here{% endif %}"#)
         .unwrap();
-    let res = tera.render("test.html", &Context::new());
+    let res = engine.render("test.html", &Context::new());
     assert_eq!(res.unwrap(), "here");
 }
 
@@ -949,11 +949,11 @@ fn safe_filter_works() {
         }
     }
 
-    let mut tera = Tera::default();
-    tera.register_filter("safe_filter", Safe);
-    tera.add_raw_template("test.html", r#"{{ "Hello" | safe_filter }}"#).unwrap();
+    let mut engine = Engine::default();
+    engine.register_filter("safe_filter", Safe);
+    engine.add_raw_template("test.html", r#"{{ "Hello" | safe_filter }}"#).unwrap();
 
-    let res = tera.render("test.html", &Context::new());
+    let res = engine.render("test.html", &Context::new());
     assert_eq!(res.unwrap(), "<div>Hello</div>");
 }
 
@@ -970,10 +970,10 @@ fn safe_function_works() {
         }
     }
 
-    let mut tera = Tera::default();
-    tera.register_function("safe_function", Safe);
-    tera.add_raw_template("test.html", "{{ safe_function() }}").unwrap();
+    let mut engine = Engine::default();
+    engine.register_function("safe_function", Safe);
+    engine.add_raw_template("test.html", "{{ safe_function() }}").unwrap();
 
-    let res = tera.render("test.html", &Context::new());
+    let res = engine.render("test.html", &Context::new());
     assert_eq!(res.unwrap(), "<div>Hello</div>");
 }

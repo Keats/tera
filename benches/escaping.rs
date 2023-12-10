@@ -1,8 +1,8 @@
 #![feature(test)]
-extern crate tera;
+extern crate rio_templates;
 extern crate test;
 
-use tera::escape_html;
+use rio_templates::escape_html;
 
 const NO_HTML_SHORT: &str = "A paragraph without HTML characters that need to be escaped.";
 const NO_HTML_LONG: &str = "Another paragraph without characters that need to be escaped. This paragraph is a bit longer, as sometimes there can be large paragraphs that don't any special characters, e.g., in novels or whatever.";

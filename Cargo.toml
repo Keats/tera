@@ -1,6 +1,6 @@
 [package]
-name = "rio-templates"
-version = "1.19.1"
+name = "rio_templates"
+version = "0.1.0"
 authors = ["James Hale <james+rio@potamic.net>"]
 license = "MIT"
 readme = "README.md"
