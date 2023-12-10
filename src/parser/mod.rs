@@ -80,11 +80,17 @@ fn parse_fn_call(pair: Pair<Rule>) -> TemplateResult<FunctionCall> {
                 let (name, val) = parse_kwarg(p)?;
                 args.insert(name, val);
             }
-            _ => unreachable!("{:?} not supposed to get there (parse_fn_call)!", p.as_rule()),
+            _ => unreachable!(
+                "{:?} not supposed to get there (parse_fn_call)!",
+                p.as_rule()
+            ),
         };
     }
 
-    Ok(FunctionCall { name: name.unwrap(), args })
+    Ok(FunctionCall {
+        name: name.unwrap(),
+        args,
+    })
 }
 
 fn parse_filter(pair: Pair<Rule>) -> TemplateResult<FunctionCall> {
@@ -100,11 +106,17 @@ fn parse_filter(pair: Pair<Rule>) -> TemplateResult<FunctionCall> {
             Rule::fn_call => {
                 return parse_fn_call(p);
             }
-            _ => unreachable!("{:?} not supposed to get there (parse_filter)!", p.as_rule()),
+            _ => unreachable!(
+                "{:?} not supposed to get there (parse_filter)!",
+                p.as_rule()
+            ),
         };
     }
 
-    Ok(FunctionCall { name: name.unwrap(), args })
+    Ok(FunctionCall {
+        name: name.unwrap(),
+        args,
+    })
 }
 
 fn parse_test_call(pair: Pair<Rule>) -> TemplateResult<(String, Vec<Expr>)> {
@@ -129,7 +141,10 @@ fn parse_test_call(pair: Pair<Rule>) -> TemplateResult<(String, Vec<Expr>)> {
                     }
                 }
             }
-            _ => unreachable!("{:?} not supposed to get there (parse_test_call)!", p.as_rule()),
+            _ => unreachable!(
+                "{:?} not supposed to get there (parse_test_call)!",
+                p.as_rule()
+            ),
         };
     }
 
@@ -153,7 +168,12 @@ fn parse_test(pair: Pair<Rule>) -> TemplateResult<Test> {
         };
     }
 
-    Ok(Test { ident: ident.unwrap(), negated: false, name: name.unwrap(), args })
+    Ok(Test {
+        ident: ident.unwrap(),
+        negated: false,
+        name: name.unwrap(),
+        args,
+    })
 }
 
 fn parse_string_concat(pair: Pair<Rule>) -> TemplateResult<ExprVal> {
@@ -180,11 +200,9 @@ fn parse_string_concat(pair: Pair<Rule>) -> TemplateResult<ExprVal> {
                     values.push(ExprVal::String(current_str));
                     current_str = String::new();
                 }
-                values.push(ExprVal::Float(
-                    p.as_str().parse().map_err(|_| {
-                        Error::msg(format!("Float out of bounds: `{}`", p.as_str()))
-                    })?,
-                ));
+                values.push(ExprVal::Float(p.as_str().parse().map_err(|_| {
+                    Error::msg(format!("Float out of bounds: `{}`", p.as_str()))
+                })?));
             }
             Rule::dotted_square_bracket_ident => {
                 if !current_str.is_empty() {
@@ -261,10 +279,15 @@ fn parse_basic_expression(pair: Pair<Rule>) -> TemplateResult<ExprVal> {
         Rule::fn_call => ExprVal::FunctionCall(parse_fn_call(pair)?),
         Rule::macro_call => ExprVal::MacroCall(parse_macro_call(pair)?),
         Rule::dotted_square_bracket_ident => ExprVal::Ident(pair.as_str().to_string()),
-        Rule::basic_expr => {
-            MATH_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
-        }
-        _ => unreachable!("Got {:?} in parse_basic_expression: {}", pair.as_rule(), pair.as_str()),
+        Rule::basic_expr => MATH_PARSER
+            .map_primary(primary)
+            .map_infix(infix)
+            .parse(pair.into_inner())?,
+        _ => unreachable!(
+            "Got {:?} in parse_basic_expression: {}",
+            pair.as_rule(),
+            pair.as_str()
+        ),
     };
     Ok(expr)
 }
@@ -282,7 +305,11 @@ fn parse_basic_expr_with_filters(pair: Pair<Rule>) -> TemplateResult<Expr> {
         };
     }
 
-    Ok(Expr { val: expr_val.unwrap(), negated: false, filters })
+    Ok(Expr {
+        val: expr_val.unwrap(),
+        negated: false,
+        filters,
+    })
 }
 
 /// A string expression with optional filters
@@ -299,7 +326,11 @@ fn parse_string_expr_with_filters(pair: Pair<Rule>) -> TemplateResult<Expr> {
         };
     }
 
-    Ok(Expr { val: expr_val.unwrap(), negated: false, filters })
+    Ok(Expr {
+        val: expr_val.unwrap(),
+        negated: false,
+        filters,
+    })
 }
 
 /// An array with optional filters
@@ -315,7 +346,11 @@ fn parse_array_with_filters(pair: Pair<Rule>) -> TemplateResult<Expr> {
         };
     }
 
-    Ok(Expr { val: array.unwrap(), negated: false, filters })
+    Ok(Expr {
+        val: array.unwrap(),
+        negated: false,
+        filters,
+    })
 }
 
 fn parse_in_condition_container(pair: Pair<Rule>) -> TemplateResult<Expr> {
@@ -378,9 +413,10 @@ fn parse_comparison_val(pair: Pair<Rule>) -> TemplateResult<Expr> {
 
     let expr = match pair.as_rule() {
         Rule::basic_expr_filter => parse_basic_expr_with_filters(pair)?,
-        Rule::comparison_val => {
-            MATH_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
-        }
+        Rule::comparison_val => MATH_PARSER
+            .map_primary(primary)
+            .map_infix(infix)
+            .parse(pair.into_inner())?,
         _ => unreachable!("Got {:?} in parse_comparison_val", pair.as_rule()),
     };
     Ok(expr)
@@ -408,9 +444,10 @@ fn parse_comparison_expression(pair: Pair<Rule>) -> TemplateResult<Expr> {
     let expr = match pair.as_rule() {
         Rule::comparison_val => parse_comparison_val(pair)?,
         Rule::string_expr_filter => parse_string_expr_with_filters(pair)?,
-        Rule::comparison_expr => {
-            COMPARISON_EXPR_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
-        }
+        Rule::comparison_expr => COMPARISON_EXPR_PARSER
+            .map_primary(primary)
+            .map_infix(infix)
+            .parse(pair.into_inner())?,
         _ => unreachable!("Got {:?} in parse_comparison_expression", pair.as_rule()),
     };
     Ok(expr)
@@ -439,28 +476,30 @@ fn parse_logic_val(pair: Pair<Rule>) -> TemplateResult<Expr> {
 fn parse_logic_expr(pair: Pair<Rule>) -> TemplateResult<Expr> {
     let primary = parse_logic_expr;
 
-    let infix = |lhs: TemplateResult<Expr>, op: Pair<Rule>, rhs: TemplateResult<Expr>| match op.as_rule() {
-        Rule::op_or => Ok(Expr::new(ExprVal::Logic(LogicExpr {
-            lhs: Box::new(lhs?),
-            operator: LogicOperator::Or,
-            rhs: Box::new(rhs?),
-        }))),
-        Rule::op_and => Ok(Expr::new(ExprVal::Logic(LogicExpr {
-            lhs: Box::new(lhs?),
-            operator: LogicOperator::And,
-            rhs: Box::new(rhs?),
-        }))),
-        _ => unreachable!(
-            "{:?} not supposed to get there (infix of logic_expression)!",
-            op.as_rule()
-        ),
-    };
+    let infix =
+        |lhs: TemplateResult<Expr>, op: Pair<Rule>, rhs: TemplateResult<Expr>| match op.as_rule() {
+            Rule::op_or => Ok(Expr::new(ExprVal::Logic(LogicExpr {
+                lhs: Box::new(lhs?),
+                operator: LogicOperator::Or,
+                rhs: Box::new(rhs?),
+            }))),
+            Rule::op_and => Ok(Expr::new(ExprVal::Logic(LogicExpr {
+                lhs: Box::new(lhs?),
+                operator: LogicOperator::And,
+                rhs: Box::new(rhs?),
+            }))),
+            _ => unreachable!(
+                "{:?} not supposed to get there (infix of logic_expression)!",
+                op.as_rule()
+            ),
+        };
 
     let expr = match pair.as_rule() {
         Rule::logic_val => parse_logic_val(pair)?,
-        Rule::logic_expr => {
-            LOGIC_EXPR_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
-        }
+        Rule::logic_expr => LOGIC_EXPR_PARSER
+            .map_primary(primary)
+            .map_infix(infix)
+            .parse(pair.into_inner())?,
         _ => unreachable!("Got {:?} in parse_logic_expr", pair.as_rule()),
     };
     Ok(expr)
@@ -519,7 +558,11 @@ fn parse_macro_call(pair: Pair<Rule>) -> TemplateResult<MacroCall> {
         }
     }
 
-    Ok(MacroCall { namespace: namespace.unwrap(), name: name.unwrap(), args })
+    Ok(MacroCall {
+        namespace: namespace.unwrap(),
+        name: name.unwrap(),
+        args,
+    })
 }
 
 fn parse_variable_tag(pair: Pair<Rule>) -> TemplateResult<Node> {
@@ -629,7 +672,14 @@ fn parse_set_tag(pair: Pair<Rule>, global: bool) -> TemplateResult<Node> {
         }
     }
 
-    Ok(Node::Set(ws, Set { key: key.unwrap(), value: expr.unwrap(), global }))
+    Ok(Node::Set(
+        ws,
+        Set {
+            key: key.unwrap(),
+            value: expr.unwrap(),
+            global,
+        },
+    ))
 }
 
 fn parse_raw_tag(pair: Pair<Rule>) -> Node {
@@ -708,7 +758,14 @@ fn parse_filter_section(pair: Pair<Rule>) -> TemplateResult<Node> {
             _ => unreachable!("unexpected {:?} rule in parse_filter_section", p.as_rule()),
         };
     }
-    Ok(Node::FilterSection(start_ws, FilterSection { filter: filter.unwrap(), body }, end_ws))
+    Ok(Node::FilterSection(
+        start_ws,
+        FilterSection {
+            filter: filter.unwrap(),
+            body,
+        },
+        end_ws,
+    ))
 }
 
 fn parse_block(pair: Pair<Rule>) -> TemplateResult<Node> {
@@ -744,21 +801,24 @@ fn parse_block(pair: Pair<Rule>) -> TemplateResult<Node> {
         };
     }
 
-    Ok(Node::Block(start_ws, Block { name: name.unwrap(), body }, end_ws))
+    Ok(Node::Block(
+        start_ws,
+        Block {
+            name: name.unwrap(),
+            body,
+        },
+        end_ws,
+    ))
 }
 
 fn parse_macro_arg(p: Pair<Rule>) -> TemplateResult<ExprVal> {
     let val = match p.as_rule() {
-        Rule::int => Some(ExprVal::Int(
-            p.as_str()
-                .parse()
-                .map_err(|_| Error::msg(format!("Integer out of bounds: `{}`", p.as_str())))?,
-        )),
-        Rule::float => Some(ExprVal::Float(
-            p.as_str()
-                .parse()
-                .map_err(|_| Error::msg(format!("Float out of bounds: `{}`", p.as_str())))?,
-        )),
+        Rule::int => Some(ExprVal::Int(p.as_str().parse().map_err(|_| {
+            Error::msg(format!("Integer out of bounds: `{}`", p.as_str()))
+        })?)),
+        Rule::float => Some(ExprVal::Float(p.as_str().parse().map_err(|_| {
+            Error::msg(format!("Float out of bounds: `{}`", p.as_str()))
+        })?)),
         Rule::boolean => match p.as_str() {
             "true" => Some(ExprVal::Bool(true)),
             "True" => Some(ExprVal::Bool(true)),
@@ -832,11 +892,18 @@ fn parse_macro_definition(pair: Pair<Rule>) -> TemplateResult<Node> {
                     };
                 }
             }
-            _ => unreachable!("unexpected {:?} rule in parse_macro_definition", p.as_rule()),
+            _ => unreachable!(
+                "unexpected {:?} rule in parse_macro_definition",
+                p.as_rule()
+            ),
         }
     }
 
-    Ok(Node::MacroDefinition(start_ws, MacroDefinition { name, args, body }, end_ws))
+    Ok(Node::MacroDefinition(
+        start_ws,
+        MacroDefinition { name, args, body },
+        end_ws,
+    ))
 }
 
 fn parse_forloop(pair: Pair<Rule>) -> TemplateResult<Node> {
@@ -902,7 +969,13 @@ fn parse_forloop(pair: Pair<Rule>) -> TemplateResult<Node> {
 
     Ok(Node::Forloop(
         start_ws,
-        Forloop { key, value: value.unwrap(), container: container.unwrap(), body, empty_body },
+        Forloop {
+            key,
+            value: value.unwrap(),
+            container: container.unwrap(),
+            body,
+            empty_body,
+        },
         end_ws,
     ))
 }
@@ -1040,7 +1113,13 @@ fn parse_if(pair: Pair<Rule>) -> TemplateResult<Node> {
         }
     }
 
-    Ok(Node::If(If { conditions, otherwise }, end_ws))
+    Ok(Node::If(
+        If {
+            conditions,
+            otherwise,
+        },
+        end_ws,
+    ))
 }
 
 fn parse_content(pair: Pair<Rule>) -> TemplateResult<Vec<Node>> {

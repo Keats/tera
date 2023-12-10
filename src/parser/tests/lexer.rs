@@ -418,8 +418,12 @@ fn lex_macro_definition() {
 
 #[test]
 fn lex_test() {
-    let inputs =
-        vec!["a is defined", "a is defined()", "a is divisibleby(2)", "a is in([1, 2, something])"];
+    let inputs = vec![
+        "a is defined",
+        "a is defined()",
+        "a is divisibleby(2)",
+        "a is in([1, 2, something])",
+    ];
     for i in inputs {
         // The () are not counted as tokens for some reasons so can't use the macro
         assert!(TemplateParser::parse(Rule::test, i).is_ok());
@@ -430,14 +434,20 @@ fn lex_test() {
 fn lex_include_tag() {
     assert!(TemplateParser::parse(Rule::include_tag, "{% include \"index.html\" %}").is_ok());
     assert!(TemplateParser::parse(Rule::include_tag, "{% include [\"index.html\"] %}").is_ok());
-    assert!(TemplateParser::parse(Rule::include_tag, "{% include [\"index.html\"] ignore missing %}")
-        .is_ok());
+    assert!(TemplateParser::parse(
+        Rule::include_tag,
+        "{% include [\"index.html\"] ignore missing %}"
+    )
+    .is_ok());
 }
 
 #[test]
 fn lex_import_macro_tag() {
-    assert!(TemplateParser::parse(Rule::import_macro_tag, "{% import \"macros.html\" as macros %}",)
-        .is_ok());
+    assert!(TemplateParser::parse(
+        Rule::import_macro_tag,
+        "{% import \"macros.html\" as macros %}",
+    )
+    .is_ok());
 }
 
 #[test]

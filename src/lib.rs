@@ -60,12 +60,12 @@
 mod macros;
 mod builtins;
 mod context;
+mod engine;
 mod errors;
 mod filter_utils;
 mod parser;
 mod renderer;
 mod template;
-mod engine;
 mod utils;
 
 // Library exports.
@@ -81,9 +81,9 @@ pub use crate::context::dotted_pointer;
 #[doc(hidden)]
 #[allow(deprecated)]
 pub use crate::context::get_json_pointer;
+pub use crate::engine::Engine;
 #[doc(hidden)]
 pub use crate::template::Template;
-pub use crate::engine::Engine;
 pub use crate::utils::escape_html;
 // Re-export Value and other useful things from serde
 // so apps/tools can encode data in template types

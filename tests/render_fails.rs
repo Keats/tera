@@ -2,8 +2,8 @@ extern crate rio_templates;
 #[macro_use]
 extern crate serde_derive;
 
+use rio_templates::{Context, Engine, Result};
 use std::error::Error;
-use rio_templates::{Context, Result, Engine};
 
 mod common;
 use crate::common::{Product, Review};
@@ -111,7 +111,10 @@ fn test_error_in_child_template_location() {
 
     assert!(result.is_err());
     let errs = result.unwrap_err();
-    assert_eq!(errs.to_string(), "Failed to render 'error-location/error_in_child.html'");
+    assert_eq!(
+        errs.to_string(),
+        "Failed to render 'error-location/error_in_child.html'"
+    );
 }
 
 #[test]
@@ -120,7 +123,10 @@ fn test_error_in_grandchild_template_location() {
 
     assert!(result.is_err());
     let errs = result.unwrap_err();
-    assert_eq!(errs.to_string(), "Failed to render 'error-location/error_in_grand_child.html'");
+    assert_eq!(
+        errs.to_string(),
+        "Failed to render 'error-location/error_in_grand_child.html'"
+    );
 }
 
 #[test]

@@ -64,7 +64,9 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
             }
         },
         None => {
-            return Err(Error::msg("Function `range` was called without a `end` argument"));
+            return Err(Error::msg(
+                "Function `range` was called without a `end` argument",
+            ));
         }
     };
 
@@ -134,7 +136,9 @@ pub fn throw(args: &HashMap<String, Value>) -> Result<Value> {
                 val
             ))),
         },
-        None => Err(Error::msg("Function `throw` was called without a `message` argument")),
+        None => Err(Error::msg(
+            "Function `throw` was called without a `message` argument",
+        )),
     }
 }
 
@@ -163,7 +167,11 @@ pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
                 )));
             }
         },
-        None => return Err(Error::msg("Function `get_random` didn't receive an `end` argument")),
+        None => {
+            return Err(Error::msg(
+                "Function `get_random` didn't receive an `end` argument",
+            ))
+        }
     };
     let mut rng = rand::thread_rng();
     let res = rng.gen_range(start..end);
@@ -182,14 +190,21 @@ pub fn get_env(args: &HashMap<String, Value>) -> Result<Value> {
                 )));
             }
         },
-        None => return Err(Error::msg("Function `get_env` didn't receive a `name` argument")),
+        None => {
+            return Err(Error::msg(
+                "Function `get_env` didn't receive a `name` argument",
+            ))
+        }
     };
 
     match std::env::var(&name).ok() {
         Some(res) => Ok(Value::String(res)),
         None => match args.get("default") {
             Some(default) => Ok(default.clone()),
-            None => Err(Error::msg(format!("Environment variable `{}` not found", &name))),
+            None => Err(Error::msg(format!(
+                "Environment variable `{}` not found",
+                &name
+            ))),
         },
     }
 }

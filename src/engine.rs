@@ -162,7 +162,11 @@ impl Engine {
     fn load_from_glob(&mut self) -> Result<()> {
         let glob = match &self.glob {
             Some(g) => g,
-            None => return Err(Error::msg("Engine can only load from glob if a glob is provided")),
+            None => {
+                return Err(Error::msg(
+                    "Engine can only load from glob if a glob is provided",
+                ))
+            }
         };
 
         // We want to preserve templates that have been added through
@@ -188,7 +192,11 @@ impl Engine {
             // See https://github.com/Keats/tera/issues/819#issuecomment-1480392230
             Err(_) => std::path::PathBuf::from(parent_dir),
         };
-        let dir = parent_dir.join(glob_end).into_os_string().into_string().unwrap();
+        let dir = parent_dir
+            .join(glob_end)
+            .into_os_string()
+            .into_string()
+            .unwrap();
 
         // We are parsing all the templates on instantiation
         for entry in glob_builder(&dir)
@@ -838,7 +846,9 @@ impl Engine {
         if self.glob.is_some() {
             self.load_from_glob()?;
         } else {
-            return Err(Error::msg("Reloading is only available if you are using a glob"));
+            return Err(Error::msg(
+                "Reloading is only available if you are using a glob",
+            ));
         }
 
         self.build_inheritance_chains()?;
@@ -949,20 +959,27 @@ mod tests {
     #[test]
     fn test_get_inheritance_chain() {
         let mut engine = Engine::default();
-        engine.add_raw_templates(vec![
-            ("a", "{% extends \"b\" %}"),
-            ("b", "{% extends \"c\" %}"),
-            ("c", "{% extends \"d\" %}"),
-            ("d", ""),
-        ])
-        .unwrap();
+        engine
+            .add_raw_templates(vec![
+                ("a", "{% extends \"b\" %}"),
+                ("b", "{% extends \"c\" %}"),
+                ("c", "{% extends \"d\" %}"),
+                ("d", ""),
+            ])
+            .unwrap();
 
         assert_eq!(
             engine.get_template("a").unwrap().parents,
             vec!["b".to_string(), "c".to_string(), "d".to_string()]
         );
-        assert_eq!(engine.get_template("b").unwrap().parents, vec!["c".to_string(), "d".to_string()]);
-        assert_eq!(engine.get_template("c").unwrap().parents, vec!["d".to_string()]);
+        assert_eq!(
+            engine.get_template("b").unwrap().parents,
+            vec!["c".to_string(), "d".to_string()]
+        );
+        assert_eq!(
+            engine.get_template("c").unwrap().parents,
+            vec!["d".to_string()]
+        );
         assert_eq!(engine.get_template("d").unwrap().parents.len(), 0);
     }
 
@@ -970,7 +987,10 @@ mod tests {
     fn test_missing_parent_template() {
         let mut engine = Engine::default();
         assert_eq!(
-            engine.add_raw_template("a", "{% extends \"b\" %}").unwrap_err().to_string(),
+            engine
+                .add_raw_template("a", "{% extends \"b\" %}")
+                .unwrap_err()
+                .to_string(),
             "Template \'a\' is inheriting from \'b\', which doesn\'t exist or isn\'t loaded."
         );
     }
@@ -979,10 +999,15 @@ mod tests {
     fn test_circular_extends() {
         let mut engine = Engine::default();
         let err = engine
-            .add_raw_templates(vec![("a", "{% extends \"b\" %}"), ("b", "{% extends \"a\" %}")])
+            .add_raw_templates(vec![
+                ("a", "{% extends \"b\" %}"),
+                ("b", "{% extends \"a\" %}"),
+            ])
             .unwrap_err();
 
-        assert!(err.to_string().contains("Circular extend detected for template"));
+        assert!(err
+            .to_string()
+            .contains("Circular extend detected for template"));
     }
 
     #[test]
@@ -1003,12 +1028,20 @@ mod tests {
             ),
         ]).unwrap();
 
-        let hey_definitions =
-            engine.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
+        let hey_definitions = engine
+            .get_template("child")
+            .unwrap()
+            .blocks_definitions
+            .get("hey")
+            .unwrap();
         assert_eq!(hey_definitions.len(), 3);
 
-        let ending_definitions =
-            engine.get_template("child").unwrap().blocks_definitions.get("ending").unwrap();
+        let ending_definitions = engine
+            .get_template("child")
+            .unwrap()
+            .blocks_definitions
+            .get("ending")
+            .unwrap();
         assert_eq!(ending_definitions.len(), 2);
     }
 
@@ -1027,12 +1060,20 @@ mod tests {
             ),
         ]).unwrap();
 
-        let hey_definitions =
-            engine.get_template("child").unwrap().blocks_definitions.get("hey").unwrap();
+        let hey_definitions = engine
+            .get_template("child")
+            .unwrap()
+            .blocks_definitions
+            .get("hey")
+            .unwrap();
         assert_eq!(hey_definitions.len(), 3);
 
-        let ending_definitions =
-            engine.get_template("parent").unwrap().blocks_definitions.get("ending").unwrap();
+        let ending_definitions = engine
+            .get_template("parent")
+            .unwrap()
+            .blocks_definitions
+            .get("ending")
+            .unwrap();
         assert_eq!(ending_definitions.len(), 1);
     }
 
@@ -1100,8 +1141,12 @@ mod tests {
         let m = json!({
             "greeting": "Good morning"
         });
-        let result =
-            Engine::one_off("{{ greeting }} world", &Context::from_value(m).unwrap(), true).unwrap();
+        let result = Engine::one_off(
+            "{{ greeting }} world",
+            &Context::from_value(m).unwrap(),
+            true,
+        )
+        .unwrap();
 
         assert_eq!(result, "Good morning world");
     }
@@ -1113,8 +1158,9 @@ mod tests {
             Ok(args.get("greeting").map(JsonValue::to_owned).unwrap())
         });
 
-        let result =
-            engine.render_str("{{ echo(greeting='Hello') }} world", &Context::default()).unwrap();
+        let result = engine
+            .render_str("{{ echo(greeting='Hello') }} world", &Context::default())
+            .unwrap();
 
         assert_eq!(result, "Hello world");
     }
@@ -1152,7 +1198,9 @@ mod tests {
             .unwrap();
 
         let mut framework_engine = Engine::default();
-        framework_engine.add_raw_templates(vec![("four", "Framework X")]).unwrap();
+        framework_engine
+            .add_raw_templates(vec![("four", "Framework X")])
+            .unwrap();
 
         my_tera.extend(&framework_engine).unwrap();
         assert_eq!(my_tera.templates.len(), 4);
@@ -1186,9 +1234,10 @@ mod tests {
     fn test_extend_new_filter() {
         let mut my_tera = Engine::default();
         let mut framework_engine = Engine::default();
-        framework_engine.register_filter("hello", |_: &JsonValue, _: &HashMap<String, JsonValue>| {
-            Ok(JsonValue::Number(10.into()))
-        });
+        framework_engine
+            .register_filter("hello", |_: &JsonValue, _: &HashMap<String, JsonValue>| {
+                Ok(JsonValue::Number(10.into()))
+            });
         my_tera.extend(&framework_engine).unwrap();
         assert!(my_tera.filters.contains_key("hello"));
     }
@@ -1197,7 +1246,8 @@ mod tests {
     fn test_extend_new_tester() {
         let mut my_tera = Engine::default();
         let mut framework_engine = Engine::default();
-        framework_engine.register_tester("hello", |_: Option<&JsonValue>, _: &[JsonValue]| Ok(true));
+        framework_engine
+            .register_tester("hello", |_: Option<&JsonValue>, _: &[JsonValue]| Ok(true));
         my_tera.extend(&framework_engine).unwrap();
         assert!(my_tera.testers.contains_key("hello"));
     }
@@ -1269,7 +1319,12 @@ mod tests {
         let cwd = tmp_dir.path().canonicalize().unwrap();
         File::create(cwd.join("hey.html")).expect("Failed to create a test file");
         File::create(cwd.join("ho.html")).expect("Failed to create a test file");
-        let glob = cwd.join("**").join("*.html").into_os_string().into_string().unwrap();
+        let glob = cwd
+            .join("**")
+            .join("*.html")
+            .into_os_string()
+            .into_string()
+            .unwrap();
         let engine = Engine::new(&glob).expect("Couldn't build Engine instance");
         assert_eq!(engine.templates.len(), 2);
     }

@@ -18,7 +18,9 @@ pub struct Context {
 impl Context {
     /// Initializes an empty context
     pub fn new() -> Self {
-        Context { data: BTreeMap::new() }
+        Context {
+            data: BTreeMap::new(),
+        }
     }
 
     /// Converts the `val` parameter to `Value` and insert it into the context.
@@ -357,14 +359,13 @@ pub fn dotted_pointer<'a>(value: &'a Value, pointer: &str) -> Option<&'a Value> 
         return Some(value);
     }
 
-    PointerMachina::new(pointer).map(|mat| mat.replace("~1", "/").replace("~0", "~")).try_fold(
-        value,
-        |target, token| match target {
+    PointerMachina::new(pointer)
+        .map(|mat| mat.replace("~1", "/").replace("~0", "~"))
+        .try_fold(value, |target, token| match target {
             Value::Object(map) => map.get(&token),
             Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
             _ => None,
-        },
-    )
+        })
 }
 
 /// serde jsons parse_index
@@ -440,7 +441,10 @@ mod tests {
 
         assert_eq!(dotted_pointer(&value, ""), Some(&value));
         assert_eq!(dotted_pointer(&value, "foo"), value.pointer("/foo"));
-        assert_eq!(dotted_pointer(&value, "foo.bar.goo"), value.pointer("/foo/bar/goo"));
+        assert_eq!(
+            dotted_pointer(&value, "foo.bar.goo"),
+            value.pointer("/foo/bar/goo")
+        );
         assert_eq!(dotted_pointer(&value, "skrr"), value.pointer("/skrr"));
         assert_eq!(
             dotted_pointer(&value, r#"foo["bar"].baz"#),
@@ -499,7 +503,10 @@ mod tests {
 
         let mut expected = Context::new();
         expected.insert("name", "foo");
-        assert_eq!(context.remove("bio"), Some(to_value("Hi, I'm foo.").unwrap()));
+        assert_eq!(
+            context.remove("bio"),
+            Some(to_value("Hi, I'm foo.").unwrap())
+        );
         assert_eq!(context.get("bio"), None);
         assert_eq!(context, expected);
     }

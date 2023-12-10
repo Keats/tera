@@ -6,9 +6,9 @@ extern crate serde_json;
 
 use std::collections::HashMap;
 
+use rio_templates::{Context, Engine, Result};
 use serde_json::value::{to_value, Value};
 use std::error::Error;
-use rio_templates::{Context, Result, Engine};
 
 lazy_static! {
     pub static ref TEMPLATES: Engine = {

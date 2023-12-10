@@ -11,9 +11,9 @@ mod stack_frame;
 use std::io::Write;
 
 use self::processor::Processor;
+use crate::engine::Engine;
 use crate::errors::Result;
 use crate::template::Template;
-use crate::engine::Engine;
 use crate::utils::buffer_to_string;
 use crate::Context;
 
@@ -42,14 +42,22 @@ impl<'a> Renderer<'a> {
             template.name.ends_with(ext)
         });
 
-        Renderer { template, engine, context, should_escape }
+        Renderer {
+            template,
+            engine,
+            context,
+            should_escape,
+        }
     }
 
     /// Combines the context with the Template to generate the end result
     pub fn render(&self) -> Result<String> {
         let mut output = Vec::with_capacity(2000);
         self.render_to(&mut output)?;
-        buffer_to_string(|| "converting rendered buffer to string".to_string(), output)
+        buffer_to_string(
+            || "converting rendered buffer to string".to_string(),
+            output,
+        )
     }
 
     /// Combines the context with the Template to write the end result to output

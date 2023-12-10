@@ -6,14 +6,15 @@ use super::NestedObject;
 #[test]
 fn render_macros() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
+    engine
+        .add_raw_templates(vec![
         ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
         (
             "tpl",
             "{% import \"macros\" as macros %}{% block hey %}{{macros::hello()}}{% endblock hey %}",
         ),
     ])
-    .unwrap();
+        .unwrap();
 
     let result = engine.render("tpl", &Context::new());
 
@@ -38,11 +39,15 @@ fn render_macros_expression_arg() {
     let mut context = Context::new();
     context.insert("pages", &vec![1, 2, 3, 4, 5]);
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("macros", "{% macro hello(val)%}{{val}}{% endmacro hello %}"),
-        ("tpl", "{% import \"macros\" as macros %}{{macros::hello(val=pages|last)}}"),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            ("macros", "{% macro hello(val)%}{{val}}{% endmacro hello %}"),
+            (
+                "tpl",
+                "{% import \"macros\" as macros %}{{macros::hello(val=pages|last)}}",
+            ),
+        ])
+        .unwrap();
 
     let result = engine.render("tpl", &context);
 
@@ -98,11 +103,18 @@ fn render_macros_in_parent_template_with_inheritance() {
 #[test]
 fn macro_param_arent_escaped() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("macros.html", r#"{% macro print(val) %}{{val|safe}}{% endmacro print %}"#),
-        ("hello.html", r#"{% import "macros.html" as macros %}{{ macros::print(val=my_var)}}"#),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            (
+                "macros.html",
+                r#"{% macro print(val) %}{{val|safe}}{% endmacro print %}"#,
+            ),
+            (
+                "hello.html",
+                r#"{% import "macros.html" as macros %}{{ macros::print(val=my_var)}}"#,
+            ),
+        ])
+        .unwrap();
     let mut context = Context::new();
     context.insert("my_var", &"&");
     let result = engine.render("hello.html", &context);
@@ -113,14 +125,15 @@ fn macro_param_arent_escaped() {
 #[test]
 fn render_set_tag_macro() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
-        (
-            "hello.html",
-            "{% import \"macros\" as macros %}{% set my_var = macros::hello() %}{{my_var}}",
-        ),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            ("macros", "{% macro hello()%}Hello{% endmacro hello %}"),
+            (
+                "hello.html",
+                "{% import \"macros\" as macros %}{% set my_var = macros::hello() %}{{my_var}}",
+            ),
+        ])
+        .unwrap();
     let result = engine.render("hello.html", &Context::new());
 
     assert_eq!(result.unwrap(), "Hello".to_string());
@@ -129,11 +142,18 @@ fn render_set_tag_macro() {
 #[test]
 fn render_macros_with_default_args() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("macros", "{% macro hello(val=1) %}{{val}}{% endmacro hello %}"),
-        ("hello.html", "{% import \"macros\" as macros %}{{macros::hello()}}"),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            (
+                "macros",
+                "{% macro hello(val=1) %}{{val}}{% endmacro hello %}",
+            ),
+            (
+                "hello.html",
+                "{% import \"macros\" as macros %}{{macros::hello()}}",
+            ),
+        ])
+        .unwrap();
     let result = engine.render("hello.html", &Context::new());
 
     assert_eq!(result.unwrap(), "1".to_string());
@@ -142,11 +162,18 @@ fn render_macros_with_default_args() {
 #[test]
 fn render_macros_override_default_args() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("macros", "{% macro hello(val=1) %}{{val}}{% endmacro hello %}"),
-        ("hello.html", "{% import \"macros\" as macros %}{{macros::hello(val=2)}}"),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            (
+                "macros",
+                "{% macro hello(val=1) %}{{val}}{% endmacro hello %}",
+            ),
+            (
+                "hello.html",
+                "{% import \"macros\" as macros %}{{macros::hello(val=2)}}",
+            ),
+        ])
+        .unwrap();
     let result = engine.render("hello.html", &Context::new());
 
     assert_eq!(result.unwrap(), "2".to_string());
@@ -164,13 +191,20 @@ fn render_recursive_macro() {
     ]).unwrap();
     let result = engine.render("hello.html", &Context::new());
 
-    assert_eq!(result.unwrap(), "7 - 6 - 5 - 4 - 3 - 2 - 11234567".to_string());
+    assert_eq!(
+        result.unwrap(),
+        "7 - 6 - 5 - 4 - 3 - 2 - 11234567".to_string()
+    );
 }
 
 // https://github.com/Keats/tera/issues/202
 #[test]
 fn recursive_macro_with_loops() {
-    let parent = NestedObject { label: "Parent".to_string(), parent: None, numbers: vec![1, 2, 3] };
+    let parent = NestedObject {
+        label: "Parent".to_string(),
+        parent: None,
+        numbers: vec![1, 2, 3],
+    };
     let child = NestedObject {
         label: "Child".to_string(),
         parent: Some(Box::new(parent)),
@@ -180,10 +214,11 @@ fn recursive_macro_with_loops() {
     context.insert("objects", &vec![child]);
     let mut engine = Engine::default();
 
-    engine.add_raw_templates(vec![
-        (
-            "macros.html",
-            r#"
+    engine
+        .add_raw_templates(vec![
+            (
+                "macros.html",
+                r#"
 {% macro label_for(obj, sep) -%}
   {%- if obj.parent -%}
     {{ self::label_for(obj=obj.parent, sep=sep) }}{{sep}}
@@ -192,18 +227,18 @@ fn recursive_macro_with_loops() {
   {%- for i in obj.numbers -%}{{ i }}{%- endfor -%}
 {%- endmacro label_for %}
             "#,
-        ),
-        (
-            "recursive",
-            r#"
+            ),
+            (
+                "recursive",
+                r#"
 {%- import "macros.html" as macros -%}
 {%- for obj in objects -%}
     {{ macros::label_for(obj=obj, sep="|") }}
 {%- endfor -%}
 "#,
-        ),
-    ])
-    .unwrap();
+            ),
+        ])
+        .unwrap();
 
     let result = engine.render("recursive", &context);
 
@@ -214,12 +249,16 @@ fn recursive_macro_with_loops() {
 #[test]
 fn render_macros_in_included() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("macros", "{% macro my_macro() %}my macro{% endmacro %}"),
-        ("includeme", r#"{% import "macros" as macros %}{{ macros::my_macro() }}"#),
-        ("example", r#"{% include "includeme" %}"#),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            ("macros", "{% macro my_macro() %}my macro{% endmacro %}"),
+            (
+                "includeme",
+                r#"{% import "macros" as macros %}{{ macros::my_macro() }}"#,
+            ),
+            ("example", r#"{% include "includeme" %}"#),
+        ])
+        .unwrap();
     let result = engine.render("example", &Context::new());
 
     assert_eq!(result.unwrap(), "my macro".to_string());
@@ -276,12 +315,19 @@ fn can_load_macro_in_child() {
 #[test]
 fn can_inherit_macro_import_from_parent() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("macros", "{% macro hello()%}HELLO{% endmacro hello %}"),
-        ("parent", "{% import \"macros\" as macros %}{% block bob %}parent{% endblock bob %}"),
-        ("child", "{% extends \"parent\" %}{% block bob %}{{macros::hello()}}{% endblock bob %}"),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            ("macros", "{% macro hello()%}HELLO{% endmacro hello %}"),
+            (
+                "parent",
+                "{% import \"macros\" as macros %}{% block bob %}parent{% endblock bob %}",
+            ),
+            (
+                "child",
+                "{% extends \"parent\" %}{% block bob %}{{macros::hello()}}{% endblock bob %}",
+            ),
+        ])
+        .unwrap();
 
     let result = engine.render("child", &Context::default());
     assert_eq!(result.unwrap(), "HELLO".to_string());
@@ -328,7 +374,10 @@ fn macro_can_load_macro_from_macro_files() {
 
     let result = engine.render("child", &Context::new());
     //println!("{:#?}", result);
-    assert_eq!(result.unwrap(), "Emma was an amazing person! Don't you think?".to_string());
+    assert_eq!(
+        result.unwrap(),
+        "Emma was an amazing person! Don't you think?".to_string()
+    );
 }
 
 #[test]
@@ -352,7 +401,10 @@ fn template_cant_access_macros_context() {
     ]).unwrap();
 
     let result = engine.render("parent", &Context::new());
-    assert_eq!(result.unwrap(), "I'd rather have roses on my table than diamonds on my neck.");
+    assert_eq!(
+        result.unwrap(),
+        "I'd rather have roses on my table than diamonds on my neck."
+    );
 }
 
 #[test]

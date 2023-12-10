@@ -1,7 +1,7 @@
 extern crate rio_templates;
 
-use std::alloc::System;
 use rio_templates::{Context, Engine};
+use std::alloc::System;
 
 #[global_allocator]
 static GLOBAL: System = System;
@@ -25,7 +25,9 @@ fn main() {
     }
 
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![("big-table.html", BIG_TABLE_TEMPLATE)]).unwrap();
+    engine
+        .add_raw_templates(vec![("big-table.html", BIG_TABLE_TEMPLATE)])
+        .unwrap();
     let mut ctx = Context::new();
     ctx.insert("table", &table);
 

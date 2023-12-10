@@ -5,7 +5,7 @@ extern crate test;
 extern crate serde_derive;
 extern crate serde_json;
 
-use rio_templates::{Context, Template, Engine, Value};
+use rio_templates::{Context, Engine, Template, Value};
 
 static VARIABLE_ONLY: &str = "{{product.name}}";
 
@@ -114,7 +114,9 @@ fn bench_rendering_only_variable(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_basic_template(b: &mut test::Bencher) {
     let mut engine = Engine::default();
-    engine.add_raw_template("bench.html", SIMPLE_TEMPLATE).unwrap();
+    engine
+        .add_raw_template("bench.html", SIMPLE_TEMPLATE)
+        .unwrap();
     let mut context = Context::new();
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
@@ -125,7 +127,9 @@ fn bench_rendering_basic_template(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_parent(b: &mut test::Bencher) {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![("parent.html", PARENT_TEMPLATE)]).unwrap();
+    engine
+        .add_raw_templates(vec![("parent.html", PARENT_TEMPLATE)])
+        .unwrap();
     let mut context = Context::new();
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
@@ -136,7 +140,11 @@ fn bench_rendering_only_parent(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_macro_call(b: &mut test::Bencher) {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![("hey.html", USE_MACRO_TEMPLATE), ("macros.html", MACRO_TEMPLATE)])
+    engine
+        .add_raw_templates(vec![
+            ("hey.html", USE_MACRO_TEMPLATE),
+            ("macros.html", MACRO_TEMPLATE),
+        ])
         .unwrap();
     let mut context = Context::new();
     context.insert("product", &Product::new());
@@ -148,7 +156,11 @@ fn bench_rendering_only_macro_call(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_only_inheritance(b: &mut test::Bencher) {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![("parent.html", PARENT_TEMPLATE), ("child.html", CHILD_TEMPLATE)])
+    engine
+        .add_raw_templates(vec![
+            ("parent.html", PARENT_TEMPLATE),
+            ("child.html", CHILD_TEMPLATE),
+        ])
         .unwrap();
     let mut context = Context::new();
     context.insert("product", &Product::new());
@@ -160,12 +172,13 @@ fn bench_rendering_only_inheritance(b: &mut test::Bencher) {
 #[bench]
 fn bench_rendering_inheritance_and_macros(b: &mut test::Bencher) {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("parent.html", PARENT_TEMPLATE),
-        ("child.html", CHILD_TEMPLATE_WITH_MACRO),
-        ("macros.html", MACRO_TEMPLATE),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            ("parent.html", PARENT_TEMPLATE),
+            ("child.html", CHILD_TEMPLATE_WITH_MACRO),
+            ("macros.html", MACRO_TEMPLATE),
+        ])
+        .unwrap();
     let mut context = Context::new();
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
@@ -176,12 +189,13 @@ fn bench_rendering_inheritance_and_macros(b: &mut test::Bencher) {
 #[bench]
 fn bench_build_inheritance_chains(b: &mut test::Bencher) {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("parent.html", PARENT_TEMPLATE),
-        ("child.html", CHILD_TEMPLATE_WITH_MACRO),
-        ("macros.html", MACRO_TEMPLATE),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            ("parent.html", PARENT_TEMPLATE),
+            ("child.html", CHILD_TEMPLATE_WITH_MACRO),
+            ("macros.html", MACRO_TEMPLATE),
+        ])
+        .unwrap();
     b.iter(|| engine.build_inheritance_chains());
 }
 
@@ -197,17 +211,25 @@ fn bench_huge_loop(b: &mut test::Bencher) {
         real: Vec<DataWrapper>,
         dummy: Vec<DataWrapper>,
     }
-    let real: Vec<DataWrapper> = (1..1000).map(|i| DataWrapper { v: format!("n={}", i) }).collect();
-    let dummy: Vec<DataWrapper> =
-        (1..1000).map(|i| DataWrapper { v: format!("n={}", i) }).collect();
+    let real: Vec<DataWrapper> = (1..1000)
+        .map(|i| DataWrapper {
+            v: format!("n={}", i),
+        })
+        .collect();
+    let dummy: Vec<DataWrapper> = (1..1000)
+        .map(|i| DataWrapper {
+            v: format!("n={}", i),
+        })
+        .collect();
     let rows = RowWrapper { real, dummy };
 
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![(
-        "huge.html",
-        "{% for real in rows.real %}{{real.v}}{% endfor %}",
-    )])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![(
+            "huge.html",
+            "{% for real in rows.real %}{{real.v}}{% endfor %}",
+        )])
+        .unwrap();
     let mut context = Context::new();
     context.insert("rows", &rows);
 
@@ -249,15 +271,19 @@ fn deep_object() -> Value {
 #[bench]
 fn access_deep_object(b: &mut test::Bencher) {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![(
-        "deep_object.html",
-        "{% for cow in deep_object.foo.bar.goo.moo.cows %}{{cow.temperament}}{% endfor %}",
-    )])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![(
+            "deep_object.html",
+            "{% for cow in deep_object.foo.bar.goo.moo.cows %}{{cow.temperament}}{% endfor %}",
+        )])
+        .unwrap();
     let mut context = Context::new();
     println!("{:?}", deep_object());
     context.insert("deep_object", &deep_object());
-    assert!(engine.render("deep_object.html", &context).unwrap().contains("ornery"));
+    assert!(engine
+        .render("deep_object.html", &context)
+        .unwrap()
+        .contains("ornery"));
 
     b.iter(|| engine.render("deep_object.html", &context));
 }
@@ -265,17 +291,21 @@ fn access_deep_object(b: &mut test::Bencher) {
 #[bench]
 fn access_deep_object_with_literal(b: &mut test::Bencher) {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![(
-        "deep_object.html",
-        "
+    engine
+        .add_raw_templates(vec![(
+            "deep_object.html",
+            "
 {% set goo = deep_object.foo['bar'][\"goo\"] %}
 {% for cow in goo.moo.cows %}{{cow.temperament}}
 {% endfor %}",
-    )])
-    .unwrap();
+        )])
+        .unwrap();
     let mut context = Context::new();
     context.insert("deep_object", &deep_object());
-    assert!(engine.render("deep_object.html", &context).unwrap().contains("ornery"));
+    assert!(engine
+        .render("deep_object.html", &context)
+        .unwrap()
+        .contains("ornery"));
 
     b.iter(|| engine.render("deep_object.html", &context));
 }

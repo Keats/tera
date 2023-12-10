@@ -49,7 +49,9 @@ fn can_remove_whitespace_include() {
 
     for (input, expected) in inputs {
         let mut engine = Engine::default();
-        engine.add_raw_templates(vec![("include", "Included"), ("tpl", input)]).unwrap();
+        engine
+            .add_raw_templates(vec![("include", "Included"), ("tpl", input)])
+            .unwrap();
         assert_eq!(engine.render("tpl", &context).unwrap(), expected);
     }
 }
@@ -60,18 +62,28 @@ fn can_remove_whitespace_macros() {
     context.insert("numbers", &vec![1, 2, 3]);
 
     let inputs = vec![
-        (r#" {%- import "macros" as macros -%} {{macros::hey()}}"#, "Hey!"),
-        (r#" {% import "macros" as macros %} {{macros::hey()}}"#, "Hey!"),
-        (r#" {%- import "macros" as macros %} {%- set hey = macros::hey() -%} {{hey}}"#, "Hey!"),
+        (
+            r#" {%- import "macros" as macros -%} {{macros::hey()}}"#,
+            "Hey!",
+        ),
+        (
+            r#" {% import "macros" as macros %} {{macros::hey()}}"#,
+            "Hey!",
+        ),
+        (
+            r#" {%- import "macros" as macros %} {%- set hey = macros::hey() -%} {{hey}}"#,
+            "Hey!",
+        ),
     ];
 
     for (input, expected) in inputs {
         let mut engine = Engine::default();
-        engine.add_raw_templates(vec![
-            ("macros", "{% macro hey() -%} Hey! {%- endmacro %}"),
-            ("tpl", input),
-        ])
-        .unwrap();
+        engine
+            .add_raw_templates(vec![
+                ("macros", "{% macro hey() -%} Hey! {%- endmacro %}"),
+                ("tpl", input),
+            ])
+            .unwrap();
         assert_eq!(engine.render("tpl", &context).unwrap(), expected);
     }
 }
@@ -82,18 +94,28 @@ fn can_remove_whitespace_inheritance() {
     context.insert("numbers", &vec![1, 2, 3]);
 
     let inputs = vec![
-        (r#"{%- extends "base" -%} {% block content %}{{super()}}{% endblock %}"#, " Hey! "),
-        (r#"{%- extends "base" -%} {% block content -%}{{super()}}{%- endblock %}"#, " Hey! "),
-        (r#"{%- extends "base" %} {%- block content -%}{{super()}}{%- endblock -%} "#, " Hey! "),
+        (
+            r#"{%- extends "base" -%} {% block content %}{{super()}}{% endblock %}"#,
+            " Hey! ",
+        ),
+        (
+            r#"{%- extends "base" -%} {% block content -%}{{super()}}{%- endblock %}"#,
+            " Hey! ",
+        ),
+        (
+            r#"{%- extends "base" %} {%- block content -%}{{super()}}{%- endblock -%} "#,
+            " Hey! ",
+        ),
     ];
 
     for (input, expected) in inputs {
         let mut engine = Engine::default();
-        engine.add_raw_templates(vec![
-            ("base", "{% block content %} Hey! {% endblock %}"),
-            ("tpl", input),
-        ])
-        .unwrap();
+        engine
+            .add_raw_templates(vec![
+                ("base", "{% block content %} Hey! {% endblock %}"),
+                ("tpl", input),
+            ])
+            .unwrap();
         assert_eq!(engine.render("tpl", &context).unwrap(), expected);
     }
 }

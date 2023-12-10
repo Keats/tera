@@ -14,8 +14,12 @@ use crate::utils;
 
 /// https://url.spec.whatwg.org/#fragment-percent-encode-set
 #[cfg(feature = "urlencode")]
-const FRAGMENT_ENCODE_SET: &AsciiSet =
-    &percent_encoding::CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
+const FRAGMENT_ENCODE_SET: &AsciiSet = &percent_encoding::CONTROLS
+    .add(b' ')
+    .add(b'"')
+    .add(b'<')
+    .add(b'>')
+    .add(b'`');
 
 /// https://url.spec.whatwg.org/#path-percent-encode-set
 #[cfg(feature = "urlencode")]
@@ -112,7 +116,11 @@ pub fn trim_start_matches(value: &Value, args: &HashMap<String, Value>) -> Resul
             // by `\\n` for real but that seems pretty unlikely
             p.replace("\\n", "\n").replace("\\t", "\t")
         }
-        None => return Err(Error::msg("Filter `trim_start_matches` expected an arg called `pat`")),
+        None => {
+            return Err(Error::msg(
+                "Filter `trim_start_matches` expected an arg called `pat`",
+            ))
+        }
     };
 
     Ok(to_value(s.trim_start_matches(&pat)).unwrap())
@@ -130,7 +138,11 @@ pub fn trim_end_matches(value: &Value, args: &HashMap<String, Value>) -> Result<
             // by `\\n` for real but that seems pretty unlikely
             p.replace("\\n", "\n").replace("\\t", "\t")
         }
-        None => return Err(Error::msg("Filter `trim_end_matches` expected an arg called `pat`")),
+        None => {
+            return Err(Error::msg(
+                "Filter `trim_end_matches` expected an arg called `pat`",
+            ))
+        }
     };
 
     Ok(to_value(s.trim_end_matches(&pat)).unwrap())
@@ -232,7 +244,12 @@ pub fn urlencode_strict(value: &Value, _: &HashMap<String, Value>) -> Result<Val
 /// Escapes quote characters
 pub fn addslashes(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("addslashes", "value", String, value);
-    Ok(to_value(s.replace('\\', "\\\\").replace('\"', "\\\"").replace('\'', "\\\'")).unwrap())
+    Ok(to_value(
+        s.replace('\\', "\\\\")
+            .replace('\"', "\\\"")
+            .replace('\'', "\\\'"),
+    )
+    .unwrap())
 }
 
 /// Transform a string into a slug
@@ -587,9 +604,15 @@ mod tests {
         let mut args = HashMap::new();
         args.insert("from".to_string(), to_value("\n").unwrap());
         args.insert("to".to_string(), to_value("<br>").unwrap());
-        let result = replace(&to_value("Animal Alphabets\nB is for Bee-Eater").unwrap(), &args);
+        let result = replace(
+            &to_value("Animal Alphabets\nB is for Bee-Eater").unwrap(),
+            &args,
+        );
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("Animal Alphabets<br>B is for Bee-Eater").unwrap());
+        assert_eq!(
+            result.unwrap(),
+            to_value("Animal Alphabets<br>B is for Bee-Eater").unwrap()
+        );
     }
 
     #[test]
@@ -606,7 +629,10 @@ mod tests {
 
     #[test]
     fn test_capitalize() {
-        let tests = vec![("CAPITAL IZE", "Capital ize"), ("capital ize", "Capital ize")];
+        let tests = vec![
+            ("CAPITAL IZE", "Capital ize"),
+            ("capital ize", "Capital ize"),
+        ];
         for (input, expected) in tests {
             let result = capitalize(&to_value(input).unwrap(), &HashMap::new());
             assert!(result.is_ok());
@@ -638,8 +664,10 @@ mod tests {
     fn test_slugify() {
         // slug crate already has tests for general slugification so we just
         // check our function works
-        let tests =
-            vec![(r#"Hello world"#, r#"hello-world"#), (r#"Hello 世界"#, r#"hello-shi-jie"#)];
+        let tests = vec![
+            (r#"Hello world"#, r#"hello-world"#),
+            (r#"Hello 世界"#, r#"hello-shi-jie"#),
+        ];
         for (input, expected) in tests {
             let result = slugify(&to_value(input).unwrap(), &HashMap::new());
             assert!(result.is_ok());
@@ -659,7 +687,10 @@ mod tests {
                 r#"https://www.example.org/apples-&-oranges/"#,
                 r#"https%3A//www.example.org/apples-%26-oranges/"#,
             ),
-            (r#"https://www.example.org/"#, r#"https%3A//www.example.org/"#),
+            (
+                r#"https://www.example.org/"#,
+                r#"https%3A//www.example.org/"#,
+            ),
             (r#"/test&"/me?/"#, r#"/test%26%22/me%3F/"#),
             (r#"escape/slash"#, r#"escape/slash"#),
         ];
@@ -683,7 +714,10 @@ mod tests {
                 r#"https://www.example.org/apples-&-oranges/"#,
                 r#"https%3A%2F%2Fwww%2Eexample%2Eorg%2Fapples%2D%26%2Doranges%2F"#,
             ),
-            (r#"https://www.example.org/"#, r#"https%3A%2F%2Fwww%2Eexample%2Eorg%2F"#),
+            (
+                r#"https://www.example.org/"#,
+                r#"https%3A%2F%2Fwww%2Eexample%2Eorg%2F"#,
+            ),
             (r#"/test&"/me?/"#, r#"%2Ftest%26%22%2Fme%3F%2F"#),
             (r#"escape/slash"#, r#"escape%2Fslash"#),
         ];
@@ -727,7 +761,10 @@ mod tests {
         let args = HashMap::new();
         let result = indent(&to_value("one\n\ntwo\nthree").unwrap(), &args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("one\n\n    two\n    three").unwrap());
+        assert_eq!(
+            result.unwrap(),
+            to_value("one\n\n    two\n    three").unwrap()
+        );
     }
 
     #[test]
@@ -744,7 +781,10 @@ mod tests {
     #[test]
     fn test_striptags() {
         let tests = vec![
-            (r"<b>Joel</b> <button>is</button> a <span>slug</span>", "Joel is a slug"),
+            (
+                r"<b>Joel</b> <button>is</button> a <span>slug</span>",
+                "Joel is a slug",
+            ),
             (
                 r#"<p>just a small   \n <a href="x"> example</a> link</p>\n<p>to a webpage</p><!-- <p>and some commented stuff</p> -->"#,
                 r#"just a small   \n  example link\nto a webpage"#,
@@ -764,7 +804,10 @@ mod tests {
             ("<x>b<y>", "b"),
             (r#"a<p a >b</p>c"#, "abc"),
             (r#"d<a:b c:d>e</p>f"#, "def"),
-            (r#"<strong>foo</strong><a href="http://example.com">bar</a>"#, "foobar"),
+            (
+                r#"<strong>foo</strong><a href="http://example.com">bar</a>"#,
+                "foobar",
+            ),
         ];
         for (input, expected) in tests {
             let result = striptags(&to_value(input).unwrap(), &HashMap::new());
@@ -858,8 +901,13 @@ mod tests {
 
         args.insert("default".to_string(), to_value(5).unwrap());
         args.insert("base".to_string(), to_value(2).unwrap());
-        let tests: Vec<(&str, i64)> =
-            vec![("0", 0), ("-3", 5), ("1010", 10), ("0b1010", 10), ("0xF00", 5)];
+        let tests: Vec<(&str, i64)> = vec![
+            ("0", 0),
+            ("-3", 5),
+            ("1010", 10),
+            ("0b1010", 10),
+            ("0xF00", 5),
+        ];
         for (input, expected) in tests {
             let result = int(&to_value(input).unwrap(), &args);
             assert!(result.is_ok());
@@ -868,8 +916,13 @@ mod tests {
 
         args.insert("default".to_string(), to_value(-4).unwrap());
         args.insert("base".to_string(), to_value(8).unwrap());
-        let tests: Vec<(&str, i64)> =
-            vec![("21", 17), ("-3", -3), ("9OO", -4), ("0o567", 375), ("0b101", -4)];
+        let tests: Vec<(&str, i64)> = vec![
+            ("21", 17),
+            ("-3", -3),
+            ("9OO", -4),
+            ("0o567", 375),
+            ("0b101", -4),
+        ];
         for (input, expected) in tests {
             let result = int(&to_value(input).unwrap(), &args);
             assert!(result.is_ok());

@@ -1,7 +1,7 @@
+use crate::engine::Engine;
 use crate::errors::{Error, Result};
 use crate::parser::ast::MacroDefinition;
 use crate::template::Template;
-use crate::engine::Engine;
 use std::collections::HashMap;
 
 // Types around Macros get complicated, simplify it a bit by using aliases
@@ -21,7 +21,9 @@ pub struct MacroCollection<'a> {
 
 impl<'a> MacroCollection<'a> {
     pub fn from_original_template(tpl: &'a Template, engine: &'a Engine) -> MacroCollection<'a> {
-        let mut macro_collection = MacroCollection { macros: MacroTemplateMap::new() };
+        let mut macro_collection = MacroCollection {
+            macros: MacroTemplateMap::new(),
+        };
 
         macro_collection
             .add_macros_from_template(engine, tpl)
@@ -80,7 +82,10 @@ impl<'a> MacroCollection<'a> {
                     continue;
                 }
                 // We inserted before so we're safe
-                self.macros.get_mut(template_name).unwrap().insert(namespace, *m);
+                self.macros
+                    .get_mut(template_name)
+                    .unwrap()
+                    .insert(namespace, *m);
             }
         }
 
@@ -101,7 +106,10 @@ impl<'a> MacroCollection<'a> {
         if let Some(n) = namespace {
             let &(macro_template, macro_definition_map) = n;
 
-            if let Some(m) = macro_definition_map.get(macro_name).map(|md| (macro_template, md)) {
+            if let Some(m) = macro_definition_map
+                .get(macro_name)
+                .map(|md| (macro_template, md))
+            {
                 Ok(m)
             } else {
                 Err(Error::msg(format!(

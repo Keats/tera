@@ -4,11 +4,18 @@ use crate::engine::Engine;
 #[test]
 fn render_simple_inheritance() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("top", "{% block pre %}{% endblock pre %}{% block main %}{% endblock main %}"),
-        ("bottom", "{% extends \"top\" %}{% block main %}MAIN{% endblock %}"),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            (
+                "top",
+                "{% block pre %}{% endblock pre %}{% block main %}{% endblock main %}",
+            ),
+            (
+                "bottom",
+                "{% extends \"top\" %}{% block main %}MAIN{% endblock %}",
+            ),
+        ])
+        .unwrap();
     let result = engine.render("bottom", &Context::new());
 
     assert_eq!(result.unwrap(), "MAIN".to_string());
@@ -17,11 +24,15 @@ fn render_simple_inheritance() {
 #[test]
 fn render_simple_inheritance_super() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("top", "{% block main %}TOP{% endblock main %}"),
-        ("bottom", "{% extends \"top\" %}{% block main %}{{ super() }}MAIN{% endblock %}"),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            ("top", "{% block main %}TOP{% endblock main %}"),
+            (
+                "bottom",
+                "{% extends \"top\" %}{% block main %}{{ super() }}MAIN{% endblock %}",
+            ),
+        ])
+        .unwrap();
     let result = engine.render("bottom", &Context::new());
 
     assert_eq!(result.unwrap(), "TOPMAIN".to_string());
@@ -30,12 +41,22 @@ fn render_simple_inheritance_super() {
 #[test]
 fn render_multiple_inheritance() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("top", "{% block pre %}{% endblock pre %}{% block main %}{% endblock main %}"),
-        ("mid", "{% extends \"top\" %}{% block pre %}PRE{% endblock pre %}"),
-        ("bottom", "{% extends \"mid\" %}{% block main %}MAIN{% endblock main %}"),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            (
+                "top",
+                "{% block pre %}{% endblock pre %}{% block main %}{% endblock main %}",
+            ),
+            (
+                "mid",
+                "{% extends \"top\" %}{% block pre %}PRE{% endblock pre %}",
+            ),
+            (
+                "bottom",
+                "{% extends \"mid\" %}{% block main %}MAIN{% endblock main %}",
+            ),
+        ])
+        .unwrap();
     let result = engine.render("bottom", &Context::new());
 
     assert_eq!(result.unwrap(), "PREMAIN".to_string());
@@ -69,11 +90,15 @@ fn render_multiple_inheritance_with_super() {
 #[test]
 fn render_filter_section_inheritance_no_override() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("top", "{% filter upper %}hello {% block main %}top{% endblock main %}{% endfilter %}"),
-        ("bottom", "{% extends 'top' %}"),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            (
+                "top",
+                "{% filter upper %}hello {% block main %}top{% endblock main %}{% endfilter %}",
+            ),
+            ("bottom", "{% extends 'top' %}"),
+        ])
+        .unwrap();
     let result = engine.render("bottom", &Context::new());
 
     assert_eq!(result.unwrap(), "HELLO TOP".to_string());
@@ -82,11 +107,18 @@ fn render_filter_section_inheritance_no_override() {
 #[test]
 fn render_filter_section_inheritance() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("top", "{% filter upper %}hello {% block main %}top{% endblock main %}{% endfilter %}"),
-        ("bottom", "{% extends 'top' %}{% block main %}bottom{% endblock %}"),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            (
+                "top",
+                "{% filter upper %}hello {% block main %}top{% endblock main %}{% endfilter %}",
+            ),
+            (
+                "bottom",
+                "{% extends 'top' %}{% block main %}bottom{% endblock %}",
+            ),
+        ])
+        .unwrap();
     let result = engine.render("bottom", &Context::new());
 
     assert_eq!(result.unwrap(), "HELLO BOTTOM".to_string());
@@ -136,7 +168,11 @@ fn render_nested_block_multiple_inheritance_no_super() {
 #[test]
 fn render_super_in_top_block_errors() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![("index", "{% block content%}{{super()}}{% endblock content %}")])
+    engine
+        .add_raw_templates(vec![(
+            "index",
+            "{% block content%}{{super()}}{% endblock content %}",
+        )])
         .unwrap();
 
     let result = engine.render("index", &Context::new());
@@ -147,15 +183,16 @@ fn render_super_in_top_block_errors() {
 #[test]
 fn render_super_in_grandchild_without_redefining_works() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("grandparent", "{% block title %}Title{% endblock %}"),
-        (
-            "parent",
-            "{% extends \"grandparent\" %}{% block title %}{{ super() }} - More{% endblock %}",
-        ),
-        ("child", "{% extends \"parent\" %}"),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            ("grandparent", "{% block title %}Title{% endblock %}"),
+            (
+                "parent",
+                "{% extends \"grandparent\" %}{% block title %}{{ super() }} - More{% endblock %}",
+            ),
+            ("child", "{% extends \"parent\" %}"),
+        ])
+        .unwrap();
 
     let result = engine.render("child", &Context::new());
     assert_eq!(result.unwrap(), "Title - More".to_string());
@@ -164,12 +201,16 @@ fn render_super_in_grandchild_without_redefining_works() {
 #[test]
 fn render_super_in_grandchild_without_redefining_in_parent_works() {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        ("grandparent", "{% block title %}Title{% endblock %}"),
-        ("parent", "{% extends \"grandparent\" %}"),
-        ("child", "{% extends \"parent\" %}{% block title %}{{ super() }} - More{% endblock %}"),
-    ])
-    .unwrap();
+    engine
+        .add_raw_templates(vec![
+            ("grandparent", "{% block title %}Title{% endblock %}"),
+            ("parent", "{% extends \"grandparent\" %}"),
+            (
+                "child",
+                "{% extends \"parent\" %}{% block title %}{{ super() }} - More{% endblock %}",
+            ),
+        ])
+        .unwrap();
 
     let result = engine.render("child", &Context::new());
     assert_eq!(result.unwrap(), "Title - More".to_string());

@@ -1,6 +1,6 @@
 #![feature(test)]
-extern crate serde_json;
 extern crate rio_templates;
+extern crate serde_json;
 extern crate test;
 #[macro_use]
 extern crate serde_derive;
@@ -58,9 +58,10 @@ fn bench_big_loop_big_object(b: &mut test::Bencher) {
     }
 
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![(
-        "big_loop.html",
-        "
+    engine
+        .add_raw_templates(vec![(
+            "big_loop.html",
+            "
 {%- for object in objects -%}
 {{ object.field_a.i }}
 {%- if object.field_a.i > 2 -%}
@@ -68,11 +69,13 @@ fn bench_big_loop_big_object(b: &mut test::Bencher) {
 {%- endif -%}
 {%- endfor -%}
 ",
-    )])
-    .unwrap();
+        )])
+        .unwrap();
     let mut context = Context::new();
     context.insert("objects", &objects);
-    let rendering = engine.render("big_loop.html", &context).expect("Good render");
+    let rendering = engine
+        .render("big_loop.html", &context)
+        .expect("Good render");
     assert_eq!(&rendering[..], "0123");
     // cloning as making the context is the bottleneck part
     b.iter(|| engine.render("big_loop.html", &context.clone()));
@@ -82,20 +85,26 @@ fn bench_big_loop_big_object(b: &mut test::Bencher) {
 fn bench_macro_big_object(b: &mut test::Bencher) {
     let big_object = BigObject::new(1);
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        (
-            "big_loop.html",
-            "
+    engine
+        .add_raw_templates(vec![
+            (
+                "big_loop.html",
+                "
 {%- import \"macros.html\" as macros -%}
 {%- for i in iterations -%}{{ macros::get_first(bo=big_object) }}{% endfor %}",
-        ),
-        ("macros.html", "{%- macro get_first(bo) -%}{{ bo.field_a.i }}{% endmacro get_first %}"),
-    ])
-    .unwrap();
+            ),
+            (
+                "macros.html",
+                "{%- macro get_first(bo) -%}{{ bo.field_a.i }}{% endmacro get_first %}",
+            ),
+        ])
+        .unwrap();
     let mut context = Context::new();
     context.insert("big_object", &big_object);
     context.insert("iterations", &(0..500).collect::<Vec<usize>>());
-    let rendering = engine.render("big_loop.html", &context).expect("Good render");
+    let rendering = engine
+        .render("big_loop.html", &context)
+        .expect("Good render");
     assert_eq!(rendering.len(), 500);
     assert_eq!(rendering.chars().next().expect("Char"), '1');
     // cloning as making the context is the bottleneck part
@@ -105,19 +114,22 @@ fn bench_macro_big_object(b: &mut test::Bencher) {
 #[bench]
 fn bench_macro_big_object_no_loop_with_set(b: &mut test::Bencher) {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![(
-        "no_loop.html",
-        "
+    engine
+        .add_raw_templates(vec![(
+            "no_loop.html",
+            "
 {% set many_fields=two_fields.a -%}
 {{ many_fields.a }}
 {{ many_fields.b }}
 {{ many_fields.c }}
 ",
-    )])
-    .unwrap();
+        )])
+        .unwrap();
     let mut context = Context::new();
     context.insert("two_fields", &TwoFields::new());
-    let rendering = engine.render("no_loop.html", &context).expect("Good render");
+    let rendering = engine
+        .render("no_loop.html", &context)
+        .expect("Good render");
     assert_eq!(&rendering[..], "\nA\nB\nC\n");
     // cloning as making the context is the bottleneck part
     b.iter(|| engine.render("no_loop.html", &context.clone()));
@@ -126,25 +138,28 @@ fn bench_macro_big_object_no_loop_with_set(b: &mut test::Bencher) {
 #[bench]
 fn bench_macro_big_object_no_loop_macro_call(b: &mut test::Bencher) {
     let mut engine = Engine::default();
-    engine.add_raw_templates(vec![
-        (
-            "macros.html",
-            "
+    engine
+        .add_raw_templates(vec![
+            (
+                "macros.html",
+                "
 {%- macro show_a(many_fields) -%}
 {{ many_fields.a }}
 {%- endmacro show_a -%}
         ",
-        ),
-        (
-            "no_loop.html",
-            "{%- import \"macros.html\" as macros -%}
+            ),
+            (
+                "no_loop.html",
+                "{%- import \"macros.html\" as macros -%}
 {{ macros::show_a(many_fields=two_fields.a) }}",
-        ),
-    ])
-    .unwrap();
+            ),
+        ])
+        .unwrap();
     let mut context = Context::new();
     context.insert("two_fields", &TwoFields::new());
-    let rendering = engine.render("no_loop.html", &context).expect("Good render");
+    let rendering = engine
+        .render("no_loop.html", &context)
+        .expect("Good render");
     assert_eq!(&rendering[..], "A");
     // cloning as making the context is the bottleneck part
     b.iter(|| engine.render("no_loop.html", &context.clone()));
@@ -170,7 +185,13 @@ impl ManyFields {
             e.push(format!("This is String({})", i));
         }
 
-        ManyFields { a: "A".into(), b: "B".into(), c: "C".into(), d, e }
+        ManyFields {
+            a: "A".into(),
+            b: "B".into(),
+            c: "C".into(),
+            d,
+            e,
+        }
     }
 }
 
@@ -182,6 +203,9 @@ struct TwoFields {
 
 impl TwoFields {
     fn new() -> TwoFields {
-        TwoFields { a: ManyFields::new(), b: "B".into() }
+        TwoFields {
+            a: ManyFields::new(),
+            b: "B".into(),
+        }
     }
 }

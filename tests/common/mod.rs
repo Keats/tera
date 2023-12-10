@@ -1,6 +1,6 @@
+extern crate rio_templates;
 extern crate serde;
 extern crate serde_json;
-extern crate rio_templates;
 
 use std::fs::File;
 use std::io::prelude::*;
