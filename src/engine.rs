@@ -1340,10 +1340,8 @@ mod tests {
         let scratch_dir = tempfile::Builder::new()
             .prefix("tera_test_scratchspace")
             .tempdir_in(&this_dir)
-            .expect(&format!(
-                "Could not create temporary directory for test in current directory ({}).",
-                this_dir.display()
-            ));
+            .unwrap_or_else(|_| panic!("Could not create temporary directory for test in current directory ({}).",
+                this_dir.display()));
         dbg!(&scratch_dir.path().display());
 
         File::create(scratch_dir.path().join("hey.html")).expect("Failed to create a test file");
