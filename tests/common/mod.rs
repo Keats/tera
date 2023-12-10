@@ -1,11 +1,11 @@
 extern crate serde;
 extern crate serde_json;
-extern crate tera;
+extern crate rio_templates;
 
 use std::fs::File;
 use std::io::prelude::*;
 
-use self::tera::Template;
+use self::rio_templates::Template;
 
 #[derive(Debug, Serialize)]
 pub struct Product {

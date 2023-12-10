@@ -1,7 +1,7 @@
-extern crate tera;
+extern crate rio_templates;
 
 use std::alloc::System;
-use tera::{Context, Tera};
+use rio_templates::{Context, Tera};
 
 #[global_allocator]
 static GLOBAL: System = System;

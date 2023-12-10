@@ -1,17 +1,16 @@
 [package]
-name = "tera"
+name = "rio-templates"
 version = "1.19.1"
-authors = ["Vincent Prouillet <hello@prouilletvincent.com>"]
+authors = ["James Hale <james+rio@potamic.net>"]
 license = "MIT"
 readme = "README.md"
-description = "Template engine based on Jinja2/Django templates"
-homepage = "https://keats.github.io/tera/"
-repository = "https://github.com/Keats/tera"
-keywords = ["template", "html", "django", "markup", "jinja2"]
+description = "Template engine for Rio, based on Tera"
+homepage = "https://github.com/potamic-co/rio-templates"
+repository = "https://github.com/potamic-co/rio-templates"
+keywords = ["template", "sql"]
 categories = ["template-engine"]
-edition = "2018"
-include = ["/src/**/*", "/LICENSE", "/README.md", "/CHANGELOG.md"]
-rust-version = "1.65"
+edition = "2021"
+include = ["/src/**/*", "/README.md"]
 
 [dependencies]
 globwalk = "0.8.1"
@@ -48,4 +47,3 @@ default = ["builtins"]
 builtins = ["urlencode", "slug", "humansize", "chrono", "chrono-tz", "rand"]
 urlencode = ["percent-encoding"]
 preserve_order = ["serde_json/preserve_order"]
-date-locale = ["builtins", "chrono/unstable-locales"]

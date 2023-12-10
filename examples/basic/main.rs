@@ -1,5 +1,5 @@
 #[macro_use]
-extern crate tera;
+extern crate rio_templates;
 #[macro_use]
 extern crate lazy_static;
 extern crate serde_json;
@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use serde_json::value::{to_value, Value};
 use std::error::Error;
-use tera::{Context, Result, Tera};
+use rio_templates::{Context, Result, Tera};
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {

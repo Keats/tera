@@ -43,14 +43,14 @@ pub type EscapeFn = fn(&str) -> String;
 /// Basic usage:
 ///
 /// ```
-/// use tera::Tera;
+/// use rio_templates::Tera;
 ///
 /// // Create a new Tera instance and add a template from a string
 /// let mut tera = Tera::new("templates/**/*").unwrap();
 /// tera.add_raw_template("hello", "Hello, {{ name }}!").unwrap();
 ///
 /// // Prepare the context with some data
-/// let mut context = tera::Context::new();
+/// let mut context = rio_templates::Context::new();
 /// context.insert("name", "World");
 ///
 /// // Render the template with the given context
@@ -126,7 +126,7 @@ impl Tera {
     /// Basic usage:
     ///
     /// ```no_run
-    /// # use tera::Tera;
+    /// # use rio_templates::Tera;
     /// let tera = Tera::new("examples/basic/templates/**/*").unwrap();
     /// ```
     pub fn new(dir: &str) -> Result<Tera> {
@@ -148,7 +148,7 @@ impl Tera {
     /// Basic usage:
     ///
     /// ```no_run
-    /// # use tera::Tera;
+    /// # use rio_templates::Tera;
     /// let mut tera = Tera::parse("examples/basic/templates/**/*").unwrap();
     ///
     /// // do not forget to build the inheritance chains
@@ -360,7 +360,7 @@ impl Tera {
     /// Basic usage:
     ///
     /// ```
-    /// # use tera::{Tera, Context};
+    /// # use rio_templates::{Tera, Context};
     /// // Create new tera instance with sample template
     /// let mut tera = Tera::default();
     /// tera.add_raw_template("info", "My age is {{ age }}.");
@@ -377,7 +377,7 @@ impl Tera {
     /// To render a template with an empty context, simply pass an empty [`Context`] object.
     ///
     /// ```
-    /// # use tera::{Tera, Context};
+    /// # use rio_templates::{Tera, Context};
     /// // Create new tera instance with demo template
     /// let mut tera = Tera::default();
     /// tera.add_raw_template("hello.html", "<h1>Hello</h1>");
@@ -405,7 +405,7 @@ impl Tera {
     /// Rendering into a `Vec<u8>`:
     ///
     /// ```
-    /// # use tera::{Context, Tera};
+    /// # use rio_templates::{Context, Tera};
     /// let mut tera = Tera::default();
     /// tera.add_raw_template("index.html", "<p>{{ name }}</p>");
     ///
@@ -484,7 +484,7 @@ impl Tera {
     /// # Example
     ///
     /// ```rust
-    /// use tera::Tera;
+    /// use rio_templates::Tera;
     ///
     /// let mut tera = Tera::default();
     /// tera.add_raw_template("foo", "{{ hello }}");
@@ -515,7 +515,7 @@ impl Tera {
     /// Basic usage:
     ///
     /// ```
-    /// # use tera::Tera;
+    /// # use rio_templates::Tera;
     /// let mut tera = Tera::default();
     /// tera.add_raw_template("new.html", "Blabla").unwrap();
     /// ```
@@ -564,7 +564,7 @@ impl Tera {
     /// If you want to add several file, use [Tera::add_template_files](struct.Tera.html#method.add_template_files)
     ///
     /// ```
-    /// # use tera::Tera;
+    /// # use rio_templates::Tera;
     /// let mut tera = Tera::default();
     /// // Rename template with custom name
     /// tera.add_template_file("examples/basic/templates/macros.html", Some("macros.html")).unwrap();
@@ -587,7 +587,7 @@ impl Tera {
     /// template without the parent one.
     ///
     /// ```no_run
-    /// # use tera::Tera;
+    /// # use rio_templates::Tera;
     /// let mut tera = Tera::default();
     /// tera.add_template_files(vec![
     ///     ("./path/to/template.tera", None), // this template will have the value of path1 as name
@@ -764,7 +764,7 @@ impl Tera {
     /// Basic usage:
     ///
     /// ```
-    /// # use tera::Tera;
+    /// # use rio_templates::Tera;
     /// let mut tera = Tera::default();
     /// // escape only files ending with `.php.html`
     /// tera.autoescape_on(vec![".php.html"]);
@@ -797,7 +797,7 @@ impl Tera {
     /// Basic usage:
     ///
     /// ```
-    /// # use tera::{Tera, Context};
+    /// # use rio_templates::{Tera, Context};
     /// // Create new Tera instance
     /// let mut tera = Tera::default();
     ///

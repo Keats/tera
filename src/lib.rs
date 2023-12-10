@@ -27,13 +27,13 @@
 //! ## Example
 //!
 //! ```rust
-//! use tera::Tera;
+//! use rio_templates::Tera;
 //!
 //! // Create a new Tera instance and add a template from a string
 //! let mut tera = Tera::new("templates/**/*").unwrap();
 //! tera.add_raw_template("hello", "Hello, {{ name }}!").unwrap();
 //! // Prepare the context with some data
-//! let mut context = tera::Context::new();
+//! let mut context = rio_templates::Context::new();
 //! context.insert("name", "World");
 //!
 //! // Render the template with the given context
