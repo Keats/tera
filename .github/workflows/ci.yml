@@ -36,9 +36,7 @@ jobs:
         toolchain: ${{ matrix.rust }}
     - name: Build System Info
       run: rustc --version
-    - name: tests with default feature
+    - name: tests
       run: cargo test
-    - name: tests without the default feature
-      run: cargo test --no-default-features
     - name: Run basic example
       run: cargo run --example basic

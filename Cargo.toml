@@ -25,23 +25,20 @@ regex = "1.7"
 unic-segment = "0.9"
 
 # used in slugify filter
-slug = {version = "0.1", optional = true}
+slug = {version = "0.1"}
 # used in urlencode filter
 percent-encoding = {version = "2.2"}
 # used in filesizeformat filter
-humansize = {version = "2.1", optional = true}
+humansize = {version = "2.1"}
 # used in date format filter
-chrono = {version = "0.4.27", optional = true, default-features = false, features = ["std", "clock"]}
+chrono = {version = "0.4.27", default-features = false, features = ["std", "clock"]}
 # used in date format filter
-chrono-tz = {version = "0.8", optional = true}
+chrono-tz = {version = "0.8"}
 # used in get_random function
-rand = {version = "0.8", optional = true}
+rand = {version = "0.8"}
 
 [dev-dependencies]
 serde_derive = "1.0"
 pretty_assertions = "1"
 tempfile = "3"
 
-[features]
-default = ["builtins"]
-builtins = ["slug", "humansize", "chrono", "chrono-tz", "rand"]

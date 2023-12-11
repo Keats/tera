@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-#[cfg(feature = "builtins")]
 use chrono::prelude::*;
-#[cfg(feature = "builtins")]
 use rand::Rng;
 use serde_json::value::{from_value, to_value, Value};
 
@@ -85,7 +83,6 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(res).unwrap())
 }
 
-#[cfg(feature = "builtins")]
 pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
     let utc = match args.get("utc") {
         Some(val) => match from_value::<bool>(val.clone()) {
@@ -142,7 +139,6 @@ pub fn throw(args: &HashMap<String, Value>) -> Result<Value> {
     }
 }
 
-#[cfg(feature = "builtins")]
 pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
     let start = match args.get("start") {
         Some(val) => match from_value::<isize>(val.clone()) {
@@ -255,8 +251,7 @@ mod tests {
         assert_eq!(res, to_value(vec![0, 2, 4, 6, 8]).unwrap());
     }
 
-    #[cfg(feature = "builtins")]
-    #[test]
+        #[test]
     fn now_default() {
         let args = HashMap::new();
 
@@ -265,8 +260,7 @@ mod tests {
         assert!(res.as_str().unwrap().contains('T'));
     }
 
-    #[cfg(feature = "builtins")]
-    #[test]
+        #[test]
     fn now_datetime_utc() {
         let mut args = HashMap::new();
         args.insert("utc".to_string(), to_value(true).unwrap());
@@ -279,8 +273,7 @@ mod tests {
         assert!(val.contains("+00:00"));
     }
 
-    #[cfg(feature = "builtins")]
-    #[test]
+        #[test]
     fn now_timestamp() {
         let mut args = HashMap::new();
         args.insert("timestamp".to_string(), to_value(true).unwrap());
@@ -300,8 +293,7 @@ mod tests {
         assert_eq!(err.to_string(), "Hello");
     }
 
-    #[cfg(feature = "builtins")]
-    #[test]
+        #[test]
     fn get_random_no_start() {
         let mut args = HashMap::new();
         args.insert("end".to_string(), to_value(10).unwrap());
@@ -312,8 +304,7 @@ mod tests {
         assert!(res.as_i64().unwrap() < 10);
     }
 
-    #[cfg(feature = "builtins")]
-    #[test]
+        #[test]
     fn get_random_with_start() {
         let mut args = HashMap::new();
         args.insert("start".to_string(), to_value(5).unwrap());

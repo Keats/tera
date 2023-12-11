@@ -246,7 +246,6 @@ pub fn addslashes(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 }
 
 /// Transform a string into a slug
-#[cfg(feature = "builtins")]
 pub fn slugify(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("slugify", "value", String, value);
     Ok(to_value(slug::slugify(s)).unwrap())
@@ -652,8 +651,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "builtins")]
-    #[test]
+        #[test]
     fn test_slugify() {
         // slug crate already has tests for general slugification so we just
         // check our function works

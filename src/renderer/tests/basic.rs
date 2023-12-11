@@ -245,8 +245,7 @@ fn comments_are_ignored() {
 #[test]
 fn escaping_happens_at_the_end() {
     let inputs = vec![
-        #[cfg(feature = "builtins")]
-        (
+                (
             "{{ url | urlencode | safe }}",
             "https%3A//www.example.org/apples-%26-oranges/",
         ),

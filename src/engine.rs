@@ -698,8 +698,7 @@ impl Engine {
                 self.register_filter("urlencode_strict", string::urlencode_strict);
         self.register_filter("escape", string::escape_html);
         self.register_filter("escape_xml", string::escape_xml);
-        #[cfg(feature = "builtins")]
-        self.register_filter("slugify", string::slugify);
+                self.register_filter("slugify", string::slugify);
         self.register_filter("addslashes", string::addslashes);
         self.register_filter("split", string::split);
         self.register_filter("int", string::int);
@@ -721,13 +720,11 @@ impl Engine {
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
 
-        #[cfg(feature = "builtins")]
-        self.register_filter("filesizeformat", number::filesizeformat);
+                self.register_filter("filesizeformat", number::filesizeformat);
 
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
-        #[cfg(feature = "builtins")]
-        self.register_filter("date", common::date);
+                self.register_filter("date", common::date);
         self.register_filter("json_encode", common::json_encode);
         self.register_filter("as_str", common::as_str);
 
@@ -752,11 +749,9 @@ impl Engine {
 
     fn register_tera_functions(&mut self) {
         self.register_function("range", functions::range);
-        #[cfg(feature = "builtins")]
-        self.register_function("now", functions::now);
+                self.register_function("now", functions::now);
         self.register_function("throw", functions::throw);
-        #[cfg(feature = "builtins")]
-        self.register_function("get_random", functions::get_random);
+                self.register_function("get_random", functions::get_random);
         self.register_function("get_env", functions::get_env);
     }
 
