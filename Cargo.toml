@@ -1,15 +1,15 @@
 [package]
-name = "rio_templates"
-version = "0.1.0"
-authors = ["James Hale <james+rio@potamic.net>"]
-license = "MIT"
+name = "rio-templates"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
 readme = "README.md"
 description = "Template engine for Rio, based on Tera"
 homepage = "https://github.com/potamic-co/rio-templates"
 repository = "https://github.com/potamic-co/rio-templates"
 keywords = ["template", "sql"]
 categories = ["template-engine"]
-edition = "2021"
 include = ["/src/**/*", "/README.md"]
 
 [dependencies]
