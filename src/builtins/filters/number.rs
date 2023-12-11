@@ -223,7 +223,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value(2.9).unwrap());
     }
 
-        #[test]
+    #[test]
     fn test_filesizeformat() {
         let args = HashMap::new();
         let result = filesizeformat(&to_value(123456789).unwrap(), &args);
@@ -231,7 +231,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("117.74 MB").unwrap());
     }
 
-        #[test]
+    #[test]
     fn test_filesizeformat_binary() {
         let mut args = HashMap::new();
         args.insert("binary".to_string(), to_value(true).unwrap());

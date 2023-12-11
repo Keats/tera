@@ -172,7 +172,7 @@ pub fn as_str(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
-        use chrono::{DateTime, Local};
+    use chrono::{DateTime, Local};
     use serde_json;
     use serde_json::value::to_value;
     use std::collections::HashMap;
@@ -252,7 +252,7 @@ mod tests {
         );
     }
 
-        #[test]
+    #[test]
     fn date_default() {
         let args = HashMap::new();
         let result = date(&to_value(1482720453).unwrap(), &args);
@@ -260,7 +260,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("2016-12-26").unwrap());
     }
 
-        #[test]
+    #[test]
     fn date_custom_format() {
         let mut args = HashMap::new();
         args.insert("format".to_string(), to_value("%Y-%m-%d %H:%M").unwrap());
@@ -271,7 +271,7 @@ mod tests {
 
     // https://zola.discourse.group/t/can-i-generate-a-random-number-within-a-range/238?u=keats
     // https://github.com/chronotope/chrono/issues/47
-        #[test]
+    #[test]
     fn date_errors_on_incorrect_format() {
         let mut args = HashMap::new();
         args.insert("format".to_string(), to_value("%2f").unwrap());
@@ -279,7 +279,7 @@ mod tests {
         assert!(result.is_err());
     }
 
-        #[test]
+    #[test]
     fn date_rfc3339() {
         let args = HashMap::new();
         let dt: DateTime<Local> = Local::now();
@@ -291,7 +291,7 @@ mod tests {
         );
     }
 
-        #[test]
+    #[test]
     fn date_rfc3339_preserves_timezone() {
         let mut args = HashMap::new();
         args.insert("format".to_string(), to_value("%Y-%m-%d %z").unwrap());
@@ -300,7 +300,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("1996-12-19 -0800").unwrap());
     }
 
-        #[test]
+    #[test]
     fn date_yyyy_mm_dd() {
         let mut args = HashMap::new();
         args.insert(
@@ -315,7 +315,7 @@ mod tests {
         );
     }
 
-        #[test]
+    #[test]
     fn date_from_naive_datetime() {
         let mut args = HashMap::new();
         args.insert(
@@ -332,7 +332,7 @@ mod tests {
     }
 
     // https://github.com/getzola/zola/issues/1279
-        #[test]
+    #[test]
     fn date_format_doesnt_panic() {
         let mut args = HashMap::new();
         args.insert("format".to_string(), to_value("%+S").unwrap());
@@ -340,7 +340,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
-        #[test]
+    #[test]
     fn date_with_timezone() {
         let mut args = HashMap::new();
         args.insert(
@@ -352,7 +352,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("2019-09-18").unwrap());
     }
 
-        #[test]
+    #[test]
     fn date_with_invalid_timezone() {
         let mut args = HashMap::new();
         args.insert("timezone".to_string(), to_value("Narnia").unwrap());
@@ -364,7 +364,7 @@ mod tests {
         );
     }
 
-        #[test]
+    #[test]
     fn date_timestamp() {
         let mut args = HashMap::new();
         args.insert("format".to_string(), to_value("%Y-%m-%d").unwrap());
@@ -373,7 +373,7 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("2022-03-26").unwrap());
     }
 
-        #[test]
+    #[test]
     fn date_timestamp_with_timezone() {
         let mut args = HashMap::new();
         args.insert("timezone".to_string(), to_value("Europe/Berlin").unwrap());

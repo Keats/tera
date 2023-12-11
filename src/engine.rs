@@ -694,11 +694,11 @@ impl Engine {
         self.register_filter("indent", string::indent);
         self.register_filter("striptags", string::striptags);
         self.register_filter("spaceless", string::spaceless);
-                self.register_filter("urlencode", string::urlencode);
-                self.register_filter("urlencode_strict", string::urlencode_strict);
+        self.register_filter("urlencode", string::urlencode);
+        self.register_filter("urlencode_strict", string::urlencode_strict);
         self.register_filter("escape", string::escape_html);
         self.register_filter("escape_xml", string::escape_xml);
-                self.register_filter("slugify", string::slugify);
+        self.register_filter("slugify", string::slugify);
         self.register_filter("addslashes", string::addslashes);
         self.register_filter("split", string::split);
         self.register_filter("int", string::int);
@@ -720,11 +720,11 @@ impl Engine {
         self.register_filter("pluralize", number::pluralize);
         self.register_filter("round", number::round);
 
-                self.register_filter("filesizeformat", number::filesizeformat);
+        self.register_filter("filesizeformat", number::filesizeformat);
 
         self.register_filter("length", common::length);
         self.register_filter("reverse", common::reverse);
-                self.register_filter("date", common::date);
+        self.register_filter("date", common::date);
         self.register_filter("json_encode", common::json_encode);
         self.register_filter("as_str", common::as_str);
 
@@ -749,9 +749,9 @@ impl Engine {
 
     fn register_tera_functions(&mut self) {
         self.register_function("range", functions::range);
-                self.register_function("now", functions::now);
+        self.register_function("now", functions::now);
         self.register_function("throw", functions::throw);
-                self.register_function("get_random", functions::get_random);
+        self.register_function("get_random", functions::get_random);
         self.register_function("get_env", functions::get_env);
     }
 
@@ -1333,8 +1333,12 @@ mod tests {
         let scratch_dir = tempfile::Builder::new()
             .prefix("tera_test_scratchspace")
             .tempdir_in(&this_dir)
-            .unwrap_or_else(|_| panic!("Could not create temporary directory for test in current directory ({}).",
-                this_dir.display()));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Could not create temporary directory for test in current directory ({}).",
+                    this_dir.display()
+                )
+            });
         dbg!(&scratch_dir.path().display());
 
         File::create(scratch_dir.path().join("hey.html")).expect("Failed to create a test file");

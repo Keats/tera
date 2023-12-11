@@ -651,7 +651,7 @@ mod tests {
         }
     }
 
-        #[test]
+    #[test]
     fn test_slugify() {
         // slug crate already has tests for general slugification so we just
         // check our function works
@@ -666,7 +666,7 @@ mod tests {
         }
     }
 
-        #[test]
+    #[test]
     fn test_urlencode() {
         let tests = vec![
             (
@@ -692,7 +692,7 @@ mod tests {
         }
     }
 
-        #[test]
+    #[test]
     fn test_urlencode_strict() {
         let tests = vec![
             (

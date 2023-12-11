@@ -251,7 +251,7 @@ mod tests {
         assert_eq!(res, to_value(vec![0, 2, 4, 6, 8]).unwrap());
     }
 
-        #[test]
+    #[test]
     fn now_default() {
         let args = HashMap::new();
 
@@ -260,7 +260,7 @@ mod tests {
         assert!(res.as_str().unwrap().contains('T'));
     }
 
-        #[test]
+    #[test]
     fn now_datetime_utc() {
         let mut args = HashMap::new();
         args.insert("utc".to_string(), to_value(true).unwrap());
@@ -273,7 +273,7 @@ mod tests {
         assert!(val.contains("+00:00"));
     }
 
-        #[test]
+    #[test]
     fn now_timestamp() {
         let mut args = HashMap::new();
         args.insert("timestamp".to_string(), to_value(true).unwrap());
@@ -293,7 +293,7 @@ mod tests {
         assert_eq!(err.to_string(), "Hello");
     }
 
-        #[test]
+    #[test]
     fn get_random_no_start() {
         let mut args = HashMap::new();
         args.insert("end".to_string(), to_value(10).unwrap());
@@ -304,7 +304,7 @@ mod tests {
         assert!(res.as_i64().unwrap() < 10);
     }
 
-        #[test]
+    #[test]
     fn get_random_with_start() {
         let mut args = HashMap::new();
         args.insert("start".to_string(), to_value(5).unwrap());
