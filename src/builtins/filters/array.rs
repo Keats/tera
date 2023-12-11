@@ -76,13 +76,19 @@ pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     };
 
     let first = dotted_pointer(&arr[0], &attribute).ok_or_else(|| {
-        Error::msg(format!("attribute '{}' does not reference a field", attribute))
+        Error::msg(format!(
+            "attribute '{}' does not reference a field",
+            attribute
+        ))
     })?;
 
     let mut strategy = get_sort_strategy_for_type(first)?;
     for v in &arr {
         let key = dotted_pointer(v, &attribute).ok_or_else(|| {
-            Error::msg(format!("attribute '{}' does not reference a field", attribute))
+            Error::msg(format!(
+                "attribute '{}' does not reference a field",
+                attribute
+            ))
         })?;
         strategy.try_add_pair(v, key)?;
     }
@@ -111,7 +117,10 @@ pub fn unique(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     };
 
     let first = dotted_pointer(&arr[0], &attribute).ok_or_else(|| {
-        Error::msg(format!("attribute '{}' does not reference a field", attribute))
+        Error::msg(format!(
+            "attribute '{}' does not reference a field",
+            attribute
+        ))
     })?;
 
     let disc = std::mem::discriminant(first);
@@ -128,7 +137,9 @@ pub fn unique(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                         Err(e) => Some(Err(e)),
                     }
                 } else {
-                    Some(Err(Error::msg("unique filter can't compare multiple types")))
+                    Some(Err(Error::msg(
+                        "unique filter can't compare multiple types",
+                    )))
                 }
             }
             None => None,
@@ -150,7 +161,9 @@ pub fn group_by(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let key = match args.get("attribute") {
         Some(val) => try_get_value!("group_by", "attribute", String, val),
         None => {
-            return Err(Error::msg("The `group_by` filter has to have an `attribute` argument"))
+            return Err(Error::msg(
+                "The `group_by` filter has to have an `attribute` argument",
+            ))
         }
     };
 
@@ -190,7 +203,11 @@ pub fn filter(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     let key = match args.get("attribute") {
         Some(val) => try_get_value!("filter", "attribute", String, val),
-        None => return Err(Error::msg("The `filter` filter has to have an `attribute` argument")),
+        None => {
+            return Err(Error::msg(
+                "The `filter` filter has to have an `attribute` argument",
+            ))
+        }
     };
     let value = args.get("value").unwrap_or(&Value::Null);
 
@@ -219,7 +236,11 @@ pub fn map(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     let attribute = match args.get("attribute") {
         Some(val) => try_get_value!("map", "attribute", String, val),
-        None => return Err(Error::msg("The `map` filter has to have an `attribute` argument")),
+        None => {
+            return Err(Error::msg(
+                "The `map` filter has to have an `attribute` argument",
+            ))
+        }
     };
 
     let arr = arr
@@ -281,7 +302,11 @@ pub fn concat(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     let value = match args.get("with") {
         Some(val) => val,
-        None => return Err(Error::msg("The `concat` filter has to have a `with` argument")),
+        None => {
+            return Err(Error::msg(
+                "The `concat` filter has to have a `with` argument",
+            ))
+        }
     };
 
     if value.is_array() {
@@ -472,7 +497,10 @@ mod tests {
 
         let result = sort(&v, &args);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Null is not a sortable value");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Null is not a sortable value"
+        );
     }
 
     #[derive(Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -519,12 +547,18 @@ mod tests {
         let mut args = HashMap::new();
         let result = unique(&v, &args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(vec!["One", "Two", "Three"]).unwrap());
+        assert_eq!(
+            result.unwrap(),
+            to_value(vec!["One", "Two", "Three"]).unwrap()
+        );
 
         args.insert("case_sensitive".to_string(), to_value(true).unwrap());
         let result = unique(&v, &args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(vec!["One", "Two", "Three", "one"]).unwrap());
+        assert_eq!(
+            result.unwrap(),
+            to_value(vec!["One", "Two", "Three", "one"]).unwrap()
+        );
     }
 
     #[test]
@@ -552,7 +586,12 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
-            to_value(vec![Foo { a: 1, b: 2 }, Foo { a: 3, b: 3 }, Foo { a: 0, b: 4 },]).unwrap()
+            to_value(vec![
+                Foo { a: 1, b: 2 },
+                Foo { a: 3, b: 3 },
+                Foo { a: 0, b: 4 },
+            ])
+            .unwrap()
         );
     }
 
@@ -577,7 +616,10 @@ mod tests {
 
         let result = unique(&v, &args);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "unique filter can't compare multiple types");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "unique filter can't compare multiple types"
+        );
     }
 
     #[test]
@@ -591,7 +633,10 @@ mod tests {
 
         let result = unique(&v, &args);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Null is not a unique value");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Null is not a unique value"
+        );
     }
 
     #[test]
@@ -610,7 +655,12 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
-            to_value(vec![TupleStruct(0, 1), TupleStruct(-7, -1), TupleStruct(18, 18),]).unwrap()
+            to_value(vec![
+                TupleStruct(0, 1),
+                TupleStruct(-7, -1),
+                TupleStruct(18, 18),
+            ])
+            .unwrap()
         );
     }
 

@@ -1,7 +1,7 @@
+use crate::engine::Engine;
 use crate::errors::{Error, Result};
 use crate::parser::ast::MacroDefinition;
 use crate::template::Template;
-use crate::tera::Tera;
 use std::collections::HashMap;
 
 // Types around Macros get complicated, simplify it a bit by using aliases
@@ -20,11 +20,13 @@ pub struct MacroCollection<'a> {
 }
 
 impl<'a> MacroCollection<'a> {
-    pub fn from_original_template(tpl: &'a Template, tera: &'a Tera) -> MacroCollection<'a> {
-        let mut macro_collection = MacroCollection { macros: MacroTemplateMap::new() };
+    pub fn from_original_template(tpl: &'a Template, engine: &'a Engine) -> MacroCollection<'a> {
+        let mut macro_collection = MacroCollection {
+            macros: MacroTemplateMap::new(),
+        };
 
         macro_collection
-            .add_macros_from_template(tera, tpl)
+            .add_macros_from_template(engine, tpl)
             .expect("Couldn't load macros from base template");
 
         macro_collection
@@ -38,7 +40,7 @@ impl<'a> MacroCollection<'a> {
     /// definitions remaining
     pub fn add_macros_from_template(
         &mut self,
-        tera: &'a Tera,
+        engine: &'a Engine,
         template: &'a Template,
     ) -> Result<()> {
         let template_name = &template.name[..];
@@ -53,9 +55,9 @@ impl<'a> MacroCollection<'a> {
         }
 
         for (filename, namespace) in &template.imported_macro_files {
-            let macro_tpl = tera.get_template(filename)?;
+            let macro_tpl = engine.get_template(filename)?;
             macro_namespace_map.insert(namespace, (filename, &macro_tpl.macros));
-            self.add_macros_from_template(tera, macro_tpl)?;
+            self.add_macros_from_template(engine, macro_tpl)?;
 
             // We need to load the macros loaded in our macros in our namespace as well, unless we override it
             for (namespace, m) in &self.macros[&macro_tpl.name.as_ref()].clone() {
@@ -71,8 +73,8 @@ impl<'a> MacroCollection<'a> {
 
         for parent in &template.parents {
             let parent = &parent[..];
-            let parent_template = tera.get_template(parent)?;
-            self.add_macros_from_template(tera, parent_template)?;
+            let parent_template = engine.get_template(parent)?;
+            self.add_macros_from_template(engine, parent_template)?;
 
             // We need to load the parent macros in our namespace as well, unless we override it
             for (namespace, m) in &self.macros[parent].clone() {
@@ -80,7 +82,10 @@ impl<'a> MacroCollection<'a> {
                     continue;
                 }
                 // We inserted before so we're safe
-                self.macros.get_mut(template_name).unwrap().insert(namespace, *m);
+                self.macros
+                    .get_mut(template_name)
+                    .unwrap()
+                    .insert(namespace, *m);
             }
         }
 
@@ -101,7 +106,10 @@ impl<'a> MacroCollection<'a> {
         if let Some(n) = namespace {
             let &(macro_template, macro_definition_map) = n;
 
-            if let Some(m) = macro_definition_map.get(macro_name).map(|md| (macro_template, md)) {
+            if let Some(m) = macro_definition_map
+                .get(macro_name)
+                .map(|md| (macro_template, md))
+            {
                 Ok(m)
             } else {
                 Err(Error::msg(format!(

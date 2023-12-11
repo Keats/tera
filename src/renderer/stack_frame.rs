@@ -106,15 +106,18 @@ impl<'a> StackFrame<'a> {
     /// Finds a value in the stack frame.
     /// Looks first in `frame_context`, then compares to for_loop key_name and value_name.
     pub fn find_value(&self, key: &str) -> Option<Val<'a>> {
-        self.find_value_in_frame(key).or_else(|| self.find_value_in_for_loop(key))
+        self.find_value_in_frame(key)
+            .or_else(|| self.find_value_in_for_loop(key))
     }
 
     /// Finds a value in `frame_context`.
     pub fn find_value_in_frame(&self, key: &str) -> Option<Val<'a>> {
         if let Some(dot) = key.find('.') {
             if dot < key.len() + 1 {
-                if let Some(found_value) =
-                    self.context.get(&key[0..dot]).map(|v| value_by_pointer(&key[dot + 1..], v))
+                if let Some(found_value) = self
+                    .context
+                    .get(&key[0..dot])
+                    .map(|v| value_by_pointer(&key[dot + 1..], v))
                 {
                     return found_value;
                 }
@@ -139,7 +142,7 @@ impl<'a> StackFrame<'a> {
                 (key, "")
             };
 
-            // 2nd case: one of Tera loop built-in variable
+            // 2nd case: one of loop built-in variable
             if real_key == "loop" {
                 match tail {
                     "index" => {

@@ -1,15 +1,15 @@
-extern crate tera;
+extern crate rio_templates;
 #[macro_use]
 extern crate serde_derive;
 
+use rio_templates::{Context, Engine, Result};
 use std::error::Error;
-use tera::{Context, Result, Tera};
 
 mod common;
 use crate::common::{Product, Review};
 
 fn render_tpl(tpl_name: &str) -> Result<String> {
-    let tera = Tera::new("tests/render-failures/**/*").unwrap();
+    let engine = Engine::new("tests/render-failures/**/*").unwrap();
     let mut context = Context::new();
     context.insert("product", &Product::new());
     context.insert("username", &"bob");
@@ -18,7 +18,7 @@ fn render_tpl(tpl_name: &str) -> Result<String> {
     context.insert("show_more", &true);
     context.insert("reviews", &vec![Review::new(), Review::new()]);
 
-    tera.render(tpl_name, &context)
+    engine.render(tpl_name, &context)
 }
 
 #[test]
@@ -111,7 +111,10 @@ fn test_error_in_child_template_location() {
 
     assert!(result.is_err());
     let errs = result.unwrap_err();
-    assert_eq!(errs.to_string(), "Failed to render 'error-location/error_in_child.html'");
+    assert_eq!(
+        errs.to_string(),
+        "Failed to render 'error-location/error_in_child.html'"
+    );
 }
 
 #[test]
@@ -120,7 +123,10 @@ fn test_error_in_grandchild_template_location() {
 
     assert!(result.is_err());
     let errs = result.unwrap_err();
-    assert_eq!(errs.to_string(), "Failed to render 'error-location/error_in_grand_child.html'");
+    assert_eq!(
+        errs.to_string(),
+        "Failed to render 'error-location/error_in_grand_child.html'"
+    );
 }
 
 #[test]

@@ -25,7 +25,9 @@ pub fn get(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                 ))),
             },
         },
-        None => Err(Error::msg("Filter `get` was used on a value that isn't an object")),
+        None => Err(Error::msg(
+            "Filter `get` was used on a value that isn't an object",
+        )),
     }
 }
 

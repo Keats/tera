@@ -1,10 +1,10 @@
 use pest::Parser;
 
-use crate::parser::{Rule, TeraParser};
+use crate::parser::{Rule, TemplateParser};
 
 macro_rules! assert_lex_rule {
     ($rule: expr, $input: expr) => {
-        let res = TeraParser::parse($rule, $input);
+        let res = TemplateParser::parse($rule, $input);
         println!("{:?}", $input);
         println!("{:#?}", res);
         if res.is_err() {
@@ -62,7 +62,7 @@ fn lex_ident() {
         assert_lex_rule!(Rule::ident, i);
     }
 
-    assert!(TeraParser::parse(Rule::ident, "909").is_err());
+    assert!(TemplateParser::parse(Rule::ident, "909").is_err());
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn lex_dotted_ident() {
 
     let invalid_inputs = vec![".", "9.w"];
     for i in invalid_inputs {
-        assert!(TeraParser::parse(Rule::dotted_ident, i).is_err());
+        assert!(TemplateParser::parse(Rule::dotted_ident, i).is_err());
     }
 }
 
@@ -107,7 +107,7 @@ fn lex_dotted_square_bracket_ident() {
 
     let invalid_inputs = vec![".", "9.w"];
     for i in invalid_inputs {
-        assert!(TeraParser::parse(Rule::dotted_square_bracket_ident, i).is_err());
+        assert!(TemplateParser::parse(Rule::dotted_square_bracket_ident, i).is_err());
     }
 }
 
@@ -412,37 +412,47 @@ fn lex_macro_definition() {
     ];
     for i in inputs {
         // The () are not counted as tokens for some reasons so can't use the macro
-        assert!(TeraParser::parse(Rule::macro_fn, i).is_ok());
+        assert!(TemplateParser::parse(Rule::macro_fn, i).is_ok());
     }
 }
 
 #[test]
 fn lex_test() {
-    let inputs =
-        vec!["a is defined", "a is defined()", "a is divisibleby(2)", "a is in([1, 2, something])"];
+    let inputs = vec![
+        "a is defined",
+        "a is defined()",
+        "a is divisibleby(2)",
+        "a is in([1, 2, something])",
+    ];
     for i in inputs {
         // The () are not counted as tokens for some reasons so can't use the macro
-        assert!(TeraParser::parse(Rule::test, i).is_ok());
+        assert!(TemplateParser::parse(Rule::test, i).is_ok());
     }
 }
 
 #[test]
 fn lex_include_tag() {
-    assert!(TeraParser::parse(Rule::include_tag, "{% include \"index.html\" %}").is_ok());
-    assert!(TeraParser::parse(Rule::include_tag, "{% include [\"index.html\"] %}").is_ok());
-    assert!(TeraParser::parse(Rule::include_tag, "{% include [\"index.html\"] ignore missing %}")
-        .is_ok());
+    assert!(TemplateParser::parse(Rule::include_tag, "{% include \"index.html\" %}").is_ok());
+    assert!(TemplateParser::parse(Rule::include_tag, "{% include [\"index.html\"] %}").is_ok());
+    assert!(TemplateParser::parse(
+        Rule::include_tag,
+        "{% include [\"index.html\"] ignore missing %}"
+    )
+    .is_ok());
 }
 
 #[test]
 fn lex_import_macro_tag() {
-    assert!(TeraParser::parse(Rule::import_macro_tag, "{% import \"macros.html\" as macros %}",)
-        .is_ok());
+    assert!(TemplateParser::parse(
+        Rule::import_macro_tag,
+        "{% import \"macros.html\" as macros %}",
+    )
+    .is_ok());
 }
 
 #[test]
 fn lex_extends_tag() {
-    assert!(TeraParser::parse(Rule::extends_tag, "{% extends \"index.html\" %}").is_ok());
+    assert!(TemplateParser::parse(Rule::extends_tag, "{% extends \"index.html\" %}").is_ok());
 }
 
 #[test]
@@ -525,7 +535,7 @@ fn lex_elif_tag() {
 
 #[test]
 fn lex_else_tag() {
-    assert!(TeraParser::parse(Rule::else_tag, "{% else %}").is_ok());
+    assert!(TemplateParser::parse(Rule::else_tag, "{% else %}").is_ok());
 }
 
 #[test]
@@ -548,12 +558,12 @@ fn lex_for_tag() {
 
 #[test]
 fn lex_break_tag() {
-    assert!(TeraParser::parse(Rule::break_tag, "{% break %}").is_ok());
+    assert!(TemplateParser::parse(Rule::break_tag, "{% break %}").is_ok());
 }
 
 #[test]
 fn lex_continue_tag() {
-    assert!(TeraParser::parse(Rule::continue_tag, "{% continue %}").is_ok());
+    assert!(TemplateParser::parse(Rule::continue_tag, "{% continue %}").is_ok());
 }
 
 #[test]
@@ -633,7 +643,7 @@ fn lex_content() {
 
 #[test]
 fn lex_template() {
-    assert!(TeraParser::parse(
+    assert!(TemplateParser::parse(
         Rule::template,
         "{# Greeter template #}
             Hello {% if i18n %}世界{% else %}world{% endif %}
@@ -681,7 +691,7 @@ fn lex_requires_whitespace_between_things() {
     ];
 
     for i in inputs {
-        let res = TeraParser::parse(Rule::template, i);
+        let res = TemplateParser::parse(Rule::template, i);
         println!("{:?}", i);
         assert!(res.is_err());
     }

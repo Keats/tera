@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-#[cfg(feature = "builtins")]
 use chrono::prelude::*;
-#[cfg(feature = "builtins")]
 use rand::Rng;
 use serde_json::value::{from_value, to_value, Value};
 
@@ -64,7 +62,9 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
             }
         },
         None => {
-            return Err(Error::msg("Function `range` was called without a `end` argument"));
+            return Err(Error::msg(
+                "Function `range` was called without a `end` argument",
+            ));
         }
     };
 
@@ -83,7 +83,6 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(res).unwrap())
 }
 
-#[cfg(feature = "builtins")]
 pub fn now(args: &HashMap<String, Value>) -> Result<Value> {
     let utc = match args.get("utc") {
         Some(val) => match from_value::<bool>(val.clone()) {
@@ -134,11 +133,12 @@ pub fn throw(args: &HashMap<String, Value>) -> Result<Value> {
                 val
             ))),
         },
-        None => Err(Error::msg("Function `throw` was called without a `message` argument")),
+        None => Err(Error::msg(
+            "Function `throw` was called without a `message` argument",
+        )),
     }
 }
 
-#[cfg(feature = "builtins")]
 pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
     let start = match args.get("start") {
         Some(val) => match from_value::<isize>(val.clone()) {
@@ -163,7 +163,11 @@ pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
                 )));
             }
         },
-        None => return Err(Error::msg("Function `get_random` didn't receive an `end` argument")),
+        None => {
+            return Err(Error::msg(
+                "Function `get_random` didn't receive an `end` argument",
+            ))
+        }
     };
     let mut rng = rand::thread_rng();
     let res = rng.gen_range(start..end);
@@ -182,14 +186,21 @@ pub fn get_env(args: &HashMap<String, Value>) -> Result<Value> {
                 )));
             }
         },
-        None => return Err(Error::msg("Function `get_env` didn't receive a `name` argument")),
+        None => {
+            return Err(Error::msg(
+                "Function `get_env` didn't receive a `name` argument",
+            ))
+        }
     };
 
     match std::env::var(&name).ok() {
         Some(res) => Ok(Value::String(res)),
         None => match args.get("default") {
             Some(default) => Ok(default.clone()),
-            None => Err(Error::msg(format!("Environment variable `{}` not found", &name))),
+            None => Err(Error::msg(format!(
+                "Environment variable `{}` not found",
+                &name
+            ))),
         },
     }
 }
@@ -240,7 +251,6 @@ mod tests {
         assert_eq!(res, to_value(vec![0, 2, 4, 6, 8]).unwrap());
     }
 
-    #[cfg(feature = "builtins")]
     #[test]
     fn now_default() {
         let args = HashMap::new();
@@ -250,7 +260,6 @@ mod tests {
         assert!(res.as_str().unwrap().contains('T'));
     }
 
-    #[cfg(feature = "builtins")]
     #[test]
     fn now_datetime_utc() {
         let mut args = HashMap::new();
@@ -264,7 +273,6 @@ mod tests {
         assert!(val.contains("+00:00"));
     }
 
-    #[cfg(feature = "builtins")]
     #[test]
     fn now_timestamp() {
         let mut args = HashMap::new();
@@ -285,7 +293,6 @@ mod tests {
         assert_eq!(err.to_string(), "Hello");
     }
 
-    #[cfg(feature = "builtins")]
     #[test]
     fn get_random_no_start() {
         let mut args = HashMap::new();
@@ -297,7 +304,6 @@ mod tests {
         assert!(res.as_i64().unwrap() < 10);
     }
 
-    #[cfg(feature = "builtins")]
     #[test]
     fn get_random_with_start() {
         let mut args = HashMap::new();

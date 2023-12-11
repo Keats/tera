@@ -1,7 +1,6 @@
 /// Filters operating on numbers
 use std::collections::HashMap;
 
-#[cfg(feature = "builtins")]
 use humansize::format_size;
 use serde_json::value::{to_value, Value};
 
@@ -16,7 +15,9 @@ pub fn abs(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     } else if let Some(num) = value.as_f64() {
         Ok(to_value(num.abs()).unwrap())
     } else {
-        Err(Error::msg("Filter `abs` was used on a value that isn't a number."))
+        Err(Error::msg(
+            "Filter `abs` was used on a value that isn't a number.",
+        ))
     }
 }
 
@@ -58,7 +59,11 @@ pub fn round(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Some(val) => try_get_value!("round", "precision", i32, val),
         None => 0,
     };
-    let multiplier = if precision == 0 { 1.0 } else { 10.0_f64.powi(precision) };
+    let multiplier = if precision == 0 {
+        1.0
+    } else {
+        10.0_f64.powi(precision)
+    };
 
     match method.as_ref() {
         "common" => Ok(to_value((multiplier * num).round() / multiplier).unwrap()),
@@ -73,14 +78,17 @@ pub fn round(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 }
 
 /// Returns a human-readable file size (i.e. '110 MB') from an integer
-#[cfg(feature = "builtins")]
 pub fn filesizeformat(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let num = try_get_value!("filesizeformat", "value", usize, value);
     let binary = match args.get("binary") {
         Some(binary) => try_get_value!("filesizeformat", "binary", bool, binary),
         None => false,
     };
-    let format = if binary { humansize::BINARY } else { humansize::WINDOWS };
+    let format = if binary {
+        humansize::BINARY
+    } else {
+        humansize::WINDOWS
+    };
     Ok(to_value(format_size(num, format))
         .expect("json serializing should always be possible for a string"))
 }
@@ -215,7 +223,6 @@ mod tests {
         assert_eq!(result.unwrap(), to_value(2.9).unwrap());
     }
 
-    #[cfg(feature = "builtins")]
     #[test]
     fn test_filesizeformat() {
         let args = HashMap::new();
@@ -224,7 +231,6 @@ mod tests {
         assert_eq!(result.unwrap(), to_value("117.74 MB").unwrap());
     }
 
-    #[cfg(feature = "builtins")]
     #[test]
     fn test_filesizeformat_binary() {
         let mut args = HashMap::new();

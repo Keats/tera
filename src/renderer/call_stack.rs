@@ -28,9 +28,16 @@ impl<'a> UserContext<'a> {
     }
 
     pub fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&'a Value> {
-        let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
+        let root = pointer
+            .split('.')
+            .next()
+            .unwrap()
+            .replace("~1", "/")
+            .replace("~0", "~");
         let rest = &pointer[root.len() + 1..];
-        self.inner.get(&root).and_then(|val| dotted_pointer(val, rest))
+        self.inner
+            .get(&root)
+            .and_then(|val| dotted_pointer(val, rest))
     }
 }
 
@@ -54,7 +61,8 @@ impl<'a> CallStack<'a> {
 
     pub fn push_for_loop_frame(&mut self, name: &'a str, for_loop: ForLoop<'a>) {
         let tpl = self.stack.last().expect("Stack frame").active_template;
-        self.stack.push(StackFrame::new_for_loop(name, tpl, for_loop));
+        self.stack
+            .push(StackFrame::new_for_loop(name, tpl, for_loop));
     }
 
     pub fn push_macro_frame(
@@ -64,7 +72,8 @@ impl<'a> CallStack<'a> {
         context: FrameContext<'a>,
         tpl: &'a Template,
     ) {
-        self.stack.push(StackFrame::new_macro(name, tpl, namespace, context));
+        self.stack
+            .push(StackFrame::new_macro(name, tpl, namespace, context));
     }
 
     pub fn push_include_frame(&mut self, name: &'a str, tpl: &'a Template) {
@@ -119,7 +128,10 @@ impl<'a> CallStack<'a> {
 
         // Not in stack frame, look in user supplied context
         if key.contains('.') {
-            return self.context.find_value_by_dotted_pointer(key).map(Cow::Borrowed);
+            return self
+                .context
+                .find_value_by_dotted_pointer(key)
+                .map(Cow::Borrowed);
         } else if let Some(value) = self.context.find_value(key) {
             return Some(Cow::Borrowed(value));
         }

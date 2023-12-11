@@ -1,15 +1,13 @@
-#![doc(html_root_url = "https://docs.rs/tera")]
-//! # Tera
+#![doc(html_root_url = "https://docs.rs/rio_templates")]
+//! # Rio Templates
 //!
 //! A powerful, fast and easy-to-use template engine for Rust
 //!
-//! This crate provides an implementation of the Tera template engine, which is designed for use in
-//! Rust applications. Inspired by [Jinja2] and [Django] templates, Tera provides a familiar and
+//! This crate provides an implementation of the Rio template engine, which is designed for use in
+//! Rust applications. Inspired by [Jinja2] and [Django] templates, Rio templates provide a familiar and
 //! expressive syntax for creating dynamic HTML, XML, and other text-based documents. It supports
 //! template inheritance, variable interpolation, conditionals, loops, filters, and custom
 //! functions, enabling developers to build complex applications with ease.
-//!
-//! See the [site](http://keats.github.io/tera/) for more information and to get started.
 //!
 //! ## Features
 //!
@@ -27,17 +25,17 @@
 //! ## Example
 //!
 //! ```rust
-//! use tera::Tera;
+//! use rio_templates::Engine;
 //!
-//! // Create a new Tera instance and add a template from a string
-//! let mut tera = Tera::new("templates/**/*").unwrap();
-//! tera.add_raw_template("hello", "Hello, {{ name }}!").unwrap();
+//! // Create a new Engine instance and add a template from a string
+//! let mut engine = Engine::new("templates/**/*").unwrap();
+//! engine.add_raw_template("hello", "Hello, {{ name }}!").unwrap();
 //! // Prepare the context with some data
-//! let mut context = tera::Context::new();
+//! let mut context = rio_templates::Context::new();
 //! context.insert("name", "World");
 //!
 //! // Render the template with the given context
-//! let rendered = tera.render("hello", &context).unwrap();
+//! let rendered = engine.render("hello", &context).unwrap();
 //! assert_eq!(rendered, "Hello, World!");
 //! ```
 //!
@@ -47,10 +45,10 @@
 //!
 //! ```toml
 //! [dependencies]
-//! tera = "1.0"
+//! rio_templates = "1.0"
 //! ```
 //!
-//! Then, consult the official documentation and examples to learn more about using Tera in your
+//! Then, consult the official documentation and examples to learn more about using Rio templates in your
 //! Rust projects.
 //!
 //! [Jinja2]: http://jinja.pocoo.org/
@@ -62,12 +60,12 @@
 mod macros;
 mod builtins;
 mod context;
+mod engine;
 mod errors;
 mod filter_utils;
 mod parser;
 mod renderer;
 mod template;
-mod tera;
 mod utils;
 
 // Library exports.
@@ -83,12 +81,12 @@ pub use crate::context::dotted_pointer;
 #[doc(hidden)]
 #[allow(deprecated)]
 pub use crate::context::get_json_pointer;
+pub use crate::engine::Engine;
 #[doc(hidden)]
 pub use crate::template::Template;
-pub use crate::tera::Tera;
 pub use crate::utils::escape_html;
 // Re-export Value and other useful things from serde
-// so apps/tools can encode data in Tera types
+// so apps/tools can encode data in template types
 pub use serde_json::value::{from_value, to_value, Map, Number, Value};
 
 // Exposes the AST if one needs it but changing the AST is not considered

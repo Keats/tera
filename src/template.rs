@@ -16,7 +16,7 @@ pub struct Template {
     pub path: Option<String>,
     /// Parsed AST, after whitespace removal
     pub ast: Vec<Node>,
-    /// Whether this template came from a call to `Tera::extend`, so we do
+    /// Whether this template came from a call to `Engine::extend`, so we do
     /// not remove it when we are doing a template reload
     pub from_extend: bool,
 

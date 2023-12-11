@@ -26,14 +26,24 @@ fn parse_include_tag() {
     let ast = parse("{% include \"index.html\" -%}").unwrap();
     assert_eq!(
         ast[0],
-        Node::Include(WS { left: false, right: true }, vec!["index.html".to_string()], false,),
+        Node::Include(
+            WS {
+                left: false,
+                right: true
+            },
+            vec!["index.html".to_string()],
+            false,
+        ),
     );
     let ast =
         parse("{% include [\"custom/index.html\", \"index.html\"] ignore missing %}").unwrap();
     assert_eq!(
         ast[0],
         Node::Include(
-            WS { left: false, right: false },
+            WS {
+                left: false,
+                right: false
+            },
             vec!["custom/index.html".to_string(), "index.html".to_string()],
             true,
         ),
@@ -43,13 +53,31 @@ fn parse_include_tag() {
 #[test]
 fn parse_extends() {
     let ast = parse("{% extends \"index.html\" -%}").unwrap();
-    assert_eq!(ast[0], Node::Extends(WS { left: false, right: true }, "index.html".to_string(),),);
+    assert_eq!(
+        ast[0],
+        Node::Extends(
+            WS {
+                left: false,
+                right: true
+            },
+            "index.html".to_string(),
+        ),
+    );
 }
 
 #[test]
 fn parse_comments_before_extends() {
     let ast = parse("{# A comment #}{% extends \"index.html\" -%}").unwrap();
-    assert_eq!(ast[0], Node::Extends(WS { left: false, right: true }, "index.html".to_string(),),);
+    assert_eq!(
+        ast[0],
+        Node::Extends(
+            WS {
+                left: false,
+                right: true
+            },
+            "index.html".to_string(),
+        ),
+    );
 }
 
 #[test]
@@ -58,7 +86,10 @@ fn parse_import_macro() {
     assert_eq!(
         ast[0],
         Node::ImportMacro(
-            WS { left: false, right: true },
+            WS {
+                left: false,
+                right: true
+            },
             "macros.html".to_string(),
             "macros".to_string(),
         ),
@@ -71,7 +102,10 @@ fn parse_variable_with_whitespace_trimming() {
     assert_eq!(
         ast[0],
         Node::VariableBlock(
-            WS { left: true, right: false },
+            WS {
+                left: true,
+                right: false
+            },
             Expr::new(ExprVal::Ident("id".to_string()))
         ),
     );
@@ -99,8 +133,14 @@ fn parse_variable_tag_ident_with_simple_filters() {
             Expr::with_filters(
                 ExprVal::Ident("arr".to_string()),
                 vec![
-                    FunctionCall { name: "first".to_string(), args: HashMap::new() },
-                    FunctionCall { name: "join".to_string(), args: join_args },
+                    FunctionCall {
+                        name: "first".to_string(),
+                        args: HashMap::new()
+                    },
+                    FunctionCall {
+                        name: "join".to_string(),
+                        args: join_args
+                    },
                 ],
             )
         )
@@ -110,13 +150,22 @@ fn parse_variable_tag_ident_with_simple_filters() {
 #[test]
 fn parse_variable_tag_lit() {
     let ast = parse("{{ 2 }}{{ 3.18 }}{{ \"hey\" }}{{ true }}").unwrap();
-    assert_eq!(ast[0], Node::VariableBlock(WS::default(), Expr::new(ExprVal::Int(2))));
-    assert_eq!(ast[1], Node::VariableBlock(WS::default(), Expr::new(ExprVal::Float(3.18))));
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(WS::default(), Expr::new(ExprVal::Int(2)))
+    );
+    assert_eq!(
+        ast[1],
+        Node::VariableBlock(WS::default(), Expr::new(ExprVal::Float(3.18)))
+    );
     assert_eq!(
         ast[2],
         Node::VariableBlock(WS::default(), Expr::new(ExprVal::String("hey".to_string()))),
     );
-    assert_eq!(ast[3], Node::VariableBlock(WS::default(), Expr::new(ExprVal::Bool(true))));
+    assert_eq!(
+        ast[3],
+        Node::VariableBlock(WS::default(), Expr::new(ExprVal::Bool(true)))
+    );
 }
 
 #[test]
@@ -154,7 +203,10 @@ fn parse_variable_tag_array_lit_with_filter() {
                     Expr::new(ExprVal::Int(2)),
                     Expr::new(ExprVal::Int(3))
                 ]),
-                vec![FunctionCall { name: "length".to_string(), args: HashMap::new() },],
+                vec![FunctionCall {
+                    name: "length".to_string(),
+                    args: HashMap::new()
+                },],
             )
         )
     );
@@ -218,7 +270,10 @@ fn parse_variable_tag_lit_math_expression_with_parentheses_and_filter() {
                     operator: MathOperator::Mul,
                     rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
                 },),
-                vec![FunctionCall { name: "round".to_string(), args: HashMap::new() },],
+                vec![FunctionCall {
+                    name: "round".to_string(),
+                    args: HashMap::new()
+                },],
             )
         )
     );
@@ -234,7 +289,10 @@ fn parse_variable_math_on_filter() {
             Expr::new(ExprVal::Math(MathExpr {
                 lhs: Box::new(Expr::with_filters(
                     ExprVal::Ident("a".to_string()),
-                    vec![FunctionCall { name: "length".to_string(), args: HashMap::new() },],
+                    vec![FunctionCall {
+                        name: "length".to_string(),
+                        args: HashMap::new()
+                    },],
                 )),
                 operator: MathOperator::Sub,
                 rhs: Box::new(Expr::new(ExprVal::Int(1))),
@@ -301,7 +359,10 @@ fn parse_variable_tag_math_with_filters_and_logic_expression() {
                             rhs: Box::new(Expr::new(ExprVal::Float(2.5))),
                         },))),
                     },),
-                    vec![FunctionCall { name: "round".to_string(), args: HashMap::new() },],
+                    vec![FunctionCall {
+                        name: "round".to_string(),
+                        args: HashMap::new()
+                    },],
                 )),
                 operator: LogicOperator::And,
                 rhs: Box::new(Expr::new(ExprVal::Ident("admin".to_string()))),
@@ -315,7 +376,10 @@ fn parse_variable_tag_simple_negated_expr() {
     let ast = parse("{{ not id }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(WS::default(), Expr::new_negated(ExprVal::Ident("id".to_string())))
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new_negated(ExprVal::Ident("id".to_string()))
+        )
     );
 }
 
@@ -444,7 +508,10 @@ fn parse_allow_block_in_filter_section() {
         Node::FilterSection(
             WS::default(),
             FilterSection {
-                filter: FunctionCall { name: "upper".to_owned(), args: HashMap::default() },
+                filter: FunctionCall {
+                    name: "upper".to_owned(),
+                    args: HashMap::default()
+                },
                 body: vec![Node::Block(
                     WS::default(),
                     Block {
@@ -466,7 +533,10 @@ fn parse_variable_tag_macro_call_with_array() {
     let mut args = HashMap::new();
     args.insert(
         "some".to_string(),
-        Expr::new(ExprVal::Array(vec![Expr::new(ExprVal::Int(1)), Expr::new(ExprVal::Int(2))])),
+        Expr::new(ExprVal::Array(vec![
+            Expr::new(ExprVal::Int(1)),
+            Expr::new(ExprVal::Int(2)),
+        ])),
     );
 
     assert_eq!(
@@ -491,7 +561,10 @@ fn parse_variable_tag_macro_call_with_array_with_filters() {
         "some".to_string(),
         Expr::with_filters(
             ExprVal::Array(vec![Expr::new(ExprVal::Int(1)), Expr::new(ExprVal::Int(2))]),
-            vec![FunctionCall { name: "reverse".to_string(), args: HashMap::new() }],
+            vec![FunctionCall {
+                name: "reverse".to_string(),
+                args: HashMap::new(),
+            }],
         ),
     );
 
@@ -524,7 +597,10 @@ fn parse_variable_tag_macro_call_with_filter() {
                     name: "get_time".to_string(),
                     args,
                 },),
-                vec![FunctionCall { name: "round".to_string(), args: HashMap::new() },],
+                vec![FunctionCall {
+                    name: "round".to_string(),
+                    args: HashMap::new()
+                },],
             )
         )
     );
@@ -540,7 +616,10 @@ fn parse_variable_tag_global_function() {
         ast[0],
         Node::VariableBlock(
             WS::default(),
-            Expr::new(ExprVal::FunctionCall(FunctionCall { name: "get_time".to_string(), args },))
+            Expr::new(ExprVal::FunctionCall(FunctionCall {
+                name: "get_time".to_string(),
+                args
+            },))
         )
     );
 }
@@ -594,10 +673,19 @@ fn parse_variable_tag_global_function_with_filter() {
         Node::VariableBlock(
             WS::default(),
             Expr::with_filters(
-                ExprVal::FunctionCall(FunctionCall { name: "get_time".to_string(), args },),
+                ExprVal::FunctionCall(FunctionCall {
+                    name: "get_time".to_string(),
+                    args
+                },),
                 vec![
-                    FunctionCall { name: "round".to_string(), args: HashMap::new() },
-                    FunctionCall { name: "upper".to_string(), args: HashMap::new() },
+                    FunctionCall {
+                        name: "round".to_string(),
+                        args: HashMap::new()
+                    },
+                    FunctionCall {
+                        name: "upper".to_string(),
+                        args: HashMap::new()
+                    },
                 ],
             )
         )
@@ -700,7 +788,10 @@ fn parse_set_array_with_filter() {
                         Expr::new(ExprVal::Bool(true)),
                         Expr::new(ExprVal::String("hello".to_string())),
                     ]),
-                    vec![FunctionCall { name: "length".to_string(), args: HashMap::new() },],
+                    vec![FunctionCall {
+                        name: "length".to_string(),
+                        args: HashMap::new()
+                    },],
                 ),
                 global: false,
             },
@@ -730,8 +821,14 @@ fn parse_set_global_tag() {
 #[test]
 fn parse_raw_tag() {
     let ast = parse("{% raw -%}{{hey}}{%- endraw %}").unwrap();
-    let start_ws = WS { right: true, ..Default::default() };
-    let end_ws = WS { left: true, ..Default::default() };
+    let start_ws = WS {
+        right: true,
+        ..Default::default()
+    };
+    let end_ws = WS {
+        left: true,
+        ..Default::default()
+    };
 
     assert_eq!(ast[0], Node::Raw(start_ws, "{{hey}}".to_string(), end_ws));
 }
@@ -744,21 +841,33 @@ fn parse_raw_tag_with_ws() {
     let start_ws = WS::default();
     let end_ws = WS::default();
 
-    assert_eq!(ast[0], Node::Raw(start_ws, "    yaml_test:     ".to_string(), end_ws));
+    assert_eq!(
+        ast[0],
+        Node::Raw(start_ws, "    yaml_test:     ".to_string(), end_ws)
+    );
 }
 
 #[test]
 fn parse_filter_section_without_args() {
     let ast = parse("{% filter upper -%}A{%- endfilter %}").unwrap();
-    let start_ws = WS { right: true, ..Default::default() };
-    let end_ws = WS { left: true, ..Default::default() };
+    let start_ws = WS {
+        right: true,
+        ..Default::default()
+    };
+    let end_ws = WS {
+        left: true,
+        ..Default::default()
+    };
 
     assert_eq!(
         ast[0],
         Node::FilterSection(
             start_ws,
             FilterSection {
-                filter: FunctionCall { name: "upper".to_string(), args: HashMap::new() },
+                filter: FunctionCall {
+                    name: "upper".to_string(),
+                    args: HashMap::new()
+                },
                 body: vec![Node::Text("A".to_string())],
             },
             end_ws,
@@ -769,8 +878,14 @@ fn parse_filter_section_without_args() {
 #[test]
 fn parse_filter_section_with_args() {
     let ast = parse("{% filter upper(attr=1) -%}A{%- endfilter %}").unwrap();
-    let start_ws = WS { right: true, ..Default::default() };
-    let end_ws = WS { left: true, ..Default::default() };
+    let start_ws = WS {
+        right: true,
+        ..Default::default()
+    };
+    let end_ws = WS {
+        left: true,
+        ..Default::default()
+    };
 
     let mut args = HashMap::new();
     args.insert("attr".to_string(), Expr::new(ExprVal::Int(1)));
@@ -780,7 +895,10 @@ fn parse_filter_section_with_args() {
         Node::FilterSection(
             start_ws,
             FilterSection {
-                filter: FunctionCall { name: "upper".to_string(), args },
+                filter: FunctionCall {
+                    name: "upper".to_string(),
+                    args
+                },
                 body: vec![Node::Text("A".to_string())],
             },
             end_ws,
@@ -797,7 +915,10 @@ fn parse_filter_section_preserves_ws() {
         Node::FilterSection(
             WS::default(),
             FilterSection {
-                filter: FunctionCall { name: "upper".to_string(), args: HashMap::new() },
+                filter: FunctionCall {
+                    name: "upper".to_string(),
+                    args: HashMap::new()
+                },
                 body: vec![
                     Node::Text("  ".to_string()),
                     Node::VariableBlock(WS::default(), Expr::new(ExprVal::Ident("a".to_string()))),
@@ -813,7 +934,10 @@ fn parse_filter_section_preserves_ws() {
 fn parse_block() {
     let ast = parse("{% block hello %}{{super()}} hey{%- endblock hello %}").unwrap();
     let start_ws = WS::default();
-    let end_ws = WS { left: true, ..Default::default() };
+    let end_ws = WS {
+        left: true,
+        ..Default::default()
+    };
 
     assert_eq!(
         ast[0],
@@ -833,7 +957,10 @@ fn parse_simple_macro_definition() {
     let ast = parse("{% macro hello(a=1, b='hello', c) %}A: {{a}}{% endmacro %}").unwrap();
     let mut args = HashMap::new();
     args.insert("a".to_string(), Some(Expr::new(ExprVal::Int(1))));
-    args.insert("b".to_string(), Some(Expr::new(ExprVal::String("hello".to_string()))));
+    args.insert(
+        "b".to_string(),
+        Some(Expr::new(ExprVal::String("hello".to_string()))),
+    );
     args.insert("c".to_string(), None);
 
     assert_eq!(
@@ -857,7 +984,10 @@ fn parse_simple_macro_definition() {
 fn parse_value_forloop() {
     let ast = parse("{% for item in items | reverse %}A{%- endfor %}").unwrap();
     let start_ws = WS::default();
-    let end_ws = WS { left: true, ..Default::default() };
+    let end_ws = WS {
+        left: true,
+        ..Default::default()
+    };
 
     assert_eq!(
         ast[0],
@@ -868,7 +998,10 @@ fn parse_value_forloop() {
                 value: "item".to_string(),
                 container: Expr::with_filters(
                     ExprVal::Ident("items".to_string()),
-                    vec![FunctionCall { name: "reverse".to_string(), args: HashMap::new() },],
+                    vec![FunctionCall {
+                        name: "reverse".to_string(),
+                        args: HashMap::new()
+                    },],
                 ),
                 body: vec![Node::Text("A".to_string())],
                 empty_body: None,
@@ -882,7 +1015,10 @@ fn parse_value_forloop() {
 fn parse_key_value_forloop() {
     let ast = parse("{% for key, item in get_map() %}A{%- endfor %}").unwrap();
     let start_ws = WS::default();
-    let end_ws = WS { left: true, ..Default::default() };
+    let end_ws = WS {
+        left: true,
+        ..Default::default()
+    };
 
     assert_eq!(
         ast[0],
@@ -907,7 +1043,10 @@ fn parse_key_value_forloop() {
 fn parse_value_forloop_array() {
     let ast = parse("{% for item in [1,2,] %}A{%- endfor %}").unwrap();
     let start_ws = WS::default();
-    let end_ws = WS { left: true, ..Default::default() };
+    let end_ws = WS {
+        left: true,
+        ..Default::default()
+    };
 
     assert_eq!(
         ast[0],
@@ -932,7 +1071,10 @@ fn parse_value_forloop_array() {
 fn parse_value_forloop_array_with_filter() {
     let ast = parse("{% for item in [1,2,] | reverse %}A{%- endfor %}").unwrap();
     let start_ws = WS::default();
-    let end_ws = WS { left: true, ..Default::default() };
+    let end_ws = WS {
+        left: true,
+        ..Default::default()
+    };
 
     assert_eq!(
         ast[0],
@@ -943,7 +1085,10 @@ fn parse_value_forloop_array_with_filter() {
                 value: "item".to_string(),
                 container: Expr::with_filters(
                     ExprVal::Array(vec![Expr::new(ExprVal::Int(1)), Expr::new(ExprVal::Int(2)),]),
-                    vec![FunctionCall { name: "reverse".to_string(), args: HashMap::new() },],
+                    vec![FunctionCall {
+                        name: "reverse".to_string(),
+                        args: HashMap::new()
+                    },],
                 ),
                 body: vec![Node::Text("A".to_string())],
                 empty_body: None,
@@ -957,7 +1102,10 @@ fn parse_value_forloop_array_with_filter() {
 fn parse_value_forloop_empty() {
     let ast = parse("{% for item in [1,2,] %}A{% else %}B{%- endfor %}").unwrap();
     let start_ws = WS::default();
-    let end_ws = WS { left: true, ..Default::default() };
+    let end_ws = WS {
+        left: true,
+        ..Default::default()
+    };
 
     assert_eq!(
         ast[0],
@@ -981,8 +1129,14 @@ fn parse_value_forloop_empty() {
 #[test]
 fn parse_if() {
     let ast = parse("{% if item or admin %}A {%- elif 1 > 2 %}B{% else -%} C{%- endif %}").unwrap();
-    let end_ws = WS { left: true, ..Default::default() };
-    let else_ws = WS { right: true, ..Default::default() };
+    let end_ws = WS {
+        left: true,
+        ..Default::default()
+    };
+    let else_ws = WS {
+        right: true,
+        ..Default::default()
+    };
 
     assert_eq!(
         ast[0],
@@ -1027,7 +1181,10 @@ fn parse_break() {
                 key: None,
                 value: "item".to_string(),
                 container: Expr::new(ExprVal::Ident("items".to_string())),
-                body: vec![Node::Break(WS { left: false, right: true }),],
+                body: vec![Node::Break(WS {
+                    left: false,
+                    right: true
+                }),],
                 empty_body: None,
             },
             for_ws,
@@ -1047,7 +1204,10 @@ fn parse_continue() {
                 key: None,
                 value: "item".to_string(),
                 container: Expr::new(ExprVal::Ident("items".to_string())),
-                body: vec![Node::Continue(WS { left: false, right: true }),],
+                body: vec![Node::Continue(WS {
+                    left: false,
+                    right: true
+                }),],
                 empty_body: None,
             },
             for_ws,
@@ -1060,7 +1220,10 @@ fn parse_string_concat_can_merge() {
     let ast = parse("{{ `hello` ~ 'hey' }}").unwrap();
     assert_eq!(
         ast[0],
-        Node::VariableBlock(WS::default(), Expr::new(ExprVal::String("hellohey".to_string()))),
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::String("hellohey".to_string()))
+        ),
     );
 }
 #[test]

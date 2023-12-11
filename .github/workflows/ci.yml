@@ -11,11 +11,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        build: [msrv, stable, nightly, macos, win-msvc]
+        build: [stable, nightly, macos, win-msvc]
         include:
-        - build: msrv
-          os: ubuntu-latest
-          rust: 1.65.0
         - build: stable
           os: ubuntu-latest
           rust: stable
@@ -36,22 +33,7 @@ jobs:
         toolchain: ${{ matrix.rust }}
     - name: Build System Info
       run: rustc --version
-    - name: tests with default feature
+    - name: tests
       run: cargo test
-    - name: tests without the default feature
-      run: cargo test --no-default-features
     - name: Run basic example
       run: cargo run --example basic
-
-  wasm:
-    name: wasm
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      - run: cd docs/playground && cargo test
-      - run: cd docs/playground && wasm-pack test --headless --chrome
-      - run: cd docs/playground && wasm-pack test --headless --firefox

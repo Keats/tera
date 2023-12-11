@@ -133,7 +133,7 @@ macro_call      = { ident ~ "::" ~ ident ~ "(" ~ kwargs? ~ ")" }
 
 /// TESTS
 
-// It's a bit weird that tests are the only thing in Tera not using kwargs
+// It's a bit weird that tests are the only thing not using kwargs
 // but at the same time it's one arg most of the time so...
 test_arg  = { logic_expr | array_filter }
 test_args = _{ test_arg ~ ("," ~ test_arg)* }
@@ -143,9 +143,9 @@ test      = { dotted_ident ~ "is" ~ test_call }
 
 // -------------------------------------------------------
 
-/// TERA
+/// CORE
 
-// All the blocks that Tera recognises
+// All the blocks that the parser recognises
 variable_start = { "{{-" | "{{" }
 variable_end   = { "-}}" | "}}" }
 // whitespace control

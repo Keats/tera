@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::context::Context;
-use crate::tera::Tera;
+use crate::engine::Engine;
 use serde_derive::Serialize;
 
 #[derive(Serialize)]
@@ -16,7 +16,11 @@ fn var_access_by_square_brackets() {
     let mut context = Context::new();
     context.insert(
         "var",
-        &Test { a: "hi".into(), b: "i_am_actually_b".into(), c: vec!["fred".into()] },
+        &Test {
+            a: "hi".into(),
+            b: "i_am_actually_b".into(),
+            c: vec!["fred".into()],
+        },
     );
     context.insert("zero", &0);
     context.insert("a", "b");
@@ -45,7 +49,7 @@ fn var_access_by_square_brackets() {
     ];
 
     for (input, expected) in inputs {
-        let result = Tera::one_off(input, &context, true).unwrap();
+        let result = Engine::one_off(input, &context, true).unwrap();
         println!("{:?} -> {:?} = {:?}", input, expected, result);
         assert_eq!(result, expected);
     }
@@ -54,8 +58,15 @@ fn var_access_by_square_brackets() {
 #[test]
 fn var_access_by_square_brackets_errors() {
     let mut context = Context::new();
-    context.insert("var", &Test { a: "hi".into(), b: "there".into(), c: vec![] });
-    let t = Tera::one_off("{{var[csd]}}", &context, true);
+    context.insert(
+        "var",
+        &Test {
+            a: "hi".into(),
+            b: "there".into(),
+            c: vec![],
+        },
+    );
+    let t = Engine::one_off("{{var[csd]}}", &context, true);
     assert!(t.is_err(), "Access of csd should be impossible");
 }
 
@@ -63,7 +74,7 @@ fn var_access_by_square_brackets_errors() {
 #[test]
 fn var_access_by_loop_index() {
     let context = Context::new();
-    let res = Tera::one_off(
+    let res = Engine::one_off(
         r#"
 {% set ics = ["fa-rocket","fa-paper-plane","fa-diamond","fa-signal"] %}
 {% for a in ics %}
@@ -80,7 +91,7 @@ fn var_access_by_loop_index() {
 #[test]
 fn var_access_by_loop_index_with_set() {
     let context = Context::new();
-    let res = Tera::one_off(
+    let res = Engine::one_off(
         r#"
 {% set ics = ["fa-rocket","fa-paper-plane","fa-diamond","fa-signal"] %}
 {% for a in ics %}
@@ -100,10 +111,13 @@ fn can_get_value_if_key_contains_period() {
     let mut context = Context::new();
     context.insert("name", "Mt. Robson Provincial Park");
     let mut map = HashMap::new();
-    map.insert("Mt. Robson Provincial Park".to_string(), "hello".to_string());
+    map.insert(
+        "Mt. Robson Provincial Park".to_string(),
+        "hello".to_string(),
+    );
     context.insert("tag_info", &map);
 
-    let res = Tera::one_off(r#"{{ tag_info[name] }}"#, &context, true);
+    let res = Engine::one_off(r#"{{ tag_info[name] }}"#, &context, true);
     assert!(res.is_ok());
     let res = res.unwrap();
     assert_eq!(res, "hello");

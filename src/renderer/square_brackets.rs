@@ -46,6 +46,9 @@ mod tests {
         assert_eq!(pull_out_square_bracket("hi"), Vec::<String>::new());
         assert_eq!(pull_out_square_bracket("['hi']"), Vec::<String>::new());
         assert_eq!(pull_out_square_bracket("[hi] a[0]"), vec!["hi"]);
-        assert_eq!(pull_out_square_bracket("hi [th[e]['r']e] [fish]"), vec!["th[e]['r']e", "fish"]);
+        assert_eq!(
+            pull_out_square_bracket("hi [th[e]['r']e] [fish]"),
+            vec!["th[e]['r']e", "fish"]
+        );
     }
 }

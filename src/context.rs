@@ -4,7 +4,7 @@ use std::io::Write;
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
 
-use crate::errors::{Error, Result as TeraResult};
+use crate::errors::{Error, Result as TemplateResult};
 
 /// The struct that holds the context of a template rendering.
 ///
@@ -18,7 +18,9 @@ pub struct Context {
 impl Context {
     /// Initializes an empty context
     pub fn new() -> Self {
-        Context { data: BTreeMap::new() }
+        Context {
+            data: BTreeMap::new(),
+        }
     }
 
     /// Converts the `val` parameter to `Value` and insert it into the context.
@@ -26,8 +28,8 @@ impl Context {
     /// Panics if the serialization fails.
     ///
     /// ```rust
-    /// # use tera::Context;
-    /// let mut context = tera::Context::new();
+    /// # use rio_templates::Context;
+    /// let mut context = rio_templates::Context::new();
     /// context.insert("number_users", &42);
     /// ```
     pub fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) {
@@ -39,7 +41,7 @@ impl Context {
     /// Returns an error if the serialization fails.
     ///
     /// ```rust
-    /// # use tera::Context;
+    /// # use rio_templates::Context;
     /// # struct CannotBeSerialized;
     /// # impl serde::Serialize for CannotBeSerialized {
     /// #     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -57,7 +59,7 @@ impl Context {
         &mut self,
         key: S,
         val: &T,
-    ) -> TeraResult<()> {
+    ) -> TemplateResult<()> {
         self.data.insert(key.into(), to_value(val)?);
 
         Ok(())
@@ -67,7 +69,7 @@ impl Context {
     /// The source context will be dropped.
     ///
     /// ```rust
-    /// # use tera::Context;
+    /// # use rio_templates::Context;
     /// let mut target = Context::new();
     /// target.insert("a", &1);
     /// target.insert("b", &2);
@@ -90,7 +92,7 @@ impl Context {
     }
 
     /// Takes a serde-json `Value` and convert it into a `Context` with no overhead/cloning.
-    pub fn from_value(obj: Value) -> TeraResult<Self> {
+    pub fn from_value(obj: Value) -> TemplateResult<Self> {
         match obj {
             Value::Object(m) => {
                 let mut data = BTreeMap::new();
@@ -108,7 +110,7 @@ impl Context {
     /// Takes something that impl Serialize and create a context with it.
     /// Meant to be used if you have a hashmap or a struct and don't want to insert values
     /// one by one in the context.
-    pub fn from_serialize(value: impl Serialize) -> TeraResult<Self> {
+    pub fn from_serialize(value: impl Serialize) -> TemplateResult<Self> {
         let obj = to_value(value).map_err(Error::json)?;
         Context::from_value(obj)
     }
@@ -357,14 +359,13 @@ pub fn dotted_pointer<'a>(value: &'a Value, pointer: &str) -> Option<&'a Value> 
         return Some(value);
     }
 
-    PointerMachina::new(pointer).map(|mat| mat.replace("~1", "/").replace("~0", "~")).try_fold(
-        value,
-        |target, token| match target {
+    PointerMachina::new(pointer)
+        .map(|mat| mat.replace("~1", "/").replace("~0", "~"))
+        .try_fold(value, |target, token| match target {
             Value::Object(map) => map.get(&token),
             Value::Array(list) => parse_index(&token).and_then(|x| list.get(x)),
             _ => None,
-        },
-    )
+        })
 }
 
 /// serde jsons parse_index
@@ -440,7 +441,10 @@ mod tests {
 
         assert_eq!(dotted_pointer(&value, ""), Some(&value));
         assert_eq!(dotted_pointer(&value, "foo"), value.pointer("/foo"));
-        assert_eq!(dotted_pointer(&value, "foo.bar.goo"), value.pointer("/foo/bar/goo"));
+        assert_eq!(
+            dotted_pointer(&value, "foo.bar.goo"),
+            value.pointer("/foo/bar/goo")
+        );
         assert_eq!(dotted_pointer(&value, "skrr"), value.pointer("/skrr"));
         assert_eq!(
             dotted_pointer(&value, r#"foo["bar"].baz"#),
@@ -499,7 +503,10 @@ mod tests {
 
         let mut expected = Context::new();
         expected.insert("name", "foo");
-        assert_eq!(context.remove("bio"), Some(to_value("Hi, I'm foo.").unwrap()));
+        assert_eq!(
+            context.remove("bio"),
+            Some(to_value("Hi, I'm foo.").unwrap())
+        );
         assert_eq!(context.get("bio"), None);
         assert_eq!(context, expected);
     }

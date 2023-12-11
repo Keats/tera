@@ -5,6 +5,7 @@ use std::io::Write;
 use serde_json::{to_string_pretty, to_value, Number, Value};
 
 use crate::context::{ValueRender, ValueTruthy};
+use crate::engine::Engine;
 use crate::errors::{Error, Result};
 use crate::parser::ast::*;
 use crate::renderer::call_stack::CallStack;
@@ -13,14 +14,13 @@ use crate::renderer::macros::MacroCollection;
 use crate::renderer::square_brackets::pull_out_square_bracket;
 use crate::renderer::stack_frame::{FrameContext, FrameType, Val};
 use crate::template::Template;
-use crate::tera::Tera;
 use crate::utils::render_to_string;
 use crate::Context;
 
 /// Special string indicating request to dump context
 static MAGICAL_DUMP_VAR: &str = "__tera_context";
 
-/// This will convert a Tera variable to a json pointer if it is possible by replacing
+/// This will convert a variable to a json pointer if it is possible by replacing
 /// the index with their evaluated stringified value
 fn evaluate_sub_variables(key: &str, call_stack: &CallStack) -> Result<String> {
     let sub_vars_to_calc = pull_out_square_bracket(key);
@@ -104,8 +104,8 @@ pub struct Processor<'a> {
     /// Root template of template to render - contains ast to use for rendering
     /// Can be the same as `template` if a template has no inheritance
     template_root: &'a Template,
-    /// The Tera object with template details
-    tera: &'a Tera,
+    /// The Engine object with template details
+    engine: &'a Engine,
     /// The call stack for processing
     call_stack: CallStack<'a>,
     /// The macros organised by template and namespaces
@@ -122,7 +122,7 @@ impl<'a> Processor<'a> {
     /// Create a new `Processor` that will do the rendering
     pub fn new(
         template: &'a Template,
-        tera: &'a Tera,
+        engine: &'a Engine,
         context: &'a Context,
         should_escape: bool,
     ) -> Self {
@@ -131,7 +131,7 @@ impl<'a> Processor<'a> {
         let template_root = template
             .parents
             .last()
-            .map(|parent| tera.get_template(parent).unwrap())
+            .map(|parent| engine.get_template(parent).unwrap())
             .unwrap_or(template);
 
         let call_stack = CallStack::new(context, template);
@@ -139,9 +139,9 @@ impl<'a> Processor<'a> {
         Processor {
             template,
             template_root,
-            tera,
+            engine,
             call_stack,
-            macros: MacroCollection::from_original_template(template, tera),
+            macros: MacroCollection::from_original_template(template, engine),
             should_escape,
             blocks: Vec::new(),
         }
@@ -271,7 +271,7 @@ impl<'a> Processor<'a> {
         let level_template = match level {
             0 => self.call_stack.active_template(),
             _ => self
-                .tera
+                .engine
                 .get_template(&self.call_stack.active_template().parents[level - 1])
                 .unwrap(),
         };
@@ -281,7 +281,8 @@ impl<'a> Processor<'a> {
         // Can we find this one block in these definitions? If so render it
         if let Some(block_def) = blocks_definitions.get(&block.name) {
             let (_, Block { ref body, .. }) = block_def[0];
-            self.blocks.push((&block.name[..], &level_template.name[..], level));
+            self.blocks
+                .push((&block.name[..], &level_template.name[..], level));
             return self.render_body(body, write);
         }
 
@@ -298,7 +299,9 @@ impl<'a> Processor<'a> {
         if let Some(default_expr) = expr.filters[0].args.get("value") {
             self.eval_expression(default_expr)
         } else {
-            Err(Error::msg("The `default` filter requires a `value` argument."))
+            Err(Error::msg(
+                "The `default` filter requires a `value` argument.",
+            ))
         }
     }
 
@@ -443,7 +446,8 @@ impl<'a> Processor<'a> {
         // Checks if it's a string and we need to escape it (if the last filter is `safe` we don't)
         if self.should_escape && needs_escape && res.is_string() && !expr.is_marked_safe() {
             res = Cow::Owned(
-                to_value(self.tera.get_escape_fn()(res.as_str().unwrap())).map_err(Error::json)?,
+                to_value(self.engine.get_escape_fn()(res.as_str().unwrap()))
+                    .map_err(Error::json)?,
             );
         }
 
@@ -462,23 +466,33 @@ impl<'a> Processor<'a> {
     /// Evaluate a set tag and add the value to the right context
     fn eval_set(&mut self, set: &'a Set) -> Result<()> {
         let assigned_value = self.safe_eval_expression(&set.value)?;
-        self.call_stack.add_assignment(&set.key[..], set.global, assigned_value);
+        self.call_stack
+            .add_assignment(&set.key[..], set.global, assigned_value);
         Ok(())
     }
 
     fn eval_test(&mut self, test: &'a Test) -> Result<bool> {
-        let tester_fn = self.tera.get_tester(&test.name)?;
+        let tester_fn = self.engine.get_tester(&test.name)?;
         let err_wrap = |e| Error::call_test(&test.name, e);
 
         let mut tester_args = vec![];
         for arg in &test.args {
-            tester_args
-                .push(self.safe_eval_expression(arg).map_err(err_wrap)?.clone().into_owned());
+            tester_args.push(
+                self.safe_eval_expression(arg)
+                    .map_err(err_wrap)?
+                    .clone()
+                    .into_owned(),
+            );
         }
 
-        let found = self.lookup_ident(&test.ident).map(|found| found.clone().into_owned()).ok();
+        let found = self
+            .lookup_ident(&test.ident)
+            .map(|found| found.clone().into_owned())
+            .ok();
 
-        let result = tester_fn.test(found.as_ref(), &tester_args).map_err(err_wrap)?;
+        let result = tester_fn
+            .test(found.as_ref(), &tester_args)
+            .map_err(err_wrap)?;
         if test.negated {
             Ok(!result)
         } else {
@@ -491,7 +505,7 @@ impl<'a> Processor<'a> {
         function_call: &'a FunctionCall,
         needs_escape: &mut bool,
     ) -> Result<Val<'a>> {
-        let tera_fn = self.tera.get_function(&function_call.name)?;
+        let tera_fn = self.engine.get_function(&function_call.name)?;
         *needs_escape = !tera_fn.is_safe();
 
         let err_wrap = |e| Error::call_function(&function_call.name, e);
@@ -500,7 +514,10 @@ impl<'a> Processor<'a> {
         for (arg_name, expr) in &function_call.args {
             args.insert(
                 arg_name.to_string(),
-                self.safe_eval_expression(expr).map_err(err_wrap)?.clone().into_owned(),
+                self.safe_eval_expression(expr)
+                    .map_err(err_wrap)?
+                    .clone()
+                    .into_owned(),
             );
         }
 
@@ -545,7 +562,7 @@ impl<'a> Processor<'a> {
             &macro_call.namespace,
             &macro_call.name,
             frame_context,
-            self.tera.get_template(macro_template_name)?,
+            self.engine.get_template(macro_template_name)?,
         );
 
         self.render_body(&macro_definition.body, write)?;
@@ -561,7 +578,7 @@ impl<'a> Processor<'a> {
         fn_call: &'a FunctionCall,
         needs_escape: &mut bool,
     ) -> Result<Val<'a>> {
-        let filter_fn = self.tera.get_filter(&fn_call.name)?;
+        let filter_fn = self.engine.get_filter(&fn_call.name)?;
         *needs_escape = !filter_fn.is_safe();
 
         let err_wrap = |e| Error::call_filter(&fn_call.name, e);
@@ -570,16 +587,25 @@ impl<'a> Processor<'a> {
         for (arg_name, expr) in &fn_call.args {
             args.insert(
                 arg_name.to_string(),
-                self.safe_eval_expression(expr).map_err(err_wrap)?.clone().into_owned(),
+                self.safe_eval_expression(expr)
+                    .map_err(err_wrap)?
+                    .clone()
+                    .into_owned(),
             );
         }
 
-        Ok(Cow::Owned(filter_fn.filter(value, &args).map_err(err_wrap)?))
+        Ok(Cow::Owned(
+            filter_fn.filter(value, &args).map_err(err_wrap)?,
+        ))
     }
 
     fn eval_as_bool(&mut self, bool_expr: &'a Expr) -> Result<bool> {
         let res = match bool_expr.val {
-            ExprVal::Logic(LogicExpr { ref lhs, ref rhs, ref operator }) => {
+            ExprVal::Logic(LogicExpr {
+                ref lhs,
+                ref rhs,
+                ref operator,
+            }) => {
                 match *operator {
                     LogicOperator::Or => self.eval_as_bool(lhs)? || self.eval_as_bool(rhs)?,
                     LogicOperator::And => self.eval_as_bool(lhs)? && self.eval_as_bool(rhs)?,
@@ -686,9 +712,9 @@ impl<'a> Processor<'a> {
         if !expr.filters.is_empty() {
             match *self.eval_expression(expr)? {
                 Value::Number(ref s) => Ok(Some(s.clone())),
-                _ => {
-                    Err(Error::msg("Tried to do math with an expression not resulting in a number"))
-                }
+                _ => Err(Error::msg(
+                    "Tried to do math with an expression not resulting in a number",
+                )),
             }
         } else {
             self.eval_as_number(&expr.val)
@@ -715,9 +741,15 @@ impl<'a> Processor<'a> {
             }
             ExprVal::Int(val) => Some(Number::from(val)),
             ExprVal::Float(val) => Some(Number::from_f64(val).unwrap()),
-            ExprVal::Math(MathExpr { ref lhs, ref rhs, ref operator }) => {
-                let (l, r) = match (self.eval_expr_as_number(lhs)?, self.eval_expr_as_number(rhs)?)
-                {
+            ExprVal::Math(MathExpr {
+                ref lhs,
+                ref rhs,
+                ref operator,
+            }) => {
+                let (l, r) = match (
+                    self.eval_expr_as_number(lhs)?,
+                    self.eval_expr_as_number(rhs)?,
+                ) {
                     (Some(l), Some(r)) => (l, r),
                     _ => return Ok(None),
                 };
@@ -880,10 +912,16 @@ impl<'a> Processor<'a> {
                 }
             }
             ExprVal::String(ref val) => {
-                return Err(Error::msg(format!("Tried to do math with a string: `{}`", val)));
+                return Err(Error::msg(format!(
+                    "Tried to do math with a string: `{}`",
+                    val
+                )));
             }
             ExprVal::Bool(val) => {
-                return Err(Error::msg(format!("Tried to do math with a boolean: `{}`", val)));
+                return Err(Error::msg(format!(
+                    "Tried to do math with a boolean: `{}`",
+                    val
+                )));
             }
             ExprVal::StringConcat(ref val) => {
                 return Err(Error::msg(format!(
@@ -892,7 +930,10 @@ impl<'a> Processor<'a> {
                 )));
             }
             ExprVal::Test(ref test) => {
-                return Err(Error::msg(format!("Tried to do math with a test: {}", test.name)));
+                return Err(Error::msg(format!(
+                    "Tried to do math with a test: {}",
+                    test.name
+                )));
             }
             _ => unreachable!("unimplemented math expression for {:?}", expr),
         };
@@ -909,7 +950,7 @@ impl<'a> Processor<'a> {
 
         while next_level <= self.template.parents.len() {
             let blocks_definitions = &self
-                .tera
+                .engine
                 .get_template(&self.template.parents[next_level - 1])
                 .unwrap()
                 .blocks_definitions;
@@ -960,7 +1001,14 @@ impl<'a> Processor<'a> {
             Node::Text(ref s) | Node::Raw(_, ref s, _) => write!(write, "{}", s)?,
             Node::VariableBlock(_, ref expr) => self.eval_expression(expr)?.render(write)?,
             Node::Set(_, ref set) => self.eval_set(set)?,
-            Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
+            Node::FilterSection(
+                _,
+                FilterSection {
+                    ref filter,
+                    ref body,
+                },
+                _,
+            ) => {
                 let body = render_to_string(
                     || format!("filter {}", filter.name),
                     |w| self.render_body(body, w),
@@ -988,12 +1036,13 @@ impl<'a> Processor<'a> {
             Node::Include(_, ref tpl_names, ignore_missing) => {
                 let mut found = false;
                 for tpl_name in tpl_names {
-                    let template = self.tera.get_template(tpl_name);
+                    let template = self.engine.get_template(tpl_name);
                     if template.is_err() {
                         continue;
                     }
                     let template = template.unwrap();
-                    self.macros.add_macros_from_template(self.tera, template)?;
+                    self.macros
+                        .add_macros_from_template(self.engine, template)?;
                     self.call_stack.push_include_frame(tpl_name, template);
                     self.render_body(&template.ast, write)?;
                     self.call_stack.pop();
@@ -1036,8 +1085,11 @@ impl<'a> Processor<'a> {
 
         // which template are we in?
         if let Some(&(name, _template, ref level)) = self.blocks.last() {
-            let block_def =
-                self.template.blocks_definitions.get(&name.to_string()).and_then(|b| b.get(*level));
+            let block_def = self
+                .template
+                .blocks_definitions
+                .get(&name.to_string())
+                .and_then(|b| b.get(*level));
 
             if let Some((tpl_name, _)) = block_def {
                 if tpl_name != &self.template.name {

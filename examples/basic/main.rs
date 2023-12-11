@@ -1,27 +1,27 @@
 #[macro_use]
-extern crate tera;
+extern crate rio_templates;
 #[macro_use]
 extern crate lazy_static;
 extern crate serde_json;
 
 use std::collections::HashMap;
 
+use rio_templates::{Context, Engine, Result};
 use serde_json::value::{to_value, Value};
 use std::error::Error;
-use tera::{Context, Result, Tera};
 
 lazy_static! {
-    pub static ref TEMPLATES: Tera = {
-        let mut tera = match Tera::new("examples/basic/templates/**/*") {
+    pub static ref TEMPLATES: Engine = {
+        let mut engine = match Engine::new("examples/basic/templates/**/*") {
             Ok(t) => t,
             Err(e) => {
                 println!("Parsing error(s): {}", e);
                 ::std::process::exit(1);
             }
         };
-        tera.autoescape_on(vec!["html", ".sql"]);
-        tera.register_filter("do_nothing", do_nothing_filter);
-        tera
+        engine.autoescape_on(vec!["html", ".sql"]);
+        engine.register_filter("do_nothing", do_nothing_filter);
+        engine
     };
 }
 
@@ -38,7 +38,7 @@ fn main() {
     context.insert("bio", &"<script>alert('pwnd');</script>");
 
     // A one off template
-    Tera::one_off("hello", &Context::new(), true).unwrap();
+    Engine::one_off("hello", &Context::new(), true).unwrap();
 
     match TEMPLATES.render("users/profile.html", &context) {
         Ok(s) => println!("{:?}", s),

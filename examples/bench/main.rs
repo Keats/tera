@@ -1,7 +1,7 @@
-extern crate tera;
+extern crate rio_templates;
 
+use rio_templates::{Context, Engine};
 use std::alloc::System;
-use tera::{Context, Tera};
 
 #[global_allocator]
 static GLOBAL: System = System;
@@ -24,11 +24,13 @@ fn main() {
         table.push(inner);
     }
 
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![("big-table.html", BIG_TABLE_TEMPLATE)]).unwrap();
+    let mut engine = Engine::default();
+    engine
+        .add_raw_templates(vec![("big-table.html", BIG_TABLE_TEMPLATE)])
+        .unwrap();
     let mut ctx = Context::new();
     ctx.insert("table", &table);
 
-    let _ = tera.render("big-table.html", &ctx).unwrap();
+    let _ = engine.render("big-table.html", &ctx).unwrap();
     println!("Done!");
 }
