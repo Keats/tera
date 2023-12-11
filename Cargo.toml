@@ -45,4 +45,3 @@ tempfile = "3"
 [features]
 default = ["builtins"]
 builtins = ["slug", "humansize", "chrono", "chrono-tz", "rand"]
-preserve_order = ["serde_json/preserve_order"]
