@@ -6,14 +6,12 @@ use regex::{Captures, Regex};
 use serde_json::value::{to_value, Value};
 use unic_segment::GraphemeIndices;
 
-#[cfg(feature = "urlencode")]
 use percent_encoding::{percent_encode, AsciiSet, NON_ALPHANUMERIC};
 
 use crate::errors::{Error, Result};
 use crate::utils;
 
 /// https://url.spec.whatwg.org/#fragment-percent-encode-set
-#[cfg(feature = "urlencode")]
 const FRAGMENT_ENCODE_SET: &AsciiSet = &percent_encoding::CONTROLS
     .add(b' ')
     .add(b'"')
@@ -22,11 +20,9 @@ const FRAGMENT_ENCODE_SET: &AsciiSet = &percent_encoding::CONTROLS
     .add(b'`');
 
 /// https://url.spec.whatwg.org/#path-percent-encode-set
-#[cfg(feature = "urlencode")]
 const PATH_ENCODE_SET: &AsciiSet = &FRAGMENT_ENCODE_SET.add(b'#').add(b'?').add(b'{').add(b'}');
 
 /// https://url.spec.whatwg.org/#userinfo-percent-encode-set
-#[cfg(feature = "urlencode")]
 const USERINFO_ENCODE_SET: &AsciiSet = &PATH_ENCODE_SET
     .add(b'/')
     .add(b':')
@@ -42,7 +38,6 @@ const USERINFO_ENCODE_SET: &AsciiSet = &PATH_ENCODE_SET
 /// Same as Python quote
 /// https://github.com/python/cpython/blob/da27d9b9dc44913ffee8f28d9638985eaaa03755/Lib/urllib/parse.py#L787
 /// with `/` not escaped
-#[cfg(feature = "urlencode")]
 const PYTHON_ENCODE_SET: &AsciiSet = &USERINFO_ENCODE_SET
     .remove(b'/')
     .add(b':')
@@ -226,7 +221,6 @@ pub fn capitalize(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 }
 
 /// Percent-encodes reserved URI characters
-#[cfg(feature = "urlencode")]
 pub fn urlencode(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("urlencode", "value", String, value);
     let encoded = percent_encode(s.as_bytes(), PYTHON_ENCODE_SET).to_string();
@@ -234,7 +228,6 @@ pub fn urlencode(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 }
 
 /// Percent-encodes all non-alphanumeric characters
-#[cfg(feature = "urlencode")]
 pub fn urlencode_strict(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let s = try_get_value!("urlencode_strict", "value", String, value);
     let encoded = percent_encode(s.as_bytes(), NON_ALPHANUMERIC).to_string();
@@ -675,8 +668,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "urlencode")]
-    #[test]
+        #[test]
     fn test_urlencode() {
         let tests = vec![
             (
@@ -702,8 +694,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "urlencode")]
-    #[test]
+        #[test]
     fn test_urlencode_strict() {
         let tests = vec![
             (
