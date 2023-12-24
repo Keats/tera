@@ -377,6 +377,23 @@ fn parse_index(s: &str) -> Option<usize> {
 }
 
 /// Creates a context from key value pairs
+///
+/// Example:
+/// ```rust
+/// let ctx = context! {
+///     name => "Brian",
+///     age => &24
+/// };
+/// ```
+/// Expands to:
+/// ```
+/// let ctx = {
+///     let mut context = Context::new();
+///     context.insert("name", "Brian");
+///     context.insert("age", &24);
+///     context
+/// };
+///
 #[macro_export]
 macro_rules! context {
     (
