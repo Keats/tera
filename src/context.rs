@@ -376,6 +376,24 @@ fn parse_index(s: &str) -> Option<usize> {
     s.parse().ok()
 }
 
+/// Creates a context from key value pairs
+#[macro_export]
+macro_rules! context {
+    (
+        $(
+            $key:ident $(=> $value:expr)? $(,)*
+        )*
+    ) => {
+        {
+            let mut context = Context::new();
+            $(
+                context.insert(stringify!($key), $($value)?);
+            )*
+            context
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -508,5 +526,19 @@ mod tests {
     fn remove_return_none_with_unknown_index() {
         let mut context = Context::new();
         assert_eq!(context.remove("unknown"), None);
+    }
+
+    #[test]
+    fn context_macro_builder() {
+        let left = context! {
+            foo => "Bar",
+            con => &69
+        };
+
+        let mut right = Context::new();
+        right.insert("foo", "Bar");
+        right.insert("con", &69);
+
+        assert_eq!(left, right);
     }
 }
