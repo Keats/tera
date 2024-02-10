@@ -37,18 +37,19 @@ pub fn merge(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Some(val) => val,
         None => return Err(Error::msg("Filter `merge` was used on a value that isn't an object")),
     };
-    match args.get("with") {
-        Some(val) => match val.as_object() {
-            Some(right) => {
-                let mut result = left.clone();
-                result.extend(right.clone());
-                // We've already confirmed both sides were HashMaps, the result is a HashMap -
-                // - so unwrap
-                Ok(to_value(result).unwrap())
-            }
-            None => Err(Error::msg("The `with` argument for the `get` filter must be an object")),
-        },
-        None => Err(Error::msg("The `merge` filter has to have an `with` argument")),
+    let with = match args.get("with") {
+        Some(val) => val,
+        None => return Err(Error::msg("The `merge` filter has to have a `with` argument")),
+    };
+    match with.as_object() {
+        Some(right) => {
+            let mut result = left.clone();
+            result.extend(right.clone());
+            // We've already confirmed both sides were HashMaps, the result is a HashMap -
+            // - so unwrap
+            Ok(to_value(result).unwrap())
+        }
+        None => Err(Error::msg("The `with` argument for the `get` filter must be an object")),
     }
 }
 
