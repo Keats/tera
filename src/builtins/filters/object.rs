@@ -30,14 +30,14 @@ pub fn get(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     }
 }
 
-/// Merge two objects, the second object is indicated by the `other` argument.
+/// Merge two objects, the second object is indicated by the `with` argument.
 /// The second object's values will overwrite the first's in the event of a key conflict.
 pub fn merge(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let left = match value.as_object() {
         Some(val) => val,
         None => return Err(Error::msg("Filter `merge` was used on a value that isn't an object")),
     };
-    match args.get("other") {
+    match args.get("with") {
         Some(val) => match val.as_object() {
             Some(right) => {
                 let mut result = left.clone();
@@ -46,9 +46,9 @@ pub fn merge(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                 // - so unwrap
                 Ok(to_value(result).unwrap())
             },
-            None => Err(Error::msg("The `other` argument for the `get` filter must be an object"))
+            None => Err(Error::msg("The `with` argument for the `get` filter must be an object"))
         },
-        None =>  Err(Error::msg("The `merge` filter has to have an `other` argument")),
+        None =>  Err(Error::msg("The `merge` filter has to have an `with` argument")),
     }
 }
 
@@ -121,7 +121,7 @@ mod tests {
         obj_2.insert("3".to_string(), "third".to_string());
 
         let mut args = HashMap::new();
-        args.insert("other".to_string(), to_value(obj_2).unwrap());
+        args.insert("with".to_string(), to_value(obj_2).unwrap());
 
         let result = merge(&to_value(&obj_1).unwrap(), &args);
         assert!(result.is_ok());
