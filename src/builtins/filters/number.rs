@@ -75,7 +75,7 @@ pub fn round(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     // Do we need to return an integer or a float?
     if precision == 0 {
-        Ok(to_value(intermediate_result as i64).unwrap())
+        Ok(to_value(intermediate_result as i128).unwrap())
     } else {
         Ok(to_value(intermediate_result).unwrap())
     }
