@@ -1,8 +1,8 @@
 /// Filters operating on objects
 use std::collections::HashMap;
 
-use serde_json::value::Value;
 use serde_json::value::to_value;
+use serde_json::value::Value;
 
 use crate::errors::{Error, Result};
 
@@ -45,10 +45,10 @@ pub fn merge(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                 // We've already confirmed both sides were HashMaps, the result is a HashMap -
                 // - so unwrap
                 Ok(to_value(result).unwrap())
-            },
-            None => Err(Error::msg("The `with` argument for the `get` filter must be an object"))
+            }
+            None => Err(Error::msg("The `with` argument for the `get` filter must be an object")),
         },
-        None =>  Err(Error::msg("The `merge` filter has to have an `with` argument")),
+        None => Err(Error::msg("The `merge` filter has to have an `with` argument")),
     }
 }
 
