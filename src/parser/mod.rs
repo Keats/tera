@@ -1044,9 +1044,10 @@ fn parse_if(pair: Pair<Rule>) -> TeraResult<Node> {
 }
 
 fn parse_content(pair: Pair<Rule>) -> TeraResult<Vec<Node>> {
-    let mut nodes = vec![];
+    let pairs = pair.into_inner();
+    let mut nodes = Vec::with_capacity(pairs.len());
 
-    for p in pair.into_inner() {
+    for p in pairs {
         match p.as_rule() {
             Rule::include_tag => nodes.push(parse_include(p)),
             Rule::comment_tag => nodes.push(parse_comment_tag(p)),
