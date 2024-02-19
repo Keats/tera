@@ -143,7 +143,7 @@ fn parse_test(pair: Pair<Rule>) -> TeraResult<Test> {
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::dotted_ident => ident = Some(p.as_str().to_string()),
+            Rule::dotted_square_bracket_ident => ident = Some(p.as_str().to_string()),
             Rule::test_call => {
                 let (_name, _args) = parse_test_call(p)?;
                 name = Some(_name);
