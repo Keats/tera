@@ -6,7 +6,7 @@ mod call_stack;
 mod for_loop;
 mod macros;
 mod processor;
-mod stack_frame;
+pub(crate) mod stack_frame;
 
 use std::io::Write;
 
@@ -15,25 +15,25 @@ use crate::errors::Result;
 use crate::template::Template;
 use crate::tera::Tera;
 use crate::utils::buffer_to_string;
-use crate::Context;
+use crate::ContextProvider;
 
 /// Given a `Tera` and reference to `Template` and a `Context`, renders text
 #[derive(Debug)]
-pub struct Renderer<'a> {
+pub struct Renderer<'a, C: ContextProvider + Clone> {
     /// Template to render
     template: &'a Template,
     /// Houses other templates, filters, global functions, etc
     tera: &'a Tera,
     /// Read-only context to be bound to template˝
-    context: &'a Context,
+    context: &'a C,
     /// If set rendering should be escaped
     should_escape: bool,
 }
 
-impl<'a> Renderer<'a> {
+impl<'a, C: ContextProvider + Clone> Renderer<'a, C> {
     /// Create a new `Renderer`
     #[inline]
-    pub fn new(template: &'a Template, tera: &'a Tera, context: &'a Context) -> Renderer<'a> {
+    pub fn new(template: &'a Template, tera: &'a Tera, context: &'a C) -> Renderer<'a, C> {
         let should_escape = tera.autoescape_suffixes.iter().any(|ext| {
             // We prefer a `path` if set, otherwise use the `name`
             if let Some(ref p) = template.path {

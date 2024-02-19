@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 /// Filters operating on array
 use std::collections::HashMap;
 
