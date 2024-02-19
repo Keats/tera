@@ -50,7 +50,13 @@ pub fn last(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
 pub fn join(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("join", "value", Vec<Value>, value);
     let sep = match args.get("sep") {
-        Some(val) => try_get_value!("truncate", "sep", String, val),
+        Some(val) => {
+            let s = try_get_value!("truncate", "sep", String, val);
+            // When reading from a file, it will escape `\n` to `\\n` for example so we need
+            // to replace double escape. In practice it might cause issues if someone wants to join
+            // with `\\n` for real but that seems pretty unlikely
+            s.replace("\\n", "\n").replace("\\t", "\t")
+        }
         None => String::new(),
     };
 
@@ -385,6 +391,14 @@ mod tests {
         let result = join(&to_value(v).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("").unwrap());
+    }
+
+    #[test]
+    fn test_join_newlines_and_tabs() {
+        let mut args = HashMap::new();
+        args.insert("sep".to_owned(), to_value(",\\n\\t").unwrap());
+        let result = join(&to_value(vec!["Cats", "Dogs"]).unwrap(), &args);
+        assert_eq!(result.unwrap(), to_value("Cats,\n\tDogs").unwrap());
     }
 
     #[test]
