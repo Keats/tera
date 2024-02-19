@@ -158,6 +158,24 @@ impl Tera {
         Self::create(dir, true)
     }
 
+    /// Create a new instance of Tera with no templates, filters, testers or functions registered.
+    ///
+    /// To create a new instance of Tera without any templates, but with the default filters,
+    /// testers and functions registered, use [`Tera::default`].
+    ///
+    #[must_use]
+    pub fn new_uninitialized() -> Tera {
+        Tera {
+            glob: None,
+            templates: HashMap::new(),
+            filters: HashMap::new(),
+            testers: HashMap::new(),
+            functions: HashMap::new(),
+            autoescape_suffixes: vec![".html", ".htm", ".xml"],
+            escape_fn: escape_html,
+        }
+    }
+
     /// Loads all the templates found in the glob that was given to [`Tera::new`].
     fn load_from_glob(&mut self) -> Result<()> {
         let glob = match &self.glob {
@@ -890,17 +908,13 @@ impl Tera {
 }
 
 impl Default for Tera {
+    /// Creates a new Tera instance with the default filters, testers, and
+    /// functions registered.
+    ///
+    /// For creating a new Tera instance with no default filters, testers, and
+    /// functions registered, use [`Tera::new_uninitialized`] instead.
     fn default() -> Tera {
-        let mut tera = Tera {
-            glob: None,
-            templates: HashMap::new(),
-            filters: HashMap::new(),
-            testers: HashMap::new(),
-            functions: HashMap::new(),
-            autoescape_suffixes: vec![".html", ".htm", ".xml"],
-            escape_fn: escape_html,
-        };
-
+        let mut tera = Tera::new_uninitialized();
         tera.register_tera_filters();
         tera.register_tera_testers();
         tera.register_tera_functions();
