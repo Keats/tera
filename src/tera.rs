@@ -708,6 +708,8 @@ impl Tera {
         self.register_filter("slice", array::slice);
         self.register_filter("group_by", array::group_by);
         self.register_filter("filter", array::filter);
+        self.register_filter("take_while", array::take_while);
+        self.register_filter("take_until", array::take_until);
         self.register_filter("map", array::map);
         self.register_filter("concat", array::concat);
 
