@@ -427,6 +427,7 @@ fn parse_logic_val(pair: Pair<Rule>) -> TeraResult<Expr> {
             Rule::in_cond => expr = Some(parse_in_condition(p)?),
             Rule::comparison_expr => expr = Some(parse_comparison_expression(p)?),
             Rule::string_expr_filter => expr = Some(parse_string_expr_with_filters(p)?),
+            Rule::logic_expr => expr = Some(parse_logic_expr(p)?),
             _ => unreachable!(),
         };
     }
