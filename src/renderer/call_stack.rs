@@ -32,6 +32,10 @@ impl<'a> UserContext<'a> {
         let rest = &pointer[root.len() + 1..];
         self.inner.get(&root).and_then(|val| dotted_pointer(val, rest))
     }
+
+    pub fn inner(&self) -> &'a Context {
+        self.inner
+    }
 }
 
 /// Contains the stack of frames
@@ -192,6 +196,10 @@ impl<'a> CallStack<'a> {
     /// Grab the current frame template
     pub fn active_template(&self) -> &'a Template {
         self.current_frame().active_template
+    }
+
+    pub fn current_context(&self) -> &Context {
+        self.context.inner()
     }
 
     pub fn current_context_cloned(&self) -> Value {

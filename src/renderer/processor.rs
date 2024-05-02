@@ -995,7 +995,18 @@ impl<'a> Processor<'a> {
                     let template = template.unwrap();
                     self.macros.add_macros_from_template(self.tera, template)?;
                     self.call_stack.push_include_frame(tpl_name, template);
-                    self.render_body(&template.ast, write)?;
+                    // if include template has parents template (extends) then use Processor
+                    if !template.parents.is_empty() {
+                        let mut processor = Processor::new(
+                            template,
+                            self.tera,
+                            self.call_stack.current_context(),
+                            self.should_escape,
+                        );
+                        processor.render(write)?;
+                    } else {
+                        self.render_body(&template.ast, write)?;
+                    }
                     self.call_stack.pop();
                     found = true;
                     break;
@@ -1006,12 +1017,8 @@ impl<'a> Processor<'a> {
                     ));
                 }
             }
-            Node::Extends(_, ref name) => {
-                return Err(Error::msg(format!(
-                    "Inheritance in included templates is currently not supported: extended `{}`",
-                    name
-                )));
-            }
+            // Extends are ignored and handled during include render
+            Node::Extends(_, _) => (),
             // Macro definitions are ignored when rendering
             Node::MacroDefinition(_, _, _) => (),
         };
