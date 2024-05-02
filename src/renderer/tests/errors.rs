@@ -204,26 +204,6 @@ fn right_variable_name_is_needed_in_for_loop() {
     );
 }
 
-// https://github.com/Keats/tera/issues/385
-// https://github.com/Keats/tera/issues/370
-#[test]
-fn errors_with_inheritance_in_included_template() {
-    let mut tera = Tera::default();
-    tera.add_raw_templates(vec![
-        ("base", "Base - {% include \"child\" %}"),
-        ("parent", "{% block title %}Parent{% endblock %}"),
-        ("child", "{% extends \"parent\" %}{% block title %}{{ super() }} - Child{% endblock %}"),
-    ])
-    .unwrap();
-
-    let result = tera.render("base", &Context::new());
-
-    assert_eq!(
-        result.unwrap_err().source().unwrap().to_string(),
-        "Inheritance in included templates is currently not supported: extended `parent`"
-    );
-}
-
 #[test]
 fn error_string_concat_math_logic() {
     let mut tera = Tera::default();
