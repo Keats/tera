@@ -633,9 +633,6 @@ You can also provide a list of templates that are checked for existence before i
 {% include ["special_sidebar.html", "sidebar.html"] ignore missing %}
 ```
 
-Note: `include` works similar to how it does in other engines like Jinja, with the exception that the current version of Tera doesn't allow inheritance within included files. Practically
-speaking this means you have to choose between using `include`s or `extends` to organise your site, without mixing them. 
-
 ### Macros
 
 Think of macros as functions or components that you can call and return some text.
