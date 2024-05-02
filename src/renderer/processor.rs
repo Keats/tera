@@ -997,6 +997,13 @@ impl<'a> Processor<'a> {
                     self.call_stack.push_include_frame(tpl_name, template);
                     // if include template has parents template (extends) then use Processor
                     if !template.parents.is_empty() {
+                        // check if include template has recursive parent template
+                        if template.parents.contains(&self.template.name) {
+                            return Err(Error::msg(format!(
+                                "Include template ({}) has recursive parent template ({}).",
+                                template.name, self.template.name,
+                            )));
+                        }
                         let mut processor = Processor::new(
                             template,
                             self.tera,
