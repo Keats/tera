@@ -200,7 +200,8 @@ would be rendered as `Hello {{ name }}`.
 ### Whitespace control
 
 Tera comes with easy to use whitespace control: use `{%-` if you want to remove all whitespace
-before a statement and `-%}` if you want to remove all whitespace after.
+before a statement and `-%}` if you want to remove all whitespace after. This behavior also 
+works with expressions, using `{{-` and `-}}`, and with comments, using `{#-` and `-#}`.
 
 For example, let's look at the following template:
 
