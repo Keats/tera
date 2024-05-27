@@ -162,14 +162,14 @@ impl<'a> StackFrame<'a> {
 
             // Last case: the variable is/starts with the value name of the for loop
             // The `set` case will have been taken into account before
-            let v = for_loop.get_current_value();
+
             // Exact match to the loop value and no tail
             if key == for_loop.value_name {
-                return Some(v);
+                return Some(for_loop.get_current_value());
             }
 
             if real_key == for_loop.value_name && !tail.is_empty() {
-                return value_by_pointer(tail, &v);
+                return value_by_pointer(tail, &for_loop.get_current_value());
             }
         }
 
