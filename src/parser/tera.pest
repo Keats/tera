@@ -98,7 +98,7 @@ comparison_expr = { (string_expr_filter | comparison_val) ~ (comparison_op ~ (st
 in_cond_container = {string_expr_filter | array_filter | dotted_square_bracket_ident}
 in_cond = !{ (string_expr_filter | basic_expr_filter) ~ op_not? ~ "in" ~ in_cond_container }
 
-logic_val  = !{ op_not? ~ (in_cond | comparison_expr) }
+logic_val  = !{ op_not? ~ (in_cond | comparison_expr) | "(" ~ logic_expr ~ ")" }
 logic_expr = !{ logic_val ~ ((op_or | op_and) ~ logic_val)* }
 
 array = !{ "[" ~ (logic_val ~ ",")* ~ logic_val? ~ "]"}

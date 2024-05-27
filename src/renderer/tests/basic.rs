@@ -476,6 +476,19 @@ fn render_if_elif_else() {
         ("{% if 'n' in name %}Admin{% else %}Hmm{% endif %}", "Admin"),
         // function in if
         ("{% if get_true() %}Truth{% endif %}", "Truth"),
+        // Parentheses around logic expressions
+        ("{% if age >= 18 and name == 'john' %}Truth{% endif %}", "Truth"),
+        ("{% if (age >= 18) and (name == 'john') %}Truth{% endif %}", "Truth"),
+        ("{% if (age >= 18) or (name == 'john') %}Truth{% endif %}", "Truth"),
+        ("{% if (age < 18) or (name == 'john') %}Truth{% endif %}", "Truth"),
+        ("{% if (age >= 18) or (name != 'john') %}Truth{% endif %}", "Truth"),
+        ("{% if (age < 18) and (name != 'john') %}Truth{% endif %}", ""),
+        ("{% if (age >= 18) and (name != 'john') %}Truth{% endif %}", ""),
+        ("{% if (age >= 18 and name == 'john') %}Truth{% endif %}", "Truth"),
+        ("{% if (age < 18 and name == 'john') %}Truth{% endif %}", ""),
+        ("{% if (age >= 18 and name != 'john') %}Truth{% endif %}", ""),
+        ("{% if age >= 18 or name == 'john' and is_false %}Truth{% endif %}", "Truth"),
+        ("{% if (age >= 18 or name == 'john') and is_false %}Truth{% endif %}", ""),
     ];
 
     for (input, expected) in inputs {
