@@ -138,8 +138,8 @@ macro_call      = { ident ~ "::" ~ ident ~ "(" ~ kwargs? ~ ")" }
 test_arg  = { logic_expr | array_filter }
 test_args = _{ test_arg ~ ("," ~ test_arg)* }
 test_call = !{ ident ~ ("(" ~ test_args ~ ")")? }
-test_not  = { dotted_ident ~ "is" ~ "not" ~ test_call }
-test      = { dotted_ident ~ "is" ~ test_call }
+test_not  = { dotted_square_bracket_ident ~ "is" ~ "not" ~ test_call }
+test      = { dotted_square_bracket_ident ~ "is" ~ test_call }
 
 // -------------------------------------------------------
 
