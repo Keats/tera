@@ -46,7 +46,7 @@ fn wrong_end_block() {
         "{{ hey %}",
         &[
             "1:9",
-            "expected an integer, a float, `true` or `false`, an identifier (must start with a-z), a dotted identifier (identifiers separated by `.`), a square bracketed identifier (identifiers separated by `.` or `[]`s), or an expression"
+            "expected an integer, a float, `true` or `false`, an identifier (must start with a-z), a square bracketed identifier (identifiers separated by `.` or `[]`s), or an expression"
         ],
     );
 }
