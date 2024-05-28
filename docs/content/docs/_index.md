@@ -786,6 +786,9 @@ Converts a string to uppercase.
 #### wordcount
 Returns the number of words in a string.
 
+#### pad
+Pad a string to a given length with a given fill character.
+
 #### capitalize
 Returns the string with all its characters lowercased apart from the first char which is uppercased.
 
