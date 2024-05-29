@@ -1,10 +1,10 @@
 # Changelog
 
-## 1.12.0 (unreleased)
+## 1.20.0 (2024-05-27)
 
 - Support parenthesis in if statemetns
 - Allow escaped newline and tab join separator
-- 
+
 ## 1.19.1 (2023-09-03)
 
 - Minimum supported Rust version (MSRV) is now 1.63 due to transitive dependencies.
