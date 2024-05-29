@@ -368,6 +368,38 @@ pub fn split(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(s.split(&pat).collect::<Vec<_>>()).unwrap())
 }
 
+/// Pad the given string to a given length with a given fill character.
+pub fn pad(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("pad", "value", String, value);
+
+    let len = match args.get("len") {
+        Some(val) => try_get_value!("pad", "len", usize, val),
+        None => return Err(Error::msg("Filter `pad` expected an arg called `len`")),
+    };
+
+    let fill = match args.get("fill") {
+        Some(val) => try_get_value!("pad", "fill", String, val),
+        None => " ".to_string(),
+    };
+
+    let before = match args.get("before") {
+        Some(val) => try_get_value!("pad", "before", bool, val),
+        None => false,
+    };
+
+    let diff = len.checked_sub(s.len()).unwrap_or(0);
+    let mut output: String = String::with_capacity(std::cmp::max(s.len(), len));
+    if !before {
+        output.push_str(&s);
+    };
+    output.push_str(&fill.repeat(std::cmp::max(0, diff)));
+    if before {
+        output.push_str(&s);
+    };
+
+    Ok(to_value(output).unwrap())
+}
+
 /// Convert the value to a signed integer number
 pub fn int(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let default = match args.get("default") {
@@ -806,6 +838,25 @@ mod tests {
             for (result, expected) in result.iter().zip(expected.iter()) {
                 assert_eq!(result, expected);
             }
+        }
+    }
+
+    #[test]
+    fn test_pad() {
+        let tests: Vec<(&str, i32, &str, bool, &str)> = vec![
+            ("abc", 4, " ", false, "abc "),
+            ("abc", 4, " ", true, " abc"),
+            ("abc", 1, " ", false, "abc"),
+            ("abc", 1, " ", true, "abc"),
+            ("abc", 5, "-", false, "abc--"),
+        ];
+        for (input, len, fill, before, expected) in tests {
+            let mut args = HashMap::new();
+            args.insert("len".to_string(), to_value(len).unwrap());
+            args.insert("fill".to_string(), to_value(fill).unwrap());
+            args.insert("before".to_string(), to_value(before).unwrap());
+            let result = pad(&to_value(input).unwrap(), &args).unwrap();
+            assert_eq!(result, expected);
         }
     }
 
