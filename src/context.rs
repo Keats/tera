@@ -123,6 +123,11 @@ impl Context {
         self.data.remove(index)
     }
 
+    /// Returns an iterator over the keys of the `Context`, in sorted order.
+    pub fn keys(&self) -> impl Iterator<Item = &str> {
+        self.data.keys().map(|k| k.as_ref())
+    }
+
     /// Checks if a value exists at a specific index.
     pub fn contains_key(&self, index: &str) -> bool {
         self.data.contains_key(index)
@@ -508,5 +513,15 @@ mod tests {
     fn remove_return_none_with_unknown_index() {
         let mut context = Context::new();
         assert_eq!(context.remove("unknown"), None);
+    }
+
+    #[test]
+    fn can_iterate_over_keys() {
+        let mut context = Context::new();
+        context.insert("b", "b");
+        context.insert("a", "a");
+
+        let keys: Vec<_> = context.keys().collect();
+        assert_eq!(keys, ["a", "b"]);
     }
 }
