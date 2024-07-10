@@ -1063,4 +1063,18 @@ impl<'a> Processor<'a> {
 
         Ok(())
     }
+
+    /// Async version of [`render`](Self::render)
+    #[cfg(feature = "async")]
+    pub async fn render_async(&mut self, write: &mut impl Write) -> Result<()> {
+        for node in &self.template_root.ast {
+            self.render_node(node, write)
+                .map_err(|e| Error::chain(self.get_error_location(), e))?;
+
+            // await after each node to allow the runtime to yield to other tasks
+            async {}.await;
+        }
+
+        Ok(())
+    }
 }

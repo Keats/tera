@@ -392,6 +392,15 @@ impl Tera {
         renderer.render()
     }
 
+    /// Async version of [`render()`](Self::render). Note that the await points for ``render_async`` are
+    /// in between each ast parse
+    #[cfg(feature = "async")]
+    pub async fn render_async(&self, template_name: &str, context: &Context) -> Result<String> {
+        let template = self.get_template(template_name)?;
+        let renderer = Renderer::new(template, self, context);
+        renderer.render_async().await
+    }
+
     /// Renders a Tera template given a [`Context`] to something that implements [`Write`].
     ///
     /// The only difference from [`render()`](Self::render) is that this version doesn't convert

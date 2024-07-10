@@ -52,11 +52,28 @@ impl<'a> Renderer<'a> {
         buffer_to_string(|| "converting rendered buffer to string".to_string(), output)
     }
 
+    /// Async version of [`render()`](Self::render)
+    #[cfg(feature = "async")]
+    pub async fn render_async(&self) -> Result<String> {
+        let mut output = Vec::with_capacity(2000);
+        self.render_to_async(&mut output).await?;
+        buffer_to_string(|| "converting rendered buffer to string".to_string(), output)
+    }
+
     /// Combines the context with the Template to write the end result to output
     pub fn render_to(&self, mut output: impl Write) -> Result<()> {
         let mut processor =
             Processor::new(self.template, self.tera, self.context, self.should_escape);
 
         processor.render(&mut output)
+    }
+
+    /// Async version of [`render_to()`](Self::render_to)
+    #[cfg(feature = "async")]
+    pub async fn render_to_async(&self, mut output: impl Write) -> Result<()> {
+        let mut processor =
+            Processor::new(self.template, self.tera, self.context, self.should_escape);
+
+        processor.render_async(&mut output).await
     }
 }

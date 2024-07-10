@@ -44,7 +44,8 @@ pretty_assertions = "1"
 tempfile = "3"
 
 [features]
-default = ["builtins"]
+default = ["builtins", "async"]
+async = []
 builtins = ["urlencode", "slug", "humansize", "chrono", "chrono-tz", "rand"]
 urlencode = ["percent-encoding"]
 preserve_order = ["serde_json/preserve_order"]
