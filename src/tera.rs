@@ -760,7 +760,6 @@ impl Tera {
         self.register_function("throw", functions::throw);
         #[cfg(feature = "builtins")]
         self.register_function("get_random", functions::get_random);
-        self.register_function("get_env", functions::get_env);
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on.

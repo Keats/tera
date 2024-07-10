@@ -171,29 +171,6 @@ pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
     Ok(Value::Number(res.into()))
 }
 
-pub fn get_env(args: &HashMap<String, Value>) -> Result<Value> {
-    let name = match args.get("name") {
-        Some(val) => match from_value::<String>(val.clone()) {
-            Ok(v) => v,
-            Err(_) => {
-                return Err(Error::msg(format!(
-                    "Function `get_env` received name={} but `name` can only be a string",
-                    val
-                )));
-            }
-        },
-        None => return Err(Error::msg("Function `get_env` didn't receive a `name` argument")),
-    };
-
-    match std::env::var(&name).ok() {
-        Some(res) => Ok(Value::String(res)),
-        None => match args.get("default") {
-            Some(default) => Ok(default.clone()),
-            None => Err(Error::msg(format!("Environment variable `{}` not found", &name))),
-        },
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -308,34 +285,5 @@ mod tests {
         assert!(res.is_number());
         assert!(res.as_i64().unwrap() >= 5);
         assert!(res.as_i64().unwrap() < 10);
-    }
-
-    #[test]
-    fn get_env_existing() {
-        std::env::set_var("TERA_TEST", "true");
-        let mut args = HashMap::new();
-        args.insert("name".to_string(), to_value("TERA_TEST").unwrap());
-        let res = get_env(&args).unwrap();
-        assert!(res.is_string());
-        assert_eq!(res.as_str().unwrap(), "true");
-        std::env::remove_var("TERA_TEST");
-    }
-
-    #[test]
-    fn get_env_non_existing_no_default() {
-        let mut args = HashMap::new();
-        args.insert("name".to_string(), to_value("UNKNOWN_VAR").unwrap());
-        let res = get_env(&args);
-        assert!(res.is_err());
-    }
-
-    #[test]
-    fn get_env_non_existing_with_default() {
-        let mut args = HashMap::new();
-        args.insert("name".to_string(), to_value("UNKNOWN_VAR").unwrap());
-        args.insert("default".to_string(), to_value("false").unwrap());
-        let res = get_env(&args).unwrap();
-        assert!(res.is_string());
-        assert_eq!(res.as_str().unwrap(), "false");
     }
 }
