@@ -957,7 +957,7 @@ impl<'a> Processor<'a> {
             // Unwraps are safe since we are dealing with things that are already Value
             return Ok(Cow::Owned(
                 to_value(
-                    to_string_pretty(&self.call_stack.current_context_cloned().take()).unwrap(),
+                    to_string_pretty(&self.call_stack.current_context_cloned()?.take()).unwrap(),
                 )
                 .unwrap(),
             ));

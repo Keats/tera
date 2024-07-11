@@ -105,8 +105,8 @@ fn bench_rendering_only_variable(b: &mut test::Bencher) {
     let mut tera = Tera::default();
     tera.add_raw_template("test.html", VARIABLE_ONLY).unwrap();
     let mut context = Context::new();
-    context.insert("product", &Product::new());
-    context.insert("username", &"bob");
+    context.insert("product", &Product::new()).unwrap();
+    context.insert("username", &"bob").unwrap();
 
     b.iter(|| tera.render("test.html", &context));
 }
@@ -116,8 +116,8 @@ fn bench_rendering_basic_template(b: &mut test::Bencher) {
     let mut tera = Tera::default();
     tera.add_raw_template("bench.html", SIMPLE_TEMPLATE).unwrap();
     let mut context = Context::new();
-    context.insert("product", &Product::new());
-    context.insert("username", &"bob");
+    context.insert("product", &Product::new()).unwrap();
+    context.insert("username", &"bob").unwrap();
 
     b.iter(|| tera.render("bench.html", &context));
 }
@@ -127,8 +127,8 @@ fn bench_rendering_only_parent(b: &mut test::Bencher) {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![("parent.html", PARENT_TEMPLATE)]).unwrap();
     let mut context = Context::new();
-    context.insert("product", &Product::new());
-    context.insert("username", &"bob");
+    context.insert("product", &Product::new()).unwrap();
+    context.insert("username", &"bob").unwrap();
 
     b.iter(|| tera.render("parent.html", &context));
 }
@@ -139,8 +139,8 @@ fn bench_rendering_only_macro_call(b: &mut test::Bencher) {
     tera.add_raw_templates(vec![("hey.html", USE_MACRO_TEMPLATE), ("macros.html", MACRO_TEMPLATE)])
         .unwrap();
     let mut context = Context::new();
-    context.insert("product", &Product::new());
-    context.insert("username", &"bob");
+    context.insert("product", &Product::new()).unwrap();
+    context.insert("username", &"bob").unwrap();
 
     b.iter(|| tera.render("hey.html", &context));
 }
@@ -151,8 +151,8 @@ fn bench_rendering_only_inheritance(b: &mut test::Bencher) {
     tera.add_raw_templates(vec![("parent.html", PARENT_TEMPLATE), ("child.html", CHILD_TEMPLATE)])
         .unwrap();
     let mut context = Context::new();
-    context.insert("product", &Product::new());
-    context.insert("username", &"bob");
+    context.insert("product", &Product::new()).unwrap();
+    context.insert("username", &"bob").unwrap();
 
     b.iter(|| tera.render("child.html", &context));
 }
@@ -167,8 +167,8 @@ fn bench_rendering_inheritance_and_macros(b: &mut test::Bencher) {
     ])
     .unwrap();
     let mut context = Context::new();
-    context.insert("product", &Product::new());
-    context.insert("username", &"bob");
+    context.insert("product", &Product::new()).unwrap();
+    context.insert("username", &"bob").unwrap();
 
     b.iter(|| tera.render("child.html", &context));
 }
@@ -209,7 +209,7 @@ fn bench_huge_loop(b: &mut test::Bencher) {
     )])
     .unwrap();
     let mut context = Context::new();
-    context.insert("rows", &rows);
+    context.insert("rows", &rows).unwrap();
 
     b.iter(|| tera.render("huge.html", &context.clone()));
 }
@@ -256,7 +256,7 @@ fn access_deep_object(b: &mut test::Bencher) {
     .unwrap();
     let mut context = Context::new();
     println!("{:?}", deep_object());
-    context.insert("deep_object", &deep_object());
+    context.insert("deep_object", &deep_object()).unwrap();
     assert!(tera.render("deep_object.html", &context).unwrap().contains("ornery"));
 
     b.iter(|| tera.render("deep_object.html", &context));
@@ -274,7 +274,7 @@ fn access_deep_object_with_literal(b: &mut test::Bencher) {
     )])
     .unwrap();
     let mut context = Context::new();
-    context.insert("deep_object", &deep_object());
+    context.insert("deep_object", &deep_object()).unwrap();
     assert!(tera.render("deep_object.html", &context).unwrap().contains("ornery"));
 
     b.iter(|| tera.render("deep_object.html", &context));

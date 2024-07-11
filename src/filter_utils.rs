@@ -20,6 +20,7 @@ impl Ord for OrderedF64 {
     }
 }
 
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl PartialOrd for OrderedF64 {
     fn partial_cmp(&self, other: &OrderedF64) -> Option<Ordering> {
         Some(total_cmp(&self.0, &other.0))

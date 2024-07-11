@@ -14,12 +14,14 @@ struct Test {
 #[test]
 fn var_access_by_square_brackets() {
     let mut context = Context::new();
-    context.insert(
-        "var",
-        &Test { a: "hi".into(), b: "i_am_actually_b".into(), c: vec!["fred".into()] },
-    );
-    context.insert("zero", &0);
-    context.insert("a", "b");
+    context
+        .insert(
+            "var",
+            &Test { a: "hi".into(), b: "i_am_actually_b".into(), c: vec!["fred".into()] },
+        )
+        .unwrap();
+    context.insert("zero", &0).unwrap();
+    context.insert("a", "b").unwrap();
 
     let mut map = HashMap::new();
     map.insert("true", "yes");
@@ -28,9 +30,9 @@ fn var_access_by_square_brackets() {
     map.insert("with/slash", "works");
     let mut deep_map = HashMap::new();
     deep_map.insert("inner_map", &map);
-    context.insert("map", &map);
-    context.insert("deep_map", &deep_map);
-    context.insert("bool_vec", &vec!["true", "false"]);
+    context.insert("map", &map).unwrap();
+    context.insert("deep_map", &deep_map).unwrap();
+    context.insert("bool_vec", &vec!["true", "false"]).unwrap();
 
     let inputs = vec![
         ("{{var.a}}", "hi"),
@@ -54,7 +56,7 @@ fn var_access_by_square_brackets() {
 #[test]
 fn var_access_by_square_brackets_errors() {
     let mut context = Context::new();
-    context.insert("var", &Test { a: "hi".into(), b: "there".into(), c: vec![] });
+    context.insert("var", &Test { a: "hi".into(), b: "there".into(), c: vec![] }).unwrap();
     let t = Tera::one_off("{{var[csd]}}", &context, true);
     assert!(t.is_err(), "Access of csd should be impossible");
 }
@@ -98,10 +100,10 @@ fn var_access_by_loop_index_with_set() {
 #[test]
 fn can_get_value_if_key_contains_period() {
     let mut context = Context::new();
-    context.insert("name", "Mt. Robson Provincial Park");
+    context.insert("name", "Mt. Robson Provincial Park").unwrap();
     let mut map = HashMap::new();
     map.insert("Mt. Robson Provincial Park".to_string(), "hello".to_string());
-    context.insert("tag_info", &map);
+    context.insert("tag_info", &map).unwrap();
 
     let res = Tera::one_off(r#"{{ tag_info[name] }}"#, &context, true);
     assert!(res.is_ok());

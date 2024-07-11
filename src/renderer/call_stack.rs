@@ -194,7 +194,7 @@ impl<'a> CallStack<'a> {
         self.current_frame().active_template
     }
 
-    pub fn current_context_cloned(&self) -> Value {
+    pub fn current_context_cloned(&self) -> Result<Value> {
         let mut context = HashMap::new();
 
         // Go back the stack in reverse to see what we have access to
@@ -207,14 +207,17 @@ impl<'a> CallStack<'a> {
                 );
                 if for_loop.is_key_value() {
                     context.insert(
-                        for_loop.key_name.clone().unwrap(),
+                        for_loop
+                            .key_name
+                            .clone()
+                            .ok_or_else(|| Error::msg("Expected key name in key-value for loop"))?,
                         Value::String(for_loop.get_current_key()),
                     );
                 }
             }
             // Macros don't have access to the user context, we're done
             if frame.kind == FrameType::Macro {
-                return to_value(&context).unwrap();
+                return Ok(to_value(&context)?);
             }
         }
 
@@ -223,8 +226,9 @@ impl<'a> CallStack<'a> {
         // We do it this way as we can override global variable temporarily in forloops
         let mut new_ctx = self.context.inner.clone();
         for (key, val) in context {
-            new_ctx.insert(key, &val)
+            new_ctx.insert(key, &val)?
         }
-        new_ctx.into_json()
+
+        Ok(new_ctx.into_json())
     }
 }

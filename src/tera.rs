@@ -1047,7 +1047,7 @@ mod tests {
     #[test]
     fn test_can_autoescape_one_off_template() {
         let mut context = Context::new();
-        context.insert("greeting", &"<p>");
+        context.insert("greeting", &"<p>").unwrap();
         let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "&lt;p&gt; world");
@@ -1056,7 +1056,7 @@ mod tests {
     #[test]
     fn test_can_disable_autoescape_one_off_template() {
         let mut context = Context::new();
-        context.insert("greeting", &"<p>");
+        context.insert("greeting", &"<p>").unwrap();
         let result = Tera::one_off("{{ greeting }} world", &context, false).unwrap();
 
         assert_eq!(result, "<p> world");
@@ -1084,7 +1084,7 @@ mod tests {
         tera.autoescape_on(vec!["foo"]);
         tera.set_escape_fn(escape_c_string);
         let mut context = Context::new();
-        context.insert("content", &"Hello\n\'world\"!");
+        context.insert("content", &"Hello\n\'world\"!").unwrap();
         let result = tera.render("foo", &context).unwrap();
         assert_eq!(result, r#""Hello\n\'world\"!""#);
     }
@@ -1098,7 +1098,7 @@ mod tests {
         tera.set_escape_fn(no_escape);
         tera.reset_escape_fn();
         let mut context = Context::new();
-        context.insert("content", &"Hello\n\'world\"!");
+        context.insert("content", &"Hello\n\'world\"!").unwrap();
         let result = tera.render("foo", &context).unwrap();
         assert_eq!(result, "Hello\n&#x27;world&quot;!");
     }

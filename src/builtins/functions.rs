@@ -1,4 +1,3 @@
-use crate::Tera;
 use std::collections::HashMap;
 
 #[cfg(feature = "builtins")]
