@@ -110,7 +110,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
                         block.body = remove_whitespace(block.body, Some(body_ws));
                         res.push(Node::Block(start_ws, block, end_ws));
                     }
-                    _ => unreachable!(),
+                    _ => {} // Do nothing for unsupported
                 };
                 continue;
             }

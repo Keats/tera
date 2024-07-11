@@ -375,7 +375,7 @@ impl<'a> Processor<'a> {
                                 fn_call.name
                             ))),
                         },
-                        _ => unreachable!(),
+                        _ => return Err(Error::msg(format!("Unimplemented expression found in line {:?} [{:?}]", s, expr.val))),
                     };
                 }
 
@@ -504,7 +504,7 @@ impl<'a> Processor<'a> {
             );
         }
 
-        Ok(Cow::Owned(tera_fn.call(&args).map_err(err_wrap)?))
+        Ok(Cow::Owned(tera_fn.call(self.tera, &args).map_err(err_wrap)?))
     }
 
     fn eval_macro_call(&mut self, macro_call: &'a MacroCall, write: &mut impl Write) -> Result<()> {
@@ -599,7 +599,12 @@ impl<'a> Processor<'a> {
                             LogicOperator::Gt => ll.as_f64().unwrap() > rr.as_f64().unwrap(),
                             LogicOperator::Lte => ll.as_f64().unwrap() <= rr.as_f64().unwrap(),
                             LogicOperator::Lt => ll.as_f64().unwrap() < rr.as_f64().unwrap(),
-                            _ => unreachable!(),
+                            _ => {
+                                return Err(Error::msg(format!(
+                                    "Unimplemented operator for eval_as_bool: {:?} [Gte/Gt/Lte/Lt only]",
+                                    operator
+                                )))
+                            }
                         }
                     }
                     LogicOperator::Eq | LogicOperator::NotEq => {
@@ -624,7 +629,12 @@ impl<'a> Processor<'a> {
                         match *operator {
                             LogicOperator::Eq => *lhs_val == *rhs_val,
                             LogicOperator::NotEq => *lhs_val != *rhs_val,
-                            _ => unreachable!(),
+                            _ => {
+                                return Err(Error::msg(format!(
+                                    "Unimplemented operator for eval_as_bool: {:?} [Eq/NotEq only]",
+                                    operator
+                                )))
+                            }
                         }
                     }
                 }
@@ -670,7 +680,12 @@ impl<'a> Processor<'a> {
                 self.eval_macro_call(macro_call, &mut buf)?;
                 !buf.is_empty()
             }
-            _ => unreachable!("unimplemented logic operation for {:?}", bool_expr),
+            _ => {
+                return Err(Error::msg(format!(
+                    "Unimplemented logic operation for {:?}",
+                    bool_expr
+                )))
+            }
         };
 
         if bool_expr.negated {
@@ -894,7 +909,7 @@ impl<'a> Processor<'a> {
             ExprVal::Test(ref test) => {
                 return Err(Error::msg(format!("Tried to do math with a test: {}", test.name)));
             }
-            _ => unreachable!("unimplemented math expression for {:?}", expr),
+            _ => return Err(Error::msg(format!("unimplemented math expression for {:?}", expr))),
         };
 
         Ok(result)

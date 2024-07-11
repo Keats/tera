@@ -62,7 +62,12 @@ fn parse_kwarg(pair: Pair<Rule>) -> TeraResult<(String, Expr)> {
             Rule::ident => name = Some(p.as_span().as_str().to_string()),
             Rule::logic_expr => val = Some(parse_logic_expr(p)?),
             Rule::array_filter => val = Some(parse_array_with_filters(p)?),
-            _ => unreachable!("{:?} not supposed to get there (parse_kwarg)!", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Got {:?} in parse_kwarg",
+                    p.as_rule()
+                )))
+            }
         };
     }
 
@@ -80,7 +85,12 @@ fn parse_fn_call(pair: Pair<Rule>) -> TeraResult<FunctionCall> {
                 let (name, val) = parse_kwarg(p)?;
                 args.insert(name, val);
             }
-            _ => unreachable!("{:?} not supposed to get there (parse_fn_call)!", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_fn_call",
+                    p.as_rule()
+                )))
+            }
         };
     }
 
@@ -100,7 +110,12 @@ fn parse_filter(pair: Pair<Rule>) -> TeraResult<FunctionCall> {
             Rule::fn_call => {
                 return parse_fn_call(p);
             }
-            _ => unreachable!("{:?} not supposed to get there (parse_filter)!", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_filter",
+                    p.as_rule()
+                )))
+            }
         };
     }
 
@@ -125,11 +140,21 @@ fn parse_test_call(pair: Pair<Rule>) -> TeraResult<(String, Vec<Expr>)> {
                         Rule::array => {
                             args.push(Expr::new(parse_array(p2)?));
                         }
-                        _ => unreachable!("Invalid arg type for test {:?}", p2.as_rule()),
+                        _ => {
+                            return Err(Error::msg(format!(
+                                "PARSER ERROR: Invalid arg type for test {:?} in parse_test_call",
+                                p2.as_rule()
+                            )))
+                        }
                     }
                 }
             }
-            _ => unreachable!("{:?} not supposed to get there (parse_test_call)!", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_test_call",
+                    p.as_rule()
+                )))
+            }
         };
     }
 
@@ -149,7 +174,12 @@ fn parse_test(pair: Pair<Rule>) -> TeraResult<Test> {
                 name = Some(_name);
                 args = _args;
             }
-            _ => unreachable!("{:?} not supposed to get there (parse_ident)!", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_test/parse_ident",
+                    p.as_rule()
+                )))
+            }
         };
     }
 
@@ -200,7 +230,12 @@ fn parse_string_concat(pair: Pair<Rule>) -> TeraResult<ExprVal> {
                 }
                 values.push(ExprVal::FunctionCall(parse_fn_call(p)?))
             }
-            _ => unreachable!("Got {:?} in parse_string_concat", p),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_string_concat",
+                    p.as_rule()
+                )))
+            }
         };
     }
 
@@ -228,7 +263,9 @@ fn parse_basic_expression(pair: Pair<Rule>) -> TeraResult<ExprVal> {
                 Rule::op_times => MathOperator::Mul,
                 Rule::op_slash => MathOperator::Div,
                 Rule::op_modulo => MathOperator::Modulo,
-                _ => unreachable!(),
+                _ => {
+                    return Err(Error::msg(format!("Unexpected rule in infix: {:?}", op.as_rule())))
+                }
             },
             rhs: Box::new(Expr::new(rhs?)),
         }))
@@ -250,7 +287,7 @@ fn parse_basic_expression(pair: Pair<Rule>) -> TeraResult<ExprVal> {
             "True" => ExprVal::Bool(true),
             "false" => ExprVal::Bool(false),
             "False" => ExprVal::Bool(false),
-            _ => unreachable!(),
+            _ => return Err(Error::msg("PARSER ERROR: Unexpected boolean value")),
         },
         Rule::test => ExprVal::Test(parse_test(pair)?),
         Rule::test_not => {
@@ -264,7 +301,12 @@ fn parse_basic_expression(pair: Pair<Rule>) -> TeraResult<ExprVal> {
         Rule::basic_expr => {
             MATH_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
         }
-        _ => unreachable!("Got {:?} in parse_basic_expression: {}", pair.as_rule(), pair.as_str()),
+        _ => {
+            return Err(Error::msg(format!(
+                "PARSER ERROR: Unexpected rule in parse_basic_expression: {:?}",
+                pair.as_rule()
+            )))
+        }
     };
     Ok(expr)
 }
@@ -278,7 +320,12 @@ fn parse_basic_expr_with_filters(pair: Pair<Rule>) -> TeraResult<Expr> {
         match p.as_rule() {
             Rule::basic_expr => expr_val = Some(parse_basic_expression(p)?),
             Rule::filter => filters.push(parse_filter(p)?),
-            _ => unreachable!("Got {:?}", p),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_basic_expr_with_filters",
+                    p
+                )))
+            }
         };
     }
 
@@ -295,7 +342,12 @@ fn parse_string_expr_with_filters(pair: Pair<Rule>) -> TeraResult<Expr> {
             Rule::string => expr_val = Some(ExprVal::String(replace_string_markers(p.as_str()))),
             Rule::string_concat => expr_val = Some(parse_string_concat(p)?),
             Rule::filter => filters.push(parse_filter(p)?),
-            _ => unreachable!("Got {:?}", p),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_string_expr_with_filters",
+                    p
+                )))
+            }
         };
     }
 
@@ -311,7 +363,12 @@ fn parse_array_with_filters(pair: Pair<Rule>) -> TeraResult<Expr> {
         match p.as_rule() {
             Rule::array => array = Some(parse_array(p)?),
             Rule::filter => filters.push(parse_filter(p)?),
-            _ => unreachable!("Got {:?}", p),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_array_with_filters",
+                    p
+                )))
+            }
         };
     }
 
@@ -327,7 +384,12 @@ fn parse_in_condition_container(pair: Pair<Rule>) -> TeraResult<Expr> {
                 expr = Some(Expr::new(ExprVal::Ident(p.as_str().to_string())))
             }
             Rule::string_expr_filter => expr = Some(parse_string_expr_with_filters(p)?),
-            _ => unreachable!("Got {:?} in parse_in_condition_container", p),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_in_condition_container",
+                    p
+                )))
+            }
         };
     }
     Ok(expr.unwrap())
@@ -346,7 +408,12 @@ fn parse_in_condition(pair: Pair<Rule>) -> TeraResult<Expr> {
             // rhs
             Rule::in_cond_container => rhs = Some(parse_in_condition_container(p)?),
             Rule::op_not => negated = true,
-            _ => unreachable!("Got {:?} in parse_in_condition", p),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_in_condition",
+                    p
+                )))
+            }
         };
     }
 
@@ -370,7 +437,12 @@ fn parse_comparison_val(pair: Pair<Rule>) -> TeraResult<Expr> {
                 Rule::op_times => MathOperator::Mul,
                 Rule::op_slash => MathOperator::Div,
                 Rule::op_modulo => MathOperator::Modulo,
-                _ => unreachable!(),
+                _ => {
+                    return Err(Error::msg(format!(
+                        "PARSER ERROR: Unexpected rule in infix: {:?}",
+                        op
+                    )))
+                }
             },
             rhs: Box::new(rhs?),
         })))
@@ -381,7 +453,12 @@ fn parse_comparison_val(pair: Pair<Rule>) -> TeraResult<Expr> {
         Rule::comparison_val => {
             MATH_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
         }
-        _ => unreachable!("Got {:?} in parse_comparison_val", pair.as_rule()),
+        _ => {
+            return Err(Error::msg(format!(
+                "PARSER ERROR: Unsupported rule {:?} in parse_comparison_val",
+                pair.as_rule()
+            )))
+        }
     };
     Ok(expr)
 }
@@ -399,7 +476,12 @@ fn parse_comparison_expression(pair: Pair<Rule>) -> TeraResult<Expr> {
                 Rule::op_gte => LogicOperator::Gte,
                 Rule::op_ineq => LogicOperator::NotEq,
                 Rule::op_eq => LogicOperator::Eq,
-                _ => unreachable!(),
+                _ => {
+                    return Err(Error::msg(format!(
+                        "PARSER ERROR: Unexpected rule in infix: {:?}",
+                        op
+                    )))
+                }
             },
             rhs: Box::new(rhs?),
         })))
@@ -411,7 +493,12 @@ fn parse_comparison_expression(pair: Pair<Rule>) -> TeraResult<Expr> {
         Rule::comparison_expr => {
             COMPARISON_EXPR_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
         }
-        _ => unreachable!("Got {:?} in parse_comparison_expression", pair.as_rule()),
+        _ => {
+            return Err(Error::msg(format!(
+                "PARSER ERROR: Unsupported rule {:?} in parse_comparison_expression",
+                pair.as_rule()
+            )))
+        }
     };
     Ok(expr)
 }
@@ -428,7 +515,12 @@ fn parse_logic_val(pair: Pair<Rule>) -> TeraResult<Expr> {
             Rule::comparison_expr => expr = Some(parse_comparison_expression(p)?),
             Rule::string_expr_filter => expr = Some(parse_string_expr_with_filters(p)?),
             Rule::logic_expr => expr = Some(parse_logic_expr(p)?),
-            _ => unreachable!(),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_logic_val",
+                    p.as_rule()
+                )))
+            }
         };
     }
 
@@ -451,10 +543,7 @@ fn parse_logic_expr(pair: Pair<Rule>) -> TeraResult<Expr> {
             operator: LogicOperator::And,
             rhs: Box::new(rhs?),
         }))),
-        _ => unreachable!(
-            "{:?} not supposed to get there (infix of logic_expression)!",
-            op.as_rule()
-        ),
+        _ => Err(Error::msg(format!("PARSER ERROR: Unexpected rule in infix: {:?}", op.as_rule()))),
     };
 
     let expr = match pair.as_rule() {
@@ -462,7 +551,12 @@ fn parse_logic_expr(pair: Pair<Rule>) -> TeraResult<Expr> {
         Rule::logic_expr => {
             LOGIC_EXPR_PARSER.map_primary(primary).map_infix(infix).parse(pair.into_inner())?
         }
-        _ => unreachable!("Got {:?} in parse_logic_expr", pair.as_rule()),
+        _ => {
+            return Err(Error::msg(format!(
+                "PARSER ERROR: Unsupported rule {:?} in parse_logic_expr",
+                pair.as_rule()
+            )))
+        }
     };
     Ok(expr)
 }
@@ -475,7 +569,12 @@ fn parse_array(pair: Pair<Rule>) -> TeraResult<ExprVal> {
             Rule::logic_val => {
                 vals.push(parse_logic_val(p)?);
             }
-            _ => unreachable!("Got {:?} in parse_array", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_array",
+                    p.as_rule()
+                )))
+            }
         }
     }
 
@@ -490,7 +589,7 @@ fn parse_string_array(pair: Pair<Rule>) -> Vec<String> {
             Rule::string => {
                 vals.push(replace_string_markers(p.as_span().as_str()));
             }
-            _ => unreachable!("Got {:?} in parse_string_array", p.as_rule()),
+            _ => continue,
         }
     }
 
@@ -516,7 +615,12 @@ fn parse_macro_call(pair: Pair<Rule>) -> TeraResult<MacroCall> {
                 let (key, val) = parse_kwarg(p)?;
                 args.insert(key, val);
             }
-            _ => unreachable!("Got {:?} in parse_macro_call", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_macro_call",
+                    p.as_rule()
+                )))
+            }
         }
     }
 
@@ -537,7 +641,12 @@ fn parse_variable_tag(pair: Pair<Rule>) -> TeraResult<Node> {
             }
             Rule::logic_expr => expr = Some(parse_logic_expr(p)?),
             Rule::array_filter => expr = Some(parse_array_with_filters(p)?),
-            _ => unreachable!("unexpected {:?} rule in parse_variable_tag", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_variable_tag",
+                    p.as_rule()
+                )))
+            }
         }
     }
     Ok(Node::VariableBlock(ws, expr.unwrap()))
@@ -558,7 +667,7 @@ fn parse_import_macro(pair: Pair<Rule>) -> Node {
             Rule::tag_end => {
                 ws.right = p.as_span().as_str() == "-%}";
             }
-            _ => unreachable!(),
+            _ => {} // Don't call unreachable!, instead do nothing, this prevents any potential panic due to abuse of macros
         };
     }
 
@@ -578,7 +687,7 @@ fn parse_extends(pair: Pair<Rule>) -> Node {
             Rule::tag_end => {
                 ws.right = p.as_span().as_str() == "-%}";
             }
-            _ => unreachable!(),
+            _ => {} // Don't call unreachable!, instead return default, this prevents any potential panic due to abuse of macros
         };
     }
 
@@ -603,7 +712,7 @@ fn parse_include(pair: Pair<Rule>) -> Node {
             Rule::tag_end => {
                 ws.right = p.as_span().as_str() == "-%}";
             }
-            _ => unreachable!(),
+            _ => {} // Don't call unreachable!, instead return default, this prevents any potential panic due to abuse of macros
         };
     }
 
@@ -626,7 +735,12 @@ fn parse_set_tag(pair: Pair<Rule>, global: bool) -> TeraResult<Node> {
             Rule::ident => key = Some(p.as_str().to_string()),
             Rule::logic_expr => expr = Some(parse_logic_expr(p)?),
             Rule::array_filter => expr = Some(parse_array_with_filters(p)?),
-            _ => unreachable!("unexpected {:?} rule in parse_set_tag", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_set_tag",
+                    p.as_rule()
+                )))
+            }
         }
     }
 
@@ -645,7 +759,7 @@ fn parse_raw_tag(pair: Pair<Rule>) -> Node {
                     match p2.as_rule() {
                         Rule::tag_start => start_ws.left = p2.as_span().as_str() == "{%-",
                         Rule::tag_end => start_ws.right = p2.as_span().as_str() == "-%}",
-                        _ => unreachable!(),
+                        _ => continue, // Don't call unreachable!, instead do nothing, this prevents any potential panic due to abuse of macros
                     }
                 }
             }
@@ -655,11 +769,11 @@ fn parse_raw_tag(pair: Pair<Rule>) -> Node {
                     match p2.as_rule() {
                         Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
                         Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
-                        _ => unreachable!(),
+                        _ => continue, // Don't call unreachable!, instead do nothing, this prevents any potential panic due to abuse of macros
                     }
                 }
             }
-            _ => unreachable!("unexpected {:?} rule in parse_raw_tag", p.as_rule()),
+            _ => continue, // Don't call unreachable!, instead do nothing, this prevents any potential panic due to abuse of macros
         };
     }
 
@@ -686,7 +800,12 @@ fn parse_filter_section(pair: Pair<Rule>) -> TeraResult<Node> {
                                 args: HashMap::new(),
                             });
                         }
-                        _ => unreachable!("Got {:?} while parsing filter_tag", p2),
+                        _ => {
+                            return Err(Error::msg(format!(
+                                "PARSER ERROR: Unsupported rule {:?} in parse_filter_section",
+                                p2.as_rule()
+                            )))
+                        }
                     }
                 }
             }
@@ -702,11 +821,21 @@ fn parse_filter_section(pair: Pair<Rule>) -> TeraResult<Node> {
                     match p2.as_rule() {
                         Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
                         Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
-                        _ => unreachable!(),
+                        _ => {
+                            return Err(Error::msg(format!(
+                                "PARSER ERROR: Unsupported rule {:?} in parse_filter_section",
+                                p2.as_rule()
+                            )))
+                        }
                     }
                 }
             }
-            _ => unreachable!("unexpected {:?} rule in parse_filter_section", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_filter_section",
+                    p.as_rule()
+                )))
+            }
         };
     }
     Ok(Node::FilterSection(start_ws, FilterSection { filter: filter.unwrap(), body }, end_ws))
@@ -726,7 +855,12 @@ fn parse_block(pair: Pair<Rule>) -> TeraResult<Node> {
                         Rule::tag_start => start_ws.left = p2.as_span().as_str() == "{%-",
                         Rule::tag_end => start_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::ident => name = Some(p2.as_span().as_str().to_string()),
-                        _ => unreachable!(),
+                        _ => {
+                            return Err(Error::msg(format!(
+                                "PARSER ERROR: Unsupported rule {:?} in parse_block",
+                                p2.as_rule()
+                            )))
+                        }
                     };
                 }
             }
@@ -737,11 +871,21 @@ fn parse_block(pair: Pair<Rule>) -> TeraResult<Node> {
                         Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
                         Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::ident => (),
-                        _ => unreachable!(),
+                        _ => {
+                            return Err(Error::msg(format!(
+                                "PARSER ERROR: Unsupported rule {:?} in parse_block",
+                                p2.as_rule()
+                            )))
+                        }
                     };
                 }
             }
-            _ => unreachable!("unexpected {:?} rule in parse_filter_section", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_block",
+                    p.as_rule()
+                )))
+            }
         };
     }
 
@@ -765,10 +909,20 @@ fn parse_macro_arg(p: Pair<Rule>) -> TeraResult<ExprVal> {
             "True" => Some(ExprVal::Bool(true)),
             "false" => Some(ExprVal::Bool(false)),
             "False" => Some(ExprVal::Bool(false)),
-            _ => unreachable!(),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unexpected boolean value: {}",
+                    p.as_str()
+                )))
+            }
         },
         Rule::string => Some(ExprVal::String(replace_string_markers(p.as_str()))),
-        _ => unreachable!("Got {:?} in parse_macro_arg: {}", p.as_rule(), p.as_str()),
+        _ => {
+            return Err(Error::msg(format!(
+                "PARSER ERROR: Unsupported rule {:?} in parse_macro_arg",
+                p.as_rule()
+            )))
+        }
     };
 
     Ok(val.unwrap())
@@ -829,11 +983,21 @@ fn parse_macro_definition(pair: Pair<Rule>) -> TeraResult<Node> {
                         Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
                         Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::ident => (),
-                        _ => unreachable!(),
+                        _ => {
+                            return Err(Error::msg(format!(
+                                "PARSER ERROR: Unsupported rule {:?} in parse_macro_definition [match endmacro_tag]",
+                                p2.as_rule()
+                            )))
+                        }
                     };
                 }
             }
-            _ => unreachable!("unexpected {:?} rule in parse_macro_definition", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_macro_definition",
+                    p.as_rule()
+                )))
+            }
         }
     }
 
@@ -863,7 +1027,12 @@ fn parse_forloop(pair: Pair<Rule>) -> TeraResult<Node> {
                             container = Some(parse_basic_expr_with_filters(p2)?);
                         }
                         Rule::array_filter => container = Some(parse_array_with_filters(p2)?),
-                        _ => unreachable!(),
+                        _ => {
+                            return Err(Error::msg(format!(
+                            "PARSER ERROR: Unsupported rule {:?} in parse_forloop [match for_tag]",
+                            p2.as_rule()
+                        )))
+                        }
                     };
                 }
 
@@ -893,11 +1062,21 @@ fn parse_forloop(pair: Pair<Rule>) -> TeraResult<Node> {
                         Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
                         Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::ident => (),
-                        _ => unreachable!(),
+                        _ => {
+                            return Err(Error::msg(format!(
+                                "PARSER ERROR: Unsupported rule {:?} in parse_forloop [match endfor_tag]",
+                                p2.as_rule()
+                            )))
+                        }
                     };
                 }
             }
-            _ => unreachable!("unexpected {:?} rule in parse_forloop", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_forloop",
+                    p.as_rule()
+                )))
+            }
         };
     }
 
@@ -919,7 +1098,7 @@ fn parse_break_tag(pair: Pair<Rule>) -> Node {
             Rule::tag_end => {
                 ws.right = p.as_span().as_str() == "-%}";
             }
-            _ => unreachable!(),
+            _ => continue, // Don't call unreachable!, instead do nothing, this prevents any potential panic due to abuse of macros
         };
     }
 
@@ -937,7 +1116,7 @@ fn parse_continue_tag(pair: Pair<Rule>) -> Node {
             Rule::tag_end => {
                 ws.right = p.as_span().as_str() == "-%}";
             }
-            _ => unreachable!(),
+            _ => continue, // Don't call unreachable!, instead do nothing, this prevents any potential panic due to abuse of macros
         };
     }
 
@@ -959,7 +1138,7 @@ fn parse_comment_tag(pair: Pair<Rule>) -> Node {
             Rule::comment_text => {
                 content = p.as_str().to_owned();
             }
-            _ => unreachable!(),
+            _ => continue, // Don't call unreachable!, instead do nothing, this prevents any potential panic due to abuse of macros
         };
     }
 
@@ -994,7 +1173,12 @@ fn parse_if(pair: Pair<Rule>) -> TeraResult<Node> {
                         Rule::tag_start => current_ws.left = p2.as_span().as_str() == "{%-",
                         Rule::tag_end => current_ws.right = p2.as_span().as_str() == "-%}",
                         Rule::logic_expr => expr = Some(parse_logic_expr(p2)?),
-                        _ => unreachable!(),
+                        _ => {
+                            return Err(Error::msg(format!(
+                                "PARSER ERROR: Unsupported rule {:?} in parse_if [match if_tag/elif_tag]",
+                                p2.as_rule()
+                            )))
+                        }
                     };
                 }
             }
@@ -1016,7 +1200,12 @@ fn parse_if(pair: Pair<Rule>) -> TeraResult<Node> {
                     match p2.as_rule() {
                         Rule::tag_start => current_ws.left = p2.as_span().as_str() == "{%-",
                         Rule::tag_end => current_ws.right = p2.as_span().as_str() == "-%}",
-                        _ => unreachable!(),
+                        _ => {
+                            return Err(Error::msg(format!(
+                                "PARSER ERROR: Unsupported rule {:?} in parse_if [match else_tag]",
+                                p2.as_rule()
+                            )))
+                        }
                     };
                 }
             }
@@ -1032,12 +1221,22 @@ fn parse_if(pair: Pair<Rule>) -> TeraResult<Node> {
                     match p2.as_rule() {
                         Rule::tag_start => end_ws.left = p2.as_span().as_str() == "{%-",
                         Rule::tag_end => end_ws.right = p2.as_span().as_str() == "-%}",
-                        _ => unreachable!(),
+                        _ => {
+                            return Err(Error::msg(format!(
+                                "PARSER ERROR: Unsupported rule {:?} in parse_if [match endif_tag]",
+                                p2.as_rule()
+                            )))
+                        }
                     };
                 }
                 break;
             }
-            _ => unreachable!("unreachable rule in parse_if: {:?}", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_if",
+                    p.as_rule()
+                )))
+            }
         }
     }
 
@@ -1068,7 +1267,12 @@ fn parse_content(pair: Pair<Rule>) -> TeraResult<Vec<Node>> {
             Rule::filter_section => nodes.push(parse_filter_section(p)?),
             Rule::text => nodes.push(Node::Text(p.as_span().as_str().to_string())),
             Rule::block => nodes.push(parse_block(p)?),
-            _ => unreachable!("unreachable content rule: {:?}", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_content",
+                    p.as_rule()
+                )))
+            }
         };
     }
 
@@ -1218,7 +1422,12 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
             Rule::macro_definition => nodes.push(parse_macro_definition(p)?),
             Rule::comment_tag => (),
             Rule::EOI => (),
-            _ => unreachable!("unknown tpl rule: {:?}", p.as_rule()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse",
+                    p.as_rule()
+                )))
+            }
         }
     }
 

@@ -885,7 +885,7 @@ fn can_use_concat_to_push_to_array() {
 struct Next(AtomicUsize);
 
 impl Function for Next {
-    fn call(&self, _args: &HashMap<String, Value>) -> Result<Value> {
+    fn call(&self, _tera: &Tera, _args: &HashMap<String, Value>) -> Result<Value> {
         Ok(Value::Number(self.0.fetch_add(1, Ordering::Relaxed).into()))
     }
 }
@@ -894,8 +894,8 @@ impl Function for Next {
 struct SharedNext(Arc<Next>);
 
 impl Function for SharedNext {
-    fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
-        self.0.call(args)
+    fn call(&self, tera: &Tera, args: &HashMap<String, Value>) -> Result<Value> {
+        self.0.call(tera, args)
     }
 }
 
@@ -974,7 +974,7 @@ fn safe_filter_works() {
 fn safe_function_works() {
     struct Safe;
     impl crate::Function for Safe {
-        fn call(&self, _args: &HashMap<String, Value>) -> Result<Value> {
+        fn call(&self, _tera: &Tera, _args: &HashMap<String, Value>) -> Result<Value> {
             Ok(Value::String("<div>Hello</div>".to_owned()))
         }
 

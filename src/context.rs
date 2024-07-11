@@ -152,7 +152,10 @@ impl ValueRender for Value {
                 } else if let Some(v) = i.as_f64() {
                     write!(write, "{}", v)
                 } else {
-                    unreachable!()
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        "Number could not be converted to i64, u64 or f64",
+                    ))
                 }
             }
             Value::Bool(i) => write!(write, "{}", i),
