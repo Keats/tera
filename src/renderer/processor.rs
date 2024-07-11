@@ -20,6 +20,9 @@ use crate::Context;
 /// Special string indicating request to dump context
 static MAGICAL_DUMP_VAR: &str = "__tera_context";
 
+/// Special string indicating request to dump context as the object it is
+static MAGICAL_DUMP_VAR_RAW: &str = "__tera_context_raw";
+
 /// This will convert a Tera variable to a json pointer if it is possible by replacing
 /// the index with their evaluated stringified value
 fn evaluate_sub_variables(key: &str, call_stack: &CallStack) -> Result<String> {
@@ -961,6 +964,10 @@ impl<'a> Processor<'a> {
                 )
                 .unwrap(),
             ));
+        }
+
+        if key == MAGICAL_DUMP_VAR_RAW {
+            return Ok(Cow::Owned(self.call_stack.current_context_cloned()?));
         }
 
         process_path(key, &self.call_stack)
