@@ -504,7 +504,7 @@ impl<'a> Processor<'a> {
             );
         }
 
-        Ok(Cow::Owned(tera_fn.call(self.tera, &args).map_err(err_wrap)?))
+        Ok(Cow::Owned(tera_fn.call(&args).map_err(err_wrap)?))
     }
 
     fn eval_macro_call(&mut self, macro_call: &'a MacroCall, write: &mut impl Write) -> Result<()> {
