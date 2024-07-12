@@ -162,7 +162,27 @@ impl<'a> Processor<'a> {
         Ok(())
     }
 
-    fn render_for_loop(&mut self, for_loop: &'a Forloop, write: &mut impl Write) -> Result<()> {
+    #[cfg(feature = "async")]
+    #[async_recursion::async_recursion]
+    async fn render_body_async(
+        &mut self,
+        body: &'a [Node],
+        write: &mut (impl Write + Send + Sync),
+    ) -> Result<()> {
+        for n in body {
+            self.render_node_async(n, write).await?;
+
+            if self.call_stack.should_break_body() {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Helper method to create a for loop, this makes async for loop rendering easier
+    #[inline]
+    fn create_for_loop(&mut self, for_loop: &'a Forloop) -> Result<ForLoop<'a>> {
         let container_name = match for_loop.container.val {
             ExprVal::Ident(ref ident) => ident,
             ExprVal::FunctionCall(FunctionCall { ref name, .. }) => name,
@@ -172,10 +192,6 @@ impl<'a> Processor<'a> {
                 for_loop.container.val,
             ))),
         };
-
-        let for_loop_name = &for_loop.value;
-        let for_loop_body = &for_loop.body;
-        let for_loop_empty_body = &for_loop.empty_body;
 
         let container_val = self.safe_eval_expression(&for_loop.container)?;
 
@@ -224,6 +240,16 @@ impl<'a> Processor<'a> {
             }
         };
 
+        Ok(for_loop)
+    }
+
+    fn render_for_loop(&mut self, for_loop: &'a Forloop, write: &mut impl Write) -> Result<()> {
+        let for_loop_name = &for_loop.value;
+        let for_loop_body = &for_loop.body;
+        let for_loop_empty_body = &for_loop.empty_body;
+
+        let for_loop = self.create_for_loop(for_loop)?;
+
         let len = for_loop.len();
         match (len, for_loop_empty_body) {
             (0, Some(empty_body)) => self.render_body(empty_body, write),
@@ -248,6 +274,42 @@ impl<'a> Processor<'a> {
         }
     }
 
+    #[cfg(feature = "async")]
+    async fn render_for_loop_async(
+        &mut self,
+        for_loop: &'a Forloop,
+        write: &mut (impl Write + Send + Sync),
+    ) -> Result<()> {
+        let for_loop_name = &for_loop.value;
+        let for_loop_body = &for_loop.body;
+        let for_loop_empty_body = &for_loop.empty_body;
+
+        let for_loop = self.create_for_loop(for_loop)?;
+
+        let len = for_loop.len();
+        match (len, for_loop_empty_body) {
+            (0, Some(empty_body)) => self.render_body_async(empty_body, write).await,
+            (0, _) => Ok(()),
+            (_, _) => {
+                self.call_stack.push_for_loop_frame(for_loop_name, for_loop);
+
+                for _ in 0..len {
+                    self.render_body_async(for_loop_body, write).await?;
+
+                    if self.call_stack.should_break_for_loop() {
+                        break;
+                    }
+
+                    self.call_stack.increment_for_loop()?;
+                }
+
+                self.call_stack.pop();
+
+                Ok(())
+            }
+        }
+    }
+
     fn render_if_node(&mut self, if_node: &'a If, write: &mut impl Write) -> Result<()> {
         for (_, expr, body) in &if_node.conditions {
             if self.eval_as_bool(expr)? {
@@ -257,6 +319,25 @@ impl<'a> Processor<'a> {
 
         if let Some((_, ref body)) = if_node.otherwise {
             return self.render_body(body, write);
+        }
+
+        Ok(())
+    }
+
+    #[cfg(feature = "async")]
+    async fn render_if_node_async(
+        &mut self,
+        if_node: &'a If,
+        write: &mut (impl Write + Send + Sync),
+    ) -> Result<()> {
+        for (_, expr, body) in &if_node.conditions {
+            if self.eval_as_bool(expr)? {
+                return self.render_body_async(body, write).await;
+            }
+        }
+
+        if let Some((_, ref body)) = if_node.otherwise {
+            return self.render_body_async(body, write).await;
         }
 
         Ok(())
@@ -295,6 +376,45 @@ impl<'a> Processor<'a> {
 
         // Nope, just render the body we got
         self.render_body(&block.body, write)
+    }
+
+    #[cfg(feature = "async")]
+    /// The way inheritance work is that the top parent will be rendered by the renderer so for blocks
+    /// we want to look from the bottom (`level = 0`, the template the user is actually rendering)
+    /// to the top (the base template).
+    ///
+    /// This is the async version of (`render_block`)[Self::render_block]
+    #[async_recursion::async_recursion]
+    async fn render_block_async(
+        &mut self,
+        block: &'a Block,
+        level: usize,
+        write: &mut (impl Write + Send + Sync),
+    ) -> Result<()> {
+        let level_template = match level {
+            0 => self.call_stack.active_template(),
+            _ => self
+                .tera
+                .get_template(&self.call_stack.active_template().parents[level - 1])
+                .unwrap(),
+        };
+
+        let blocks_definitions = &level_template.blocks_definitions;
+
+        // Can we find this one block in these definitions? If so render it
+        if let Some(block_def) = blocks_definitions.get(&block.name) {
+            let (_, Block { ref body, .. }) = block_def[0];
+            self.blocks.push((&block.name[..], &level_template.name[..], level));
+            return self.render_body_async(body, write).await;
+        }
+
+        // Do we have more parents to look through?
+        if level < self.call_stack.active_template().parents.len() {
+            return self.render_block_async(block, level + 1, write).await;
+        }
+
+        // Nope, just render the body we got
+        self.render_body_async(&block.body, write).await
     }
 
     fn get_default_value(&mut self, expr: &'a Expr) -> Result<Val<'a>> {
@@ -953,6 +1073,44 @@ impl<'a> Processor<'a> {
         Err(Error::msg("Tried to use super() in the top level block"))
     }
 
+    #[cfg(feature = "async")]
+    /// Only called while rendering a block.
+    /// This will look up the block we are currently rendering and its level and try to render
+    /// the block at level + n, where would be the next template in the hierarchy the block is present
+    ///
+    /// This is the async version of (`do_super`)[Self::do_super]
+    async fn do_super_async(&mut self, write: &mut (impl Write + Send + Sync)) -> Result<()> {
+        let &(block_name, _, level) = self.blocks.last().unwrap();
+        let mut next_level = level + 1;
+
+        while next_level <= self.template.parents.len() {
+            let blocks_definitions = &self
+                .tera
+                .get_template(&self.template.parents[next_level - 1])
+                .unwrap()
+                .blocks_definitions;
+
+            if let Some(block_def) = blocks_definitions.get(block_name) {
+                let (ref tpl_name, Block { ref body, .. }) = block_def[0];
+                self.blocks.push((block_name, tpl_name, next_level));
+
+                self.render_body_async(body, write).await?;
+                self.blocks.pop();
+
+                // Can't go any higher for that block anymore?
+                if next_level >= self.template.parents.len() {
+                    // then remove it from the stack, we're done with it
+                    self.blocks.pop();
+                }
+                return Ok(());
+            } else {
+                next_level += 1;
+            }
+        }
+
+        Err(Error::msg("Tried to use super() in the top level block"))
+    }
+
     /// Looks up identifier and returns its value
     fn lookup_ident(&self, key: &str) -> Result<Val<'a>> {
         // Magical variable that just dumps the context
@@ -1041,6 +1199,95 @@ impl<'a> Processor<'a> {
         Ok(())
     }
 
+    #[cfg(feature = "async")]
+    /// Process the given node asynchronously, appending the string result to the buffer
+    /// if it is possible
+    async fn render_node_async(
+        &mut self,
+        node: &'a Node,
+        write: &mut (impl Write + Send + Sync),
+    ) -> Result<()> {
+        match *node {
+            // Comments are ignored when rendering
+            Node::Comment(_, _) => (),
+            Node::Text(ref s) | Node::Raw(_, ref s, _) => write!(write, "{}", s)?,
+            Node::VariableBlock(_, ref expr) => self.eval_expression(expr)?.render(write)?,
+            Node::Set(_, ref set) => self.eval_set(set)?,
+            Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
+                // Render to string doesnt support async yet so just do it ourselves
+                /*
+                pub(crate) fn render_to_string<C, F, E>(context: C, render: F) -> Result<String, Error>
+                where
+                    C: FnOnce() -> String,
+                    F: FnOnce(&mut Vec<u8>) -> Result<(), E>,
+                    Error: From<E>,
+                {
+                    let mut buffer = Vec::new();
+                    render(&mut buffer).map_err(Error::from)?;
+                    buffer_to_string(context, buffer)
+                }
+                */
+
+                let mut buffer = Vec::new();
+                self.render_body_async(body, &mut buffer).await?;
+                let body =
+                    crate::utils::buffer_to_string(|| format!("filter {}", filter.name), buffer)
+                        .map_err(Error::from)?;
+
+                // the safe filter doesn't actually exist
+                if filter.name == "safe" {
+                    write!(write, "{}", body)?;
+                } else {
+                    self.eval_filter(&Cow::Owned(Value::String(body)), filter, &mut false)?
+                        .render(write)?;
+                }
+            }
+            // Macros have been imported at the beginning
+            Node::ImportMacro(_, _, _) => (),
+            Node::If(ref if_node, _) => self.render_if_node_async(if_node, write).await?,
+            Node::Forloop(_, ref forloop, _) => self.render_for_loop_async(forloop, write).await?,
+            Node::Break(_) => {
+                self.call_stack.break_for_loop()?;
+            }
+            Node::Continue(_) => {
+                self.call_stack.continue_for_loop()?;
+            }
+            Node::Block(_, ref block, _) => self.render_block_async(block, 0, write).await?,
+            Node::Super => self.do_super_async(write).await?,
+            Node::Include(_, ref tpl_names, ignore_missing) => {
+                let mut found = false;
+                for tpl_name in tpl_names {
+                    let template = self.tera.get_template(tpl_name);
+                    if template.is_err() {
+                        continue;
+                    }
+                    let template = template.unwrap();
+                    self.macros.add_macros_from_template(self.tera, template)?;
+                    self.call_stack.push_include_frame(tpl_name, template);
+                    self.render_body_async(&template.ast, write).await?;
+                    self.call_stack.pop();
+                    found = true;
+                    break;
+                }
+                if !found && !ignore_missing {
+                    return Err(Error::template_not_found(
+                        ["[", &tpl_names.join(", "), "]"].join(""),
+                    ));
+                }
+            }
+            Node::Extends(_, ref name) => {
+                return Err(Error::msg(format!(
+                    "Inheritance in included templates is currently not supported: extended `{}`",
+                    name
+                )));
+            }
+            // Macro definitions are ignored when rendering
+            Node::MacroDefinition(_, _, _) => (),
+        };
+
+        Ok(())
+    }
+
     /// Helper fn that tries to find the current context: are we in a macro? in a parent template?
     /// in order to give the best possible error when getting an error when rendering a tpl
     fn get_error_location(&self) -> String {
@@ -1087,13 +1334,11 @@ impl<'a> Processor<'a> {
 
     /// Async version of [`render`](Self::render)
     #[cfg(feature = "async")]
-    pub async fn render_async(&mut self, write: &mut impl Write) -> Result<()> {
+    pub async fn render_async(&mut self, write: &mut (impl Write + Send + Sync)) -> Result<()> {
         for node in &self.template_root.ast {
-            self.render_node(node, write)
-                .map_err(|e| Error::chain(self.get_error_location(), e))?;
-
-            // await after each node to allow the runtime to yield to other tasks
-            async {}.await;
+            self.render_node_async(node, write)
+                .await
+                .map_err(|e: Error| Error::chain(self.get_error_location(), e))?;
         }
 
         Ok(())

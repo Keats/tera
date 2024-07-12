@@ -38,6 +38,9 @@ chrono-tz = {version = "0.9", optional = true}
 # used in get_random function
 rand = {version = "0.8", optional = true}
 
+# used in async
+async-recursion = {version = "1", optional = true}
+
 [dev-dependencies]
 serde_derive = "1.0"
 pretty_assertions = "1"
@@ -45,7 +48,7 @@ tempfile = "3"
 
 [features]
 default = ["builtins", "async"]
-async = []
+async = ["dep:async-recursion"]
 builtins = ["urlencode", "slug", "humansize", "chrono", "chrono-tz", "rand"]
 urlencode = ["percent-encoding"]
 preserve_order = ["serde_json/preserve_order"]

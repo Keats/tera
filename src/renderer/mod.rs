@@ -70,7 +70,7 @@ impl<'a> Renderer<'a> {
 
     /// Async version of [`render_to()`](Self::render_to)
     #[cfg(feature = "async")]
-    pub async fn render_to_async(&self, mut output: impl Write) -> Result<()> {
+    pub async fn render_to_async(&self, mut output: (impl Write + Send + Sync)) -> Result<()> {
         let mut processor =
             Processor::new(self.template, self.tera, self.context, self.should_escape);
 

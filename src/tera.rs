@@ -1142,7 +1142,7 @@ mod tests {
         map.insert("https://example.com", "success");
 
         let mut tera_context = Context::new();
-        tera_context.insert("map", &map);
+        tera_context.insert("map", &map).unwrap();
 
         my_tera.render("dots", &tera_context).unwrap();
         my_tera.render("urls", &tera_context).unwrap();
