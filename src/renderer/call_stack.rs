@@ -128,12 +128,13 @@ impl<'a> CallStack<'a> {
     }
 
     /// Add an assignment value (via {% set ... %} and {% set_global ... %} )
-    pub fn add_assignment(&mut self, key: &'a str, global: bool, value: Val<'a>) {
+    pub fn add_assignment(&mut self, key: &'a str, global: bool, value: Val<'a>) -> Result<()> {
         if global {
-            self.global_frame_mut().insert(key, value);
+            self.global_frame_mut().insert(key, value)?;
         } else {
-            self.current_frame_mut().insert(key, value);
+            self.current_frame_mut().insert(key, value)?;
         }
+        Ok(())
     }
 
     /// Breaks current for loop

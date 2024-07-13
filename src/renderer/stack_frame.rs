@@ -1,3 +1,4 @@
+use crate::errors::{Error, Result};
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -177,8 +178,12 @@ impl<'a> StackFrame<'a> {
     }
 
     /// Insert a value in the context
-    pub fn insert(&mut self, key: &'a str, value: Val<'a>) {
+    pub fn insert(&mut self, key: &'a str, value: Val<'a>) -> Result<()> {
+        if self.context.len() >= crate::constraints::STACK_FRAME_MAX_ENTRIES {
+            return Err(Error::msg("Stack frame context is full"));
+        }
         self.context.insert(key, value);
+        Ok(())
     }
 
     /// Context is cleared on each loop
