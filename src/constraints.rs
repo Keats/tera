@@ -7,3 +7,6 @@ pub const STACK_FRAME_MAX_ENTRIES: usize = 50;
 
 /// eval_expression max array element size
 pub const EXPRESSION_MAX_ARRAY_LENGTH: usize = 100;
+
+// range max elements
+pub const RANGE_MAX_ELEMENTS: usize = 500;

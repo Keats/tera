@@ -74,6 +74,16 @@ pub fn range(args: &HashMap<String, Value>) -> Result<Value> {
         ));
     }
 
+    let expected_num_elements = (end - start) / step_by;
+
+    if expected_num_elements > crate::constraints::RANGE_MAX_ELEMENTS {
+        return Err(Error::msg(format!(
+            "Function `range` was called with a range that would generate {} elements, but the maximum allowed is {}",
+            expected_num_elements,
+            crate::constraints::RANGE_MAX_ELEMENTS
+        )));
+    }
+
     let mut i = start;
     let mut res = vec![];
     while i < end {
