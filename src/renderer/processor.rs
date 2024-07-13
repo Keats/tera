@@ -4,7 +4,7 @@ use std::io::Write;
 
 use serde_json::{to_string_pretty, to_value, Number, Value};
 
-use crate::context::{ValueRender, ValueTruthy};
+use crate::context::{RenderContext, ValueRender, ValueTruthy};
 use crate::errors::{Error, Result};
 use crate::parser::ast::*;
 use crate::renderer::call_stack::CallStack;
@@ -15,14 +15,16 @@ use crate::renderer::stack_frame::{FrameContext, FrameType, Val};
 use crate::template::Template;
 use crate::tera::Tera;
 use crate::utils::render_to_string;
-use crate::Context;
 
 /// Special string indicating request to dump context
 static MAGICAL_DUMP_VAR: &str = "__tera_context";
 
 /// This will convert a Tera variable to a json pointer if it is possible by replacing
 /// the index with their evaluated stringified value
-fn evaluate_sub_variables(key: &str, call_stack: &CallStack) -> Result<String> {
+fn evaluate_sub_variables<C: RenderContext>(
+    key: &str,
+    call_stack: &CallStack<C>,
+) -> Result<String> {
     let sub_vars_to_calc = pull_out_square_bracket(key);
     let mut new_key = key.to_string();
 
@@ -71,7 +73,10 @@ fn evaluate_sub_variables(key: &str, call_stack: &CallStack) -> Result<String> {
         .replace(']', ""))
 }
 
-fn process_path<'a>(path: &str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
+fn process_path<'a, C: RenderContext>(
+    path: &str,
+    call_stack: &CallStack<'a, C>,
+) -> Result<Val<'a>> {
     if !path.contains('[') {
         match call_stack.lookup(path) {
             Some(v) => Ok(v),
@@ -98,7 +103,7 @@ fn process_path<'a>(path: &str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
 }
 
 /// Processes the ast and renders the output
-pub struct Processor<'a> {
+pub struct Processor<'a, C: RenderContext> {
     /// The template we're trying to render
     template: &'a Template,
     /// Root template of template to render - contains ast to use for rendering
@@ -107,7 +112,7 @@ pub struct Processor<'a> {
     /// The Tera object with template details
     tera: &'a Tera,
     /// The call stack for processing
-    call_stack: CallStack<'a>,
+    call_stack: CallStack<'a, C>,
     /// The macros organised by template and namespaces
     macros: MacroCollection<'a>,
     /// If set, rendering should be escaped
@@ -118,12 +123,12 @@ pub struct Processor<'a> {
     blocks: Vec<(&'a str, &'a str, usize)>,
 }
 
-impl<'a> Processor<'a> {
+impl<'a, C: RenderContext> Processor<'a, C> {
     /// Create a new `Processor` that will do the rendering
     pub fn new(
         template: &'a Template,
         tera: &'a Tera,
-        context: &'a Context,
+        context: &'a C,
         should_escape: bool,
     ) -> Self {
         // Gets the root template if we are rendering something with inheritance or just return

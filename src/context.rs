@@ -1,10 +1,36 @@
-use std::collections::BTreeMap;
 use std::io::Write;
+use std::{borrow::Cow, collections::BTreeMap};
 
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
 
 use crate::errors::{Error, Result as TeraResult};
+
+/// Context to retrieve variables from.  This is implemented by `Context` but
+/// is designed to allow calling code to expose complex values to the templating
+/// engine while lazily converting accessed values to values compatible with
+/// the engine.
+pub trait RenderContext {
+    /// Looks up the value at a given key if present.
+    fn find_value<'k>(&self, key: &'k str) -> Option<Cow<Value>>;
+
+    /// Returns a deep copy as a Context.  This is a potentially expensive operation that should only be called
+    /// when the [magical tera context variable](https://keats.github.io/tera/docs/#variables) is used.
+    fn deep_copy_as_context(&self) -> Context;
+}
+
+impl<C> RenderContext for &C
+where
+    C: RenderContext,
+{
+    fn find_value<'k>(&self, key: &'k str) -> Option<Cow<Value>> {
+        C::find_value(self, key)
+    }
+
+    fn deep_copy_as_context(&self) -> Context {
+        C::deep_copy_as_context(self)
+    }
+}
 
 /// The struct that holds the context of a template rendering.
 ///
@@ -114,7 +140,7 @@ impl Context {
     }
 
     /// Returns the value at a given key index.
-    pub fn get(&self, index: &str) -> Option<&Value> {
+    pub fn get<'i>(&self, index: &'i str) -> Option<&Value> {
         self.data.get(index)
     }
 
@@ -127,11 +153,35 @@ impl Context {
     pub fn contains_key(&self, index: &str) -> bool {
         self.data.contains_key(index)
     }
+
+    /// Returns the nested value pointed at by the given dotted pointer.
+    fn find_value_by_dotted_pointer<'p>(&self, pointer: &'p str) -> Option<Cow<Value>> {
+        let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
+        let rest = &pointer[root.len() + 1..];
+        self.get(&root).and_then(|val| dotted_pointer(val, rest)).map(Cow::Borrowed)
+    }
 }
 
 impl Default for Context {
     fn default() -> Context {
         Context::new()
+    }
+}
+
+impl RenderContext for Context {
+    fn find_value<'k>(&self, key: &'k str) -> Option<Cow<Value>> {
+        // Not in stack frame, look in user supplied context
+        if key.contains('.') {
+            return self.find_value_by_dotted_pointer(key);
+        } else if let Some(value) = self.data.get(key) {
+            return Some(Cow::Borrowed(value));
+        }
+
+        None
+    }
+
+    fn deep_copy_as_context(&self) -> Context {
+        self.clone()
     }
 }
 

@@ -75,7 +75,7 @@ mod utils;
 pub use crate::builtins::filters::Filter;
 pub use crate::builtins::functions::Function;
 pub use crate::builtins::testers::Test;
-pub use crate::context::Context;
+pub use crate::context::{Context, RenderContext};
 pub use crate::errors::{Error, ErrorKind, Result};
 // Template, dotted_pointer and get_json_pointer are meant to be used internally only but is exported for test/bench.
 #[doc(hidden)]

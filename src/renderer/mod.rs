@@ -11,29 +11,29 @@ mod stack_frame;
 use std::io::Write;
 
 use self::processor::Processor;
+use crate::context::RenderContext;
 use crate::errors::Result;
 use crate::template::Template;
 use crate::tera::Tera;
 use crate::utils::buffer_to_string;
-use crate::Context;
 
 /// Given a `Tera` and reference to `Template` and a `Context`, renders text
 #[derive(Debug)]
-pub struct Renderer<'a> {
+pub struct Renderer<'a, C: RenderContext> {
     /// Template to render
     template: &'a Template,
     /// Houses other templates, filters, global functions, etc
     tera: &'a Tera,
     /// Read-only context to be bound to template˝
-    context: &'a Context,
+    context: C,
     /// If set rendering should be escaped
     should_escape: bool,
 }
 
-impl<'a> Renderer<'a> {
+impl<'a, C: RenderContext> Renderer<'a, C> {
     /// Create a new `Renderer`
     #[inline]
-    pub fn new(template: &'a Template, tera: &'a Tera, context: &'a Context) -> Renderer<'a> {
+    pub fn new(template: &'a Template, tera: &'a Tera, context: C) -> Renderer<'a, C> {
         let should_escape = tera.autoescape_suffixes.iter().any(|ext| {
             // We prefer a `path` if set, otherwise use the `name`
             if let Some(ref p) = template.path {
@@ -55,7 +55,7 @@ impl<'a> Renderer<'a> {
     /// Combines the context with the Template to write the end result to output
     pub fn render_to(&self, mut output: impl Write) -> Result<()> {
         let mut processor =
-            Processor::new(self.template, self.tera, self.context, self.should_escape);
+            Processor::new(self.template, self.tera, &self.context, self.should_escape);
 
         processor.render(&mut output)
     }

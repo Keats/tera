@@ -10,7 +10,7 @@ use globwalk::glob_builder;
 use crate::builtins::filters::{array, common, number, object, string, Filter};
 use crate::builtins::functions::{self, Function};
 use crate::builtins::testers::{self, Test};
-use crate::context::Context;
+use crate::context::RenderContext;
 use crate::errors::{Error, Result};
 use crate::renderer::Renderer;
 use crate::template::Template;
@@ -386,9 +386,9 @@ impl Tera {
     /// let output = tera.render("hello.html", &Context::new()).unwrap();
     /// assert_eq!(output, "<h1>Hello</h1>");
     /// ```
-    pub fn render(&self, template_name: &str, context: &Context) -> Result<String> {
+    pub fn render(&self, template_name: &str, context: impl RenderContext) -> Result<String> {
         let template = self.get_template(template_name)?;
-        let renderer = Renderer::new(template, self, context);
+        let renderer = Renderer::new(template, self, &context);
         renderer.render()
     }
 
@@ -419,7 +419,7 @@ impl Tera {
     pub fn render_to(
         &self,
         template_name: &str,
-        context: &Context,
+        context: impl RenderContext,
         write: impl Write,
     ) -> Result<()> {
         let template = self.get_template(template_name)?;
@@ -440,7 +440,7 @@ impl Tera {
     /// let string = tera.render_str("{{ greeting }} World!", &context)?;
     /// assert_eq!(string, "Hello World!");
     /// ```
-    pub fn render_str(&mut self, input: &str, context: &Context) -> Result<String> {
+    pub fn render_str(&mut self, input: &str, context: impl RenderContext) -> Result<String> {
         self.add_raw_template(ONE_OFF_TEMPLATE_NAME, input)?;
         let result = self.render(ONE_OFF_TEMPLATE_NAME, context);
         self.templates.remove(ONE_OFF_TEMPLATE_NAME);
@@ -459,7 +459,7 @@ impl Tera {
     /// context.insert("greeting", &"hello");
     /// Tera::one_off("{{ greeting }} world", &context, true);
     /// ```
-    pub fn one_off(input: &str, context: &Context, autoescape: bool) -> Result<String> {
+    pub fn one_off(input: &str, context: impl RenderContext, autoescape: bool) -> Result<String> {
         let mut tera = Tera::default();
 
         if autoescape {

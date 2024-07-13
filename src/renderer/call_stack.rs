@@ -1,51 +1,39 @@
-use std::borrow::Cow;
 use std::collections::HashMap;
 
 use serde_json::{to_value, Value};
 
-use crate::context::dotted_pointer;
+use crate::context::RenderContext;
 use crate::errors::{Error, Result};
 use crate::renderer::for_loop::{ForLoop, ForLoopState};
 use crate::renderer::stack_frame::{FrameContext, FrameType, StackFrame, Val};
 use crate::template::Template;
-use crate::Context;
 
 /// Contains the user data and allows no mutation
 #[derive(Debug)]
-pub struct UserContext<'a> {
+pub struct UserContext<'a, C: RenderContext> {
     /// Read-only context
-    inner: &'a Context,
+    inner: &'a C,
 }
 
-impl<'a> UserContext<'a> {
+impl<'a, C: RenderContext> UserContext<'a, C> {
     /// Create an immutable user context to be used in the call stack
-    pub fn new(context: &'a Context) -> Self {
+    pub fn new(context: &'a C) -> Self {
         UserContext { inner: context }
-    }
-
-    pub fn find_value(&self, key: &str) -> Option<&'a Value> {
-        self.inner.get(key)
-    }
-
-    pub fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<&'a Value> {
-        let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
-        let rest = &pointer[root.len() + 1..];
-        self.inner.get(&root).and_then(|val| dotted_pointer(val, rest))
     }
 }
 
 /// Contains the stack of frames
 #[derive(Debug)]
-pub struct CallStack<'a> {
+pub struct CallStack<'a, C: RenderContext> {
     /// The stack of frames
     stack: Vec<StackFrame<'a>>,
     /// User supplied context for the render
-    context: UserContext<'a>,
+    context: UserContext<'a, C>,
 }
 
-impl<'a> CallStack<'a> {
+impl<'a, C: RenderContext> CallStack<'a, C> {
     /// Create the initial call stack
-    pub fn new(context: &'a Context, template: &'a Template) -> CallStack<'a> {
+    pub fn new(context: &'a C, template: &'a Template) -> CallStack<'a, C> {
         CallStack {
             stack: vec![StackFrame::new(FrameType::Origin, "ORIGIN", template)],
             context: UserContext::new(context),
@@ -118,13 +106,7 @@ impl<'a> CallStack<'a> {
         }
 
         // Not in stack frame, look in user supplied context
-        if key.contains('.') {
-            return self.context.find_value_by_dotted_pointer(key).map(Cow::Borrowed);
-        } else if let Some(value) = self.context.find_value(key) {
-            return Some(Cow::Borrowed(value));
-        }
-
-        None
+        self.context.inner.find_value(key)
     }
 
     /// Add an assignment value (via {% set ... %} and {% set_global ... %} )
@@ -221,7 +203,7 @@ impl<'a> CallStack<'a> {
         // If we are here we take the user context
         // and add the values found in the stack to it.
         // We do it this way as we can override global variable temporarily in forloops
-        let mut new_ctx = self.context.inner.clone();
+        let mut new_ctx = self.context.inner.deep_copy_as_context();
         for (key, val) in context {
             new_ctx.insert(key, &val)
         }

@@ -1,6 +1,7 @@
 use serde_derive::Serialize;
 
 mod basic;
+mod custom_context;
 mod errors;
 mod inheritance;
 mod macros;
