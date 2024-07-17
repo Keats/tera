@@ -1001,19 +1001,57 @@ impl<'a> Processor<'a> {
                         } else {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
+
                             Number::from_f64(ll * rr)
                         }
                     }
                     MathOperator::Div => {
-                        let ll = l.as_f64().unwrap();
-                        let rr = r.as_f64().unwrap();
-                        let res = ll / rr;
-                        if res.is_nan() {
-                            None
-                        } else if res.round() == res && res.is_finite() {
-                            Some(Number::from(res as i64))
+                        if l.is_i64() && r.is_i64() {
+                            let ll = l.as_i64().unwrap();
+                            let rr = r.as_i64().unwrap();
+
+                            match ll.checked_div(rr) {
+                                Some(s) => Some(Number::from(s)),
+                                None => {
+                                    return Err(Error::msg(format!(
+                                        "{} / {} results in an out of bounds i64 or division by zero",
+                                        ll, rr
+                                    )));
+                                }
+                            }
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+
+                            match ll.checked_div(rr) {
+                                Some(s) => Some(Number::from(s)),
+                                None => {
+                                    return Err(Error::msg(format!(
+                                        "{} / {} results in an out of bounds u64 or division by zero",
+                                        ll, rr
+                                    )));
+                                }
+                            }
                         } else {
-                            Number::from_f64(res)
+                            let ll = l.as_f64().unwrap();
+                            let rr = r.as_f64().unwrap();
+
+                            if rr == 0.0 {
+                                return Err(Error::msg(format!(
+                                    "Tried to divide by zero: {:?}/{:?}",
+                                    lhs, rhs
+                                )));
+                            }
+
+                            let res = ll / rr;
+
+                            if res.is_nan() {
+                                None
+                            } else if res.round() == res && res.is_finite() {
+                                Some(Number::from(res as i64))
+                            } else {
+                                Number::from_f64(res)
+                            }
                         }
                     }
                     MathOperator::Add => {
