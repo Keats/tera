@@ -35,6 +35,7 @@ boolean = { "true" | "false" | "True" | "False" }
 op_or        = @{ "or" ~ WHITESPACE }
 op_and       = @{ "and" ~ WHITESPACE }
 op_not       = @{ "not" ~ WHITESPACE }
+op_bitnot    = @{ "bitnot" ~ WHITESPACE } // bitwise ones complement cannot use ~
 op_lte       = { "<=" }
 op_gte       = { ">=" }
 op_lt        = { "<" }
@@ -46,6 +47,11 @@ op_minus     = { "-" }
 op_times     = { "*" }
 op_slash     = { "/" }
 op_modulo    = { "%" }
+op_bitor     = { "bitor" } // bitwise or cannot use |
+op_bitxor    = { "bitxor" } // bitwise xor cannot use ^
+op_bitand    = { "bitand" } // bitwise and cannot use &
+op_bitlshift = { "<<" } 
+op_bitrshift = { ">>" } 
 
 // -------------------------------------------------
 
@@ -85,7 +91,7 @@ string_concat = { (fn_call | float | int | string | dotted_square_bracket_ident)
 
 // boolean first so they are not caught as identifiers
 basic_val  = _{ boolean | test_not | test | macro_call | fn_call | dotted_square_bracket_ident | float | int }
-basic_op   = _{ op_plus | op_minus | op_times | op_slash | op_modulo }
+basic_op   = _{ op_plus | op_minus | op_times | op_slash | op_modulo | op_bitor | op_bitxor | op_bitand | op_bitlshift | op_bitrshift }
 basic_expr = { ("(" ~ basic_expr ~ ")" | basic_val) ~ (basic_op ~ ("(" ~ basic_expr ~ ")" | basic_val))* }
 basic_expr_filter = !{ basic_expr ~ filter* }
 string_expr_filter = !{ (string_concat | string) ~ filter* }
@@ -98,8 +104,8 @@ comparison_expr = { (string_expr_filter | comparison_val) ~ (comparison_op ~ (st
 in_cond_container = {string_expr_filter | array_filter | dotted_square_bracket_ident}
 in_cond = !{ (string_expr_filter | basic_expr_filter) ~ op_not? ~ "in" ~ in_cond_container }
 
-logic_val  = !{ op_not? ~ (in_cond | comparison_expr) | "(" ~ logic_expr ~ ")" }
-logic_expr = !{ logic_val ~ ((op_or | op_and) ~ logic_val)* }
+logic_val  = !{ (op_not | op_bitnot)? ~ (in_cond | comparison_expr) | "(" ~ logic_expr ~ ")" }
+logic_expr = !{ logic_val ~ ((op_or | op_and ) ~ logic_val)* }
 
 array = !{ "[" ~ (logic_val ~ ",")* ~ logic_val? ~ "]"}
 array_filter = !{ array ~ filter* }

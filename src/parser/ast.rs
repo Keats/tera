@@ -23,6 +23,16 @@ pub enum MathOperator {
     Div,
     /// %
     Modulo,
+    /// bitor (bitwise or)
+    BitOr,
+    /// bitxor (bitwise xor)
+    BitXor,
+    /// bitand (bitwise and)
+    BitAnd,
+    /// bitlshift (<<)
+    BitLeftShift,
+    /// bitrshift (>>)
+    BitRightShift,
 }
 
 impl fmt::Display for MathOperator {
@@ -36,6 +46,11 @@ impl fmt::Display for MathOperator {
                 MathOperator::Mul => "*",
                 MathOperator::Div => "/",
                 MathOperator::Modulo => "%",
+                MathOperator::BitOr => "bitor",
+                MathOperator::BitXor => "bitxor",
+                MathOperator::BitAnd => "bitand",
+                MathOperator::BitLeftShift => "bitlshift",
+                MathOperator::BitRightShift => "bitrshift",
             }
         )
     }
@@ -174,6 +189,8 @@ pub struct Expr {
     pub val: ExprVal,
     /// Is it using `not`?
     pub negated: bool,
+    /// Is it using `bitnot`
+    pub bitnot: bool,
     /// List of filters used on that value
     pub filters: Vec<FunctionCall>,
 }
@@ -181,17 +198,22 @@ pub struct Expr {
 impl Expr {
     /// Create a new basic Expr
     pub fn new(val: ExprVal) -> Expr {
-        Expr { val, negated: false, filters: vec![] }
+        Expr { val, negated: false, bitnot: false, filters: vec![] }
     }
 
     /// Create a new negated Expr
     pub fn new_negated(val: ExprVal) -> Expr {
-        Expr { val, negated: true, filters: vec![] }
+        Expr { val, negated: true, bitnot: false, filters: vec![] }
+    }
+
+    /// Create a new bitnot Expr
+    pub fn new_bitnot(val: ExprVal) -> Expr {
+        Expr { val, negated: false, bitnot: true, filters: vec![] }
     }
 
     /// Create a new basic Expr with some filters
     pub fn with_filters(val: ExprVal, filters: Vec<FunctionCall>) -> Expr {
-        Expr { val, filters, negated: false }
+        Expr { val, filters, negated: false, bitnot: false }
     }
 
     /// Check if the expr has a default filter as first filter

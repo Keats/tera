@@ -29,6 +29,7 @@ pub use self::whitespace::remove_whitespace;
 lazy_static! {
     static ref MATH_PARSER: PrattParser<Rule> = PrattParser::new()
         .op(Op::infix(Rule::op_plus, Assoc::Left) | Op::infix(Rule::op_minus, Assoc::Left)) // +, -
+        .op(Op::infix(Rule::op_bitor, Assoc::Left) | Op::infix(Rule::op_bitxor, Assoc::Left) | Op::infix(Rule::op_bitand, Assoc::Left) | Op::infix(Rule::op_bitlshift, Assoc::Left) | Op::infix(Rule::op_bitrshift, Assoc::Left)) // bitor, bitxor, bitand, bitlshift, bitrshift
         .op(Op::infix(Rule::op_times, Assoc::Left)
             | Op::infix(Rule::op_slash, Assoc::Left)
             | Op::infix(Rule::op_modulo, Assoc::Left)); // *, /, %
@@ -39,7 +40,7 @@ lazy_static! {
             | Op::infix(Rule::op_eq, Assoc::Left)| Op::infix(Rule::op_ineq, Assoc::Left)); // <, <=, >, >=, ==, !=
 
     static ref LOGIC_EXPR_PARSER: PrattParser<Rule> = PrattParser::new()
-        .op(Op::infix(Rule::op_or, Assoc::Left)).op(Op::infix(Rule::op_and, Assoc::Left));
+        .op(Op::infix(Rule::op_or, Assoc::Left)).op(Op::infix(Rule::op_and, Assoc::Left)); // or, and
 }
 
 /// Strings are delimited by double quotes, single quotes and backticks
@@ -263,6 +264,11 @@ fn parse_basic_expression(pair: Pair<Rule>) -> TeraResult<ExprVal> {
                 Rule::op_times => MathOperator::Mul,
                 Rule::op_slash => MathOperator::Div,
                 Rule::op_modulo => MathOperator::Modulo,
+                Rule::op_bitor => MathOperator::BitOr,
+                Rule::op_bitxor => MathOperator::BitXor,
+                Rule::op_bitand => MathOperator::BitAnd,
+                Rule::op_bitlshift => MathOperator::BitLeftShift,
+                Rule::op_bitrshift => MathOperator::BitRightShift,
                 _ => {
                     return Err(Error::msg(format!("Unexpected rule in infix: {:?}", op.as_rule())))
                 }
@@ -329,7 +335,7 @@ fn parse_basic_expr_with_filters(pair: Pair<Rule>) -> TeraResult<Expr> {
         };
     }
 
-    Ok(Expr { val: expr_val.unwrap(), negated: false, filters })
+    Ok(Expr { val: expr_val.unwrap(), negated: false, bitnot: false, filters })
 }
 
 /// A string expression with optional filters
@@ -351,7 +357,7 @@ fn parse_string_expr_with_filters(pair: Pair<Rule>) -> TeraResult<Expr> {
         };
     }
 
-    Ok(Expr { val: expr_val.unwrap(), negated: false, filters })
+    Ok(Expr { val: expr_val.unwrap(), negated: false, bitnot: false, filters })
 }
 
 /// An array with optional filters
@@ -372,7 +378,7 @@ fn parse_array_with_filters(pair: Pair<Rule>) -> TeraResult<Expr> {
         };
     }
 
-    Ok(Expr { val: array.unwrap(), negated: false, filters })
+    Ok(Expr { val: array.unwrap(), negated: false, bitnot: false, filters })
 }
 
 fn parse_in_condition_container(pair: Pair<Rule>) -> TeraResult<Expr> {
@@ -437,6 +443,11 @@ fn parse_comparison_val(pair: Pair<Rule>) -> TeraResult<Expr> {
                 Rule::op_times => MathOperator::Mul,
                 Rule::op_slash => MathOperator::Div,
                 Rule::op_modulo => MathOperator::Modulo,
+                Rule::op_bitor => MathOperator::BitOr,
+                Rule::op_bitxor => MathOperator::BitXor,
+                Rule::op_bitand => MathOperator::BitAnd,
+                Rule::op_bitlshift => MathOperator::BitLeftShift,
+                Rule::op_bitrshift => MathOperator::BitRightShift,
                 _ => {
                     return Err(Error::msg(format!(
                         "PARSER ERROR: Unexpected rule in infix: {:?}",
@@ -506,11 +517,13 @@ fn parse_comparison_expression(pair: Pair<Rule>) -> TeraResult<Expr> {
 /// An expression that can be negated
 fn parse_logic_val(pair: Pair<Rule>) -> TeraResult<Expr> {
     let mut negated = false;
+    let mut bitnot = false;
     let mut expr = None;
 
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::op_not => negated = true,
+            Rule::op_bitnot => bitnot = true,
             Rule::in_cond => expr = Some(parse_in_condition(p)?),
             Rule::comparison_expr => expr = Some(parse_comparison_expression(p)?),
             Rule::string_expr_filter => expr = Some(parse_string_expr_with_filters(p)?),
@@ -526,6 +539,7 @@ fn parse_logic_val(pair: Pair<Rule>) -> TeraResult<Expr> {
 
     let mut e = expr.unwrap();
     e.negated = negated;
+    e.bitnot = bitnot;
     Ok(e)
 }
 
@@ -1319,6 +1333,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::op_or => "`or`".to_string(),
                     Rule::op_and => "`and`".to_string(),
                     Rule::op_not => "`not`".to_string(),
+                    Rule::op_bitnot => "`bitnot`".to_string(),
                     Rule::op_lte => "`<=`".to_string(),
                     Rule::op_gte => "`>=`".to_string(),
                     Rule::op_lt => "`<`".to_string(),
@@ -1330,6 +1345,11 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::op_times => "`*`".to_string(),
                     Rule::op_slash => "`/`".to_string(),
                     Rule::op_modulo => "`%`".to_string(),
+                    Rule::op_bitor => "`bitor`".to_string(),
+                    Rule::op_bitxor => "`bitxor`".to_string(),
+                    Rule::op_bitand => "`bitand`".to_string(),
+                    Rule::op_bitlshift => "`bitlshift`".to_string(),
+                    Rule::op_bitrshift => "`bitrshift`".to_string(),
                     Rule::filter => "a filter".to_string(),
                     Rule::test => "a test".to_string(),
                     Rule::test_not => "a negated test".to_string(),

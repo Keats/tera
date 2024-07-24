@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::io::Write;
 
 use serde_json::{to_string_pretty, to_value, Number, Value};
@@ -630,9 +631,26 @@ impl<'a> Processor<'a> {
             res = self.eval_filter(&res, filter, &mut needs_escape, body_recursion_level)?;
         }
 
-        // Lastly, we need to check if the expression is negated, thus turning it into a bool
+        // We need to check if the expression is negated, thus turning it into a bool
         if expr.negated {
             return Ok(Cow::Owned(Value::Bool(!res.is_truthy())));
+        }
+
+        // Check for bitnot
+        if expr.bitnot {
+            match *res {
+                Value::Number(ref n) => {
+                    if let Some(n) = n.as_i64() {
+                        return Ok(Cow::Owned(Value::Number(Number::from(!n))));
+                    }
+                }
+                _ => {
+                    return Err(Error::msg(format!(
+                        "Tried to apply `bitnot` to a non-number value: {:?}",
+                        res
+                    )));
+                }
+            }
         }
 
         // Checks if it's a string and we need to escape it (if the last filter is `safe` we don't)
@@ -869,6 +887,12 @@ impl<'a> Processor<'a> {
                 if bool_expr.negated {
                     res = !res;
                 }
+
+                if bool_expr.bitnot {
+                    return Err(Error::msg(
+                        "Bitwise not (two's complement) operator `bitnot` can only be used on numbers in logic expressions",
+                    ));
+                }
                 res
             }
             ExprVal::Math(_) | ExprVal::Int(_) | ExprVal::Float(_) => {
@@ -912,6 +936,12 @@ impl<'a> Processor<'a> {
 
         if bool_expr.negated {
             return Ok(!res);
+        }
+
+        if bool_expr.bitnot {
+            return Err(Error::msg(
+                "Bitwise not (two's complement) operator `bitnot` can only be used on numbers in logic expressions",
+            ));
         }
 
         Ok(res)
@@ -1145,6 +1175,101 @@ impl<'a> Processor<'a> {
                             let ll = l.as_f64().unwrap();
                             let rr = r.as_f64().unwrap();
                             Number::from_f64(ll % rr)
+                        }
+                    }
+                    MathOperator::BitOr => {
+                        if l.is_i64() && r.is_i64() {
+                            let ll = l.as_i64().unwrap();
+                            let rr = r.as_i64().unwrap();
+                            Some(Number::from(ll | rr))
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+                            Some(Number::from(ll | rr))
+                        } else {
+                            return Err(Error::msg(
+                                "The `|` operator can only be used on numbers in math expressions that can be cast to integers",
+                            ));
+                        }
+                    }
+                    MathOperator::BitXor => {
+                        if l.is_i64() && r.is_i64() {
+                            let ll = l.as_i64().unwrap();
+                            let rr = r.as_i64().unwrap();
+                            Some(Number::from(ll ^ rr))
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+                            Some(Number::from(ll ^ rr))
+                        } else {
+                            return Err(Error::msg(
+                                "The `^` operator can only be used on numbers in math expressions that can be cast to integers",
+                            ));
+                        }
+                    }
+                    MathOperator::BitAnd => {
+                        if l.is_i64() && r.is_i64() {
+                            let ll = l.as_i64().unwrap();
+                            let rr = r.as_i64().unwrap();
+                            Some(Number::from(ll & rr))
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+                            Some(Number::from(ll & rr))
+                        } else {
+                            return Err(Error::msg(
+                                "The `&` operator can only be used on numbers in math expressions that can be cast to integers",
+                            ));
+                        }
+                    }
+                    MathOperator::BitLeftShift => {
+                        if l.is_i64() && r.is_i64() {
+                            let ll = l.as_i64().unwrap();
+                            let rr = r.as_i64().unwrap();
+                            if rr < 0 {
+                                return Err(Error::msg(
+                                    "The `<<` operator can only be used with a positive number as the right operand",
+                                ));
+                            }
+
+                            let rr = rr.try_into().map_err(|_| {
+                                Error::msg("The `>>` operator can only be used with a positive number that fits in a u32 as the right operand")
+                            })?;
+
+                            Some(Number::from(ll.rotate_left(rr))) // To avoid overflows, we actually rotate left instead of shifting
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+                            Some(Number::from(ll << rr))
+                        } else {
+                            return Err(Error::msg(
+                                "The `<<` operator can only be used on numbers in math expressions that can be cast to integers",
+                            ));
+                        }
+                    }
+                    MathOperator::BitRightShift => {
+                        if l.is_i64() && r.is_i64() {
+                            let ll = l.as_i64().unwrap();
+                            let rr = r.as_i64().unwrap();
+                            if rr < 0 {
+                                return Err(Error::msg(
+                                    "The `>>` operator can only be used with a positive number as the right operand",
+                                ));
+                            }
+
+                            let rr = rr.try_into().map_err(|_| {
+                                Error::msg("The `>>` operator can only be used with a positive number that fits in a u32 as the right operand")
+                            })?;
+
+                            Some(Number::from(ll.rotate_right(rr))) // To avoid overflows, we actually rotate right instead of shifting
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+                            Some(Number::from(ll >> rr))
+                        } else {
+                            return Err(Error::msg(
+                                "The `>>` operator can only be used on numbers in math expressions that can be cast to integers",
+                            ));
                         }
                     }
                 }
