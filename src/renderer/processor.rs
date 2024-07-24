@@ -1029,8 +1029,14 @@ impl<'a> Processor<'a> {
                             };
                             Some(Number::from(res))
                         } else {
-                            let ll = l.as_f64().unwrap();
-                            let rr = r.as_f64().unwrap();
+                            let ll = l.as_f64().ok_or(Error::msg(format!(
+                                "Tried to multiply a number with an unsupported type: {:?}",
+                                l
+                            )))?;
+                            let rr = r.as_f64().ok_or(Error::msg(format!(
+                                "Tried to multiply a number with an unsupported type: {:?}",
+                                r
+                            )))?;
 
                             Number::from_f64(ll * rr)
                         }
@@ -1063,8 +1069,14 @@ impl<'a> Processor<'a> {
                                 }
                             }
                         } else {
-                            let ll = l.as_f64().unwrap();
-                            let rr = r.as_f64().unwrap();
+                            let ll = l.as_f64().ok_or(Error::msg(format!(
+                                "Tried to divide a number with an unsupported type: {:?}",
+                                l
+                            )))?;
+                            let rr = r.as_f64().ok_or(Error::msg(format!(
+                                "Tried to divide a number with an unsupported type: {:?}",
+                                r
+                            )))?;
 
                             if rr == 0.0 {
                                 return Err(Error::msg(format!(
@@ -1112,8 +1124,12 @@ impl<'a> Processor<'a> {
                             };
                             Some(Number::from(res))
                         } else {
-                            let ll = l.as_f64().unwrap();
-                            let rr = r.as_f64().unwrap();
+                            let ll = l.as_f64().ok_or(Error::msg(
+                                "The `+` operator can only be used on numbers in math expressions",
+                            ))?;
+                            let rr = r.as_f64().ok_or(Error::msg(
+                                "The `+` operator can only be used on numbers in math expressions",
+                            ))?;
                             Some(Number::from_f64(ll + rr).unwrap())
                         }
                     }
@@ -1172,9 +1188,58 @@ impl<'a> Processor<'a> {
                             }
                             Some(Number::from(ll % rr))
                         } else {
-                            let ll = l.as_f64().unwrap();
-                            let rr = r.as_f64().unwrap();
+                            let ll = l.as_f64().ok_or(Error::msg(
+                                "The `%` operator can only be used on numbers in math expressions",
+                            ))?;
+                            let rr = r.as_f64().ok_or(Error::msg(
+                                "The `%` operator can only be used on numbers in math expressions",
+                            ))?;
                             Number::from_f64(ll % rr)
+                        }
+                    }
+                    MathOperator::Power => {
+                        if l.is_i64() && r.is_i64() {
+                            let ll = l.as_i64().unwrap();
+                            let rr = r.as_i64().unwrap();
+                            if rr < 0 {
+                                return Err(Error::msg(
+                                    "The `**` operator can only be used with a positive number as the right operand",
+                                ));
+                            }
+
+                            let rr = rr.try_into().map_err(|_| {
+                                Error::msg("The `**` operator can only be used with a positive number that fits in a u32 as the right operand")
+                            })?;
+
+                            let res = ll.checked_pow(rr).ok_or(Error::msg(format!(
+                                "{} ** {} results in an out of bounds i64",
+                                ll, rr
+                            )))?;
+
+                            Some(Number::from(res))
+                        } else if l.is_u64() && r.is_u64() {
+                            let ll = l.as_u64().unwrap();
+                            let rr = r.as_u64().unwrap();
+
+                            let rr = rr.try_into().map_err(|_| {
+                                Error::msg("The `**` operator can only be used with a positive number that fits in a u32 as the right operand")
+                            })?;
+
+                            let res = ll.checked_pow(rr).ok_or(Error::msg(format!(
+                                "{} ** {} results in an out of bounds i64",
+                                ll, rr
+                            )))?;
+
+                            Some(Number::from(res))
+                        } else {
+                            let ll = l.as_f64().ok_or(Error::msg(
+                                "The `**` operator can only be used on numbers in math expressions",
+                            ))?;
+                            let rr = r.as_f64().ok_or(Error::msg(
+                                "The `**` operator can only be used on numbers in math expressions",
+                            ))?;
+
+                            Number::from_f64(ll.powf(rr))
                         }
                     }
                     MathOperator::BitOr => {

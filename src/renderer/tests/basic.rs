@@ -56,7 +56,6 @@ fn render_variable_block_lit_expr() {
         ("{{ (2 + 1) * 2 }}", "6"),
         ("{{ 2 * 4 % 8 }}", "0"),
         ("{{ 2.8 * 2 | round }}", "6"),
-        ("{{ 1 / 0 }}", "NaN"),
         ("{{ true and 10 }}", "true"),
         ("{{ true and not 10 }}", "false"),
         ("{{ not true }}", "false"),
@@ -349,7 +348,6 @@ fn add_set_values_in_context() {
         ("{% set i = range(end=3) %}{{ i }}", "[0, 1, 2]"),
         ("{% set i = admin or true %}{{ i }}", "true"),
         ("{% set i = admin and num > 0 %}{{ i }}", "true"),
-        ("{% set i = 0 / 0 %}{{ i }}", "NaN"),
         ("{% set i = [1,2] %}{{ i }}", "[1, 2]"),
     ];
 
@@ -452,8 +450,6 @@ fn render_if_elif_else() {
         ("{% if not undefined %}a{% endif %}", "a"),
         ("{% if not is_false and is_true %}a{% endif %}", "a"),
         ("{% if not is_false or numbers | length > 0 %}a{% endif %}", "a"),
-        // doesn't panic with NaN results
-        ("{% if 0 / 0 %}a{% endif %}", ""),
         // if and else
         ("{% if is_true %}Admin{% else %}User{% endif %}", "Admin"),
         ("{% if is_false %}Admin{% else %}User{% endif %}", "User"),
@@ -989,4 +985,35 @@ fn safe_function_works() {
 
     let res = tera.render("test.html", &Context::new());
     assert_eq!(res.unwrap(), "<div>Hello</div>");
+}
+
+#[test]
+fn test_pemdas() {
+    let mut tera = Tera::default();
+    let ctx = Context::new();
+    let r = tera.render_str("{{ (1 + 2) * (3 + 4) }}", &ctx);
+
+    assert_eq!(r.unwrap(), "21");
+
+    let r = tera.render_str("{{ 2 * (1 + 2) }}", &ctx);
+
+    assert_eq!(r.unwrap(), "6");
+
+    let r = tera.render_str("{{ 2 * (1 << 2) }}", &ctx);
+
+    assert_eq!(r.unwrap(), "8");
+
+    let r = tera.render_str("{{ 2 * (1 >> 0) }}", &ctx);
+
+    assert_eq!(r.unwrap(), "2");
+}
+
+#[test]
+fn test_zero_div_zero() {
+    let mut tera = Tera::default();
+    let ctx = Context::new();
+    let r = tera.render_str("{{ 1 / 0 }}", &ctx);
+
+    let err = format!("{:?}", r.err().unwrap());
+    assert!(err.contains("division by zero"));
 }

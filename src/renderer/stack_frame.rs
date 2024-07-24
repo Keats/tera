@@ -52,6 +52,8 @@ pub struct StackFrame<'a> {
     pub for_loop: Option<ForLoop<'a>>,
     /// Macro namespace if MacroFrame
     pub macro_namespace: Option<&'a str>,
+    /// Size of the frame
+    pub size: usize,
 }
 
 impl<'a> StackFrame<'a> {
@@ -63,6 +65,7 @@ impl<'a> StackFrame<'a> {
             active_template: tpl,
             for_loop: None,
             macro_namespace: None,
+            size: 0,
         }
     }
 
@@ -74,6 +77,7 @@ impl<'a> StackFrame<'a> {
             active_template: tpl,
             for_loop: Some(for_loop),
             macro_namespace: None,
+            size: 0,
         }
     }
 
@@ -90,6 +94,7 @@ impl<'a> StackFrame<'a> {
             active_template: tpl,
             for_loop: None,
             macro_namespace: Some(macro_namespace),
+            size: 0,
         }
     }
 
@@ -101,6 +106,7 @@ impl<'a> StackFrame<'a> {
             active_template: tpl,
             for_loop: None,
             macro_namespace: None,
+            size: 0,
         }
     }
 
@@ -182,7 +188,29 @@ impl<'a> StackFrame<'a> {
         if self.context.len() >= crate::constraints::STACK_FRAME_MAX_ENTRIES {
             return Err(Error::msg("Stack frame context is full"));
         }
+
+        if self.size >= crate::constraints::STACK_FRAME_MAX_SIZE {
+            return Err(Error::msg("Stack frame context is too big"));
+        }
+
         self.context.insert(key, value);
+
+        // Get size of self.context
+        self.size = self.context.iter().fold(0, |acc, (k, v)| {
+            acc + k.len()
+                + match v {
+                    Cow::Borrowed(v) => v.to_string().len(),
+                    Cow::Owned(v) => v.to_string().len(),
+                }
+        });
+
+        // Check one more time now with the new size
+        if self.size >= crate::constraints::STACK_FRAME_MAX_SIZE {
+            // Remove element
+            self.context.remove(key);
+            return Err(Error::msg("Stack frame context is too big"));
+        }
+
         Ok(())
     }
 

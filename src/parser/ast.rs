@@ -23,6 +23,8 @@ pub enum MathOperator {
     Div,
     /// %
     Modulo,
+    /// **
+    Power,
     /// bitor (bitwise or)
     BitOr,
     /// bitxor (bitwise xor)
@@ -46,6 +48,7 @@ impl fmt::Display for MathOperator {
                 MathOperator::Mul => "*",
                 MathOperator::Div => "/",
                 MathOperator::Modulo => "%",
+                MathOperator::Power => "**",
                 MathOperator::BitOr => "bitor",
                 MathOperator::BitXor => "bitxor",
                 MathOperator::BitAnd => "bitand",

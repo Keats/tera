@@ -32,7 +32,8 @@ lazy_static! {
         .op(Op::infix(Rule::op_bitor, Assoc::Left) | Op::infix(Rule::op_bitxor, Assoc::Left) | Op::infix(Rule::op_bitand, Assoc::Left) | Op::infix(Rule::op_bitlshift, Assoc::Left) | Op::infix(Rule::op_bitrshift, Assoc::Left)) // bitor, bitxor, bitand, bitlshift, bitrshift
         .op(Op::infix(Rule::op_times, Assoc::Left)
             | Op::infix(Rule::op_slash, Assoc::Left)
-            | Op::infix(Rule::op_modulo, Assoc::Left)); // *, /, %
+            | Op::infix(Rule::op_modulo, Assoc::Left)
+            | Op::infix(Rule::op_power, Assoc::Left)); // *, /, %, **
 
     static ref COMPARISON_EXPR_PARSER: PrattParser<Rule> = PrattParser::new()
         .op(Op::infix(Rule::op_lt, Assoc::Left) | Op::infix(Rule::op_lte, Assoc::Left) | Op::infix(Rule::op_gt, Assoc::Left)
@@ -264,6 +265,7 @@ fn parse_basic_expression(pair: Pair<Rule>) -> TeraResult<ExprVal> {
                 Rule::op_times => MathOperator::Mul,
                 Rule::op_slash => MathOperator::Div,
                 Rule::op_modulo => MathOperator::Modulo,
+                Rule::op_power => MathOperator::Power,
                 Rule::op_bitor => MathOperator::BitOr,
                 Rule::op_bitxor => MathOperator::BitXor,
                 Rule::op_bitand => MathOperator::BitAnd,
@@ -443,6 +445,7 @@ fn parse_comparison_val(pair: Pair<Rule>) -> TeraResult<Expr> {
                 Rule::op_times => MathOperator::Mul,
                 Rule::op_slash => MathOperator::Div,
                 Rule::op_modulo => MathOperator::Modulo,
+                Rule::op_power => MathOperator::Power,
                 Rule::op_bitor => MathOperator::BitOr,
                 Rule::op_bitxor => MathOperator::BitXor,
                 Rule::op_bitand => MathOperator::BitAnd,
@@ -1345,6 +1348,7 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::op_times => "`*`".to_string(),
                     Rule::op_slash => "`/`".to_string(),
                     Rule::op_modulo => "`%`".to_string(),
+                    Rule::op_power => "`**`".to_string(),
                     Rule::op_bitor => "`bitor`".to_string(),
                     Rule::op_bitxor => "`bitxor`".to_string(),
                     Rule::op_bitand => "`bitand`".to_string(),
