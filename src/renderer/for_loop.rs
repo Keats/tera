@@ -40,7 +40,7 @@ impl<'a> ForLoopValues<'a> {
     pub fn current_key(&self, i: usize) -> String {
         match *self {
             ForLoopValues::Array(_) | ForLoopValues::String(_) => {
-                unreachable!("No key in array list or string")
+                i.to_string() // Use the index as the key
             }
             ForLoopValues::Object(ref values) => {
                 values.get(i).expect("Failed getting current key").0.clone()

@@ -104,7 +104,7 @@ fn error_out_of_range_index() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![("tpl", "{{ arr[10] }}")]).unwrap();
     let mut context = Context::new();
-    context.insert("arr", &[1, 2, 3]);
+    context.insert("arr", &[1, 2, 3]).unwrap();
 
     let result = tera.render("tpl", &Context::new());
 
@@ -119,7 +119,7 @@ fn error_unknown_index_variable() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![("tpl", "{{ arr[a] }}")]).unwrap();
     let mut context = Context::new();
-    context.insert("arr", &[1, 2, 3]);
+    context.insert("arr", &[1, 2, 3]).unwrap();
 
     let result = tera.render("tpl", &context);
 
@@ -135,8 +135,8 @@ fn error_invalid_type_index_variable() {
     tera.add_raw_templates(vec![("tpl", "{{ arr[a] }}")]).unwrap();
 
     let mut context = Context::new();
-    context.insert("arr", &[1, 2, 3]);
-    context.insert("a", &true);
+    context.insert("arr", &[1, 2, 3]).unwrap();
+    context.insert("a", &true).unwrap();
 
     let result = tera.render("tpl", &context);
 
@@ -168,7 +168,7 @@ fn error_when_using_variable_set_in_included_templates_outside() {
     ])
     .unwrap();
     let mut context = Context::new();
-    context.insert("a", &10);
+    context.insert("a", &10).unwrap();
     let result = tera.render("base", &context);
 
     assert_eq!(
@@ -184,7 +184,7 @@ fn right_variable_name_is_needed_in_for_loop() {
     let mut data = HashMap::new();
     data.insert("content", "hello");
     let mut context = Context::new();
-    context.insert("comments", &vec![data]);
+    context.insert("comments", &vec![data]).unwrap();
     let mut tera = Tera::default();
     tera.add_raw_template(
         "tpl",
@@ -229,7 +229,7 @@ fn error_string_concat_math_logic() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![("tpl", "{{ 'ho' ~ name < 10 }}")]).unwrap();
     let mut context = Context::new();
-    context.insert("name", &"john");
+    context.insert("name", &"john").unwrap();
 
     let result = tera.render("tpl", &context);
 

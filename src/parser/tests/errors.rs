@@ -19,7 +19,7 @@ fn invalid_number() {
         "{{ 1.2.2 }}",
         &[
             "1:7",
-            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, a filter, or a variable end (`}}`)"
+            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, `**`, `bitor`, `bitxor`, `bitand`, `bitlshift`, `bitrshift`, a filter, or a variable end (`}}`)"
         ],
     );
 }
@@ -35,7 +35,7 @@ fn wrong_start_block() {
         "{{ if true %}",
         &[
             "1:7",
-            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, a filter, or a variable end (`}}`)"
+            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, `**`, `bitor`, `bitxor`, `bitand`, `bitlshift`, `bitrshift`, a filter, or a variable end (`}}`)"
         ],
     );
 }
@@ -57,7 +57,7 @@ fn unterminated_variable_block() {
         "{{ hey",
         &[
             "1:7",
-            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, a filter, or a variable end (`}}`)"
+            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, `**`, `bitor`, `bitxor`, `bitand`, `bitlshift`, `bitrshift`, a filter, or a variable end (`}}`)"
         ],
     );
 }
@@ -168,7 +168,7 @@ fn invalid_operator() {
         "{{ hey =! }}",
         &[
             "1:8",
-            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, a filter, or a variable end (`}}`)"
+            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, `**`, `bitor`, `bitxor`, `bitand`, `bitlshift`, `bitrshift`, a filter, or a variable end (`}}`)"
         ],
     );
 }
@@ -225,7 +225,7 @@ fn invalid_macro_call() {
         "{{ my:macro() }}",
         &[
             "1:6",
-            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, a filter, or a variable end (`}}`)"
+            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, `**`, `bitor`, `bitxor`, `bitand`, `bitlshift`, `bitrshift`, a filter, or a variable end (`}}`)"
         ],
     );
 }
@@ -282,7 +282,7 @@ fn invalid_test_argument() {
         r#"{% if a is odd(key=1) %}"#,
         &[
             "1:19",
-            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, or a filter"
+            "expected `or`, `and`, `not`, `<=`, `>=`, `<`, `>`, `==`, `!=`, `+`, `-`, `*`, `/`, `%`, `**`, `bitor`, `bitxor`, `bitand`, `bitlshift`, `bitrshift`, or a filter"
         ],
     );
 }

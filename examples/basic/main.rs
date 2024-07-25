@@ -32,10 +32,10 @@ pub fn do_nothing_filter(value: &Value, _: &HashMap<String, Value>) -> Result<Va
 
 fn main() {
     let mut context = Context::new();
-    context.insert("username", &"Bob");
-    context.insert("numbers", &vec![1, 2, 3]);
-    context.insert("show_all", &false);
-    context.insert("bio", &"<script>alert('pwnd');</script>");
+    context.insert("username", &"Bob").unwrap();
+    context.insert("numbers", &vec![1, 2, 3]).unwrap();
+    context.insert("show_all", &false).unwrap();
+    context.insert("bio", &"<script>alert('pwnd');</script>").unwrap();
 
     // A one off template
     Tera::one_off("hello", &Context::new(), true).unwrap();

@@ -11,12 +11,12 @@ use crate::common::{Product, Review};
 fn render_tpl(tpl_name: &str) -> Result<String> {
     let tera = Tera::new("tests/render-failures/**/*").unwrap();
     let mut context = Context::new();
-    context.insert("product", &Product::new());
-    context.insert("username", &"bob");
-    context.insert("friend_reviewed", &true);
-    context.insert("number_reviews", &2);
-    context.insert("show_more", &true);
-    context.insert("reviews", &vec![Review::new(), Review::new()]);
+    context.insert("product", &Product::new()).unwrap();
+    context.insert("username", &"bob").unwrap();
+    context.insert("friend_reviewed", &true).unwrap();
+    context.insert("number_reviews", &2).unwrap();
+    context.insert("show_more", &true).unwrap();
+    context.insert("reviews", &vec![Review::new(), Review::new()]).unwrap();
 
     tera.render(tpl_name, &context)
 }
