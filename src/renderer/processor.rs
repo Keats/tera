@@ -157,10 +157,11 @@ impl<'a> Processor<'a> {
         write: &mut impl Write,
         body_recursion_level: usize,
     ) -> Result<()> {
-        if body_recursion_level >= crate::constraints::RENDER_BODY_RECURSION_LIMIT {
+        if body_recursion_level >= crate::constraints::RENDER_BODY_MAX_DEPTH {
             return Err(Error::msg(format!(
-                "Max recursion limit reached while rendering body ({} levels)",
-                crate::constraints::RENDER_BODY_RECURSION_LIMIT
+                "Max body depth reached while rendering body ({} > max of {})",
+                body_recursion_level,
+                crate::constraints::RENDER_BODY_MAX_DEPTH
             )));
         }
 
@@ -183,10 +184,11 @@ impl<'a> Processor<'a> {
         write: &mut (impl Write + Send + Sync),
         body_recursion_level: usize,
     ) -> Result<()> {
-        if body_recursion_level >= crate::constraints::RENDER_BODY_RECURSION_LIMIT {
+        if body_recursion_level >= crate::constraints::RENDER_BODY_MAX_DEPTH {
             return Err(Error::msg(format!(
-                "Max recursion limit reached while rendering body ({} levels)",
-                crate::constraints::RENDER_BODY_RECURSION_LIMIT
+                "Max body depth reached while rendering body ({} > max of {})",
+                body_recursion_level,
+                crate::constraints::RENDER_BODY_MAX_DEPTH
             )));
         }
 
@@ -206,7 +208,7 @@ impl<'a> Processor<'a> {
     fn create_for_loop(
         &mut self,
         for_loop: &'a Forloop,
-        body_recursion_level: usize,
+        container_val: Cow<'a, Value>,
     ) -> Result<ForLoop<'a>> {
         let container_name = match for_loop.container.val {
             ExprVal::Ident(ref ident) => ident,
@@ -217,8 +219,6 @@ impl<'a> Processor<'a> {
                 for_loop.container.val,
             ))),
         };
-
-        let container_val = self.safe_eval_expression(&for_loop.container, body_recursion_level)?;
 
         let for_loop = match *container_val {
             Value::Array(_) => {
@@ -278,7 +278,8 @@ impl<'a> Processor<'a> {
         let for_loop_body = &for_loop.body;
         let for_loop_empty_body = &for_loop.empty_body;
 
-        let for_loop = self.create_for_loop(for_loop, body_recursion_level)?;
+        let container_val = self.safe_eval_expression(&for_loop.container, body_recursion_level)?;
+        let for_loop = self.create_for_loop(for_loop, container_val)?;
 
         let len = for_loop.len();
         match (len, for_loop_empty_body) {
@@ -315,7 +316,9 @@ impl<'a> Processor<'a> {
         let for_loop_body = &for_loop.body;
         let for_loop_empty_body = &for_loop.empty_body;
 
-        let for_loop = self.create_for_loop(for_loop, body_recursion_level)?;
+        let container_val =
+            self.safe_eval_expression_async(&for_loop.container, body_recursion_level).await?;
+        let for_loop = self.create_for_loop(for_loop, container_val)?;
 
         let len = for_loop.len();
         match (len, for_loop_empty_body) {
@@ -663,6 +666,176 @@ impl<'a> Processor<'a> {
         Ok(res)
     }
 
+    #[cfg(feature = "async")]
+    #[async_recursion::async_recursion]
+    async fn eval_expression_async(
+        &mut self,
+        expr: &'a Expr,
+        body_recursion_level: usize,
+    ) -> Result<Val<'a>> {
+        let mut needs_escape = false;
+
+        let mut res = match expr.val {
+            ExprVal::Array(ref arr) => {
+                if arr.len() > crate::constraints::EXPRESSION_MAX_ARRAY_LENGTH {
+                    return Err(Error::msg(format!(
+                        "Max number of elements in an array literal is {}, {:?}",
+                        crate::constraints::EXPRESSION_MAX_ARRAY_LENGTH,
+                        expr.val
+                    )));
+                }
+
+                let mut values = vec![];
+                for v in arr {
+                    values.push(
+                        self.eval_expression_async(v, body_recursion_level).await?.into_owned(),
+                    );
+                }
+                Cow::Owned(Value::Array(values))
+            }
+            ExprVal::In(ref in_cond) => {
+                Cow::Owned(Value::Bool(self.eval_in_condition(in_cond, body_recursion_level)?))
+            }
+            ExprVal::String(ref val) => {
+                needs_escape = true;
+                Cow::Owned(Value::String(val.to_string()))
+            }
+            ExprVal::StringConcat(ref str_concat) => {
+                let mut res = String::new();
+                for s in &str_concat.values {
+                    match *s {
+                        ExprVal::String(ref v) => res.push_str(v),
+                        ExprVal::Int(ref v) => res.push_str(&format!("{}", v)),
+                        ExprVal::Float(ref v) => res.push_str(&format!("{}", v)),
+                        ExprVal::Ident(ref i) => match *self.lookup_ident(i)? {
+                            Value::String(ref v) => res.push_str(v),
+                            Value::Number(ref v) => res.push_str(&v.to_string()),
+                            _ => return Err(Error::msg(format!(
+                                "Tried to concat a value that is not a string or a number from ident {}",
+                                i
+                            ))),
+                        },
+                        ExprVal::FunctionCall(ref fn_call) => match *self.eval_tera_fn_call_async(fn_call, &mut needs_escape, body_recursion_level).await? {
+                            Value::String(ref v) => res.push_str(v),
+                            Value::Number(ref v) => res.push_str(&v.to_string()),
+                            _ => return Err(Error::msg(format!(
+                                "Tried to concat a value that is not a string or a number from function call {}",
+                                fn_call.name
+                            ))),
+                        },
+                        _ => return Err(Error::msg(format!("Unimplemented expression found in line {:?} [{:?}]", s, expr.val))),
+                    };
+                }
+
+                Cow::Owned(Value::String(res))
+            }
+            ExprVal::Int(val) => Cow::Owned(Value::Number(val.into())),
+            ExprVal::Float(val) => Cow::Owned(Value::Number(Number::from_f64(val).unwrap())),
+            ExprVal::Bool(val) => Cow::Owned(Value::Bool(val)),
+            ExprVal::Ident(ref ident) => {
+                needs_escape = ident != MAGICAL_DUMP_VAR;
+                // Negated idents are special cased as `not undefined_ident` should not
+                // error but instead be falsy values
+                match self.lookup_ident(ident) {
+                    Ok(val) => {
+                        if val.is_null() && expr.has_default_filter() {
+                            self.get_default_value(expr, body_recursion_level)?
+                        } else {
+                            val
+                        }
+                    }
+                    Err(e) => {
+                        if expr.has_default_filter() {
+                            self.get_default_value(expr, body_recursion_level)?
+                        } else {
+                            if !expr.negated {
+                                return Err(e);
+                            }
+                            // A negative undefined ident is !false so truthy
+                            return Ok(Cow::Owned(Value::Bool(true)));
+                        }
+                    }
+                }
+            }
+            ExprVal::FunctionCall(ref fn_call) => {
+                self.eval_tera_fn_call_async(fn_call, &mut needs_escape, body_recursion_level)
+                    .await?
+            }
+            ExprVal::MacroCall(ref macro_call) => {
+                // Render to string doesnt support async yet so just do it ourselves
+                /*
+                pub(crate) fn render_to_string<C, F, E>(context: C, render: F) -> Result<String, Error>
+                where
+                    C: FnOnce() -> String,
+                    F: FnOnce(&mut Vec<u8>) -> Result<(), E>,
+                    Error: From<E>,
+                {
+                    let mut buffer = Vec::new();
+                    render(&mut buffer).map_err(Error::from)?;
+                    buffer_to_string(context, buffer)
+                }
+                */
+
+                let mut buffer = Vec::new();
+                self.eval_macro_call_async(macro_call, &mut buffer, body_recursion_level).await?;
+                let body =
+                    crate::utils::buffer_to_string(|| format!("macro {}", macro_call.name), buffer)
+                        .map_err(Error::from)?;
+
+                Cow::Owned(Value::String(body))
+            }
+            ExprVal::Test(ref test) => {
+                Cow::Owned(Value::Bool(self.eval_test(test, body_recursion_level)?))
+            }
+            ExprVal::Logic(_) => {
+                Cow::Owned(Value::Bool(self.eval_as_bool(expr, body_recursion_level)?))
+            }
+            ExprVal::Math(_) => match self.eval_as_number(&expr.val, body_recursion_level) {
+                Ok(Some(n)) => Cow::Owned(Value::Number(n)),
+                Ok(None) => Cow::Owned(Value::String("NaN".to_owned())),
+                Err(e) => return Err(Error::msg(e)),
+            },
+        };
+
+        for filter in &expr.filters {
+            if filter.name == "safe" || filter.name == "default" {
+                continue;
+            }
+            res = self.eval_filter(&res, filter, &mut needs_escape, body_recursion_level)?;
+        }
+
+        // We need to check if the expression is negated, thus turning it into a bool
+        if expr.negated {
+            return Ok(Cow::Owned(Value::Bool(!res.is_truthy())));
+        }
+
+        // Check for bitnot
+        if expr.bitnot {
+            match *res {
+                Value::Number(ref n) => {
+                    if let Some(n) = n.as_i64() {
+                        return Ok(Cow::Owned(Value::Number(Number::from(!n))));
+                    }
+                }
+                _ => {
+                    return Err(Error::msg(format!(
+                        "Tried to apply `bitnot` to a non-number value: {:?}",
+                        res
+                    )));
+                }
+            }
+        }
+
+        // Checks if it's a string and we need to escape it (if the last filter is `safe` we don't)
+        if self.should_escape && needs_escape && res.is_string() && !expr.is_marked_safe() {
+            res = Cow::Owned(
+                to_value(self.tera.get_escape_fn()(res.as_str().unwrap())).map_err(Error::json)?,
+            );
+        }
+
+        Ok(res)
+    }
+
     /// Render an expression and never escape its result
     fn safe_eval_expression(
         &mut self,
@@ -676,9 +849,36 @@ impl<'a> Processor<'a> {
         res
     }
 
+    /// Render an expression and never escape its result
+    ///
+    /// This is the async version of `safe_eval_expression`
+    #[cfg(feature = "async")]
+    async fn safe_eval_expression_async(
+        &mut self,
+        expr: &'a Expr,
+        body_recursion_level: usize,
+    ) -> Result<Val<'a>> {
+        let should_escape = self.should_escape;
+        self.should_escape = false;
+        let res = self.eval_expression_async(expr, body_recursion_level).await;
+        self.should_escape = should_escape;
+        res
+    }
+
     /// Evaluate a set tag and add the value to the right context
     fn eval_set(&mut self, set: &'a Set, body_recursion_level: usize) -> Result<()> {
         let assigned_value = self.safe_eval_expression(&set.value, body_recursion_level)?;
+        self.call_stack.add_assignment(&set.key[..], set.global, assigned_value)?;
+        Ok(())
+    }
+
+    #[cfg(feature = "async")]
+    /// Evaluate a set tag and add the value to the right context
+    ///
+    /// This is the async version of `eval_set`
+    async fn eval_set_async(&mut self, set: &'a Set, body_recursion_level: usize) -> Result<()> {
+        let assigned_value =
+            self.safe_eval_expression_async(&set.value, body_recursion_level).await?;
         self.call_stack.add_assignment(&set.key[..], set.global, assigned_value)?;
         Ok(())
     }
@@ -723,6 +923,33 @@ impl<'a> Processor<'a> {
             args.insert(
                 arg_name.to_string(),
                 self.safe_eval_expression(expr, body_recursion_level)
+                    .map_err(err_wrap)?
+                    .clone()
+                    .into_owned(),
+            );
+        }
+
+        Ok(Cow::Owned(tera_fn.call(&args).map_err(err_wrap)?))
+    }
+
+    #[cfg(feature = "async")]
+    async fn eval_tera_fn_call_async(
+        &mut self,
+        function_call: &'a FunctionCall,
+        needs_escape: &mut bool,
+        body_recursion_level: usize,
+    ) -> Result<Val<'a>> {
+        let tera_fn = self.tera.get_function(&function_call.name)?;
+        *needs_escape = !tera_fn.is_safe();
+
+        let err_wrap = |e| Error::call_function(&function_call.name, e);
+
+        let mut args = HashMap::with_capacity(function_call.args.len());
+        for (arg_name, expr) in &function_call.args {
+            args.insert(
+                arg_name.to_string(),
+                self.safe_eval_expression_async(expr, body_recursion_level)
+                    .await
                     .map_err(err_wrap)?
                     .clone()
                     .into_owned(),
@@ -779,6 +1006,62 @@ impl<'a> Processor<'a> {
         );
 
         self.render_body(&macro_definition.body, write, body_recursion_level)?;
+
+        self.call_stack.pop();
+
+        Ok(())
+    }
+
+    #[cfg(feature = "async")]
+    async fn eval_macro_call_async(
+        &mut self,
+        macro_call: &'a MacroCall,
+        write: &mut (impl Write + Send + Sync),
+        body_recursion_level: usize,
+    ) -> Result<()> {
+        let active_template_name = if let Some(block) = self.blocks.last() {
+            block.1
+        } else if self.template.name != self.template_root.name {
+            &self.template_root.name
+        } else {
+            &self.call_stack.active_template().name
+        };
+
+        let (macro_template_name, macro_definition) = self.macros.lookup_macro(
+            active_template_name,
+            &macro_call.namespace[..],
+            &macro_call.name[..],
+        )?;
+
+        let mut frame_context = FrameContext::with_capacity(macro_definition.args.len());
+
+        // First the default arguments
+        for (arg_name, default_value) in &macro_definition.args {
+            let value = match macro_call.args.get(arg_name) {
+                Some(val) => self.safe_eval_expression_async(val, body_recursion_level).await?,
+                None => match *default_value {
+                    Some(ref val) => {
+                        self.safe_eval_expression_async(val, body_recursion_level).await?
+                    }
+                    None => {
+                        return Err(Error::msg(format!(
+                            "Macro `{}` is missing the argument `{}`",
+                            macro_call.name, arg_name
+                        )));
+                    }
+                },
+            };
+            frame_context.insert(arg_name, value);
+        }
+
+        self.call_stack.push_macro_frame(
+            &macro_call.namespace,
+            &macro_call.name,
+            frame_context,
+            self.tera.get_template(macro_template_name)?,
+        );
+
+        self.render_body_async(&macro_definition.body, write, body_recursion_level).await?;
 
         self.call_stack.pop();
 
@@ -1572,9 +1855,9 @@ impl<'a> Processor<'a> {
             Node::Comment(_, _) => (),
             Node::Text(ref s) | Node::Raw(_, ref s, _) => write!(write, "{}", s)?,
             Node::VariableBlock(_, ref expr) => {
-                self.eval_expression(expr, body_recursion_level)?.render(write)?
+                self.eval_expression_async(expr, body_recursion_level).await?.render(write)?
             }
-            Node::Set(_, ref set) => self.eval_set(set, body_recursion_level)?,
+            Node::Set(_, ref set) => self.eval_set_async(set, body_recursion_level).await?,
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
                 // Render to string doesnt support async yet so just do it ourselves
                 /*
