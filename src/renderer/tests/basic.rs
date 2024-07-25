@@ -1017,3 +1017,10 @@ fn test_zero_div_zero() {
     let err = format!("{:?}", r.err().unwrap());
     assert!(err.contains("division by zero"));
 }
+
+#[test]
+fn delete_variables() {
+    let mut tera = Tera::default();
+    let result = tera.render_str("{% set a = '1' %}{% delete a %}", &Context::new()).unwrap();
+    assert_eq!(result, "".to_owned());
+}

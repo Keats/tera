@@ -196,6 +196,15 @@ set_global_tag   = ${
     ~ "set_global" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ "=" ~ WHITESPACE* ~ (logic_expr | array_filter)
     ~ WHITESPACE* ~ tag_end
 }
+delete_tag      = ${
+    tag_start ~ WHITESPACE*
+    ~ "delete" ~ WHITESPACE+ ~ ident
+    ~ WHITESPACE* ~ tag_end
+}
+delete_global_tag = ${
+    tag_start ~ WHITESPACE*
+    ~ "delete_global" ~ WHITESPACE+ ~ ident ~ WHITESPACE* ~ tag_end
+}
 endblock_tag     = !{ tag_start ~ "endblock" ~ ident? ~ tag_end }
 endmacro_tag     = !{ tag_start ~ "endmacro" ~ ident? ~ tag_end }
 endif_tag        = !{ tag_start ~ "endif" ~ tag_end }
@@ -248,6 +257,8 @@ macro_content = @{
     comment_tag |
     set_tag |
     set_global_tag |
+    delete_tag |
+    delete_global_tag |
     macro_if |
     forloop |
     filter_section |
@@ -263,6 +274,8 @@ block_content = @{
     comment_tag |
     set_tag |
     set_global_tag |
+    delete_tag |
+    delete_global_tag |
     block |
     block_if |
     forloop |
@@ -278,6 +291,8 @@ for_content = @{
     comment_tag |
     set_tag |
     set_global_tag |
+    delete_tag |
+    delete_global_tag |
     for_if |
     forloop |
     break_tag |
@@ -293,6 +308,8 @@ content = @{
     comment_tag |
     set_tag |
     set_global_tag |
+    delete_tag |
+    delete_global_tag |
     block |
     content_if |
     forloop |

@@ -58,6 +58,7 @@ pub fn remove_whitespace(nodes: Vec<Node>, body_ws: Option<WS>) -> Vec<Node> {
             | Node::Extends(ws, _)
             | Node::Include(ws, _, _)
             | Node::Set(ws, _)
+            | Node::Delete(ws, _)
             | Node::Break(ws)
             | Node::Comment(ws, _)
             | Node::Continue(ws) => {

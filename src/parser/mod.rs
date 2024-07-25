@@ -764,6 +764,31 @@ fn parse_set_tag(pair: Pair<Rule>, global: bool) -> TeraResult<Node> {
     Ok(Node::Set(ws, Set { key: key.unwrap(), value: expr.unwrap(), global }))
 }
 
+fn parse_delete_tag(pair: Pair<Rule>, global: bool) -> TeraResult<Node> {
+    let mut ws = WS::default();
+    let mut key = None;
+
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::tag_start => {
+                ws.left = p.as_span().as_str() == "{%-";
+            }
+            Rule::tag_end => {
+                ws.right = p.as_span().as_str() == "-%}";
+            }
+            Rule::ident => key = Some(p.as_str().to_string()),
+            _ => {
+                return Err(Error::msg(format!(
+                    "PARSER ERROR: Unsupported rule {:?} in parse_delete_tag",
+                    p.as_rule()
+                )))
+            }
+        }
+    }
+
+    Ok(Node::Delete(ws, Delete { key: key.unwrap(), global }))
+}
+
 fn parse_raw_tag(pair: Pair<Rule>) -> Node {
     let mut start_ws = WS::default();
     let mut end_ws = WS::default();
@@ -1271,6 +1296,8 @@ fn parse_content(pair: Pair<Rule>) -> TeraResult<Vec<Node>> {
             Rule::super_tag => nodes.push(Node::Super),
             Rule::set_tag => nodes.push(parse_set_tag(p, false)?),
             Rule::set_global_tag => nodes.push(parse_set_tag(p, true)?),
+            Rule::delete_tag => nodes.push(parse_delete_tag(p, false)?),
+            Rule::delete_global_tag => nodes.push(parse_delete_tag(p, true)?),
             Rule::raw => nodes.push(parse_raw_tag(p)),
             Rule::variable_tag => nodes.push(parse_variable_tag(p)?),
             Rule::forloop => nodes.push(parse_forloop(p)?),
@@ -1373,6 +1400,8 @@ pub fn parse(input: &str) -> TeraResult<Vec<Node>> {
                     Rule::filter_section_content => "the filter section content".to_string(),
                     Rule::set_tag => "a `set` tag`".to_string(),
                     Rule::set_global_tag => "a `set_global` tag`".to_string(),
+                    Rule::delete_tag => "a `delete` tag`".to_string(),
+                    Rule::delete_global_tag => "a `delete_global` tag`".to_string(),
                     Rule::block_content | Rule::content | Rule::for_content => {
                         "some content".to_string()
                     },

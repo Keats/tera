@@ -272,6 +272,16 @@ pub struct Set {
     pub global: bool,
 }
 
+/// Set a variable in the context `{% delete val %}`
+#[derive(Clone, Debug, PartialEq)]
+pub struct Delete {
+    /// The name for that value in the context
+    pub key: String,
+    /// Whether we want to delete the variable globally or locally
+    /// global_delete is only useful in loops
+    pub global: bool,
+}
+
 /// A call to a namespaced macro `macros::my_macro()`
 #[derive(Clone, Debug, PartialEq)]
 pub struct MacroCall {
@@ -348,6 +358,9 @@ pub enum Node {
     ImportMacro(WS, String, String),
     /// The `{% set val = something %}` tag
     Set(WS, Set),
+
+    /// The `{% delete val %}` tag
+    Delete(WS, Delete),
 
     /// The text between `{% raw %}` and `{% endraw %}`
     Raw(WS, String, WS),

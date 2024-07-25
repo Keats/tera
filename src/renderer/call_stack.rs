@@ -137,6 +137,17 @@ impl<'a> CallStack<'a> {
         Ok(())
     }
 
+    /// Deletes an assignment value (via {% delete ... %} and {% delete_global ... %} )
+    ///
+    /// This returns the deleted value
+    pub fn delete_assignment(&mut self, key: &'a str, global: bool) -> Result<Val<'a>> {
+        if global {
+            self.global_frame_mut().remove(key)
+        } else {
+            self.current_frame_mut().remove(key)
+        }
+    }
+
     /// Breaks current for loop
     pub fn break_for_loop(&mut self) -> Result<()> {
         match self.current_frame_mut().for_loop {

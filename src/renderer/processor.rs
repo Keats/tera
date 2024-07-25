@@ -883,6 +883,13 @@ impl<'a> Processor<'a> {
         Ok(())
     }
 
+    /// Evaluate a delete tag and remove the value from the right context
+    ///
+    /// Unlike set, there is no async mode for delete as delete just removes a value from the context
+    fn eval_delete(&mut self, delete: &'a Delete) -> Result<Val<'a>> {
+        self.call_stack.delete_assignment(&delete.key[..], delete.global)
+    }
+
     fn eval_test(&mut self, test: &'a Test, body_recursion_level: usize) -> Result<bool> {
         let tester_fn = self.tera.get_tester(&test.name)?;
         let err_wrap = |e| Error::call_test(&test.name, e);
@@ -1771,6 +1778,9 @@ impl<'a> Processor<'a> {
                 self.eval_expression(expr, body_recursion_level)?.render(write)?
             }
             Node::Set(_, ref set) => self.eval_set(set, body_recursion_level)?,
+            Node::Delete(_, ref del) => {
+                self.eval_delete(del)?; // TODO: What should happen to the existing value?
+            }
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
                 let body = render_to_string(
                     || format!("filter {}", filter.name),
@@ -1858,6 +1868,9 @@ impl<'a> Processor<'a> {
                 self.eval_expression_async(expr, body_recursion_level).await?.render(write)?
             }
             Node::Set(_, ref set) => self.eval_set_async(set, body_recursion_level).await?,
+            Node::Delete(_, ref del) => {
+                self.eval_delete(del)?; // TODO: What should happen to the existing value?
+            }
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
                 // Render to string doesnt support async yet so just do it ourselves
                 /*

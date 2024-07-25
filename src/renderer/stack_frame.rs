@@ -214,6 +214,10 @@ impl<'a> StackFrame<'a> {
         Ok(())
     }
 
+    pub fn remove(&mut self, key: &str) -> Result<Val<'a>> {
+        self.context.remove(key).ok_or_else(|| Error::msg(format!("Key {} not found", key)))
+    }
+
     /// Context is cleared on each loop
     pub fn clear_context(&mut self) {
         if self.for_loop.is_some() {

@@ -841,6 +841,24 @@ fn parse_set_global_tag() {
 }
 
 #[test]
+fn parse_delete() {
+    let ast = parse("{% delete hello %}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::Delete(WS::default(), Delete { key: "hello".to_string(), global: false },)
+    );
+}
+
+#[test]
+fn parse_delete_global() {
+    let ast = parse("{% delete_global hello %}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::Delete(WS::default(), Delete { key: "hello".to_string(), global: true },)
+    );
+}
+
+#[test]
 fn parse_raw_tag() {
     let ast = parse("{% raw -%}{{hey}}{%- endraw %}").unwrap();
     let start_ws = WS { right: true, ..Default::default() };
