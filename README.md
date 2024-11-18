@@ -4,6 +4,7 @@
 [![Crates.io](https://img.shields.io/crates/v/tera.svg)](https://crates.io/crates/tera)
 [![Docs](https://docs.rs/tera/badge.svg)](https://docs.rs/crate/tera/)
 [![Gitter](https://badges.gitter.im/Tera-templates/community.svg)](https://gitter.im/Tera-templates/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20Tera%20Guru-006BFF)](https://gurubase.io/g/tera)
 
 Tera is a template engine inspired by [Jinja2](http://jinja.pocoo.org/) and the [Django template language](https://docs.djangoproject.com/en/3.1/topics/templates/).
 
