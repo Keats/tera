@@ -410,7 +410,12 @@ impl<'a> Processor<'a> {
                 }
             }
             ExprVal::FunctionCall(ref fn_call) => {
-                self.eval_tera_fn_call(fn_call, &mut needs_escape)?
+                let result = self.eval_tera_fn_call(fn_call, &mut needs_escape)?;
+                if result.is_null() && expr.has_default_filter() {
+                    self.get_default_value(expr)?
+                } else {
+                    result
+                }
             }
             ExprVal::MacroCall(ref macro_call) => {
                 let val = render_to_string(
