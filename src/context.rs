@@ -118,6 +118,11 @@ impl Context {
         self.data.get(index)
     }
 
+    /// Returns a mutable reference to the value at a given key index.
+    pub fn get_mut(&mut self, index: &str) -> Option<&mut Value> {
+        self.data.get_mut(index)
+    }
+
     /// Remove a key from the context, returning the value at the key if the key was previously inserted into the context.
     pub fn remove(&mut self, index: &str) -> Option<Value> {
         self.data.remove(index)
