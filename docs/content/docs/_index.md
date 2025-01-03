@@ -112,7 +112,7 @@ tera.autoescape_on(vec![".php.html"]);
 tera.autoescape_on(vec![]);
 ```
 
-Tera does not perform contextual auto-escaping, e.g. by parsing the template to know whether to escape JS, CSS or HTML (see 
+Tera does not perform contextual auto-escaping, e.g. by parsing the template to know whether to escape JS, CSS or HTML (see
 <https://rawgit.com/mikesamuel/sanitized-jquery-templates/trunk/safetemplate.html> for more details on that).
 
 ## Advanced usage
@@ -200,7 +200,7 @@ would be rendered as `Hello {{ name }}`.
 ### Whitespace control
 
 Tera comes with easy to use whitespace control: use `{%-` if you want to remove all whitespace
-before a statement and `-%}` if you want to remove all whitespace after. This behavior also 
+before a statement and `-%}` if you want to remove all whitespace after. This behavior also
 works with expressions, using `{{-` and `-}}`, and with comments, using `{#-` and `-#}`.
 
 For example, let's look at the following template:
@@ -853,6 +853,9 @@ Example: `{{ value | truncate(length=10) }}`
 By default, the filter will add an ellipsis at the end if the text was truncated. You can
 change the string appended by setting the `end` argument.
 For example, `{{ value | truncate(length=10, end="") }}` will not append anything.
+
+In addition, to truncate but not cut off mid-word, you can set `killwords` argument to `true`.
+For example, `{{ value | truncate(length=10, killwords=true) }}` will truncate the string and discard the last word.
 
 #### linebreaksbr
 Replaces line breaks (`\n` or `\r\n`) with HTML line breaks (`<br>`).
