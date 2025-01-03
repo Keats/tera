@@ -148,6 +148,8 @@ pub fn trim_end_matches(value: &Value, args: &HashMap<String, Value>) -> Result<
 ///   returned untouched. The default value is 255.
 /// * `end`     - The ellipsis string to be used if the given string is
 ///   truncated. The default value is "…".
+/// * `killwords` - If true, the string will be truncated by discarding the
+///    last word. The default value is false.
 ///
 /// # Remarks
 ///
@@ -164,6 +166,10 @@ pub fn truncate(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Some(l) => try_get_value!("truncate", "end", String, l),
         None => "…".to_string(),
     };
+    let killwords = match args.get("killwords") {
+        Some(l) => try_get_value!("truncate", "killwords", bool, l),
+        None => false,
+    };
 
     let graphemes = GraphemeIndices::new(&s).collect::<Vec<(usize, &str)>>();
 
@@ -172,7 +178,13 @@ pub fn truncate(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         return Ok(to_value(&s).unwrap());
     }
 
-    let result = s[..graphemes[length].0].to_string() + &end;
+    let mut result = s[..graphemes[length].0].to_string();
+    if killwords {
+        let last_word = result.rfind(' ').unwrap_or(result.len());
+        result.truncate(last_word);
+    }
+    result = result + &end;
+
     Ok(to_value(result).unwrap())
 }
 
@@ -555,6 +567,29 @@ mod tests {
         let result = truncate(&to_value("👨‍👩‍👧‍👦 family").unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("👨‍👩‍👧‍👦 fam…").unwrap());
+    }
+
+    #[test]
+    fn test_truncate_killwords() {
+        let mut args = HashMap::new();
+        args.insert("length".to_string(), to_value(24).unwrap());
+        args.insert("killwords".to_string(), to_value(true).unwrap());
+        let result = truncate(
+            &to_value("Lorem ipsum dolor sit amet, consectetur adipiscing elit.").unwrap(),
+            &args,
+        );
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("Lorem ipsum dolor sit…").unwrap());
+    }
+
+    #[test]
+    fn test_truncate_killwords_but_shorter_than_length() {
+        let mut args = HashMap::new();
+        args.insert("length".to_string(), to_value(12).unwrap());
+        args.insert("killwords".to_string(), to_value(true).unwrap());
+        let result = truncate(&to_value("Lorem ipsum").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("Lorem ipsum").unwrap());
     }
 
     #[test]
