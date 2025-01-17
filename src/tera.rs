@@ -76,6 +76,8 @@ pub struct Tera {
     pub autoescape_suffixes: Vec<&'static str>,
     #[doc(hidden)]
     escape_fn: EscapeFn,
+    #[doc(hidden)]
+    default_context: Option<Context>,
 }
 
 impl Tera {
@@ -95,6 +97,7 @@ impl Tera {
             testers: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
             escape_fn: escape_html,
+            default_context: None,
         };
 
         tera.load_from_glob()?;
@@ -608,6 +611,23 @@ impl Tera {
         Ok(())
     }
 
+    /// Set a default context used by `create_context()`
+    pub fn set_default_context(&mut self, default_context: Context) -> Result<()> {
+        self.default_context = Some(default_context);
+        Ok(())
+    }
+
+    /// Create Tera Context with default context values (if set)
+    pub fn create_context(&self) -> Context {
+        let mut context = Context::new();
+
+        if let Some(default_context) = &self.default_context {
+            context.extend(default_context.clone())
+        }
+
+        context
+    }
+
     #[doc(hidden)]
     #[inline]
     pub fn get_filter(&self, filter_name: &str) -> Result<&dyn Filter> {
@@ -899,6 +919,7 @@ impl Default for Tera {
             functions: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
             escape_fn: escape_html,
+            default_context: None,
         };
 
         tera.register_tera_filters();
@@ -1363,5 +1384,37 @@ mod tests {
         println!("{:?}", tera);
         assert!(tera.is_ok());
         assert!(tera.unwrap().templates.is_empty());
+    }
+
+    #[test]
+    fn test_default_context() {
+        let mut my_tera = Tera::default();
+        let mut default_context = Context::new();
+
+        default_context.insert("default_val0", "0");
+        default_context.insert("default_val1", "1");
+
+        let _ = my_tera.set_default_context(default_context);
+
+        let new_context = my_tera.create_context();
+
+        let val = new_context.get("default_val0");
+        assert_eq!(val.unwrap().as_str().unwrap(), "0");
+
+        let val = new_context.get("default_val1");
+        assert_eq!(val.unwrap().as_str().unwrap(), "1");
+
+        let val = new_context.get("default_val3");
+        assert!(val.is_none());
+    }
+
+    #[test]
+    fn test_no_default_context() {
+        let my_tera = Tera::default();
+
+        let new_context = my_tera.create_context();
+
+        let val = new_context.get("default_val");
+        assert!(val.is_none());
     }
 }
