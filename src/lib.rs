@@ -71,7 +71,7 @@ mod tera;
 mod utils;
 
 // Library exports.
-
+pub use crate::builtins::*;
 pub use crate::builtins::filters::Filter;
 pub use crate::builtins::functions::Function;
 pub use crate::builtins::testers::Test;
