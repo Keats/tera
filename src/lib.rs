@@ -56,8 +56,6 @@
 //! [Jinja2]: http://jinja.pocoo.org/
 //! [Django]: https://docs.djangoproject.com/en/3.1/topics/templates/
 
-#![deny(missing_docs)]
-
 #[macro_use]
 mod macros;
 mod builtins;
