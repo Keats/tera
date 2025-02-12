@@ -483,6 +483,34 @@ pub fn concat(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(arr).unwrap())
 }
 
+/// Split the array with `size`
+/// and fill the empty slots with the `default` argument
+pub fn batch(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let arr = try_get_value!("batch", "value", Vec<Value>, value);
+    if arr.is_empty() {
+        return Ok(arr.into());
+    }
+
+    let size = match args.get("size") {
+        Some(val) => get_index(try_get_value!("batch", "size", f64, val), &arr),
+        None => 0,
+    };
+    let value = args.get("default").unwrap_or(&Value::Null);
+
+    let arr = arr.chunks(size)
+        .map(|chunk| {
+            let mut chunk = chunk.to_vec();
+            if chunk.len() < size {
+                for _ in 0..(size - chunk.len()) {
+                    chunk.push(value.clone());
+                }
+            }
+            chunk
+        })
+        .collect::<Vec<Vec<Value>>>();
+    Ok(to_value(arr).unwrap())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1328,6 +1356,45 @@ mod tests {
         let expected = json!([1, 2, 3, 4,]);
 
         let res = concat(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_batch() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": true},
+            {"id": 3, "year": 2016.5},
+            {"id": 4, "year": "2017"},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": [1900, 1901]},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("size".to_string(), to_value(3).unwrap());
+        args.insert("default".to_string(), json!({"id": 0}));
+
+        let expected =
+            json!([
+                [
+                    {"id": 1, "year": 2015},
+                    {"id": 2, "year": true},
+                    {"id": 3, "year": 2016.5},
+                ],
+                [
+                    {"id": 4, "year": "2017"},
+                    {"id": 5, "year": 2017},
+                    {"id": 6, "year": 2017},
+                ],
+                [
+                    {"id": 7, "year": [1900, 1901]},
+                    {"id": 0},
+                    {"id": 0}
+                ]
+            ]);
+
+        let res = batch(&input, &args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }

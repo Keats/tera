@@ -710,6 +710,7 @@ impl Tera {
         self.register_filter("filter", array::filter);
         self.register_filter("map", array::map);
         self.register_filter("concat", array::concat);
+        self.register_filter("batch", array::batch);
 
         self.register_filter("abs", number::abs);
         self.register_filter("pluralize", number::pluralize);
