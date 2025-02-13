@@ -493,7 +493,7 @@ pub fn batch(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     let size = match args.get("size") {
         Some(val) => get_index(try_get_value!("batch", "size", f64, val), &arr),
-        None => 0,
+        None => return Err(Error::msg("The `batch` filter has to have a `size` argument")),
     };
     let value = args.get("default").unwrap_or(&Value::Null);
 
