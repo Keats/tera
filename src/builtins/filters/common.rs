@@ -62,7 +62,7 @@ pub fn json_encode(value: &Value, args: &HashMap<String, Value>) -> Result<Value
 /// Returns a formatted time according to the given `format` argument.
 /// `format` defaults to the ISO 8601 `YYYY-MM-DD` format.
 ///
-/// Input can be an i64 timestamp (seconds since epoch) or an RFC3339 string
+/// Input can be an i64 timestamp (seconds since epoch) or an RFC3339 or RFC2822 string
 /// (default serialization format for `chrono::DateTime`).
 ///
 /// a full reference for the time formatting syntax is available
@@ -121,7 +121,17 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                 }
             },
             Value::String(s) => {
-                if s.contains('T') {
+                if s.chars().filter(|&c| c == ' ').count() >= 3 {
+                    match DateTime::parse_from_rfc2822(s) {
+                        Ok(val) => val.format(&format),
+                        Err(_) => {
+                            return Err(Error::msg(format!(
+                                "Error parsing `{:?}` as rfc2822 date",
+                                s
+                            )));
+                        }
+                    }
+                } else if s.contains('T') {
                     match s.parse::<DateTime<FixedOffset>>() {
                         Ok(val) => match timezone {
                             Some(timezone) => {
@@ -183,7 +193,14 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
             None => return Err(Error::msg(format!("Filter `date` was invoked on a float: {}", n))),
         },
         Value::String(s) => {
-            if s.contains('T') {
+            if s.chars().filter(|&c| c == ' ').count() >= 3 {
+                match DateTime::parse_from_rfc2822(s) {
+                    Ok(val) => val.format(&format),
+                    Err(_) => {
+                        return Err(Error::msg(format!("Error parsing `{:?}` as rfc2822 date", s)));
+                    }
+                }
+            } else if s.contains('T') {
                 match s.parse::<DateTime<FixedOffset>>() {
                     Ok(val) => match timezone {
                         Some(timezone) => val.with_timezone(&timezone).format(&format),
@@ -369,6 +386,26 @@ mod tests {
         let result = date(&to_value("1996-12-19T16:39:57-08:00").unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("1996-12-19 -0800").unwrap());
+    }
+
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn date_rfc2822() {
+        let args = HashMap::new();
+        let dt: DateTime<Local> = Local::now();
+        let result = date(&to_value(dt.to_rfc2822()).unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(dt.format("%Y-%m-%d").to_string()).unwrap());
+    }
+
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn date_rfc2822_preserves_timezone() {
+        let mut args = HashMap::new();
+        args.insert("format".to_string(), to_value("%Y-%m-%d %z").unwrap());
+        let result = date(&to_value("Wed, 18 Feb 2015 23:16:09 GMT").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("2015-02-18 +0000").unwrap());
     }
 
     #[cfg(feature = "builtins")]

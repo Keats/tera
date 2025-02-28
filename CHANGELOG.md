@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.20.1 (2025-03-00)
+
+- Make `date` filter work on a RFC3339 string as well thanks to @blfpd
+
 ## 1.20.0 (2024-05-27)
 
 - Support parenthesis in if statemetns
