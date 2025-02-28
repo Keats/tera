@@ -1215,6 +1215,8 @@ Example:
 {{ "2019-09-19T13:18:48.731Z" | date(format="%Y-%m-%d %H:%M", timezone="Asia/Shanghai") }}
 
 {{ 1648252203 | date(timezone="Europe/Berlin") }}
+
+{{ "Thu, 19 09 2019 13:18:48 GMT" | date(timezone="UTC") }}
 ```
 
 Locale can be specified (excepted when the input is a timestamp without timezone argument), default being POSIX. (only available if the `date-locale` feature is enabled)
