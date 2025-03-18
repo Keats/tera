@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en-gb">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Tera - A template engine for Rust inspired by Jinja2 and Django templates">
+        <meta name="author" content="Vincent Prouillet">
+        <title>Tera</title>
+        <link rel="stylesheet" href="https://keats.github.io/tera/app.css"/>
+        
+    </head>
+    <body>
+
+        <header>
+            <div class="container">
+                <nav>
+                    <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;">Tera</a>
+                    <a href="https://keats.github.io/tera/docs/" class="nav-link">Documentation</a>
+<!--                    <a href="https://keats.github.io/tera/playground/" class="nav-link">Playground</a>-->
+                    <a href="https://docs.rs/tera" class="nav-link">API Docs</a>
+                </nav>
+
+                
+
+            </div>
+
+            <a href="https://github.com/Keats/tera" class="github-corner" aria-label="View source on Github">
+                <svg width="65" height="65" viewBox="0 0 250 250" style="fill:#fff; color:#151513; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
+                    <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
+                </svg>
+            </a>
+        </header>
+
+        
+    <div class="container">
+        <nav class="docs__sidebar">
+            <ul>
+                
+                    
+                    <li>
+                        <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#getting-started">Getting started</a>
+                        
+                    </li>
+                
+                    
+                    <li>
+                        <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#usage">Usage</a>
+                        
+                            <ul>
+                                
+                                    
+                                    <li>
+                                        <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#auto-escaping">Auto-escaping</a>
+                                        
+                                    </li>
+                                
+                                    
+                                    <li>
+                                        <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#advanced-usage">Advanced usage</a>
+                                        
+                                            <input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-2-2-open"/><label aria-hidden="true" for="docs-2-2-open"></label>
+                                            <ul>
+                                                <li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#extending-another-instance">Extending another instance</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#reloading">Reloading</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#loading-templates-from-strings">Loading templates from strings</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#render-a-one-off-template">Render a one off template</a></li>
+                                            </ul>
+                                        
+                                    </li>
+                                
+                            </ul>
+                        
+                    </li>
+                
+                    
+                    <li>
+                        <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#templates">Templates</a>
+                        
+                            <ul>
+                                
+                                    
+                                    <li>
+                                        <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#introduction">Introduction</a>
+                                        
+                                            <input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-3-1-open"/><label aria-hidden="true" for="docs-3-1-open"></label>
+                                            <ul>
+                                                <li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#tera-basics">Tera Basics</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#raw">Raw</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#whitespace-control">Whitespace control</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#comments">Comments</a></li>
+                                            </ul>
+                                        
+                                    </li>
+                                
+                                    
+                                    <li>
+                                        <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#data-structures">Data structures</a>
+                                        
+                                            <input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-3-2-open"/><label aria-hidden="true" for="docs-3-2-open"></label>
+                                            <ul>
+                                                <li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#literals">Literals</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#variables">Variables</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#expressions">Expressions</a></li>
+                                            </ul>
+                                        
+                                    </li>
+                                
+                                    
+                                    <li>
+                                        <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#manipulating-data">Manipulating data</a>
+                                        
+                                            <input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-3-3-open"/><label aria-hidden="true" for="docs-3-3-open"></label>
+                                            <ul>
+                                                <li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#assignments">Assignments</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#filters">Filters</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#tests">Tests</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#functions">Functions</a></li>
+                                            </ul>
+                                        
+                                    </li>
+                                
+                                    
+                                    <li>
+                                        <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#control-structures">Control structures</a>
+                                        
+                                            <input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-3-4-open"/><label aria-hidden="true" for="docs-3-4-open"></label>
+                                            <ul>
+                                                <li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#if">If</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#for">For</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#include">Include</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#macros">Macros</a></li>
+                                            </ul>
+                                        
+                                    </li>
+                                
+                                    
+                                    <li>
+                                        <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#inheritance">Inheritance</a>
+                                        
+                                            <input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-3-5-open"/><label aria-hidden="true" for="docs-3-5-open"></label>
+                                            <ul>
+                                                <li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#base-template">Base template</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#child-template">Child template</a></li>
+                                            </ul>
+                                        
+                                    </li>
+                                
+                                    
+                                    <li>
+                                        <a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#built-ins">Built-ins</a>
+                                        
+                                            <input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-3-6-open"/><label aria-hidden="true" for="docs-3-6-open"></label>
+                                            <ul>
+                                                <li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#built-in-filters">Built-in filters</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#built-in-tests">Built-in tests</a></li><li><a href="https:&#x2F;&#x2F;keats.github.io&#x2F;tera&#x2F;docs&#x2F;#built-in-functions">Built-in functions</a></li>
+                                            </ul>
+                                        
+                                    </li>
+                                
+                            </ul>
+                        
+                    </li>
+                
+            </ul>
+
+        </nav>
+        <main class="docs__content">
+            
+                <h1 id="getting-started">Getting started<a class="zola-anchor" href="#getting-started" aria-label="Anchor link for: getting-started">🔗</a></h1>
+<p>To use Tera in your Rust projects, simply add it to your <code>Cargo.toml</code>:</p>
+<pre data-lang="toml" style="background-color:#272822;color:#f8f8f2;" class="language-toml "><code class="language-toml" data-lang="toml"><span style="color:#f92672;">tera </span><span>= </span><span style="color:#e6db74;">&quot;1&quot;
+</span></code></pre>
+<p>By default, Tera comes with some additional dependencies required for the <code>truncate</code>, <code>date</code>, <code>filesizeformat</code>, <code>slugify</code>, <code>urlencode</code> and <code>urlencode_strict</code> filters as
+well as for the <code>now</code> function. You can disable them by setting the following in your <code>Cargo.toml</code>:</p>
+<pre data-lang="toml" style="background-color:#272822;color:#f8f8f2;" class="language-toml "><code class="language-toml" data-lang="toml"><span style="color:#f92672;">tera </span><span>= { </span><span style="color:#f92672;">version </span><span>= </span><span style="color:#e6db74;">&quot;1&quot;</span><span>, </span><span style="color:#f92672;">default-features </span><span>= </span><span style="color:#ae81ff;">false </span><span>}
+</span></code></pre>
+<p>And add the following to your <code>lib.rs</code> or <code>main.rs</code> if you are not using Rust 2018 edition or later:</p>
+<pre data-lang="rs" style="background-color:#272822;color:#f8f8f2;" class="language-rs "><code class="language-rs" data-lang="rs"><span style="color:#f92672;">extern crate</span><span> tera;
+</span></code></pre>
+<p>You can view everything Tera exports on the <a href="https://docs.rs/tera">API docs</a>.</p>
+<h1 id="usage">Usage<a class="zola-anchor" href="#usage" aria-label="Anchor link for: usage">🔗</a></h1>
+<p>The primary method of using Tera is to load and parse all the templates in a given glob.</p>
+<p>Let's take the following directory as example.</p>
+<pre data-lang="sh" style="background-color:#272822;color:#f8f8f2;" class="language-sh "><code class="language-sh" data-lang="sh"><span>templates/
+</span><span>  hello.html
+</span><span>  index.html
+</span><span>  products/
+</span><span>    product.html
+</span><span>    price.html
+</span></code></pre>
+<p>Assuming the Rust file is at the same level as the <code>templates</code> folder, we can get a Tera instance that way:</p>
+<pre data-lang="rs" style="background-color:#272822;color:#f8f8f2;" class="language-rs "><code class="language-rs" data-lang="rs"><span style="color:#f92672;">use </span><span>tera::Tera;
+</span><span>
+</span><span style="color:#75715e;">// Use globbing
+</span><span style="font-style:italic;color:#66d9ef;">let</span><span> tera </span><span style="color:#f92672;">= match </span><span>Tera::new(</span><span style="color:#e6db74;">&quot;templates/**/*.html&quot;</span><span>) {
+</span><span>    </span><span style="font-style:italic;color:#66d9ef;">Ok</span><span>(t) </span><span style="color:#f92672;">=&gt;</span><span> t,
+</span><span>    </span><span style="font-style:italic;color:#66d9ef;">Err</span><span>(e) </span><span style="color:#f92672;">=&gt; </span><span>{
+</span><span>        println!(</span><span style="color:#e6db74;">&quot;Parsing error(s): </span><span style="color:#ae81ff;">{}</span><span style="color:#e6db74;">&quot;</span><span>, e);
+</span><span>        ::std::process::exit(</span><span style="color:#ae81ff;">1</span><span>);
+</span><span>    }
+</span><span>};
+</span></code></pre>
+<p>Compiling templates is a step that is meant to only happen once: use something like <a href="https://crates.io/crates/lazy_static">lazy_static</a>
+to define a constant instance.</p>
+<pre data-lang="rs" style="background-color:#272822;color:#f8f8f2;" class="language-rs "><code class="language-rs" data-lang="rs"><span>lazy_static! {
+</span><span>    </span><span style="color:#f92672;">pub </span><span style="font-style:italic;color:#66d9ef;">static </span><span style="color:#f92672;">ref </span><span style="color:#ae81ff;">TEMPLATES</span><span>: Tera </span><span style="color:#f92672;">= </span><span>{
+</span><span>        </span><span style="font-style:italic;color:#66d9ef;">let </span><span style="color:#f92672;">mut</span><span> tera </span><span style="color:#f92672;">= match </span><span>Tera::new(</span><span style="color:#e6db74;">&quot;examples/basic/templates/**/*&quot;</span><span>) {
+</span><span>            </span><span style="font-style:italic;color:#66d9ef;">Ok</span><span>(t) </span><span style="color:#f92672;">=&gt;</span><span> t,
+</span><span>            </span><span style="font-style:italic;color:#66d9ef;">Err</span><span>(e) </span><span style="color:#f92672;">=&gt; </span><span>{
+</span><span>                println!(</span><span style="color:#e6db74;">&quot;Parsing error(s): </span><span style="color:#ae81ff;">{}</span><span style="color:#e6db74;">&quot;</span><span>, e);
+</span><span>                ::std::process::exit(</span><span style="color:#ae81ff;">1</span><span>);
+</span><span>            }
+</span><span>        };
+</span><span>        tera.</span><span style="color:#66d9ef;">autoescape_on</span><span>(vec![</span><span style="color:#e6db74;">&quot;.html&quot;</span><span>, </span><span style="color:#e6db74;">&quot;.sql&quot;</span><span>]);
+</span><span>        tera.</span><span style="color:#66d9ef;">register_filter</span><span>(</span><span style="color:#e6db74;">&quot;do_nothing&quot;</span><span>, do_nothing_filter);
+</span><span>        tera
+</span><span>    };
+</span><span>}
+</span></code></pre>
+<p>You need two things to render a template: a name and a context.
+If you are using globs, Tera will automatically remove the glob prefix from the template names. To use our example from before,
+the template name for the file located at <code>templates/hello.html</code> will be <code>hello.html</code>.</p>
+<p>The context can either be a data structure that implements the <code>Serialize</code> trait from <code>serde_json</code> or an instance of <code>tera::Context</code>:</p>
+<pre data-lang="rs" style="background-color:#272822;color:#f8f8f2;" class="language-rs "><code class="language-rs" data-lang="rs"><span style="color:#f92672;">use </span><span>tera::Context;
+</span><span style="color:#75715e;">// Using the tera Context struct
+</span><span style="font-style:italic;color:#66d9ef;">let </span><span style="color:#f92672;">mut</span><span> context </span><span style="color:#f92672;">= </span><span>Context::new();
+</span><span>context.</span><span style="color:#66d9ef;">insert</span><span>(</span><span style="color:#e6db74;">&quot;product&quot;</span><span>, </span><span style="color:#f92672;">&amp;</span><span>product);
+</span><span>context.</span><span style="color:#66d9ef;">insert</span><span>(</span><span style="color:#e6db74;">&quot;vat_rate&quot;</span><span>, </span><span style="color:#f92672;">&amp;</span><span style="color:#ae81ff;">0.20</span><span>);
+</span><span>tera.</span><span style="color:#66d9ef;">render</span><span>(</span><span style="color:#e6db74;">&quot;products/product.html&quot;</span><span>, </span><span style="color:#f92672;">&amp;</span><span>context)</span><span style="color:#f92672;">?</span><span>;
+</span><span>
+</span><span>#[derive(Serialize)]
+</span><span style="font-style:italic;color:#66d9ef;">struct </span><span>Product {
+</span><span>    name: String
+</span><span>}
+</span><span style="color:#75715e;">// or a struct
+</span><span>tera.</span><span style="color:#66d9ef;">render</span><span>(</span><span style="color:#e6db74;">&quot;products/product.html&quot;</span><span>, </span><span style="color:#f92672;">&amp;</span><span>Context::from_serialize(</span><span style="color:#f92672;">&amp;</span><span>product)</span><span style="color:#f92672;">?</span><span>)</span><span style="color:#f92672;">?</span><span>;
+</span></code></pre>
+<h2 id="auto-escaping">Auto-escaping<a class="zola-anchor" href="#auto-escaping" aria-label="Anchor link for: auto-escaping">🔗</a></h2>
+<p>By default, Tera will auto-escape all content in files ending with <code>&quot;.html&quot;</code>, <code>&quot;.htm&quot;</code> and <code>&quot;.xml&quot;</code>.
+Escaping follows the recommendations from <a href="https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet">OWASP</a>.</p>
+<p>You can override that or completely disable auto-escaping by calling the <code>autoescape_on</code> method:</p>
+<pre data-lang="rs" style="background-color:#272822;color:#f8f8f2;" class="language-rs "><code class="language-rs" data-lang="rs"><span style="color:#75715e;">// escape only files ending with `.php.html`
+</span><span>tera.</span><span style="color:#66d9ef;">autoescape_on</span><span>(vec![</span><span style="color:#e6db74;">&quot;.php.html&quot;</span><span>]);
+</span><span style="color:#75715e;">// disable autoescaping completely
+</span><span>tera.</span><span style="color:#66d9ef;">autoescape_on</span><span>(vec![]);
+</span></code></pre>
+<p>Tera does not perform contextual auto-escaping, e.g. by parsing the template to know whether to escape JS, CSS or HTML (see 
+<a href="https://rawgit.com/mikesamuel/sanitized-jquery-templates/trunk/safetemplate.html">https://rawgit.com/mikesamuel/sanitized-jquery-templates/trunk/safetemplate.html</a> for more details on that).</p>
+<h2 id="advanced-usage">Advanced usage<a class="zola-anchor" href="#advanced-usage" aria-label="Anchor link for: advanced-usage">🔗</a></h2>
+<h3 id="extending-another-instance">Extending another instance<a class="zola-anchor" href="#extending-another-instance" aria-label="Anchor link for: extending-another-instance">🔗</a></h3>
+<p>If you are using a framework or a library using Tera, chances are they provide their own Tera instance with some
+built-in templates, filters, global functions or testers. Tera offers an <code>extend</code> method that will extend your own
+instance with everything mentioned before:</p>
+<pre data-lang="rs" style="background-color:#272822;color:#f8f8f2;" class="language-rs "><code class="language-rs" data-lang="rs"><span style="font-style:italic;color:#66d9ef;">let </span><span style="color:#f92672;">mut</span><span> tera </span><span style="color:#f92672;">= </span><span>Tera::new(</span><span style="color:#f92672;">&amp;</span><span>tpl_glob).</span><span style="color:#66d9ef;">chain_err</span><span>(|| </span><span style="color:#e6db74;">&quot;Error parsing templates&quot;</span><span>)</span><span style="color:#f92672;">?</span><span>;
+</span><span style="color:#75715e;">// ZOLA_TERA is an instance present in a library
+</span><span>tera.</span><span style="color:#66d9ef;">extend</span><span>(</span><span style="color:#f92672;">&amp;</span><span style="color:#ae81ff;">ZOLA_TERA</span><span>)</span><span style="color:#f92672;">?</span><span>;
+</span></code></pre>
+<p>If anything - templates, filters, etc - with the same name exists in both instances, Tera will only keep yours.</p>
+<h3 id="reloading">Reloading<a class="zola-anchor" href="#reloading" aria-label="Anchor link for: reloading">🔗</a></h3>
+<p>If you are watching a directory and want to reload templates on change (editing/adding/removing a template), Tera gives
+the <code>full_reload</code> method:</p>
+<pre data-lang="rs" style="background-color:#272822;color:#f8f8f2;" class="language-rs "><code class="language-rs" data-lang="rs"><span>tera.</span><span style="color:#66d9ef;">full_reload</span><span>()</span><span style="color:#f92672;">?</span><span>;
+</span></code></pre>
+<p>Note that reloading is only available if you are loading templates with a glob.</p>
+<h3 id="loading-templates-from-strings">Loading templates from strings<a class="zola-anchor" href="#loading-templates-from-strings" aria-label="Anchor link for: loading-templates-from-strings">🔗</a></h3>
+<p>Tera allows you to load templates not only from files but also from plain strings.</p>
+<pre data-lang="rs" style="background-color:#272822;color:#f8f8f2;" class="language-rs "><code class="language-rs" data-lang="rs"><span style="color:#75715e;">// one template only
+</span><span style="font-style:italic;color:#66d9ef;">let </span><span style="color:#f92672;">mut</span><span> tera </span><span style="color:#f92672;">= </span><span>Tera::default();
+</span><span>tera.</span><span style="color:#66d9ef;">add_raw_template</span><span>(</span><span style="color:#e6db74;">&quot;hello.html&quot;</span><span>, </span><span style="color:#e6db74;">&quot;the body&quot;</span><span>)</span><span style="color:#f92672;">?</span><span>;
+</span><span>
+</span><span style="color:#75715e;">// many templates
+</span><span style="font-style:italic;color:#66d9ef;">let </span><span style="color:#f92672;">mut</span><span> tera </span><span style="color:#f92672;">= </span><span>Tera::default();
+</span><span>tera.</span><span style="color:#66d9ef;">add_raw_templates</span><span>(vec![
+</span><span>    (</span><span style="color:#e6db74;">&quot;grandparent&quot;</span><span>, </span><span style="color:#e6db74;">&quot;{% block hey %}hello{% endblock hey %}&quot;</span><span>),
+</span><span>    (</span><span style="color:#e6db74;">&quot;parent&quot;</span><span>, </span><span style="color:#e6db74;">&quot;{% extends </span><span style="color:#ae81ff;">\&quot;</span><span style="color:#e6db74;">grandparent</span><span style="color:#ae81ff;">\&quot;</span><span style="color:#e6db74;"> %}{% block hey %}Parent{% endblock hey %}&quot;</span><span>),
+</span><span>])</span><span style="color:#f92672;">?</span><span>;
+</span></code></pre>
+<p>If some templates are related, for example one extending the other, you will need to use the <code>add_raw_templates</code> method
+as Tera will error if it find inconsistencies such as extending a template that Tera doesn't know about.</p>
+<h3 id="render-a-one-off-template">Render a one off template<a class="zola-anchor" href="#render-a-one-off-template" aria-label="Anchor link for: render-a-one-off-template">🔗</a></h3>
+<p>Want to render a single template, for example one coming from a user? The <code>one_off</code> function is there for that.</p>
+<pre data-lang="rs" style="background-color:#272822;color:#f8f8f2;" class="language-rs "><code class="language-rs" data-lang="rs"><span style="color:#75715e;">// The last parameter is whether we want to autoescape the template or not.
+</span><span style="color:#75715e;">// Should be true in 99% of the cases for HTML
+</span><span style="font-style:italic;color:#66d9ef;">let</span><span> context </span><span style="color:#f92672;">= </span><span>Context::new();
+</span><span style="color:#75715e;">// add stuff to context
+</span><span style="font-style:italic;color:#66d9ef;">let</span><span> result </span><span style="color:#f92672;">= </span><span>Tera::one_off(user_tpl, context, </span><span style="color:#ae81ff;">true</span><span>);
+</span></code></pre>
+<h1 id="templates">Templates<a class="zola-anchor" href="#templates" aria-label="Anchor link for: templates">🔗</a></h1>
+<h2 id="introduction">Introduction<a class="zola-anchor" href="#introduction" aria-label="Anchor link for: introduction">🔗</a></h2>
+<h3 id="tera-basics">Tera Basics<a class="zola-anchor" href="#tera-basics" aria-label="Anchor link for: tera-basics">🔗</a></h3>
+<p>A Tera template is just a text file where variables and expressions get replaced with values
+when it is rendered. The syntax is based on Jinja2 and Django templates.</p>
+<p>There are 3 kinds of delimiters and those cannot be changed:</p>
+<ul>
+<li><code>{{</code> and <code>}}</code> for expressions</li>
+<li><code>{%</code> and <code>%}</code> for statements</li>
+<li><code>{#</code> and <code>#}</code> for comments</li>
+</ul>
+<h3 id="raw">Raw<a class="zola-anchor" href="#raw" aria-label="Anchor link for: raw">🔗</a></h3>
+<p>Tera will consider all text inside the <code>raw</code> block as a string and won't try to
+render what's inside. Useful if you have text that contains Tera delimiters.</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span style="color:#75715e;">{% </span><span style="color:#f92672;">raw </span><span style="color:#75715e;">%}
+</span><span style="color:#75715e;">  Hello {{ name }}
+</span><span style="color:#75715e;">{% </span><span style="color:#f92672;">endraw </span><span style="color:#75715e;">%}
+</span></code></pre>
+<p>would be rendered as <code>Hello {{ name }}</code>.</p>
+<h3 id="whitespace-control">Whitespace control<a class="zola-anchor" href="#whitespace-control" aria-label="Anchor link for: whitespace-control">🔗</a></h3>
+<p>Tera comes with easy to use whitespace control: use <code>{%-</code> if you want to remove all whitespace
+before a statement and <code>-%}</code> if you want to remove all whitespace after. This behavior also 
+works with expressions, using <code>{{-</code> and <code>-}}</code>, and with comments, using <code>{#-</code> and <code>-#}</code>.</p>
+<p>For example, let's look at the following template:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">set </span><span>my_var </span><span style="color:#f92672;">=</span><span> 2 %}
+</span><span>{{ my_var }}
+</span></code></pre>
+<p>will have the following output:</p>
+<pre data-lang="html" style="background-color:#272822;color:#f8f8f2;" class="language-html "><code class="language-html" data-lang="html"><span>
+</span><span>2
+</span></code></pre>
+<p>If we want to get rid of the empty line, we can write the following:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">set </span><span>my_var </span><span style="color:#f92672;">=</span><span> 2 -%}
+</span><span>{{ my_var }}
+</span></code></pre>
+<h3 id="comments">Comments<a class="zola-anchor" href="#comments" aria-label="Anchor link for: comments">🔗</a></h3>
+<p>To comment out part of the template, wrap it in <code>{# #}</code>. Anything in between those tags
+will not be rendered.</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span style="color:#75715e;">{# A comment #}
+</span></code></pre>
+<h2 id="data-structures">Data structures<a class="zola-anchor" href="#data-structures" aria-label="Anchor link for: data-structures">🔗</a></h2>
+<h3 id="literals">Literals<a class="zola-anchor" href="#literals" aria-label="Anchor link for: literals">🔗</a></h3>
+<p>Tera has a few literals that can be used:</p>
+<ul>
+<li>booleans: <code>true</code> (or <code>True</code>) and <code>false</code> (or <code>False</code>)</li>
+<li>integers</li>
+<li>floats</li>
+<li>strings: text delimited by <code>&quot;&quot;</code>, <code>''</code> or <code>``</code></li>
+<li>arrays: a comma-separated list of literals and/or idents surrounded by <code>[</code> and <code>]</code> (trailing comma allowed)</li>
+</ul>
+<h3 id="variables">Variables<a class="zola-anchor" href="#variables" aria-label="Anchor link for: variables">🔗</a></h3>
+<p>Variables are defined by the context given when rendering a template. If you'd like to define your own variables, see the <a href="https://keats.github.io/tera/docs/#assignments">Assignments</a> section.</p>
+<p>You can render a variable by using the <code>{{ name }}</code>.</p>
+<p>Trying to access or render a variable that doesn't exist will result in an error.</p>
+<p>A magical variable is available in every template if you want to print the current context: <code>__tera_context</code>.</p>
+<h4 id="dot-notation">Dot notation:<a class="zola-anchor" href="#dot-notation" aria-label="Anchor link for: dot-notation">🔗</a></h4>
+<p>Construct and attributes can be accessed by using the dot (<code>.</code>) like <code>{{ product.name }}</code>.
+Specific members of an array or tuple are accessed by using the <code>.i</code> notation, where i is a zero-based index. In dot notation variable can not be used after the dot (<code>.</code>).</p>
+<h4 id="square-bracket-notation">Square bracket notation:<a class="zola-anchor" href="#square-bracket-notation" aria-label="Anchor link for: square-bracket-notation">🔗</a></h4>
+<p>A more powerful alternative to (<code>.</code>) is to use square brackets (<code>[ ]</code>).
+Variables can be rendered using the notation <code>{{product['name']}}</code> or <code>{{product[&quot;name&quot;]}}</code>.</p>
+<p>If the item is not in quotes it will be treated as a variable.
+Assuming you have the following objects in your context <code>product = Product{ name: &quot;Fred&quot; }</code>
+and <code>my_field = &quot;name&quot;</code>, calling <code>{{product[my_field]}}</code> will resolve to: <code>{{product.name}}</code>.</p>
+<p>Only variables evaluating to string or integer number can be used as index: anything else will be
+an error.</p>
+<h3 id="expressions">Expressions<a class="zola-anchor" href="#expressions" aria-label="Anchor link for: expressions">🔗</a></h3>
+<p>Tera allows expressions almost everywhere.</p>
+<h4 id="math">Math<a class="zola-anchor" href="#math" aria-label="Anchor link for: math">🔗</a></h4>
+<p>You can do some basic math in Tera but it shouldn't be abused other than the occasional <code>+ 1</code> or similar.
+Math operations are only allowed with numbers, using them on any other kind of values will result in an error.
+You can use the following operators:</p>
+<ul>
+<li><code>+</code>: adds 2 values together, <code>{{ 1 + 1 }}</code> will print <code>2</code></li>
+<li><code>-</code>: performs a subtraction, <code>{{ 2 - 1 }}</code> will print <code>1</code></li>
+<li><code>/</code>: performs a division, <code>{{ 10 / 2 }}</code> will print <code>5</code></li>
+<li><code>*</code>: performs a multiplication, <code>{{ 5 * 2 }}</code> will print <code>10</code></li>
+<li><code>%</code>: performs a modulo, <code>{{ 2 % 2 }}</code> will print <code>0</code></li>
+</ul>
+<p>The priority of operations is the following, from lowest to highest:</p>
+<ul>
+<li><code>+</code> and <code>-</code></li>
+<li><code>*</code> and <code>/</code> and <code>%</code></li>
+</ul>
+<h4 id="comparisons">Comparisons<a class="zola-anchor" href="#comparisons" aria-label="Anchor link for: comparisons">🔗</a></h4>
+<ul>
+<li><code>==</code>: checks whether the values are equal</li>
+<li><code>!=</code>: checks whether the values are different</li>
+<li><code>&gt;=</code>: true if the left value is equal or greater to the right one</li>
+<li><code>&lt;=</code>: true if the right value is equal or greater to the left one</li>
+<li><code>&gt;</code>: true if the left value is greater than the right one</li>
+<li><code>&lt;</code>: true if the right value is greater than the left one</li>
+</ul>
+<h4 id="logic">Logic<a class="zola-anchor" href="#logic" aria-label="Anchor link for: logic">🔗</a></h4>
+<ul>
+<li><code>and</code>: true if the left and right operands are true</li>
+<li><code>or</code>: true if the left or right operands are true</li>
+<li><code>not</code>: negate an expression</li>
+</ul>
+<h4 id="concatenation">Concatenation<a class="zola-anchor" href="#concatenation" aria-label="Anchor link for: concatenation">🔗</a></h4>
+<p>You can concatenate several strings/numbers/idents using the <code>~</code> operator.</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ </span><span style="color:#e6db74;">&quot;hello &quot;</span><span> ~ </span><span style="color:#e6db74;">&#39;world&#39;</span><span> ~ `!` }}
+</span><span>
+</span><span>{{ an_ident ~ </span><span style="color:#e6db74;">&quot; and a string&quot;</span><span> ~ another_ident }}
+</span><span>
+</span><span>{{ an_ident ~ another_ident }}
+</span></code></pre>
+<p>An ident resolving to something other than a string or a number will raise an error.</p>
+<h4 id="in-checking"><code>in</code> checking<a class="zola-anchor" href="#in-checking" aria-label="Anchor link for: in-checking">🔗</a></h4>
+<p>You can check whether a left side is contained in a right side using the <code>in</code> operator.</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ some_var </span><span style="color:#f92672;">in </span><span>[1, 2, 3] }}
+</span><span>
+</span><span>{{ </span><span style="color:#e6db74;">&#39;index&#39; </span><span style="color:#f92672;">in </span><span>page.path }}
+</span><span>
+</span><span>{{ an_ident </span><span style="color:#f92672;">not in  </span><span>an_obj }}
+</span></code></pre>
+<p>Only literals/variables resulting in an array, a string and an object are supported in the right hand side: everything else
+will raise an error. While in the left hand side only literals/variables resulting in a number, a string and a boolean are supported.</p>
+<h2 id="manipulating-data">Manipulating data<a class="zola-anchor" href="#manipulating-data" aria-label="Anchor link for: manipulating-data">🔗</a></h2>
+<h3 id="assignments">Assignments<a class="zola-anchor" href="#assignments" aria-label="Anchor link for: assignments">🔗</a></h3>
+<p>You can assign values to variables during the rendering.
+Assignments in for loops and macros are scoped to their context but
+assignments outside of those will be set in the global context. Furthermore, assignments
+in for loop are valid until the end of the current iteration only.</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">set </span><span>my_var </span><span style="color:#f92672;">= </span><span style="color:#e6db74;">&quot;hello&quot; </span><span>%}
+</span><span>{% </span><span style="color:#f92672;">set </span><span>my_var </span><span style="color:#f92672;">=</span><span> 1 </span><span style="color:#f92672;">+</span><span> 4 %}
+</span><span>{% </span><span style="color:#f92672;">set </span><span>my_var </span><span style="color:#f92672;">= </span><span>some_var %}
+</span><span>{% </span><span style="color:#f92672;">set </span><span>my_var </span><span style="color:#f92672;">= </span><span>macros::some_macro() %}
+</span><span>{% </span><span style="color:#f92672;">set </span><span>my_var </span><span style="color:#f92672;">= </span><span>global_fn() %}
+</span><span>{% </span><span style="color:#f92672;">set </span><span>my_var </span><span style="color:#f92672;">= </span><span>[1, </span><span style="color:#ae81ff;">true</span><span>, some_var | round] %}
+</span></code></pre>
+<p>If you want to assign a value in the global context while in a for loop, you can use <code>set_global</code>:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">set_global </span><span>my_var </span><span style="color:#f92672;">= </span><span style="color:#e6db74;">&quot;hello&quot; </span><span>%}
+</span><span>{% </span><span style="color:#f92672;">set_global </span><span>my_var </span><span style="color:#f92672;">=</span><span> 1 </span><span style="color:#f92672;">+</span><span> 4 %}
+</span><span>{% </span><span style="color:#f92672;">set_global </span><span>my_var </span><span style="color:#f92672;">= </span><span>some_var %}
+</span><span>{% </span><span style="color:#f92672;">set_global </span><span>my_var </span><span style="color:#f92672;">= </span><span>macros::some_macro() %}
+</span><span>{% </span><span style="color:#f92672;">set_global </span><span>my_var </span><span style="color:#f92672;">= </span><span>global_fn() %}
+</span><span>{% </span><span style="color:#f92672;">set_global </span><span>my_var </span><span style="color:#f92672;">= </span><span>[1, </span><span style="color:#ae81ff;">true</span><span>, some_var | round] %}
+</span></code></pre>
+<p>Outside of a for loop, <code>set_global</code> is exactly the same as <code>set</code>.</p>
+<h3 id="filters">Filters<a class="zola-anchor" href="#filters" aria-label="Anchor link for: filters">🔗</a></h3>
+<p>You can modify variables using <strong>filters</strong>.
+Filters are separated from the variable by a pipe symbol (<code>|</code>) and may have named arguments in parentheses.
+Multiple filters can be chained: the output of one filter is applied to the next.</p>
+<p>For example, <code>{{ name | lower | replace(from=&quot;doctor&quot;, to=&quot;Dr.&quot;) }}</code> will take a variable called name, make it lowercase and then replace instances of <code>doctor</code> by <code>Dr.</code>.
+It is equivalent to <code>replace(lower(name), from=&quot;doctor&quot;, to=&quot;Dr.&quot;)</code> if we were to look at it as functions.</p>
+<p>Calling filters on an incorrect type like trying to capitalize an array or using invalid types for arguments will result in an error.</p>
+<p>Filters are functions with the <code>fn(Value, HashMap&lt;String, Value&gt;) -&gt; Result&lt;Value&gt;</code> definition and custom ones can be added like so:</p>
+<pre data-lang="rust" style="background-color:#272822;color:#f8f8f2;" class="language-rust "><code class="language-rust" data-lang="rust"><span>tera.</span><span style="color:#66d9ef;">register_filter</span><span>(</span><span style="color:#e6db74;">&quot;upper&quot;</span><span>, string::upper);
+</span></code></pre>
+<p>While filters can be used in math operations, they will have the lowest priority and therefore might not do what you expect:</p>
+<pre data-lang="css" style="background-color:#272822;color:#f8f8f2;" class="language-css "><code class="language-css" data-lang="css"><span>{{ 1 + a | length }}
+</span><span>// is equal to
+</span><span>{{ (1 + a) | length } // this will probably error
+</span><span>
+</span><span>// This will do what you wanted initially
+</span><span>{{ a | length + 1 }}
+</span></code></pre>
+<p>Tera has many <a href="https://keats.github.io/tera/docs/#built-in-filters">built-in filters</a> that you can use.</p>
+<h4 id="filter-sections">Filter sections<a class="zola-anchor" href="#filter-sections" aria-label="Anchor link for: filter-sections">🔗</a></h4>
+<p>Whole sections can also be processed by filters if they are encapsulated in <code>{% filter name %}</code> and <code>{% endfilter %}</code>
+tags where <code>name</code> is the name of the filter:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">filter </span><span>upper %}
+</span><span>    Hello
+</span><span>{% </span><span style="color:#f92672;">endfilter </span><span>%}
+</span></code></pre>
+<p>This example transforms the text <code>Hello</code> in all upper-case (<code>HELLO</code>).</p>
+<p>Filter sections can also contain <a href="https://keats.github.io/tera/docs/#inheritance"><code>block</code> sections</a> like this:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">filter </span><span>upper %}
+</span><span>  {% </span><span style="color:#f92672;">block </span><span>content_to_be_upper_cased %}
+</span><span>    This will be upper-cased
+</span><span>  {% </span><span style="color:#f92672;">endblock </span><span>content_to_be_upper_cased %} 
+</span><span>{% </span><span style="color:#f92672;">endfilter </span><span>%}
+</span></code></pre>
+<h3 id="tests">Tests<a class="zola-anchor" href="#tests" aria-label="Anchor link for: tests">🔗</a></h3>
+<p>Tests can be used against an expression to check some condition on it and
+are made in <code>if</code> blocks using the <code>is</code> keyword.
+For example, you would write the following to test if an expression is odd:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">if </span><span>my_number </span><span style="color:#f92672;">is </span><span>odd %}
+</span><span> Odd
+</span><span>{% </span><span style="color:#f92672;">endif </span><span>%}
+</span></code></pre>
+<p>Tests can also be negated:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">if </span><span>my_number </span><span style="color:#f92672;">is </span><span>not odd %}
+</span><span> Even
+</span><span>{% </span><span style="color:#f92672;">endif </span><span>%}
+</span></code></pre>
+<p>Tests are functions with the <code>fn(Option&lt;Value&gt;, Vec&lt;Value&gt;) -&gt; Result&lt;bool&gt;</code> definition and custom ones can be added like so:</p>
+<pre data-lang="rust" style="background-color:#272822;color:#f8f8f2;" class="language-rust "><code class="language-rust" data-lang="rust"><span>tera.</span><span style="color:#66d9ef;">register_tester</span><span>(</span><span style="color:#e6db74;">&quot;odd&quot;</span><span>, testers::odd);
+</span></code></pre>
+<p>Tera has many <a href="https://keats.github.io/tera/docs/#built-in-tests">built-in tests</a> that you can use.</p>
+<h3 id="functions">Functions<a class="zola-anchor" href="#functions" aria-label="Anchor link for: functions">🔗</a></h3>
+<p>Functions are Rust code that return a <code>Result&lt;Value&gt;</code> from the given params.</p>
+<p>Quite often, functions will need to capture some external variables, such as a <code>url_for</code> global function needing
+the list of URLs for example.</p>
+<p>Here's an example on how to implement a very basic function:</p>
+<pre data-lang="rust" style="background-color:#272822;color:#f8f8f2;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="font-style:italic;color:#66d9ef;">fn </span><span style="color:#a6e22e;">make_url_for</span><span>(</span><span style="font-style:italic;color:#fd971f;">urls</span><span>: BTreeMap&lt;</span><span style="font-style:italic;color:#66d9ef;">String</span><span>, </span><span style="font-style:italic;color:#66d9ef;">String</span><span>&gt;) -&gt; impl Function {
+</span><span>    </span><span style="font-style:italic;color:#66d9ef;">Box</span><span>::new(</span><span style="color:#f92672;">move |</span><span>args</span><span style="color:#f92672;">| </span><span>-&gt; </span><span style="font-style:italic;color:#66d9ef;">Result</span><span>&lt;Value&gt; {
+</span><span>        </span><span style="color:#f92672;">match</span><span> args.</span><span style="color:#66d9ef;">get</span><span>(</span><span style="color:#e6db74;">&quot;name&quot;</span><span>) {
+</span><span>            </span><span style="font-style:italic;color:#66d9ef;">Some</span><span>(val) </span><span style="color:#f92672;">=&gt; match </span><span>from_value::&lt;</span><span style="font-style:italic;color:#66d9ef;">String</span><span>&gt;(val.</span><span style="color:#66d9ef;">clone</span><span>()) {
+</span><span>                </span><span style="font-style:italic;color:#66d9ef;">Ok</span><span>(v) </span><span style="color:#f92672;">=&gt;  </span><span style="font-style:italic;color:#66d9ef;">Ok</span><span>(</span><span style="color:#66d9ef;">to_value</span><span>(urls.</span><span style="color:#66d9ef;">get</span><span>(</span><span style="color:#f92672;">&amp;</span><span>v).</span><span style="color:#66d9ef;">unwrap</span><span>()).</span><span style="color:#66d9ef;">unwrap</span><span>()),
+</span><span>                </span><span style="font-style:italic;color:#66d9ef;">Err</span><span>(</span><span style="color:#f92672;">_</span><span>) </span><span style="color:#f92672;">=&gt; </span><span style="font-style:italic;color:#66d9ef;">Err</span><span>(</span><span style="color:#e6db74;">&quot;oops&quot;</span><span>.</span><span style="color:#66d9ef;">into</span><span>()),
+</span><span>            },
+</span><span>            </span><span style="font-style:italic;color:#66d9ef;">None </span><span style="color:#f92672;">=&gt; </span><span style="font-style:italic;color:#66d9ef;">Err</span><span>(</span><span style="color:#e6db74;">&quot;oops&quot;</span><span>.</span><span style="color:#66d9ef;">into</span><span>()),
+</span><span>        }
+</span><span>    })
+</span><span>}
+</span></code></pre>
+<p>You then need to add it to Tera:</p>
+<pre data-lang="rust" style="background-color:#272822;color:#f8f8f2;" class="language-rust "><code class="language-rust" data-lang="rust"><span>tera.</span><span style="color:#66d9ef;">register_function</span><span>(</span><span style="color:#e6db74;">&quot;url_for&quot;</span><span>, </span><span style="color:#66d9ef;">make_url_for</span><span>(urls));
+</span></code></pre>
+<p>And you can now call it from a template:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ url_for(name</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;home&quot;</span><span>) }}
+</span></code></pre>
+<p>You can also implement the <a href="https://docs.rs/tera/1.5.0/tera/trait.Function.html">trait</a> directly if you have more
+complex requirements.</p>
+<p>Currently functions can be called in two places in templates:</p>
+<ul>
+<li>variable block: <code>{{ url_for(name=&quot;home&quot;) }}</code></li>
+<li>for loop container: <code>{% for i in range(end=5) %}</code></li>
+</ul>
+<p>Tera comes with some <a href="https://keats.github.io/tera/docs/#built-in-functions">built-in functions</a>.</p>
+<h2 id="control-structures">Control structures<a class="zola-anchor" href="#control-structures" aria-label="Anchor link for: control-structures">🔗</a></h2>
+<h3 id="if">If<a class="zola-anchor" href="#if" aria-label="Anchor link for: if">🔗</a></h3>
+<p>Conditionals are fully supported and are identical to the ones in Python.</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">if </span><span>price </span><span style="color:#f92672;">&lt;</span><span> 10 </span><span style="color:#f92672;">or </span><span>always_show %}
+</span><span>   Price is {{ price }}.
+</span><span>{% </span><span style="color:#f92672;">elif </span><span>price </span><span style="color:#f92672;">&gt;</span><span> 1000 </span><span style="color:#f92672;">and not </span><span>rich %}
+</span><span>   That&#39;s expensive!
+</span><span>{% </span><span style="color:#f92672;">else </span><span>%}
+</span><span>    N/A
+</span><span>{% </span><span style="color:#f92672;">endif </span><span>%}
+</span></code></pre>
+<p>Undefined variables are considered falsy. This means that you can test for the
+presence of a variable in the current context by writing:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">if </span><span>my_var %}
+</span><span>    {{ my_var }}
+</span><span>{% </span><span style="color:#f92672;">else </span><span>%}
+</span><span>    Sorry, my_var isn&#39;t defined.
+</span><span>{% </span><span style="color:#f92672;">endif </span><span>%}
+</span></code></pre>
+<p>Every <code>if</code> statement has to end with an <code>endif</code> tag.</p>
+<h3 id="for">For<a class="zola-anchor" href="#for" aria-label="Anchor link for: for">🔗</a></h3>
+<p>Loop over items in a array:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">for </span><span>product </span><span style="color:#f92672;">in </span><span>products %}
+</span><span>  {{loop.index}}. {{product.name}}
+</span><span>{% </span><span style="color:#f92672;">endfor </span><span>%}
+</span></code></pre>
+<p>Or on characters of a string:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">for </span><span>letter </span><span style="color:#f92672;">in </span><span>name %}
+</span><span>  {% </span><span style="color:#f92672;">if </span><span>loop.index </span><span style="color:#f92672;">%</span><span> 2 </span><span style="color:#f92672;">==</span><span> 0%}
+</span><span>    &lt;span style=&quot;color:red&quot;&gt;{{ letter }}&lt;/span&gt;
+</span><span>  {% </span><span style="color:#f92672;">else </span><span>%}
+</span><span>    &lt;span style=&quot;color:blue&quot;&gt;{{ letter }}&lt;/span&gt;
+</span><span>  {% </span><span style="color:#f92672;">endif </span><span>%}
+</span><span>{% </span><span style="color:#f92672;">endfor </span><span>%}
+</span></code></pre>
+<p>A few special variables are available inside for loops:</p>
+<ul>
+<li><code>loop.index</code>: current iteration 1-indexed</li>
+<li><code>loop.index0</code>: current iteration 0-indexed</li>
+<li><code>loop.first</code>: whether this is the first iteration</li>
+<li><code>loop.last</code>: whether this is the last iteration</li>
+</ul>
+<p>Every <code>for</code> statement has to end with an <code>endfor</code> tag.</p>
+<p>You can also loop on maps and structs using the following syntax:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">for </span><span>key, value </span><span style="color:#f92672;">in </span><span>products %}
+</span><span>  {{key}}. {{value.name}}
+</span><span>{% </span><span style="color:#f92672;">endfor </span><span>%}
+</span></code></pre>
+<p><code>key</code> and <code>value</code> can be named however you want, they just need to be separated with a comma.</p>
+<p>If you are iterating on an array, you can also apply filters to the container:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">for </span><span>product </span><span style="color:#f92672;">in </span><span>products | reverse %}
+</span><span>  {{loop.index}}. {{product.name}}
+</span><span>{% </span><span style="color:#f92672;">endfor </span><span>%}
+</span></code></pre>
+<p>You can also iterate on array literals:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">for </span><span>a </span><span style="color:#f92672;">in </span><span>[1,2,3,] %}
+</span><span>  {{a}}
+</span><span>{% </span><span style="color:#f92672;">endfor </span><span>%}
+</span></code></pre>
+<p>Lastly, you can set a default body to be rendered when the container is empty:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">for </span><span>product </span><span style="color:#f92672;">in </span><span>products %}
+</span><span>  {{loop.index}}. {{product.name}}
+</span><span>{% </span><span style="color:#f92672;">else </span><span>%}
+</span><span>  No products.  
+</span><span>{% </span><span style="color:#f92672;">endfor </span><span>%}
+</span></code></pre>
+<h4 id="loop-controls">Loop Controls<a class="zola-anchor" href="#loop-controls" aria-label="Anchor link for: loop-controls">🔗</a></h4>
+<p>Within a loop, <code>break</code> and <code>continue</code> may be used to control iteration.</p>
+<p>To stop iterating when <code>target_id</code> is reached:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">for </span><span>product </span><span style="color:#f92672;">in </span><span>products %}
+</span><span>  {% </span><span style="color:#f92672;">if </span><span>product.id </span><span style="color:#f92672;">== </span><span>target_id %}{% </span><span style="color:#f92672;">break </span><span>%}{% </span><span style="color:#f92672;">endif </span><span>%}
+</span><span>  {{loop.index}}. {{product.name}}
+</span><span>{% </span><span style="color:#f92672;">endfor </span><span>%}
+</span></code></pre>
+<p>To skip even-numbered items:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">for </span><span>product </span><span style="color:#f92672;">in </span><span>products %}
+</span><span>  {% </span><span style="color:#f92672;">if </span><span>loop.index </span><span style="color:#f92672;">is </span><span>even %}{% </span><span style="color:#f92672;">continue </span><span>%}{% </span><span style="color:#f92672;">endif </span><span>%}
+</span><span>  {{loop.index}}. {{product.name}}
+</span><span>{% </span><span style="color:#f92672;">endfor </span><span>%}
+</span></code></pre>
+<h3 id="include">Include<a class="zola-anchor" href="#include" aria-label="Anchor link for: include">🔗</a></h3>
+<p>You can include a template to be rendered using the current context with the <code>include</code> tag.</p>
+<pre data-lang="jinja" style="background-color:#272822;color:#f8f8f2;" class="language-jinja "><code class="language-jinja" data-lang="jinja"><span>{% </span><span style="color:#f92672;">include </span><span style="color:#e6db74;">&quot;included.html&quot; </span><span>%}
+</span></code></pre>
+<p>The template path needs to be a static string. This is invalid:</p>
+<pre data-lang="jinja" style="background-color:#272822;color:#f8f8f2;" class="language-jinja "><code class="language-jinja" data-lang="jinja"><span>{% </span><span style="color:#f92672;">include </span><span style="color:#e6db74;">&quot;partials/&quot;</span><span> ~ name ~ </span><span style="color:#e6db74;">&quot;.html&quot; </span><span>%}
+</span></code></pre>
+<p>Tera doesn't offer passing a custom context to the <code>include</code> tag.
+If you want to do that, use macros.</p>
+<p>While you can <code>set</code> values in included templates, those values only exist while rendering
+them: the template calling <code>include</code> doesn't see them.</p>
+<p>You can mark an include with <code>ignore missing</code>, so that Tera will ignore the statement if the template to be included does not exist.</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">include </span><span style="color:#e6db74;">&quot;header.html&quot; </span><span>ignore missing %}
+</span></code></pre>
+<p>You can also provide a list of templates that are checked for existence before inclusion. The first template that exists will be included. If <code>ignore missing</code> is given, it will fall back to rendering nothing if none of the templates exist.</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">include </span><span>[</span><span style="color:#e6db74;">&quot;custom/header.html&quot;</span><span>, </span><span style="color:#e6db74;">&quot;header.html&quot;</span><span>] %}
+</span><span>{% </span><span style="color:#f92672;">include </span><span>[</span><span style="color:#e6db74;">&quot;special_sidebar.html&quot;</span><span>, </span><span style="color:#e6db74;">&quot;sidebar.html&quot;</span><span>] ignore missing %}
+</span></code></pre>
+<p>Note: <code>include</code> works similar to how it does in other engines like Jinja, with the exception that the current version of Tera doesn't allow inheritance within included files. Practically
+speaking this means you have to choose between using <code>include</code>s or <code>extends</code> to organise your site, without mixing them. </p>
+<h3 id="macros">Macros<a class="zola-anchor" href="#macros" aria-label="Anchor link for: macros">🔗</a></h3>
+<p>Think of macros as functions or components that you can call and return some text.</p>
+<p>They are defined as follows:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">macro </span><span>input(label, type</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;text&quot;</span><span>) %}
+</span><span>    &lt;label&gt;
+</span><span>        {{ label }}
+</span><span>        &lt;input type=&quot;{{type}}&quot; /&gt;
+</span><span>    &lt;/label&gt;
+</span><span>{% </span><span style="color:#f92672;">endmacro </span><span>input %}
+</span></code></pre>
+<p>As shown in the example above, macro arguments can have a default <a href="https://keats.github.io/tera/docs/#literals">literal</a> value.</p>
+<p>If a macro is defined in a separate file, you need to import the file containing the macros:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">import </span><span style="color:#e6db74;">&quot;macros.html&quot; </span><span>as macros %}
+</span></code></pre>
+<p>You can name that file namespace (<code>macros</code> in the example) anything you want.
+A macro is called like this:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>// namespace::macro_name(**kwargs)
+</span><span>{{ macros::input(label</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;Name&quot;</span><span>, type</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;text&quot;</span><span>) }}
+</span></code></pre>
+<p>Do note that macros, like filters, require keyword arguments.
+Use the <code>self</code> namespace when calling a macro defined in the same file. Macros must be defined top-level (they cannot be nested in an if, for, etc.) and should only reference arguments, not template variables directly.</p>
+<p>Macros can be called recursively but there is no limit to recursion so make sure your macro ends.</p>
+<p>Here's an example of a recursive macro:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">macro </span><span>factorial(n) %}
+</span><span>  {% </span><span style="color:#f92672;">if </span><span>n </span><span style="color:#f92672;">&gt;</span><span> 1 %}{{ n }} - {{ self::factorial(n</span><span style="color:#f92672;">=</span><span>n</span><span style="color:#f92672;">-</span><span>1) }}{% </span><span style="color:#f92672;">else </span><span>%}1{% </span><span style="color:#f92672;">endif </span><span>%}
+</span><span>{% </span><span style="color:#f92672;">endmacro </span><span>factorial %}
+</span></code></pre>
+<p>A macro's body can contain all normal Tera syntax with the exception of macros definition, <code>block</code> and <code>extends</code>.</p>
+<h2 id="inheritance">Inheritance<a class="zola-anchor" href="#inheritance" aria-label="Anchor link for: inheritance">🔗</a></h2>
+<p>Tera uses the same kind of inheritance as Jinja2 and Django templates:
+you define a base template and extend it in child templates through blocks.
+There can be multiple levels of inheritance (i.e. A extends B that extends C).</p>
+<h3 id="base-template">Base template<a class="zola-anchor" href="#base-template" aria-label="Anchor link for: base-template">🔗</a></h3>
+<p>A base template typically contains the basic document structure as well as
+several <code>blocks</code> that can have content.</p>
+<p>For example, here's a <code>base.html</code> almost copied from the Jinja2 documentation:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>&lt;!DOCTYPE html&gt;
+</span><span>&lt;html lang=&quot;en&quot;&gt;
+</span><span>&lt;head&gt;
+</span><span>    {% </span><span style="color:#f92672;">block </span><span>head %}
+</span><span>    &lt;link rel=&quot;stylesheet&quot; href=&quot;style.css&quot; /&gt;
+</span><span>    &lt;title&gt;{% </span><span style="color:#f92672;">block </span><span>title %}{% </span><span style="color:#f92672;">endblock </span><span>title %} - My Webpage&lt;/title&gt;
+</span><span>    {% </span><span style="color:#f92672;">endblock </span><span>head %}
+</span><span>&lt;/head&gt;
+</span><span>&lt;body&gt;
+</span><span>    &lt;div id=&quot;content&quot;&gt;{% </span><span style="color:#f92672;">block </span><span>content %}{% </span><span style="color:#f92672;">endblock </span><span>content %}&lt;/div&gt;
+</span><span>    &lt;div id=&quot;footer&quot;&gt;
+</span><span>        {% </span><span style="color:#f92672;">block </span><span>footer %}
+</span><span>        &amp;copy; Copyright 2008 by &lt;a href=&quot;http://domain.invalid/&quot;&gt;you&lt;/a&gt;.
+</span><span>        {% </span><span style="color:#f92672;">endblock </span><span>footer %}
+</span><span>    &lt;/div&gt;
+</span><span>&lt;/body&gt;
+</span><span>&lt;/html&gt;
+</span></code></pre>
+<p>This <code>base.html</code> template defines 4 <code>block</code> tags that child templates can override.
+The <code>head</code> and <code>footer</code> block have some content already which will be rendered if they are not overridden.</p>
+<h3 id="child-template">Child template<a class="zola-anchor" href="#child-template" aria-label="Anchor link for: child-template">🔗</a></h3>
+<p>Again, straight from Jinja2 docs:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">extends </span><span style="color:#e6db74;">&quot;base.html&quot; </span><span>%}
+</span><span>{% </span><span style="color:#f92672;">block </span><span>title %}Index{% </span><span style="color:#f92672;">endblock </span><span>title %}
+</span><span>{% </span><span style="color:#f92672;">block </span><span>head %}
+</span><span>    {{ super() }}
+</span><span>    &lt;style type=&quot;text/css&quot;&gt;
+</span><span>        .important { color: #336699; }
+</span><span>    &lt;/style&gt;
+</span><span>{% </span><span style="color:#f92672;">endblock </span><span>head %}
+</span><span>{% </span><span style="color:#f92672;">block </span><span>content %}
+</span><span>    &lt;h1&gt;Index&lt;/h1&gt;
+</span><span>    &lt;p class=&quot;important&quot;&gt;
+</span><span>      Welcome to my awesome homepage.
+</span><span>    &lt;/p&gt;
+</span><span>{% </span><span style="color:#f92672;">endblock </span><span>content %}
+</span></code></pre>
+<p>To indicate inheritance, you have to use the <code>extends</code> tag as the first thing in the file followed by the name of the template you want
+to extend.
+The <code>{{ super() }}</code> variable call tells Tera to render the parent block there.</p>
+<p>Please note that in a child template, any content outside of a block will be ignored, including variable assignments.</p>
+<p>Nested blocks also work in Tera. Consider the following templates:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>// grandparent
+</span><span>{% </span><span style="color:#f92672;">block </span><span>hey %}hello{% </span><span style="color:#f92672;">endblock </span><span>hey %}
+</span><span>
+</span><span>// parent
+</span><span>{% </span><span style="color:#f92672;">extends </span><span style="color:#e6db74;">&quot;grandparent&quot; </span><span>%}
+</span><span>{% </span><span style="color:#f92672;">block </span><span>hey %}hi and grandma says {{ super() }} {% </span><span style="color:#f92672;">block </span><span>ending %}sincerely{% </span><span style="color:#f92672;">endblock </span><span>ending %}{% </span><span style="color:#f92672;">endblock </span><span>hey %}
+</span><span>
+</span><span>// child
+</span><span>{% </span><span style="color:#f92672;">extends </span><span style="color:#e6db74;">&quot;parent&quot; </span><span>%}
+</span><span>{% </span><span style="color:#f92672;">block </span><span>hey %}dad says {{ super() }}{% </span><span style="color:#f92672;">endblock </span><span>hey %}
+</span><span>{% </span><span style="color:#f92672;">block </span><span>ending %}{{ super() }} with love{% </span><span style="color:#f92672;">endblock </span><span>ending %}
+</span></code></pre>
+<p>The block <code>ending</code> is nested in the <code>hey</code> block. Rendering the <code>child</code> template will do the following:</p>
+<ul>
+<li>Find the first base template: <code>grandparent</code></li>
+<li>See <code>hey</code> block in it and check if it is in <code>child</code> and <code>parent</code> template</li>
+<li>It is in <code>child</code> so we render it, it contains a <code>super()</code> call so we render the <code>hey</code> block from <code>parent</code>,
+which also contains a <code>super()</code> so we render the <code>hey</code> block of the <code>grandparent</code> template as well</li>
+<li>See <code>ending</code> block in <code>child</code>, render it and also render the <code>ending</code> block of <code>parent</code> as there is a <code>super()</code></li>
+</ul>
+<p>The end result of that rendering (not counting whitespace) will be: &quot;dad says hi and grandma says hello sincerely with love&quot;.</p>
+<p>This example explicitly terminates named blocks with <code>{% endblock hey %}</code>. It's not required to give the name of the block 
+being terminated <code>{% endblock %}</code>, though it may add some clarity.</p>
+<p>See the note in the <a href="https://keats.github.io/tera/docs/#include">Include</a> section regarding mixing inheritance and includes.</p>
+<h2 id="built-ins">Built-ins<a class="zola-anchor" href="#built-ins" aria-label="Anchor link for: built-ins">🔗</a></h2>
+<h3 id="built-in-filters">Built-in filters<a class="zola-anchor" href="#built-in-filters" aria-label="Anchor link for: built-in-filters">🔗</a></h3>
+<p>Tera has the following filters built-in:</p>
+<h4 id="lower">lower<a class="zola-anchor" href="#lower" aria-label="Anchor link for: lower">🔗</a></h4>
+<p>Converts a string to lowercase.</p>
+<h4 id="upper">upper<a class="zola-anchor" href="#upper" aria-label="Anchor link for: upper">🔗</a></h4>
+<p>Converts a string to uppercase.</p>
+<h4 id="wordcount">wordcount<a class="zola-anchor" href="#wordcount" aria-label="Anchor link for: wordcount">🔗</a></h4>
+<p>Returns the number of words in a string.</p>
+<h4 id="capitalize">capitalize<a class="zola-anchor" href="#capitalize" aria-label="Anchor link for: capitalize">🔗</a></h4>
+<p>Returns the string with all its characters lowercased apart from the first char which is uppercased.</p>
+<h4 id="replace">replace<a class="zola-anchor" href="#replace" aria-label="Anchor link for: replace">🔗</a></h4>
+<p>Takes 2 mandatory string named arguments: <code>from</code> and <code>to</code>. It will return a string with all instances of
+the <code>from</code> string replaced with the <code>to</code> string.</p>
+<p>Example: <code>{{ name | replace(from=&quot;Robert&quot;, to=&quot;Bob&quot;)}}</code></p>
+<h4 id="addslashes">addslashes<a class="zola-anchor" href="#addslashes" aria-label="Anchor link for: addslashes">🔗</a></h4>
+<p>Adds slashes before quotes.</p>
+<p>Example: <code>{{ value | addslashes }}</code></p>
+<p>If value is &quot;I'm using Tera&quot;, the output will be &quot;I\'m using Tera&quot;.</p>
+<h4 id="slugify">slugify<a class="zola-anchor" href="#slugify" aria-label="Anchor link for: slugify">🔗</a></h4>
+<p>Only available if the <code>builtins</code> feature is enabled.</p>
+<p>Transforms a string into ASCII, lowercases it, trims it, converts spaces to hyphens and
+removes all characters that are not numbers, lowercase letters or hyphens.</p>
+<p>Example: <code>{{ value | slugify }}</code></p>
+<p>If value is &quot;-Hello world! &quot;, the output will be &quot;hello-world&quot;.</p>
+<h4 id="title">title<a class="zola-anchor" href="#title" aria-label="Anchor link for: title">🔗</a></h4>
+<p>Capitalizes each word inside a sentence.</p>
+<p>Example: <code>{{ value | title }}</code></p>
+<p>If value is &quot;foo  bar&quot;, the output will be &quot;Foo  Bar&quot;.</p>
+<h4 id="trim">trim<a class="zola-anchor" href="#trim" aria-label="Anchor link for: trim">🔗</a></h4>
+<p>Removes leading and trailing whitespace if the variable is a string.</p>
+<h4 id="trim-start">trim_start<a class="zola-anchor" href="#trim-start" aria-label="Anchor link for: trim-start">🔗</a></h4>
+<p>Removes leading whitespace if the variable is a string.</p>
+<h4 id="trim-end">trim_end<a class="zola-anchor" href="#trim-end" aria-label="Anchor link for: trim-end">🔗</a></h4>
+<p>Removes trailing whitespace if the variable is a string.</p>
+<h4 id="trim-start-matches">trim_start_matches<a class="zola-anchor" href="#trim-start-matches" aria-label="Anchor link for: trim-start-matches">🔗</a></h4>
+<p>Removes leading characters that match the given pattern if the variable is a string.</p>
+<p>Example: <code>{{ value | trim_start_matches(pat=&quot;//&quot;) }}</code></p>
+<p>If value is &quot;//a/b/c//&quot;, the output will be &quot;a/b/c//&quot;.</p>
+<h4 id="trim-end-matches">trim_end_matches<a class="zola-anchor" href="#trim-end-matches" aria-label="Anchor link for: trim-end-matches">🔗</a></h4>
+<p>Removes trailing characters that match the given pattern if the variable is a string.</p>
+<p>Example: <code>{{ value | trim_end_matches(pat=&quot;//&quot;) }}</code></p>
+<p>If value is &quot;//a/b/c//&quot;, the output will be &quot;//a/b/c&quot;.</p>
+<h4 id="truncate">truncate<a class="zola-anchor" href="#truncate" aria-label="Anchor link for: truncate">🔗</a></h4>
+<p>Only available if the <code>builtins</code> feature is enabled.</p>
+<p>Truncates a string to the indicated length. If the string has a smaller length than
+the <code>length</code> argument, the string is returned as is.</p>
+<p>Example: <code>{{ value | truncate(length=10) }}</code></p>
+<p>By default, the filter will add an ellipsis at the end if the text was truncated. You can
+change the string appended by setting the <code>end</code> argument.
+For example, <code>{{ value | truncate(length=10, end=&quot;&quot;) }}</code> will not append anything.</p>
+<h4 id="linebreaksbr">linebreaksbr<a class="zola-anchor" href="#linebreaksbr" aria-label="Anchor link for: linebreaksbr">🔗</a></h4>
+<p>Replaces line breaks (<code>\n</code> or <code>\r\n</code>) with HTML line breaks (<code>&lt;br&gt;</code>).</p>
+<p>Example: <code>{{ value | linebreaksbr }}</code></p>
+<p>If value is &quot;Hello\r\nworld\n&quot;, the output will be &quot;Hello&lt;br&gt;world&lt;br&gt;&quot;.</p>
+<p>Note that if the template you are using it in is automatically escaped, you will
+need to call the <code>safe</code> filter after <code>linebreaksbr</code>.</p>
+<h4 id="spaceless">spaceless<a class="zola-anchor" href="#spaceless" aria-label="Anchor link for: spaceless">🔗</a></h4>
+<p>Remove space (<code> </code>) and line breaks (<code>\n</code> or <code>\r\n</code>) between HTML tags</p>
+<p>Example: <code>{{ value | spaceless }}</code></p>
+<p>If the value is &quot;&lt;p&gt;\n&lt;a&gt; &lt;/a&gt;\r\n &lt;/p&gt;&quot;, the output will be &quot;&lt;p&gt;&lt;a&gt;&lt;/a&gt;&lt;/p&gt;&quot;.</p>
+<p>Note that only whitespace between successive opening tags and successive closing tags is removed.</p>
+<p>Also note that if the template you are using it in is automatically escaped, you will
+need to call the <code>safe</code> filter after <code>spaceless</code>.</p>
+<h4 id="indent">indent<a class="zola-anchor" href="#indent" aria-label="Anchor link for: indent">🔗</a></h4>
+<p>Indents a string by injecting a prefix at the start of each line.  The <code>prefix</code> argument (default 4 spaces) specifies the prefix to insert per line.  If the <code>first</code> argument (default false) is set true spaces are inserted for the first line.  If the <code>blank</code> argument (default false) is set true spaces are inserted for blank/whitespace lines.</p>
+<h4 id="striptags">striptags<a class="zola-anchor" href="#striptags" aria-label="Anchor link for: striptags">🔗</a></h4>
+<p>Tries to remove HTML tags from input. Does not guarantee well formed output if input is not valid HTML.</p>
+<p>Example: <code>{{ value | striptags }}</code></p>
+<p>If value is &quot;&lt;b&gt;Joel&lt;/b&gt;&quot;, the output will be &quot;Joel&quot;.</p>
+<p>Note that if the template you are using it in is automatically escaped, you will need to call the <code>safe</code> filter
+after <code>striptags</code>.</p>
+<h4 id="first">first<a class="zola-anchor" href="#first" aria-label="Anchor link for: first">🔗</a></h4>
+<p>Returns the first element of an array.
+If the array is empty, returns empty string.</p>
+<h4 id="last">last<a class="zola-anchor" href="#last" aria-label="Anchor link for: last">🔗</a></h4>
+<p>Returns the last element of an array.
+If the array is empty, returns empty string.</p>
+<h4 id="nth">nth<a class="zola-anchor" href="#nth" aria-label="Anchor link for: nth">🔗</a></h4>
+<p>Returns the nth element of an array.§
+If the array is empty, returns empty string.
+It takes a required <code>n</code> argument, corresponding to the 0-based index you want to get.</p>
+<p>Example: <code>{{ value | nth(n=2) }}</code></p>
+<h4 id="join">join<a class="zola-anchor" href="#join" aria-label="Anchor link for: join">🔗</a></h4>
+<p>Joins an array with a string.</p>
+<p>Example: <code>{{ value | join(sep=&quot; // &quot;) }}</code></p>
+<p>If value is the array <code>['a', 'b', 'c']</code>, the output will be the string &quot;a // b // c&quot;.</p>
+<h4 id="length">length<a class="zola-anchor" href="#length" aria-label="Anchor link for: length">🔗</a></h4>
+<p>Returns the length of an array, an object, or a string.</p>
+<h4 id="reverse">reverse<a class="zola-anchor" href="#reverse" aria-label="Anchor link for: reverse">🔗</a></h4>
+<p>Returns a reversed string or array.</p>
+<h4 id="sort">sort<a class="zola-anchor" href="#sort" aria-label="Anchor link for: sort">🔗</a></h4>
+<p>Sorts an array into ascending order.</p>
+<p>The values in the array must be a sortable type:</p>
+<ul>
+<li>numbers are sorted by their numerical value.</li>
+<li>strings are sorted in alphabetical order.</li>
+<li>arrays are sorted by their length.</li>
+<li>bools are sorted as if false=0 and true=1</li>
+</ul>
+<p>If you need to sort a list of structs or tuples, use the <code>attribute</code>
+argument to specify which field to sort by.</p>
+<p>Example:</p>
+<p>Given <code>people</code> is an array of Person</p>
+<pre data-lang="rust" style="background-color:#272822;color:#f8f8f2;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="font-style:italic;color:#66d9ef;">struct </span><span>Name(String, String);
+</span><span>
+</span><span style="font-style:italic;color:#66d9ef;">struct </span><span>Person {
+</span><span>    name: Name,
+</span><span>    age: </span><span style="font-style:italic;color:#66d9ef;">u32</span><span>,
+</span><span>}
+</span></code></pre>
+<p>The <code>attribute</code> argument can be used to sort by last name:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ people | sort(attribute</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;name.1&quot;</span><span>) }}
+</span></code></pre>
+<p>or by age:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ people | sort(attribute</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;age&quot;</span><span>) }}
+</span></code></pre>
+<h4 id="unique">unique<a class="zola-anchor" href="#unique" aria-label="Anchor link for: unique">🔗</a></h4>
+<p>Removes duplicate items from an array.  The <code>attribute</code> argument can be used to select items based on the values of an inner attribute.  For strings, the <code>case_sensitive</code> argument (default is false) can be used to control the comparison.</p>
+<p>Example:</p>
+<p>Given <code>people</code> is an array of Person</p>
+<pre data-lang="rust" style="background-color:#272822;color:#f8f8f2;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="font-style:italic;color:#66d9ef;">struct </span><span>Name(String, String);
+</span><span>
+</span><span style="font-style:italic;color:#66d9ef;">struct </span><span>Person {
+</span><span>    name: Name,
+</span><span>    age: </span><span style="font-style:italic;color:#66d9ef;">u32</span><span>,
+</span><span>}
+</span></code></pre>
+<p>The <code>attribute</code> argument can be used to select one Person for each age:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ people | unique(attribute</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;age&quot;</span><span>) }}
+</span></code></pre>
+<p>or by last name:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ people | unique(attribute</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;name.1&quot;</span><span>, case_sensitive</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;true&quot;</span><span>) }}
+</span></code></pre>
+<h4 id="slice">slice<a class="zola-anchor" href="#slice" aria-label="Anchor link for: slice">🔗</a></h4>
+<p>Slices an array by the given <code>start</code> and <code>end</code> parameter. Both parameters are
+optional and omitting them will return the same array.
+Use the <code>start</code> argument to define where to start (inclusive, default to <code>0</code>)
+and <code>end</code> argument to define where to stop (exclusive, default to the length of the array).
+<code>start</code> and <code>end</code> are 0-indexed.</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">for </span><span>i </span><span style="color:#f92672;">in </span><span>my_arr | slice(end</span><span style="color:#f92672;">=</span><span>5) %}
+</span><span>{% </span><span style="color:#f92672;">for </span><span>i </span><span style="color:#f92672;">in </span><span>my_arr | slice(start</span><span style="color:#f92672;">=</span><span>1) %}
+</span><span>{% </span><span style="color:#f92672;">for </span><span>i </span><span style="color:#f92672;">in </span><span>my_arr | slice(start</span><span style="color:#f92672;">=</span><span>1, end</span><span style="color:#f92672;">=</span><span>5) %}
+</span></code></pre>
+<p>You can also use negative index values to refer the array from the last element. -1 refers to the
+last index, -2 refers to the second last index and so on.</p>
+<p>For example, let's look at the following template:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">for </span><span>i </span><span style="color:#f92672;">in </span><span>my_arr | slice(end</span><span style="color:#f92672;">=-</span><span>2) %}
+</span></code></pre>
+<p>will produce the follow output for <code>my_array = [1, 2, 3, 4, 5]</code>: <code>[1, 2, 3]</code></p>
+<h4 id="group-by">group_by<a class="zola-anchor" href="#group-by" aria-label="Anchor link for: group-by">🔗</a></h4>
+<p>Groups an array using the required <code>attribute</code> argument. The filter takes an array and returns
+a map where the keys are the values of the <code>attribute</code> stringified and the values are all elements of
+the initial array having that <code>attribute</code>. Values with missing <code>attribute</code> or where <code>attribute</code> is null
+will be discarded.</p>
+<p>Example:</p>
+<p>Given <code>posts</code> is an array of Post</p>
+<pre data-lang="rust" style="background-color:#272822;color:#f8f8f2;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="font-style:italic;color:#66d9ef;">struct </span><span>Author {
+</span><span>    name: String,
+</span><span>};
+</span><span>
+</span><span style="font-style:italic;color:#66d9ef;">struct </span><span>Post {
+</span><span>    content: String,
+</span><span>    year: </span><span style="font-style:italic;color:#66d9ef;">u32</span><span>,
+</span><span>    author: Author,
+</span><span>}
+</span></code></pre>
+<p>The <code>attribute</code> argument can be used to group posts by year:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ posts | group_by(attribute</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;year&quot;</span><span>) }}
+</span></code></pre>
+<p>or by author name:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">for </span><span>name, author_posts </span><span style="color:#f92672;">in </span><span>posts | group_by(attribute</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;author.name&quot;</span><span>) %}
+</span><span>    {{ name }}
+</span><span>    {% </span><span style="color:#f92672;">for </span><span>post </span><span style="color:#f92672;">in </span><span>author_posts %}
+</span><span>        {{ post.year }}: {{ post.content }}
+</span><span>    {% </span><span style="color:#f92672;">endfor </span><span>%}
+</span><span>{% </span><span style="color:#f92672;">endfor </span><span>%}
+</span></code></pre>
+<p>Manipulating the hashmap produced by <code>group_by</code> in an arbitrary order requires additional steps to extract the keys into a separate array.</p>
+<p>Example:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">set </span><span>map </span><span style="color:#f92672;">= </span><span>section.pages | group_by(attribute</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;year&quot;</span><span>) %}
+</span><span>{% </span><span style="color:#f92672;">set_global </span><span>years </span><span style="color:#f92672;">= </span><span>[] %}
+</span><span>{% </span><span style="color:#f92672;">for </span><span>year, ignored </span><span style="color:#f92672;">in </span><span>map %}
+</span><span>    {% </span><span style="color:#f92672;">set_global </span><span>years </span><span style="color:#f92672;">= </span><span>years | concat(with</span><span style="color:#f92672;">=</span><span>year) %}
+</span><span>{% </span><span style="color:#f92672;">endfor </span><span>%}
+</span><span>{% </span><span style="color:#f92672;">for </span><span>year </span><span style="color:#f92672;">in </span><span>years | reverse %}
+</span><span>    {% </span><span style="color:#f92672;">set </span><span>posts </span><span style="color:#f92672;">= </span><span>map[year] %}
+</span><span>{% </span><span style="color:#f92672;">endfor </span><span>%}
+</span></code></pre>
+<h4 id="filter">filter<a class="zola-anchor" href="#filter" aria-label="Anchor link for: filter">🔗</a></h4>
+<p>Filters the array values, returning only the values where the <code>attribute</code> is equal to the <code>value</code>.
+Values with missing <code>attribute</code> or where <code>attribute</code> is null will be discarded.</p>
+<p><code>attribute</code> is mandatory.</p>
+<p>Example:</p>
+<p>Given <code>posts</code> is an array of Post</p>
+<pre data-lang="rust" style="background-color:#272822;color:#f8f8f2;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="font-style:italic;color:#66d9ef;">struct </span><span>Author {
+</span><span>    name: String,
+</span><span>};
+</span><span>
+</span><span style="font-style:italic;color:#66d9ef;">struct </span><span>Post {
+</span><span>    content: String,
+</span><span>    year: </span><span style="font-style:italic;color:#66d9ef;">u32</span><span>,
+</span><span>    author: Author,
+</span><span>    draft: </span><span style="font-style:italic;color:#66d9ef;">bool</span><span>,
+</span><span>}
+</span></code></pre>
+<p>The <code>attribute</code> argument can be used to filter posts by draft value:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ posts | filter(attribute</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;draft&quot;</span><span>, value</span><span style="color:#f92672;">=</span><span style="color:#ae81ff;">true</span><span>) }}
+</span></code></pre>
+<p>or by author name:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ posts | filter(attribute</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;author.name&quot;</span><span>, value</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;Vincent&quot;</span><span>) }}
+</span></code></pre>
+<p>If <code>value</code> is not passed, it will drop any elements where the attribute is <code>null</code>.</p>
+<h4 id="map">map<a class="zola-anchor" href="#map" aria-label="Anchor link for: map">🔗</a></h4>
+<p>Retrieves an attribute from each object in an array.  The <code>attribute</code> argument is mandatory and specifies what to extract.</p>
+<p>Example:</p>
+<p>Given <code>people</code> is an array of Person</p>
+<pre data-lang="rust" style="background-color:#272822;color:#f8f8f2;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="font-style:italic;color:#66d9ef;">struct </span><span>Name(String, String);
+</span><span>
+</span><span style="font-style:italic;color:#66d9ef;">struct </span><span>Person {
+</span><span>    name: Name,
+</span><span>    age: </span><span style="font-style:italic;color:#66d9ef;">u32</span><span>,
+</span><span>}
+</span></code></pre>
+<p>The <code>attribute</code> argument is used to retrieve their ages.</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ people | map(attribute</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;age&quot;</span><span>) }}
+</span></code></pre>
+<h4 id="concat">concat<a class="zola-anchor" href="#concat" aria-label="Anchor link for: concat">🔗</a></h4>
+<p>Appends values to an array.</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{{ posts | concat(with</span><span style="color:#f92672;">=</span><span>drafts) }}
+</span></code></pre>
+<p>The filter takes an array and returns a new array with the value(s) from the <code>with</code> parameter
+added. If the <code>with</code> parameter is an array, all of its values will be appended one by one to the new array and
+not as an array.</p>
+<p>This filter can also be used to append a single value to an array if the value passed to <code>with</code> is not an array:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">set </span><span>pages_id </span><span style="color:#f92672;">= </span><span>pages_id | concat(with</span><span style="color:#f92672;">=</span><span>id) %}
+</span></code></pre>
+<p>The <code>with</code> attribute is mandatory.</p>
+<h4 id="urlencode">urlencode<a class="zola-anchor" href="#urlencode" aria-label="Anchor link for: urlencode">🔗</a></h4>
+<p>Only available if the <code>builtins</code> feature is enabled.</p>
+<p>Percent-encodes all the characters in a string which are not included in
+unreserved chars (according to <a href="https://tools.ietf.org/html/rfc3986">RFC3986</a>) with the exception of forward
+slash (<code>/</code>).</p>
+<p>Example: <code>{{ value | urlencode }}</code></p>
+<p>If value is <code>/foo?a=b&amp;c=d</code>, the output will be <code>/foo%3Fa%3Db%26c%3Dd</code>. <code>/</code> is not escaped.</p>
+<h4 id="urlencode-strict">urlencode_strict<a class="zola-anchor" href="#urlencode-strict" aria-label="Anchor link for: urlencode-strict">🔗</a></h4>
+<p>Only available if the <code>builtins</code> feature is enabled.</p>
+<p>Similar to <code>urlencode</code> filter but encodes all non-alphanumeric characters in a string including forward slashes (<code>/</code>).</p>
+<p>Example: <code>{{ value | urlencode_strict }}</code></p>
+<p>If value is <code>/foo?a=b&amp;c=d</code>, the output will be <code>%2Ffoo%3Fa%3Db%26c%3Dd</code>. <code>/</code> is
+also encoded.</p>
+<h4 id="abs">abs<a class="zola-anchor" href="#abs" aria-label="Anchor link for: abs">🔗</a></h4>
+<p>Returns the absolute value</p>
+<p>Example: <code>{{ negative_number | abs }}</code></p>
+<p>If negative_number is -1, the output will be 1. If num_messages is -2.0 the output will be 2.</p>
+<h4 id="pluralize">pluralize<a class="zola-anchor" href="#pluralize" aria-label="Anchor link for: pluralize">🔗</a></h4>
+<p>Returns a plural suffix if the value is not equal to ±1, or a singular suffix otherwise. The plural suffix defaults to <code>s</code> and the
+singular suffix defaults to the empty string (i.e. nothing).</p>
+<p>Example: <code>You have {{ num_messages }} message{{ num_messages | pluralize }}</code></p>
+<p>If num_messages is 1, the output will be You have 1 message. If num_messages is 2 the output will be You have 2 messages. You can
+also customize the singular and plural suffixes with the <code>singular</code> and <code>plural</code> arguments to the filter:</p>
+<p>Example: <code>{{ num_categories }} categor{{ num_categories | pluralize(singular=&quot;y&quot;, plural=&quot;ies&quot;) }}</code></p>
+<h4 id="round">round<a class="zola-anchor" href="#round" aria-label="Anchor link for: round">🔗</a></h4>
+<p>Returns a number rounded following the method given. Default method is <code>common</code> which will round to the nearest integer.
+<code>ceil</code> and <code>floor</code> are available as alternative methods.
+Another optional argument, <code>precision</code>, is available to select the precision of the rounding. It defaults to <code>0</code>, which will
+round to the nearest integer for the given method.</p>
+<p>Example: <code>{{ num | round }} {{ num | round(method=&quot;ceil&quot;, precision=2) }}</code></p>
+<h4 id="filesizeformat">filesizeformat<a class="zola-anchor" href="#filesizeformat" aria-label="Anchor link for: filesizeformat">🔗</a></h4>
+<p>Only available if the <code>builtins</code> feature is enabled.</p>
+<p>Returns a human-readable file size (i.e. '110 MB') from an integer.</p>
+<p>Example: <code>{{ num | filesizeformat }}</code></p>
+<h4 id="date">date<a class="zola-anchor" href="#date" aria-label="Anchor link for: date">🔗</a></h4>
+<p>Only available if the <code>builtins</code> feature is enabled.</p>
+<p>Parses a timestamp into a date(time) string. Defaults to <code>YYYY-MM-DD</code> format.
+Time formatting syntax is inspired from strftime and a full reference is available
+on <a href="https://docs.rs/chrono/0.4/chrono/format/strftime/index.html">chrono docs</a>.</p>
+<p>Example: <code>{{ ts | date }} {{ ts | date(format=&quot;%Y-%m-%d %H:%M&quot;) }}</code></p>
+<p>If you are using ISO 8601 date strings or a UTC timestamp, you can optionally supply a timezone for the date to be rendered in.</p>
+<p>Example:</p>
+<pre style="background-color:#272822;color:#f8f8f2;"><code><span>{{ &quot;2019-09-19T13:18:48.731Z&quot; | date(timezone=&quot;America/New_York&quot;) }}
+</span><span>
+</span><span>{{ &quot;2019-09-19T13:18:48.731Z&quot; | date(format=&quot;%Y-%m-%d %H:%M&quot;, timezone=&quot;Asia/Shanghai&quot;) }}
+</span><span>
+</span><span>{{ 1648252203 | date(timezone=&quot;Europe/Berlin&quot;) }}
+</span></code></pre>
+<p>Locale can be specified (excepted when the input is a timestamp without timezone argument), default being POSIX. (only available if the <code>date-locale</code> feature is enabled)</p>
+<p>Example: <code>{{ 1648252203 | date(format=&quot;%A %-d %B&quot;, timezone=&quot;Europe/Paris&quot;, locale=&quot;fr_FR&quot;) }}</code></p>
+<h4 id="escape">escape<a class="zola-anchor" href="#escape" aria-label="Anchor link for: escape">🔗</a></h4>
+<p>Escapes a string's HTML. Specifically, it makes these replacements:</p>
+<ul>
+<li><code>&amp;</code> is converted to <code>&amp;amp;</code></li>
+<li><code>&lt;</code> is converted to <code>&amp;lt;</code></li>
+<li><code>&gt;</code> is converted to <code>&amp;gt;</code></li>
+<li><code>&quot;</code> (double quote) is converted to <code>&amp;quot;</code></li>
+<li><code>'</code> (single quote) is converted to <code>&amp;#x27;</code></li>
+<li><code>/</code> is converted to <code>&amp;#x2F;</code></li>
+</ul>
+<h4 id="escape-xml">escape_xml<a class="zola-anchor" href="#escape-xml" aria-label="Anchor link for: escape-xml">🔗</a></h4>
+<p>Escapes XML special characters. Specifically, it makes these replacements:</p>
+<ul>
+<li><code>&amp;</code> is converted to <code>&amp;amp;</code></li>
+<li><code>&lt;</code> is converted to <code>&amp;lt;</code></li>
+<li><code>&gt;</code> is converted to <code>&amp;gt;</code></li>
+<li><code>&quot;</code> (double quote) is converted to <code>&amp;quot;</code></li>
+<li><code>'</code> (single quote) is converted to <code>&amp;apos;</code></li>
+</ul>
+<h4 id="safe">safe<a class="zola-anchor" href="#safe" aria-label="Anchor link for: safe">🔗</a></h4>
+<p>Marks a variable as safe: HTML will not be escaped anymore.
+<code>safe</code> only works if it is the last filter of the expression:</p>
+<ul>
+<li><code>{{ content | replace(from=&quot;Robert&quot;, to=&quot;Bob&quot;) | safe }}</code> will not be escaped</li>
+<li><code>{{ content | safe | replace(from=&quot;Robert&quot;, to=&quot;Bob&quot;) }}</code> will be escaped</li>
+</ul>
+<h4 id="get">get<a class="zola-anchor" href="#get" aria-label="Anchor link for: get">🔗</a></h4>
+<p>Accesses a value from an object when the key is not a Tera identifier.
+Example: <code>{{ sections | get(key=&quot;posts/content&quot;) }}</code></p>
+<p>The <code>get</code> filter also has a <code>default</code> parameter which can be used to provide a return value when the <code>key</code> parameter is missing from the set being filtered.
+Example: <code>{{ sections | get(key=&quot;posts/content&quot;, default=&quot;default&quot;) }}</code></p>
+<h4 id="split">split<a class="zola-anchor" href="#split" aria-label="Anchor link for: split">🔗</a></h4>
+<p>Splits a string into an array of strings, separated by a pattern given.
+Example: <code>{{ path | split(pat=&quot;/&quot;) }}</code></p>
+<h4 id="int">int<a class="zola-anchor" href="#int" aria-label="Anchor link for: int">🔗</a></h4>
+<p>Converts a value into an integer.  The <code>default</code> argument can be used to specify the value to return on error, and the <code>base</code> argument can be used to specify how to interpret the number.  Bases of 2, 8, and 16 understand the prefix 0b, 0o, 0x, respectively.</p>
+<h4 id="float">float<a class="zola-anchor" href="#float" aria-label="Anchor link for: float">🔗</a></h4>
+<p>Converts a value into a float.  The <code>default</code> argument can be used to specify the value to return on error.</p>
+<h4 id="json-encode">json_encode<a class="zola-anchor" href="#json-encode" aria-label="Anchor link for: json-encode">🔗</a></h4>
+<p>Transforms any value into a JSON representation. This filter is better used together with <code>safe</code> or when automatic escape is disabled.</p>
+<p>Example: <code>{{ value | json_encode() | safe }}</code></p>
+<p>It accepts a parameter <code>pretty</code> (boolean) to print a formatted JSON instead of a one-liner.</p>
+<p>Example: <code>{{ value | json_encode(pretty=true) | safe }}</code></p>
+<h4 id="as-str">as_str<a class="zola-anchor" href="#as-str" aria-label="Anchor link for: as-str">🔗</a></h4>
+<p>Returns a string representation of the given value.</p>
+<p>Example: <code>{{ value | as_str }}</code></p>
+<h4 id="default">default<a class="zola-anchor" href="#default" aria-label="Anchor link for: default">🔗</a></h4>
+<p>Returns the default value given only if the variable evaluated is not present in the context
+and is therefore meant to be at the beginning of a filter chain if there are several filters.</p>
+<p>Example: <code>{{ value | default(value=1) }}</code></p>
+<p>This is in most cases a shortcut for:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">if </span><span>value %}{{ value }}{% </span><span style="color:#f92672;">else </span><span>%}1{% </span><span style="color:#f92672;">endif </span><span>%}
+</span></code></pre>
+<p>However, only the existence of the value in the context is checked. With a value that <code>if</code> would
+evaluate to false (such as an empty string, or the number 0), the <code>default</code> filter will not attempt
+replace it with the alternate value provided. For example, the following will produce
+&quot;I would like to read more !&quot;:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>I would like to read more {{ </span><span style="color:#e6db74;">&quot;&quot; </span><span>| default (value</span><span style="color:#f92672;">=</span><span style="color:#e6db74;">&quot;Louise Michel&quot;</span><span>) }}!
+</span></code></pre>
+<p>If you intend to use the default filter to deal with optional values, you should make sure those values
+aren't set! Otherwise, use a full <code>if</code> block. This is especially relevant for dealing with optional arguments
+passed to a macro.</p>
+<h3 id="built-in-tests">Built-in tests<a class="zola-anchor" href="#built-in-tests" aria-label="Anchor link for: built-in-tests">🔗</a></h3>
+<p>Here are the currently built-in tests:</p>
+<h4 id="defined">defined<a class="zola-anchor" href="#defined" aria-label="Anchor link for: defined">🔗</a></h4>
+<p>Returns true if the given variable is defined.</p>
+<h4 id="undefined">undefined<a class="zola-anchor" href="#undefined" aria-label="Anchor link for: undefined">🔗</a></h4>
+<p>Returns true if the given variable is undefined.</p>
+<h4 id="odd">odd<a class="zola-anchor" href="#odd" aria-label="Anchor link for: odd">🔗</a></h4>
+<p>Returns true if the given variable is an odd number.</p>
+<h4 id="even">even<a class="zola-anchor" href="#even" aria-label="Anchor link for: even">🔗</a></h4>
+<p>Returns true if the given variable is an even number.</p>
+<h4 id="string">string<a class="zola-anchor" href="#string" aria-label="Anchor link for: string">🔗</a></h4>
+<p>Returns true if the given variable is a string.</p>
+<h4 id="number">number<a class="zola-anchor" href="#number" aria-label="Anchor link for: number">🔗</a></h4>
+<p>Returns true if the given variable is a number.</p>
+<h4 id="divisibleby">divisibleby<a class="zola-anchor" href="#divisibleby" aria-label="Anchor link for: divisibleby">🔗</a></h4>
+<p>Returns true if the given expression is divisible by the arg given.</p>
+<p>Example:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">if </span><span>rating </span><span style="color:#f92672;">is </span><span>divisibleby(2) %}
+</span><span>    Divisible
+</span><span>{% </span><span style="color:#f92672;">endif </span><span>%}
+</span></code></pre>
+<h4 id="iterable">iterable<a class="zola-anchor" href="#iterable" aria-label="Anchor link for: iterable">🔗</a></h4>
+<p>Returns true if the given variable can be iterated over in Tera (i.e. is an array/tuple or an object).</p>
+<h4 id="object">object<a class="zola-anchor" href="#object" aria-label="Anchor link for: object">🔗</a></h4>
+<p>Returns true if the given variable is an object (i.e. can be iterated over key, value).</p>
+<h4 id="starting-with">starting_with<a class="zola-anchor" href="#starting-with" aria-label="Anchor link for: starting-with">🔗</a></h4>
+<p>Returns true if the given variable is a string and starts with the arg given.</p>
+<p>Example:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">if </span><span>path </span><span style="color:#f92672;">is </span><span>starting_with(</span><span style="color:#e6db74;">&quot;x/&quot;</span><span>) %}
+</span><span>    In section x
+</span><span>{% </span><span style="color:#f92672;">endif </span><span>%}
+</span></code></pre>
+<h4 id="ending-with">ending_with<a class="zola-anchor" href="#ending-with" aria-label="Anchor link for: ending-with">🔗</a></h4>
+<p>Returns true if the given variable is a string and ends with the arg given.</p>
+<h4 id="containing">containing<a class="zola-anchor" href="#containing" aria-label="Anchor link for: containing">🔗</a></h4>
+<p>Returns true if the given variable contains the arg given.</p>
+<p>The test works on:</p>
+<ul>
+<li>strings: is the arg a substring?</li>
+<li>arrays: is the arg given one of the members of the array?</li>
+<li>maps: is the arg given a key of the map?</li>
+</ul>
+<p>Example:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">if </span><span>username </span><span style="color:#f92672;">is </span><span>containing(</span><span style="color:#e6db74;">&quot;xXx&quot;</span><span>) %}
+</span><span>    Bad
+</span><span>{% </span><span style="color:#f92672;">endif </span><span>%}
+</span></code></pre>
+<h4 id="matching">matching<a class="zola-anchor" href="#matching" aria-label="Anchor link for: matching">🔗</a></h4>
+<p>Returns true if the given variable is a string and matches the regex in the argument.</p>
+<p>Example:</p>
+<pre data-lang="jinja2" style="background-color:#272822;color:#f8f8f2;" class="language-jinja2 "><code class="language-jinja2" data-lang="jinja2"><span>{% </span><span style="color:#f92672;">if </span><span>name </span><span style="color:#f92672;">is </span><span>matching(</span><span style="color:#e6db74;">&quot;^[Qq]ueen&quot;</span><span>) %}
+</span><span>    Her Royal Highness, {{ name }}
+</span><span>{% </span><span style="color:#f92672;">elif </span><span>name </span><span style="color:#f92672;">is </span><span>matching(</span><span style="color:#e6db74;">&quot;^[Kk]ing&quot;</span><span>) %}
+</span><span>    His Royal Highness, {{ name }}
+</span><span>{% </span><span style="color:#f92672;">else </span><span>%}
+</span><span>    {{ name }}
+</span><span>{% </span><span style="color:#f92672;">endif </span><span>%}
+</span></code></pre>
+<p>A comprehensive syntax description can be found in the <a href="https://docs.rs/regex/">regex crate documentation</a>.</p>
+<h3 id="built-in-functions">Built-in functions<a class="zola-anchor" href="#built-in-functions" aria-label="Anchor link for: built-in-functions">🔗</a></h3>
+<p>Tera comes with some built-in global functions.</p>
+<h4 id="range">range<a class="zola-anchor" href="#range" aria-label="Anchor link for: range">🔗</a></h4>
+<p>Returns an array of integers created using the arguments given.
+There are 3 arguments, all integers:</p>
+<ul>
+<li><code>end</code>: stop before <code>end</code>, mandatory</li>
+<li><code>start</code>: where to start from, defaults to <code>0</code></li>
+<li><code>step_by</code>: with what number do we increment, defaults to <code>1</code></li>
+</ul>
+<h4 id="now">now<a class="zola-anchor" href="#now" aria-label="Anchor link for: now">🔗</a></h4>
+<p>Only available if the <code>builtins</code> feature is enabled.</p>
+<p>Returns the local datetime as string or the timestamp as integer if requested.</p>
+<p>There are 2 arguments, both booleans:</p>
+<ul>
+<li><code>timestamp</code>: whether to return the timestamp instead of the datetime</li>
+<li><code>utc</code>: whether to return the UTC datetime instead of the local one</li>
+</ul>
+<p>Formatting is not built-in the global function but you can use the <code>date</code> filter like so <code>now() | date(format=&quot;%Y&quot;)</code> if you
+wanted to get the current year.</p>
+<h4 id="throw">throw<a class="zola-anchor" href="#throw" aria-label="Anchor link for: throw">🔗</a></h4>
+<p>The template rendering will error with the given message when encountered.</p>
+<p>There is only one string argument:</p>
+<ul>
+<li><code>message</code>: the message to display as the error</li>
+</ul>
+<h4 id="get-random">get_random<a class="zola-anchor" href="#get-random" aria-label="Anchor link for: get-random">🔗</a></h4>
+<p>Only available if the <code>builtins</code> feature is enabled.</p>
+<p>Returns a random integer in the given range. There are 2 arguments, both integers:</p>
+<ul>
+<li><code>start</code>: defaults to 0 if not present</li>
+<li><code>end</code>: required</li>
+</ul>
+<p><code>start</code> is inclusive (i.e. can be returned) and <code>end</code> is exclusive.</p>
+<h4 id="get-env">get_env<a class="zola-anchor" href="#get-env" aria-label="Anchor link for: get-env">🔗</a></h4>
+<p>Returns the environment variable value for the name given. It will error if the environment variable is not found
+but the call can also take a default value instead.</p>
+<ul>
+<li><code>name</code>: the name of the environment variable to look for, required</li>
+<li><code>default</code>: a default value in case the environment variable is not found</li>
+</ul>
+<p>If the environment variable is found, it will always be a string while your default could be of any type.</p>
+
+            
+        </main>
+    </div>
+
+
+        <footer>
+            <div class="container">
+                © 2017-2023 Vincent Prouillet
+            </div>
+        </footer>
+    </body>
+</html>
