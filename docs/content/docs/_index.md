@@ -741,6 +741,8 @@ To indicate inheritance, you have to use the `extends` tag as the first thing in
 to extend.
 The `{{/* super() */}}` variable call tells Tera to render the parent block there.
 
+Please note that in a child template, any content outside of a block will be ignored, including variable assignments.
+
 Nested blocks also work in Tera. Consider the following templates:
 
 ```jinja2
