@@ -685,6 +685,117 @@ fn filter_filter_works() {
 }
 
 #[test]
+fn take_while_filter_with_value_works() {
+    #[derive(Debug, Serialize)]
+    struct Author {
+        id: u8,
+        age: u8,
+    };
+
+    let mut context = Context::new();
+    context.insert("authors", &vec![
+                   Author { id: 1, age: 42 },
+                   Author { id: 2, age: 42 },
+                   Author { id: 3, age: 5 },
+    ]);
+
+    let inputs = vec![
+        (r#"{{ authors | take_while(attribute="age", value=42) | first | get(key="id") }}"#, "1"),
+        (r#"{{ authors | take_while(attribute="age", value=42) | last | get(key="id") }}"#, "2"),
+        (r#"{{ authors | take_while(attribute="batman", value="bruce") }}"#, "[]"),
+    ];
+
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
+}
+
+#[test]
+fn take_while_filter_without_value_works() {
+    #[derive(Debug, Serialize)]
+    struct Author {
+        id: u8,
+        publications: HashMap<&'static str, u8>,
+    };
+
+    let mut context = Context::new();
+    context.insert("authors", &vec![
+                   Author { id: 1, publications: [("books", 1)].iter().cloned().collect() },
+                   Author { id: 2, publications: [("books", 2)].iter().cloned().collect() },
+                   Author { id: 3, publications: [("papers", 42)].iter().cloned().collect() },
+    ]);
+
+    let inputs = vec![
+        (r#"{{ authors | take_while(attribute="publications.books") | first | get(key="id") }}"#, "1"),
+        (r#"{{ authors | take_while(attribute="publications.books") | last | get(key="id") }}"#, "2"),
+        (r#"{{ authors | take_while(attribute="publications.batman") }}"#, "[]"),
+    ];
+
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
+}
+
+#[test]
+fn take_until_filter_with_value_works() {
+    #[derive(Debug, Serialize)]
+    struct Author {
+        id: u8,
+        age: u8,
+    };
+
+    let mut context = Context::new();
+    context.insert("authors", &vec![
+                   Author { id: 1, age: 42 },
+                   Author { id: 2, age: 42 },
+                   Author { id: 3, age: 5 },
+                   Author { id: 4, age: 99 },
+                   Author { id: 5, age: 99 },
+    ]);
+
+    let inputs = vec![
+        (r#"{{ authors | take_until(attribute="age", value=5) | first | get(key="id") }}"#, "1"),
+        (r#"{{ authors | take_until(attribute="age", value=5) | last | get(key="id") }}"#, "2"),
+        (r#"{{ authors | reverse | take_until(attribute="age", value=5) | last | get(key="id") }}"#, "4"),
+        (r#"{{ authors | reverse | take_until(attribute="age", value=5) | first | get(key="id") }}"#, "5"),
+    ];
+
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
+}
+
+#[test]
+fn take_until_filter_without_value_works() {
+    #[derive(Debug, Serialize)]
+    struct Author {
+        id: u8,
+        publications: HashMap<&'static str, u8>,
+    };
+
+    let mut context = Context::new();
+    context.insert("authors", &vec![
+                   Author { id: 1, publications: [("books", 1)].iter().cloned().collect() },
+                   Author { id: 2, publications: [("books", 2)].iter().cloned().collect() },
+                   Author { id: 3, publications: [("papers", 42)].iter().cloned().collect() },
+    ]);
+
+    let inputs = vec![
+        (r#"{{ authors | take_until(attribute="publications.papers") | last | get(key="id") }}"#, "2"),
+        (r#"{{ authors | take_until(attribute="publications.batman") | length }}"#, "3"),
+        (r#"{{ authors | take_until(attribute="publications.books") }}"#, "[]"),
+    ];
+
+    for (input, expected) in inputs {
+        println!("{:?} -> {:?}", input, expected);
+        assert_eq!(render_template(input, &context).unwrap(), expected);
+    }
+}
+
+#[test]
 fn filter_on_array_literal_works() {
     let mut context = Context::new();
     let i: Option<usize> = None;

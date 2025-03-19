@@ -215,6 +215,68 @@ pub fn filter(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(arr).unwrap())
 }
 
+/// Slice an array by a filter. Returns a slice of the array values that occur from the start
+/// before an element for which `attribute` is not equal to `value`. If `value` is not passed,
+/// produces elements while the element attribute is not null.
+pub fn take_while(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let arr = try_get_value!("take_while", "value", Vec<Value>, value);
+    if arr.is_empty() {
+        return Ok(arr.into());
+    }
+
+    let key = match args.get("attribute") {
+        Some(val) => try_get_value!("take_while", "attribute", String, val),
+        None => return Err(Error::msg("The `take_while` filter has to have an `attribute` argument")),
+    };
+    let boundary_value = args.get("value").unwrap_or(&Value::Null);
+
+    let json_pointer = get_json_pointer(&key);
+    let output = arr
+        .into_iter()
+        .take_while(|v| {
+            let val = v.pointer(&json_pointer).unwrap_or(&Value::Null);
+            if boundary_value.is_null() {
+                !val.is_null()
+            } else {
+                val == boundary_value
+            }
+        })
+        .collect::<Vec<_>>();
+
+    Ok(to_value(output).unwrap())
+}
+
+/// Slice an array by a filter. Returns a slice of the array values that occur from the start
+/// before an element for which `attribute` is equal to `value`. If `value` is not passed,
+/// produces elements while the element attribute is null.
+pub fn take_until(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let arr = try_get_value!("take_until", "value", Vec<Value>, value);
+    if arr.is_empty() {
+        return Ok(arr.into());
+    }
+
+    let key = match args.get("attribute") {
+        Some(val) => try_get_value!("take_until", "attribute", String, val),
+        None => return Err(Error::msg("The `take_until` filter has to have an `attribute` argument")),
+    };
+    let boundary_value = args.get("value").unwrap_or(&Value::Null);
+
+    let json_pointer = get_json_pointer(&key);
+    let output = arr
+        .into_iter()
+        .take_while(|v| {
+            let val = v.pointer(&json_pointer).unwrap_or(&Value::Null);
+            if boundary_value.is_null() {
+                val.is_null()
+            } else {
+                val != boundary_value
+            }
+        })
+        .collect::<Vec<_>>();
+
+    Ok(to_value(output).unwrap())
+}
+
 /// Map retrieves an attribute from a list of objects.
 /// The 'attribute' argument specifies what to retrieve.
 pub fn map(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
@@ -778,6 +840,186 @@ mod tests {
         ]);
 
         let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_take_while_empty() {
+        let res = take_while(&json!([]), &HashMap::new());
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), json!([]));
+    }
+
+    #[test]
+    fn test_take_while_value_match() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2015},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("value".to_string(), to_value(2015).unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+        ]);
+
+        let res = take_while(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_take_while_value_nomatch() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2015},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("value".to_string(), to_value(2016).unwrap());
+
+        let expected = json!([
+        ]);
+
+        let res = take_while(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_take_while_novalue_match() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3},
+            {"id": 4, "year": 2016},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+        ]);
+
+        let res = take_while(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_take_while_novalue_nomatch() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+        ]);
+
+        let res = take_while(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_take_until_empty() {
+        let res = take_until(&json!([]), &HashMap::new());
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), json!([]));
+    }
+
+    #[test]
+    fn test_take_until_value_match() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2015},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("value".to_string(), to_value(2016).unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+        ]);
+
+        let res = take_until(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_take_until_value_nomatch() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2015},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("value".to_string(), to_value(2014).unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2015},
+        ]);
+
+        let res = take_until(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_take_until_novalue_match() {
+        let input = json!([
+            {"id": 1},
+            {"id": 2, "year": 2015},
+            {"id": 3},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+
+        let expected = json!([
+            {"id": 1},
+        ]);
+
+        let res = take_until(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_take_until_novalue_nomatch() {
+        let input = json!([
+            {"id": 1},
+            {"id": 2},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+
+        let expected = json!([
+            {"id": 1},
+            {"id": 2},
+        ]);
+
+        let res = take_until(&input, &args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }
