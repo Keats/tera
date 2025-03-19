@@ -56,8 +56,6 @@
 //! [Jinja2]: http://jinja.pocoo.org/
 //! [Django]: https://docs.djangoproject.com/en/3.1/topics/templates/
 
-#![deny(missing_docs)]
-
 #[macro_use]
 mod macros;
 mod builtins;
@@ -71,7 +69,7 @@ mod tera;
 mod utils;
 
 // Library exports.
-
+pub use crate::builtins::*;
 pub use crate::builtins::filters::Filter;
 pub use crate::builtins::functions::Function;
 pub use crate::builtins::testers::Test;

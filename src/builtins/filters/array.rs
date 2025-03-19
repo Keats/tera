@@ -1,6 +1,9 @@
+use std::cmp::Ordering;
 /// Filters operating on array
 use std::collections::HashMap;
-
+use std::str::FromStr;
+use regex::Regex;
+use serde_json::Number;
 use crate::context::{dotted_pointer, ValueRender};
 use crate::errors::{Error, Result};
 use crate::filter_utils::{get_sort_strategy_for_type, get_unique_strategy_for_type};
@@ -188,6 +191,176 @@ pub fn group_by(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 /// Filter the array values, returning only the values where the `attribute` is equal to the `value`
 /// Values without the `attribute` or with a null `attribute` are discarded
 /// If the `value` is not passed, discard all elements where the attribute is null.
+enum Operator {
+    Eq,
+    Ne,
+    Gt,
+    Lt,
+    Gte,
+    Lte,
+    In,
+    NotIn,
+    Contains,
+    NotContains,
+    Regex,
+    NotRegex,
+    IsNull,
+    IsNotNull,
+}
+impl std::fmt::Display for Operator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Operator::Eq => f.write_fmt(::core::format_args!("eq")),
+            Operator::Ne => f.write_fmt(::core::format_args!("ne")),
+            Operator::Gt => f.write_fmt(::core::format_args!("gt")),
+            Operator::Lt => f.write_fmt(::core::format_args!("lt")),
+            Operator::Gte => f.write_fmt(::core::format_args!("gte")),
+            Operator::Lte => f.write_fmt(::core::format_args!("lte")),
+            Operator::In => f.write_fmt(::core::format_args!("in")),
+            Operator::NotIn => f.write_fmt(::core::format_args!("not_in")),
+            Operator::Contains => f.write_fmt(::core::format_args!("contains")),
+            Operator::NotContains => f.write_fmt(::core::format_args!("not_contains")),
+            Operator::Regex => f.write_fmt(::core::format_args!("regex")),
+            Operator::NotRegex => f.write_fmt(::core::format_args!("not_regex")),
+            Operator::IsNull => f.write_fmt(::core::format_args!("is_null")),
+            Operator::IsNotNull => f.write_fmt(::core::format_args!("is_not_null")),
+        }
+    }
+}
+impl FromStr for Operator {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "eq" => Ok(Operator::Eq),
+            "ne" => Ok(Operator::Ne),
+            "gt" => Ok(Operator::Gt),
+            "lt" => Ok(Operator::Lt),
+            "gte" => Ok(Operator::Gte),
+            "lte" => Ok(Operator::Lte),
+            "in" => Ok(Operator::In),
+            "not_in" => Ok(Operator::NotIn),
+            "contains" => Ok(Operator::Contains),
+            "not_contains" => Ok(Operator::NotContains),
+            "regex" => Ok(Operator::Regex),
+            "not_regex" => Ok(Operator::NotRegex),
+            "is_null" => Ok(Operator::IsNull),
+            "is_not_null" => Ok(Operator::IsNotNull),
+            s => Err(Error::msg(format!(
+                "Unkown Value. Found `{}`, Expected `{}`",
+                s,
+                stringify!( "eq" , "ne" , "gt" , "lt" , "gte" , "lte" , "in" , "not_in" , "contains" , "not_contains" , "regex" , "not_regex" , "is_null" , "is_not_null" , )
+            )))
+        }
+    }
+}
+
+impl Operator {
+    pub fn is_match(&self, value: &Value, value_to_compare: &Value) -> Result<bool> {
+        match (self, value_to_compare) {
+            (Operator::Eq , _) => Ok(value == value_to_compare),
+            (Operator::Ne , _) => Ok(value != value_to_compare),
+            (Operator::Gt, Value::Number(_)) => {
+                if value.is_number() {
+                    Ok(Self::compare(value.as_number().unwrap(), value_to_compare.as_number().unwrap()).is_gt())
+                } else {
+                    Ok(false)
+                }
+            },
+            (Operator::Gt, _) => Err(Error::msg("The `filter` operator Gt can only be used with numbers")),
+            (Operator::Lt, Value::Number(_)) => {
+                if value.is_number() {
+                    Ok(Self::compare(value.as_number().unwrap(), value_to_compare.as_number().unwrap()).is_lt())
+                } else {
+                    Ok(false)
+                }
+            },
+            (Operator::Lt, _) => Err(Error::msg("The `filter` operator Lt can only be used with numbers")),
+            (Operator::Gte, Value::Number(_)) => {
+                if value.is_number() {
+                    Ok(Self::compare(value.as_number().unwrap(), value_to_compare.as_number().unwrap()).is_ge())
+                } else {
+                    Ok(false)
+                }
+            },
+            (Operator::Gte, _) => Err(Error::msg("The `filter` operator Gte can only be used with numbers")),
+            (Operator::Lte, Value::Number(_)) => {
+                if value.is_number() {
+                    Ok(Self::compare(value.as_number().unwrap(), value_to_compare.as_number().unwrap()).is_le())
+                } else {
+                    Ok(false)
+                }
+            },
+            (Operator::Lte, _) => Err(Error::msg("The `filter` operator Lte can only be used with numbers")),
+            (Operator::In, Value::Array(_)) => Ok(value_to_compare.as_array().unwrap().iter().any(|v| v == value)),
+            (Operator::In, _) => Err(Error::msg("The `filter` operator In can only be used with arrays")),
+            (Operator::NotIn, Value::Array(_)) => Ok(value_to_compare.as_array().unwrap().iter().all(|v| v != value)),
+            (Operator::NotIn, _) => Err(Error::msg("The `filter` operator NotIn can only be used with arrays")),
+            (Operator::Contains, Value::String(_)) => {
+                if value.is_string() {
+                    Ok(value.as_str().unwrap().contains(value_to_compare.as_str().unwrap()))
+                } else {
+                    Ok(false)
+                }
+            },
+            (Operator::Contains, _) => Err(Error::msg("The `filter` operator Contains can only be used with strings")),
+            (Operator::NotContains, Value::String(_)) => {
+                if value.is_string() {
+                    Ok(!value.as_str().unwrap().contains(value_to_compare.as_str().unwrap()))
+                } else {
+                    Ok(true)
+                }
+            },
+            (Operator::NotContains, _) => Err(Error::msg("The `filter` operator NotContains can only be used with strings")),
+            (Operator::Regex, Value::String(_)) => {
+                if value.is_string() {
+                    let re = Regex::new(value_to_compare.as_str().unwrap()).map_err(|err| Error::msg(err))?;
+                    Ok(re.is_match(value.as_str().unwrap()))
+                } else {
+                    Ok(false)
+                }
+            },
+            (Operator::Regex, _) => Err(Error::msg("The `filter` operator Regex can only be used with strings")),
+            (Operator::NotRegex, Value::String(_)) => {
+                if value.is_string() {
+                    let re = Regex::new(value_to_compare.as_str().unwrap()).map_err(|err| Error::msg(err))?;
+                    Ok(!re.is_match(value.as_str().unwrap()))
+                } else {
+                    Ok(true)
+                }
+            },
+            (Operator::NotRegex, _) => Err(Error::msg("The `filter` operator NotRegex can only be used with strings")),
+            (Operator::IsNull, Value::Bool(b)) => Ok(if *b {value == &Value::Null } else {value != &Value::Null }),
+            (Operator::IsNull, _) => Err(Error::msg("The `filter` operator IsNull can only be used with booleans")),
+            (Operator::IsNotNull, Value::Bool(b)) => Ok(if *b {value != &Value::Null } else {value == &Value::Null }),
+            (Operator::IsNotNull, _) => Err(Error::msg("The `filter` operator IsNotNull can only be used with booleans")),
+        }
+    }
+
+    fn compare(v1: &Number, v2: &Number) -> Ordering {
+        if v1.is_f64() && v2.is_f64() {
+            v1.as_f64().unwrap().partial_cmp(&v2.as_f64().unwrap()).unwrap()
+        } else if v1.is_i64() && v2.is_i64() {
+            v1.as_i64().unwrap().partial_cmp(&v2.as_i64().unwrap()).unwrap()
+        } else if v1.is_u64() && v2.is_u64() {
+            v1.as_u64().unwrap().partial_cmp(&v2.as_u64().unwrap()).unwrap()
+        } else if v1.is_f64() && v2.is_i64() {
+            v1.as_f64().unwrap().partial_cmp(&(v2.as_i64().unwrap() as f64)).unwrap()
+        } else if v1.is_i64() && v2.is_f64() {
+            (v1.as_i64().unwrap() as f64).partial_cmp(&v2.as_f64().unwrap()).unwrap()
+        } else if v1.is_f64() && v2.is_u64() {
+            v1.as_f64().unwrap().partial_cmp(&(v2.as_u64().unwrap() as f64)).unwrap()
+        } else if v1.is_i64() && v2.is_u64() {
+            (v1.as_i64().unwrap() as f64).partial_cmp(&(v2.as_u64().unwrap() as f64)).unwrap()
+        } else if v1.is_u64() && v2.is_f64() {
+            (v1.as_u64().unwrap() as f64).partial_cmp(&v2.as_f64().unwrap()).unwrap()
+        } else if v1.is_u64() && v2.is_i64() {
+            (v1.as_u64().unwrap() as f64).partial_cmp(&(v2.as_i64().unwrap() as f64)).unwrap()
+        } else {
+            Ordering::Equal
+        }
+    }
+}
+
 pub fn filter(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("filter", "value", Vec<Value>, value);
     if arr.is_empty() {
@@ -198,6 +371,10 @@ pub fn filter(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Some(val) => try_get_value!("filter", "attribute", String, val),
         None => return Err(Error::msg("The `filter` filter has to have an `attribute` argument")),
     };
+    let operator = match args.get("operator") {
+        Some(val) => Operator::from_str(&try_get_value!("filter", "operator", String, val)),
+        None => Ok(Operator::Eq),
+    }?;
     let value = args.get("value").unwrap_or(&Value::Null);
 
     arr = arr
@@ -207,7 +384,7 @@ pub fn filter(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
             if value.is_null() {
                 !val.is_null()
             } else {
-                val == value
+                operator.is_match(val, value).unwrap()
             }
         })
         .collect::<Vec<_>>();
@@ -303,6 +480,34 @@ pub fn concat(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         arr.push(value.clone());
     }
 
+    Ok(to_value(arr).unwrap())
+}
+
+/// Split the array with `size`
+/// and fill the empty slots with the `default` argument
+pub fn batch(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let arr = try_get_value!("batch", "value", Vec<Value>, value);
+    if arr.is_empty() {
+        return Ok(arr.into());
+    }
+
+    let size = match args.get("size") {
+        Some(val) => get_index(try_get_value!("batch", "size", f64, val), &arr),
+        None => return Err(Error::msg("The `batch` filter has to have a `size` argument")),
+    };
+    let value = args.get("default").unwrap_or(&Value::Null);
+
+    let arr = arr.chunks(size)
+        .map(|chunk| {
+            let mut chunk = chunk.to_vec();
+            if chunk.len() < size {
+                for _ in 0..(size - chunk.len()) {
+                    chunk.push(value.clone());
+                }
+            }
+            chunk
+        })
+        .collect::<Vec<Vec<Value>>>();
     Ok(to_value(arr).unwrap())
 }
 
@@ -783,6 +988,323 @@ mod tests {
     }
 
     #[test]
+    fn test_filter_compare() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2017},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": 2018},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+        //eq
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("eq").unwrap());
+        args.insert("value".to_string(), to_value(2015).unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+        //ne
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("ne").unwrap());
+        args.insert("value".to_string(), to_value(2015).unwrap());
+
+        let expected = json!([
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2017},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": 2018},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+        //gt
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("gt").unwrap());
+        args.insert("value".to_string(), to_value(2015).unwrap());
+
+        let expected = json!([
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2017},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": 2018},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+        //lt
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("lt").unwrap());
+        args.insert("value".to_string(), to_value(2016).unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+        //gte
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("gte").unwrap());
+        args.insert("value".to_string(), to_value(2016).unwrap());
+
+        let expected = json!([
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2017},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": 2018},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+
+        //lte
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("lt").unwrap());
+        args.insert("value".to_string(), to_value(2016).unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+        ]);
+    }
+
+    #[test]
+    fn test_filter_in() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+            {"id": 4, "year": 2017},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": 2018},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+        //in
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("in").unwrap());
+        args.insert("value".to_string(), to_value([2015, 2016]).unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": 2015},
+            {"id": 3, "year": 2016},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+
+        //not in
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("not_in").unwrap());
+        args.insert("value".to_string(), to_value([2015, 2016]).unwrap());
+
+        let expected = json!([
+            {"id": 4, "year": 2017},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": 2018},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_filter_contain() {
+        let input = json!([
+            {"id": 1, "year": "2015"},
+            {"id": 2, "year": "2015"},
+            {"id": 3, "year": "2016"},
+            {"id": 4, "year": "2017"},
+            {"id": 5, "year": "2017"},
+            {"id": 6, "year": "2017"},
+            {"id": 7, "year": "2018"},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+        //contains
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("contains").unwrap());
+        args.insert("value".to_string(), to_value("15").unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": "2015"},
+            {"id": 2, "year": "2015"},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+        //not contains
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("not_contains").unwrap());
+        args.insert("value".to_string(), to_value("15").unwrap());
+
+        let expected = json!([
+            {"id": 3, "year": "2016"},
+            {"id": 4, "year": "2017"},
+            {"id": 5, "year": "2017"},
+            {"id": 6, "year": "2017"},
+            {"id": 7, "year": "2018"},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_filter_regex() {
+        let input = json!([
+            {"id": 1, "year": "2015"},
+            {"id": 2, "year": "2015"},
+            {"id": 3, "year": "2016"},
+            {"id": 4, "year": "2017"},
+            {"id": 5, "year": "2017"},
+            {"id": 6, "year": "2017"},
+            {"id": 7, "year": "2018"},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+        //regex
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("regex").unwrap());
+        args.insert("value".to_string(), to_value(r"\d01\d").unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": "2015"},
+            {"id": 2, "year": "2015"},
+            {"id": 3, "year": "2016"},
+            {"id": 4, "year": "2017"},
+            {"id": 5, "year": "2017"},
+            {"id": 6, "year": "2017"},
+            {"id": 7, "year": "2018"},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+
+        //not regex
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("not_regex").unwrap());
+        args.insert("value".to_string(), to_value(r"\d015").unwrap());
+
+        let expected = json!([
+            {"id": 3, "year": "2016"},
+            {"id": 4, "year": "2017"},
+            {"id": 5, "year": "2017"},
+            {"id": 6, "year": "2017"},
+            {"id": 7, "year": "2018"},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_filter_null() {
+        let input = json!([
+            {"id": 1, "year": "2015"},
+            {"id": 2, "year": "2015"},
+            {"id": 3, "year": "2016"},
+            {"id": 4, "year": "2017"},
+            {"id": 5, "year": "2017"},
+            {"id": 6, "year": "2017"},
+            {"id": 7, "year": "2018"},
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+        //is null
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("is_null").unwrap());
+        args.insert("value".to_string(), to_value(true).unwrap());
+
+        let expected = json!([
+            {"id": 8},
+            {"id": 9, "year": null},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+
+        //is not null
+        let mut args = HashMap::new();
+        args.insert("attribute".to_string(), to_value("year").unwrap());
+        args.insert("operator".to_string(), to_value("is_not_null").unwrap());
+        args.insert("value".to_string(), to_value(true).unwrap());
+
+        let expected = json!([
+            {"id": 1, "year": "2015"},
+            {"id": 2, "year": "2015"},
+            {"id": 3, "year": "2016"},
+            {"id": 4, "year": "2017"},
+            {"id": 5, "year": "2017"},
+            {"id": 6, "year": "2017"},
+            {"id": 7, "year": "2018"},
+        ]);
+
+        let res = filter(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
     fn test_map_empty() {
         let res = map(&json!([]), &HashMap::new());
         assert!(res.is_ok());
@@ -834,6 +1356,45 @@ mod tests {
         let expected = json!([1, 2, 3, 4,]);
 
         let res = concat(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+    }
+
+    #[test]
+    fn test_batch() {
+        let input = json!([
+            {"id": 1, "year": 2015},
+            {"id": 2, "year": true},
+            {"id": 3, "year": 2016.5},
+            {"id": 4, "year": "2017"},
+            {"id": 5, "year": 2017},
+            {"id": 6, "year": 2017},
+            {"id": 7, "year": [1900, 1901]},
+        ]);
+        let mut args = HashMap::new();
+        args.insert("size".to_string(), to_value(3).unwrap());
+        args.insert("default".to_string(), json!({"id": 0}));
+
+        let expected =
+            json!([
+                [
+                    {"id": 1, "year": 2015},
+                    {"id": 2, "year": true},
+                    {"id": 3, "year": 2016.5},
+                ],
+                [
+                    {"id": 4, "year": "2017"},
+                    {"id": 5, "year": 2017},
+                    {"id": 6, "year": 2017},
+                ],
+                [
+                    {"id": 7, "year": [1900, 1901]},
+                    {"id": 0},
+                    {"id": 0}
+                ]
+            ]);
+
+        let res = batch(&input, &args);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }
