@@ -1,21 +1,28 @@
 use crate::errors::Error;
 
-/// Escape HTML following [OWASP](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
+/// Escape text for inclusion in HTML or XML body text or quoted attribute values.
 ///
-/// Escape the following characters with HTML entity encoding to prevent switching
-/// into any execution context, such as script, style, or event handlers. Using
-/// hex entities is recommended in the spec. In addition to the 5 characters
-/// significant in XML (&, <, >, ", '), the forward slash is included as it helps
-/// to end an HTML entity.
+/// This escapes more than is ever necessary in any given place, so that one method can be used for
+/// almost forms of escaping ever needed in both HTML and XML. Here’s all that you actually *need*
+/// to escape:
 ///
-/// ```text
-/// & --> &amp;
-/// < --> &lt;
-/// > --> &gt;
-/// " --> &quot;
-/// ' --> &#x27;     &apos; is not recommended
-/// / --> &#x2F;     forward slash is included as it helps end an HTML entity
-/// ```
+/// - In HTML body text: `<` and `&`;
+/// - In HTML quoted attribute values: `&` and the quote (`'` or `"`);
+/// - In XML body text: `<`, `>` and `&`;
+/// - In XML quoted attribute values: `<`, `>`, `&` and the quote (`'` or `"`).
+///
+/// This method is only certified for use in these contexts. It may not be suitable in other
+/// contexts; for example, inside a `<script>` tag’s body you need to do something else altogether,
+/// as entity encoding won’t work but there are some sequences you need to avoid (e.g. `</script>`,
+/// `<!--`).
+///
+/// In total, this method performs the following escapes:
+///
+/// - `<` → `&lt;`
+/// - `>` → `&gt;`
+/// - `&` → `&amp;`
+/// - `"` → `&quot;`
+/// - `'` → `&apos;`
 #[inline]
 pub fn escape_html(input: &str) -> String {
     let mut output = String::with_capacity(input.len() * 2);
@@ -25,8 +32,7 @@ pub fn escape_html(input: &str) -> String {
             '<' => output.push_str("&lt;"),
             '>' => output.push_str("&gt;"),
             '"' => output.push_str("&quot;"),
-            '\'' => output.push_str("&#x27;"),
-            '/' => output.push_str("&#x2F;"),
+            '\'' => output.push_str("&apos;"),
             _ => output.push(c),
         }
     }
