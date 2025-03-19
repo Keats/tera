@@ -8,12 +8,12 @@ use crate::utils::render_to_string;
 use serde_json::value::{to_value, Map, Value};
 
 /// Returns the nth value of an array
-/// If the array is empty, returns empty string
+/// If the array is empty, returns null
 pub fn nth(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("nth", "value", Vec<Value>, value);
 
     if arr.is_empty() {
-        return Ok(to_value("").unwrap());
+        return Ok(Value::Null);
     }
 
     let index = match args.get("n") {
@@ -21,32 +21,32 @@ pub fn nth(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         None => return Err(Error::msg("The `nth` filter has to have an `n` argument")),
     };
 
-    Ok(arr.get(index).unwrap_or(&to_value("").unwrap()).to_owned())
+    Ok(arr.get(index).map(|x| x.to_owned()).unwrap_or(Value::Null))
 }
 
 /// Returns the first value of an array
-/// If the array is empty, returns empty string
+/// If the array is empty, returns null
 pub fn first(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("first", "value", Vec<Value>, value);
 
     if arr.is_empty() {
-        Ok(to_value("").unwrap())
+        Ok(Value::Null)
     } else {
         Ok(arr.swap_remove(0))
     }
 }
 
 /// Returns the last value of an array
-/// If the array is empty, returns empty string
+/// If the array is empty, returns null
 pub fn last(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let mut arr = try_get_value!("last", "value", Vec<Value>, value);
 
-    Ok(arr.pop().unwrap_or_else(|| to_value("").unwrap()))
+    Ok(arr.pop().unwrap_or(Value::Null))
 }
 
 /// Joins all values in the array by the `sep` argument given
 /// If no separator is given, it will use `""` (empty string) as separator
-/// If the array is empty, returns empty string
+/// If the array is empty, returns null
 pub fn join(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let arr = try_get_value!("join", "value", Vec<Value>, value);
     let sep = match args.get("sep") {
@@ -330,7 +330,7 @@ mod tests {
         args.insert("n".to_string(), to_value(1).unwrap());
         let result = nth(&to_value(v).unwrap(), &args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value("").unwrap());
+        assert_eq!(result.unwrap(), Value::Null);
     }
 
     #[test]
@@ -346,7 +346,7 @@ mod tests {
 
         let result = first(&to_value(v).unwrap(), &HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.ok().unwrap(), to_value("").unwrap());
+        assert_eq!(result.ok().unwrap(), Value::Null);
     }
 
     #[test]
@@ -362,7 +362,7 @@ mod tests {
 
         let result = last(&to_value(v).unwrap(), &HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.ok().unwrap(), to_value("").unwrap());
+        assert_eq!(result.ok().unwrap(), Value::Null);
     }
 
     #[test]

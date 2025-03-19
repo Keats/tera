@@ -893,15 +893,15 @@ after `striptags`.
 
 #### first
 Returns the first element of an array.
-If the array is empty, returns empty string.
+If the array is empty, returns null (undefined) that can be chained to the default filter.
 
 #### last
 Returns the last element of an array.
-If the array is empty, returns empty string.
+If the array is empty, returns null (undefined) that can be chained to the default filter.
 
 #### nth
-Returns the nth element of an array.§
-If the array is empty, returns empty string.
+Returns the nth element of an array.
+If the array is empty or if the nth is out of bounds, returns null (undefined) that can be chained to the default filter.
 It takes a required `n` argument, corresponding to the 0-based index you want to get.
 
 Example: `{{ value | nth(n=2) }}`
