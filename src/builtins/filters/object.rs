@@ -1,6 +1,7 @@
-/// Filters operating on numbers
+/// Filters operating on objects
 use std::collections::HashMap;
 
+use serde_json::value::to_value;
 use serde_json::value::Value;
 
 use crate::errors::{Error, Result};
@@ -10,7 +11,7 @@ pub fn get(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     let default = args.get("default");
     let key = match args.get("key") {
         Some(val) => try_get_value!("get", "key", String, val),
-        None => return Err(Error::msg("The `get` filter has to have an `key` argument")),
+        None => return Err(Error::msg("The `get` filter has to have a `key` argument")),
     };
 
     match value.as_object() {
@@ -29,10 +30,32 @@ pub fn get(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     }
 }
 
+/// Merge two objects, the second object is indicated by the `with` argument.
+/// The second object's values will overwrite the first's in the event of a key conflict.
+pub fn merge(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let left = match value.as_object() {
+        Some(val) => val,
+        None => return Err(Error::msg("Filter `merge` was used on a value that isn't an object")),
+    };
+    let with = match args.get("with") {
+        Some(val) => val,
+        None => return Err(Error::msg("The `merge` filter has to have a `with` argument")),
+    };
+    match with.as_object() {
+        Some(right) => {
+            let mut result = left.clone();
+            result.extend(right.clone());
+            // We've already confirmed both sides were HashMaps, the result is a HashMap -
+            // - so unwrap
+            Ok(to_value(result).unwrap())
+        }
+        None => Err(Error::msg("The `with` argument for the `get` filter must be an object")),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::value::to_value;
     use std::collections::HashMap;
 
     #[test]
@@ -86,5 +109,28 @@ mod tests {
         let result = get(&to_value(&obj).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("default").unwrap());
+    }
+
+    #[test]
+    fn test_merge_filter() {
+        let mut obj_1 = HashMap::new();
+        obj_1.insert("1".to_string(), "first".to_string());
+        obj_1.insert("2".to_string(), "second".to_string());
+
+        let mut obj_2 = HashMap::new();
+        obj_2.insert("2".to_string(), "SECOND".to_string());
+        obj_2.insert("3".to_string(), "third".to_string());
+
+        let mut args = HashMap::new();
+        args.insert("with".to_string(), to_value(obj_2).unwrap());
+
+        let result = merge(&to_value(&obj_1).unwrap(), &args);
+        assert!(result.is_ok());
+
+        let mut expected = HashMap::new();
+        expected.insert("1".to_string(), "first".to_string());
+        expected.insert("2".to_string(), "SECOND".to_string());
+        expected.insert("3".to_string(), "third".to_string());
+        assert_eq!(result.unwrap(), to_value(expected).unwrap());
     }
 }
