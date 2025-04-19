@@ -119,7 +119,6 @@ pub struct SortPairs<K: Ord> {
 
 type SortNumbers = SortPairs<OrderedF64>;
 type SortBools = SortPairs<bool>;
-type SortStrings = SortPairs<String>;
 type SortArrays = SortPairs<ArrayLen>;
 
 impl<K: GetValue> SortPairs<K> {
@@ -150,13 +149,42 @@ impl<K: GetValue> SortStrategy for SortPairs<K> {
     }
 }
 
-pub fn get_sort_strategy_for_type(ty: &Value) -> Result<Box<dyn SortStrategy>> {
+pub struct SortStrings {
+    pairs: Vec<(Value, String)>,
+    case_sensitive: bool,
+}
+impl SortStrings {
+    fn new(case_sensitive: bool) -> SortStrings {
+        SortStrings { pairs: Vec::new(), case_sensitive }
+    }
+}
+impl SortStrategy for SortStrings {
+    fn try_add_pair(&mut self, val: &Value, key: &Value) -> Result<()> {
+        let key_str = String::get_value(key)?;
+        self.pairs.push((val.clone(), key_str));
+        Ok(())
+    }
+    fn sort(&mut self) -> Vec<Value> {
+        if self.case_sensitive {
+            self.pairs.sort_by_key(|a| a.1.clone());
+        } else {
+            self.pairs.sort_by_key(|a| a.1.to_lowercase());
+        }
+
+        self.pairs.iter().map(|a| a.0.clone()).collect()
+    }
+}
+
+pub fn get_sort_strategy_for_type(
+    ty: &Value,
+    case_sensitive: bool,
+) -> Result<Box<dyn SortStrategy>> {
     use crate::Value::*;
     match *ty {
         Null => Err(Error::msg("Null is not a sortable value")),
         Bool(_) => Ok(Box::<SortBools>::default()),
         Number(_) => Ok(Box::<SortNumbers>::default()),
-        String(_) => Ok(Box::<SortStrings>::default()),
+        String(_) => Ok(Box::new(SortStrings::new(case_sensitive))),
         Array(_) => Ok(Box::<SortArrays>::default()),
         Object(_) => Err(Error::msg("Object is not a sortable value")),
     }
