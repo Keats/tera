@@ -959,7 +959,7 @@ or by age:
 The `case_sensitive` argument (default is true) can be used to control the order of strings.
 
 ```jinja2
-{{ people | sort(attribute="name.1", case_sensitive="false") }}
+{{ people | sort(attribute="name.1", case_sensitive=false) }}
 ```
 
 #### unique
