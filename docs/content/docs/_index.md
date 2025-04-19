@@ -956,6 +956,12 @@ or by age:
 {{ people | sort(attribute="age") }}
 ```
 
+The `case_sensitive` argument (default is true) can be used to control the order of strings.
+
+```jinja2
+{{ people | sort(attribute="name.1", case_sensitive="false") }}
+```
+
 #### unique
 Removes duplicate items from an array.  The `attribute` argument can be used to select items based on the values of an inner attribute.  For strings, the `case_sensitive` argument (default is false) can be used to control the comparison.
 
