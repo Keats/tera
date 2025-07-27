@@ -657,6 +657,8 @@ fn default_filter_works() {
         (r#"{{ not admin | default(value=true) }}"#, "false"),
         (r#"{{ null | default(value=true) }}"#, "true"),
         (r#"{{ null | default(value="hey") | capitalize }}"#, "Hey"),
+        // https://github.com/Keats/tera/issues/969
+        (r#"{{ null | default(value="N/A") }}"#, "N&#x2F;A"),
     ];
 
     for (input, expected) in inputs {

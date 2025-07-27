@@ -296,7 +296,7 @@ impl<'a> Processor<'a> {
 
     fn get_default_value(&mut self, expr: &'a Expr) -> Result<Val<'a>> {
         if let Some(default_expr) = expr.filters[0].args.get("value") {
-            self.eval_expression(default_expr)
+            self.safe_eval_expression(default_expr)
         } else {
             Err(Error::msg("The `default` filter requires a `value` argument."))
         }
