@@ -1292,13 +1292,13 @@ Example: `{{ value | find(begin = 0, length=300) }}`
 
 Returns first position of the given string, or -1 if not found
 
-Example: `{{ value | substr("Hello") }}`
+Example: `{{ value | find("Hello") }}`
 
 #### rfind
 
 Returns the last position of the given string, or string length if not found
 
-Example: `{{ value | substr("World") }}`
+Example: `{{ value | rfind("World") }}`
 
 #### default
 Returns the default value given only if the variable evaluated is not present in the context
