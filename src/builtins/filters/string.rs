@@ -1,3 +1,4 @@
+#[allow(non_snake_case)]
 /// Filters operating on string
 use std::collections::HashMap;
 
@@ -440,6 +441,75 @@ pub fn float(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     Ok(to_value(v).unwrap())
 }
+
+/// Returns a substring starting at `begin` with optional `length` (in graphemes).
+/// If `length` is not provided, returns the rest of the string from `begin`.
+pub fn substr(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("substr", "value", String, value);
+
+    let begin = match args.get("begin") {
+        Some(b) => try_get_value!("substr", "begin", usize, b),
+        None => return Err(Error::msg("Filter `substr` expected an arg called `begin`")),
+    };
+
+    let length = args.get("length").and_then(|l| l.as_u64()).map(|l| l as usize);
+
+    let graphemes = GraphemeIndices::new(&s).collect::<Vec<(usize, &str)>>();
+
+    if begin >= graphemes.len() {
+        return Ok(to_value("").unwrap());
+    }
+
+    let start_idx = graphemes[begin].0;
+    let end_idx = if let Some(len) = length {
+        let end = (begin + len).min(graphemes.len());
+        if end == graphemes.len() {
+            s.len()
+        } else {
+            graphemes[end].0
+        }
+    } else {
+        s.len()
+    };
+
+    Ok(to_value(&s[start_idx..end_idx]).unwrap())
+}
+
+/// Finds the position of the first occurrence of a substring.
+/// Returns -1 if not found.
+pub fn find(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("find", "value", String, value);
+
+    let needle = match args.get("needle") {
+        Some(needle) => try_get_value!("find", "needle", String, needle),
+        None => return Err(Error::msg("Filter `find` expected an arg called `needle`")),
+    };
+
+    let pos = match s.find(&needle) {
+        Some(idx) => idx as i64,
+        None => -1,
+    };
+    Ok(to_value(pos).unwrap())
+}
+
+
+/// Finds the position of the last occurrence of a substring.
+/// Returns the length of the string if not found.
+pub fn rfind(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
+    let s = try_get_value!("rfind", "value", String, value);
+
+    let needle = match args.get("needle") {
+        Some(needle) => try_get_value!("rfind", "needle", String, needle),
+        None => return Err(Error::msg("Filter `rfind` expected an arg called `needle`")),
+    };
+
+    let pos = match s.rfind(&needle) {
+        Some(idx) => idx as i64,
+        None => -1,
+    };
+    Ok(to_value(pos).unwrap())
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -934,4 +1004,161 @@ mod tests {
             assert_eq!(result.unwrap(), to_value(expected).unwrap());
         }
     }
+
+
+    #[test]
+    fn test_substr_basic() {
+        let mut args = HashMap::new();
+        args.insert("begin".to_string(), to_value(2).unwrap());
+        args.insert("length".to_string(), to_value(3).unwrap());
+        let result = substr(&to_value("abcdef").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("cde").unwrap());
+    }
+
+    #[test]
+    fn test_substr_no_length() {
+        let mut args = HashMap::new();
+        args.insert("begin".to_string(), to_value(3).unwrap());
+        let result = substr(&to_value("abcdef").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("def").unwrap());
+    }
+
+    #[test]
+    fn test_substr_unicode_graphemes() {
+        let mut args = HashMap::new();
+        args.insert("begin".to_string(), to_value(1).unwrap());
+        args.insert("length".to_string(), to_value(2).unwrap());
+        let result = substr(&to_value("a👨‍👩‍👧‍👦b").unwrap(), &args);
+        assert!(result.is_ok());
+        // "👨‍👩‍👧‍👦" is a single grapheme, so result should be "👨‍👩‍👧‍👦b"
+        assert_eq!(result.unwrap(), to_value("👨‍👩‍👧‍👦b").unwrap());
+    }
+
+    #[test]
+    fn test_substr_begin_out_of_bounds() {
+        let mut args = HashMap::new();
+        args.insert("begin".to_string(), to_value(10).unwrap());
+        let result = substr(&to_value("abc").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("").unwrap());
+    }
+
+    #[test]
+    fn test_substr_missing_begin() {
+        let args = HashMap::new();
+        let result = substr(&to_value("abc").unwrap(), &args);
+        assert!(result.is_err());
+        assert_eq!(
+            result.err().unwrap().to_string(),
+            "Filter `substr` expected an arg called `begin`"
+        );
+    }    
+
+    #[test]
+    fn test_find() {
+        let mut args = HashMap::new();
+
+        // Basic find
+        args.insert("needle".to_string(), to_value("bar").unwrap());
+        let result = find(&to_value("foobar").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(3).unwrap());
+
+        // Pattern at start
+        args.insert("needle".to_string(), to_value("foo").unwrap());
+        let result = find(&to_value("foobar").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(0).unwrap());
+
+        // Pattern at end
+        args.insert("needle".to_string(), to_value("bar").unwrap());
+        let result = find(&to_value("bar").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(0).unwrap());
+
+        // Pattern not found
+        args.insert("needle".to_string(), to_value("baz").unwrap());
+        let result = find(&to_value("foobar").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(-1).unwrap());
+
+        // Empty pattern
+        args.insert("needle".to_string(), to_value("").unwrap());
+        let result = find(&to_value("foobar").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(0).unwrap());
+
+        // Empty string
+        args.insert("needle".to_string(), to_value("foo").unwrap());
+        let result = find(&to_value("").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(-1).unwrap());
+
+        // Unicode pattern
+        args.insert("needle".to_string(), to_value("👩").unwrap());
+        let result = find(&to_value("👨‍👩‍👧‍👦 family").unwrap(), &args);
+        assert!(result.is_ok());
+        // "👩" starts at byte 8 in "👨‍👩‍👧‍👦 family"
+        assert_eq!(result.unwrap(), to_value(7).unwrap());
+    }
+
+
+    #[test]
+    fn test_rfind() {
+        let mut args = HashMap::new();
+
+        // Basic rfind
+        args.insert("needle".to_string(), to_value("bar").unwrap());
+        let result = rfind(&to_value("foobarbar").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(6).unwrap());
+
+        // Pattern at start
+        args.insert("needle".to_string(), to_value("foo").unwrap());
+        let result = rfind(&to_value("foobar").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(0).unwrap());
+
+        // Pattern at end
+        args.insert("needle".to_string(), to_value("bar").unwrap());
+        let result = rfind(&to_value("bar").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(0).unwrap());
+
+        // Pattern not found
+        args.insert("needle".to_string(), to_value("baz").unwrap());
+        let result = rfind(&to_value("foobar").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(-1).unwrap());
+
+        // Empty pattern
+        args.insert("needle".to_string(), to_value("").unwrap());
+        let result = rfind(&to_value("foobar").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(6).unwrap());
+
+        // Empty string
+        args.insert("needle".to_string(), to_value("foo").unwrap());
+        let result = rfind(&to_value("").unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value(-1).unwrap());
+
+        // Unicode pattern
+        args.insert("needle".to_string(), to_value("👩").unwrap());
+        let result = rfind(&to_value("👨‍👩‍👧‍👦 family").unwrap(), &args);
+        assert!(result.is_ok());
+        // The last "👩" starts at byte 20 in "👨‍👩‍👧‍👦 family 👩"
+        assert_eq!(result.unwrap(), to_value(7).unwrap());
+
+        // Unicode pattern
+        args.insert("needle".to_string(), to_value("👩").unwrap());
+        let result = rfind(&to_value("👨‍👩‍👧‍👦 family 👩").unwrap(), &args);
+        assert!(result.is_ok());
+        // The last "👩" starts at byte 20 in "👨‍👩‍👧‍👦 family 👩"
+        assert_eq!(result.unwrap(), to_value(33).unwrap());
+    }
+
+    
 }

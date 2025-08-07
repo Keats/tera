@@ -726,6 +726,10 @@ impl Tera {
         self.register_filter("as_str", common::as_str);
 
         self.register_filter("get", object::get);
+      
+        self.register_filter("substr", string::substr);
+        self.register_filter("find", string::find);
+        self.register_filter("rfind", string::rfind);        
     }
 
     fn register_tera_testers(&mut self) {
