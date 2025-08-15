@@ -492,7 +492,6 @@ pub fn find(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     Ok(to_value(pos).unwrap())
 }
 
-
 /// Finds the position of the last occurrence of a substring.
 /// Returns the length of the string if not found.
 pub fn rfind(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
@@ -505,7 +504,7 @@ pub fn rfind(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
 
     let pos = match s.rfind(&needle) {
         Some(idx) => idx as i64,
-        None => -1,
+        None => s.len() as i64,
     };
     Ok(to_value(pos).unwrap())
 }
