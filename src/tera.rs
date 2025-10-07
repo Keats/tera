@@ -167,12 +167,7 @@ impl Tera {
 
         // We want to preserve templates that have been added through
         // Tera::extend so we only keep those
-        self.templates = self
-            .templates
-            .iter()
-            .filter(|&(_, t)| t.from_extend)
-            .map(|(n, t)| (n.clone(), t.clone())) // TODO: avoid that clone
-            .collect();
+        self.templates.retain(|_, t| t.from_extend);
 
         let mut errors = String::new();
 
@@ -321,14 +316,9 @@ impl Tera {
                 continue;
             }
 
-            template.parents = match tpl_parents.remove(&template.name) {
-                Some(parents) => parents,
-                None => vec![],
-            };
-            template.blocks_definitions = match tpl_block_definitions.remove(&template.name) {
-                Some(blocks) => blocks,
-                None => HashMap::new(),
-            };
+            template.parents = tpl_parents.remove(&template.name).unwrap_or_default();
+            template.blocks_definitions =
+                tpl_block_definitions.remove(&template.name).unwrap_or_default();
         }
 
         Ok(())
