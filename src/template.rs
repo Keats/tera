@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::errors::{Error, Result};
 use crate::parser::ast::{Block, MacroDefinition, Node};
 use crate::parser::{parse, remove_whitespace};
+use crate::Tera;
 
 /// This is the parsed equivalent of a template file.
 /// It also does some pre-processing to ensure it does as little as possible at runtime
@@ -41,8 +42,10 @@ pub struct Template {
     /// name is needed in order to load its macros if necessary.
     pub blocks_definitions: HashMap<String, Vec<(String, Block)>>,
 
-    /// If strict mode is enabled, any values which are not contained in the rendering context
-    /// will be interpolated with an empty string
+    /// If strict mode is disabled, any values which are not contained in the rendering context
+    /// will be interpolated with an empty string.
+    ///
+    /// **View more**: [`Template::set_strict`], [`Tera::set_strict`], [`Tera::set_template_strictness`]
     pub strict: bool,
 }
 
