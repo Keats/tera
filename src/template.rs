@@ -40,6 +40,10 @@ pub struct Template {
     /// The order of the Vec is from the first in hierarchy to the current template and the template
     /// name is needed in order to load its macros if necessary.
     pub blocks_definitions: HashMap<String, Vec<(String, Block)>>,
+
+    /// If strict mode is enabled, any values which are not contained in the rendering context
+    /// will be interpolated with an empty string
+    pub strict: bool,
 }
 
 impl Template {
@@ -107,7 +111,17 @@ impl Template {
             parents: vec![],
             blocks_definitions: HashMap::new(),
             from_extend: false,
+            strict: true,
         })
+    }
+
+    /// If a template is in strict mode (it is by default), then trying to render while not providing
+    /// the necessary data inside the render [`Context`] will cause the rendering to fail.
+    ///
+    /// In non-strict mode using identifiers that don't exist in the [`Context`] will just cause the
+    /// output of an empty placeholder string in its place, continuing the rendering.
+    pub fn set_strict(&mut self, strict: bool) {
+        self.strict = strict;
     }
 }
 

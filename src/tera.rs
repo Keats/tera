@@ -76,6 +76,8 @@ pub struct Tera {
     pub autoescape_suffixes: Vec<&'static str>,
     #[doc(hidden)]
     escape_fn: EscapeFn,
+    #[doc(hidden)]
+    pub strict: bool,
 }
 
 impl Tera {
@@ -95,6 +97,7 @@ impl Tera {
             testers: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
             escape_fn: escape_html,
+            strict: true,
         };
 
         tera.load_from_glob()?;
@@ -242,8 +245,7 @@ impl Tera {
 
         let tpl = Template::new(tpl_name, Some(path.to_str().unwrap().to_string()), &input)
             .map_err(|e| Error::chain(format!("Failed to parse {:?}", path), e))?;
-
-        self.templates.insert(tpl_name.to_string(), tpl);
+        self.insert_template(tpl_name, tpl, false)?;
         Ok(())
     }
 
@@ -512,9 +514,7 @@ impl Tera {
     pub fn add_raw_template(&mut self, name: &str, content: &str) -> Result<()> {
         let tpl = Template::new(name, None, content)
             .map_err(|e| Error::chain(format!("Failed to parse '{}'", name), e))?;
-        self.templates.insert(name.to_string(), tpl);
-        self.build_inheritance_chains()?;
-        self.check_macro_files()?;
+        self.insert_template(name, tpl, true)?;
         Ok(())
     }
 
@@ -539,7 +539,7 @@ impl Tera {
             let name = name.as_ref();
             let tpl = Template::new(name, None, content.as_ref())
                 .map_err(|e| Error::chain(format!("Failed to parse '{}'", name), e))?;
-            self.templates.insert(name.to_string(), tpl);
+            self.insert_template(name, tpl, false)?;
         }
         self.build_inheritance_chains()?;
         self.check_macro_files()?;
@@ -595,6 +595,26 @@ impl Tera {
         }
         self.build_inheritance_chains()?;
         self.check_macro_files()?;
+        Ok(())
+    }
+
+    /// Inserts a new template and asserts strictness of the [`Tera`] instance.
+    ///
+    /// **Visiblity**: Private because the strictness assertion is only internally relevant.
+    /// If a user wants to manually add templates, they should do so directly through the
+    /// `Tera.templates` member.
+    fn insert_template<S>(&mut self, name: S, mut template: Template, rebuild: bool) -> Result<()>
+    where
+        S: Into<String>,
+    {
+        template.set_strict(self.strict);
+        self.templates.insert(name.into(), template);
+
+        if rebuild {
+            self.build_inheritance_chains()?;
+            self.check_macro_files()?;
+        }
+
         Ok(())
     }
 
@@ -817,6 +837,34 @@ impl Tera {
         self.escape_fn = escape_html;
     }
 
+    /// Sets the strictness for this [`Tera`] instance. Tera is in strict mode by default.
+    ///
+    /// **In strict mode** trying to render while not providing the necessary data
+    /// inside the render [`Context`] will cause the rendering to abort with an error.
+    ///
+    /// **In non-strict mode** using identifiers that don't exist in the [`Context`] will emit
+    /// an empty placeholder string in its place, continuing the rendering.
+    ///
+    /// **Note:**
+    /// Only **newly added** templates will inherit the current instance strictness mode.
+    /// Changing this will not impact the strictness of any existing templates.
+    /// You can also only set specific templates to strict or non-strict rendering mode.
+    /// **Also view:** [`Template::set_strict`]
+    pub fn set_strict(&mut self, strict: bool) {
+        self.strict = strict;
+    }
+
+    /// Sets the strictness of a specific template.
+    ///
+    /// For extended documentation view [`Tera::set_strict`] or [`Template::set_strict`].
+    pub fn set_template_strictness(&mut self, template_name: &str, strict: bool) -> Result<()> {
+        let Some(template) = self.templates.get_mut(template_name) else {
+            return Err(Error::template_not_found(template_name));
+        };
+        template.set_strict(strict);
+        Ok(())
+    }
+
     /// Re-parse all templates found in the glob given to Tera.
     ///
     /// Use this when you are watching a directory and want to reload everything,
@@ -852,7 +900,7 @@ impl Tera {
             if !self.templates.contains_key(name) {
                 let mut tpl = template.clone();
                 tpl.from_extend = true;
-                self.templates.insert(name.to_string(), tpl);
+                self.insert_template(name, tpl, false)?;
             }
         }
 
@@ -889,6 +937,7 @@ impl Default for Tera {
             functions: HashMap::new(),
             autoescape_suffixes: vec![".html", ".htm", ".xml"],
             escape_fn: escape_html,
+            strict: true,
         };
 
         tera.register_tera_filters();
@@ -1353,5 +1402,54 @@ mod tests {
         println!("{:?}", tera);
         assert!(tera.is_ok());
         assert!(tera.unwrap().templates.is_empty());
+    }
+
+    // https://github.com/Keats/tera/issues/974
+    #[test]
+    fn non_strict_missing_variable() {
+        const TEMPLATE: &str = ">{{ thisdoesntexist }} {{ some }} {{ world.peace }}<";
+
+        let mut tera = Tera::default();
+        tera.add_raw_template("meow", TEMPLATE).unwrap();
+
+        let mut ctx = Context::new();
+        ctx.insert("some", "///");
+
+        // default should be strict
+        assert!(tera.render("meow", &ctx).is_err());
+
+        tera.set_template_strictness("meow", false).unwrap();
+        assert_eq!(tera.render("meow", &ctx).unwrap(), "> /// <");
+
+        tera.set_template_strictness("meow", true).unwrap();
+        assert!(tera.render("meow", &ctx).is_err());
+    }
+
+    // https://github.com/Keats/tera/issues/974
+    #[test]
+    fn instance_non_strict_missing_variable() {
+        const TEMPLATE: &str = ">{{ thisdoesntexist }} {{ some }} {{ world.peace }}<";
+
+        let mut tera = Tera::default();
+
+        assert!(tera.set_template_strictness("meow", false).is_err());
+
+        tera.add_raw_template("meow", TEMPLATE).unwrap();
+
+        let mut ctx = Context::new();
+        ctx.insert("some", "///");
+
+        // default should be strict
+        assert!(tera.render("meow", &ctx).is_err());
+
+        // override template while in non-strict mode
+        tera.set_strict(false);
+        tera.add_raw_template("meow", TEMPLATE).unwrap();
+
+        tera.set_strict(true);
+        assert_eq!(tera.render("meow", &ctx).unwrap(), "> /// <");
+
+        tera.set_template_strictness("meow", true).unwrap();
+        assert!(tera.render("meow", &ctx).is_err());
     }
 }

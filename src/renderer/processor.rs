@@ -400,11 +400,14 @@ impl<'a> Processor<'a> {
                         if expr.has_default_filter() {
                             self.get_default_value(expr)?
                         } else {
-                            if !expr.negated {
-                                return Err(e);
+                            if expr.negated {
+                                // A negative undefined ident is !false so truthy
+                                return Ok(Cow::Owned(Value::Bool(true)));
                             }
-                            // A negative undefined ident is !false so truthy
-                            return Ok(Cow::Owned(Value::Bool(true)));
+                            if !self.template.strict {
+                                return Ok(Cow::Owned(Value::String(String::new())))
+                            }
+                            return Err(e);
                         }
                     }
                 }
