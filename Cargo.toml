@@ -23,7 +23,7 @@ lazy_static = "1.4"
 # used in striptags, spaceless & titles filters. Already pulled by globwalk
 regex = "1.7"
 # used in truncate filter and string iteration
-unic-segment = "0.9"
+unicode-segmentation = "1.12"
 
 # used in slugify filter
 slug = {version = "0.1", optional = true}

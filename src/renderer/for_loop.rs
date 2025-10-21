@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use serde_json::Value;
-use unic_segment::Graphemes;
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::renderer::stack_frame::Val;
 
@@ -58,7 +58,7 @@ impl<'a> ForLoopValues<'a> {
                 }
             },
             ForLoopValues::String(ref values) => {
-                let mut graphemes = Graphemes::new(values.as_str().expect("Is string"));
+                let mut graphemes = values.as_str().expect("Is string").graphemes(true);
                 Cow::Owned(Value::String(graphemes.nth(i).expect("Value").to_string()))
             }
             ForLoopValues::Object(ref values) => values.get(i).expect("Value").1.clone(),

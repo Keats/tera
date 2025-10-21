@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use lazy_static::lazy_static;
 use regex::{Captures, Regex};
 use serde_json::value::{to_value, Value};
-use unic_segment::GraphemeIndices;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[cfg(feature = "urlencode")]
 use percent_encoding::{percent_encode, AsciiSet, NON_ALPHANUMERIC};
@@ -165,7 +165,7 @@ pub fn truncate(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         None => "…".to_string(),
     };
 
-    let graphemes = GraphemeIndices::new(&s).collect::<Vec<(usize, &str)>>();
+    let graphemes = s.grapheme_indices(true).collect::<Vec<(usize, &str)>>();
 
     // Nothing to truncate?
     if length >= graphemes.len() {
