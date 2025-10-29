@@ -26,7 +26,7 @@ jobs:
           os: macOS-latest
           rust: stable
         - build: win-msvc
-          os: windows-2019
+          os: windows-2022
           rust: stable
     steps:
     - uses: actions/checkout@v5
