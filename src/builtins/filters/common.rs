@@ -177,7 +177,7 @@ pub fn date(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                 );
                 match timezone {
                     Some(timezone) => timezone.from_utc_datetime(&date).format(&format),
-                    None => date.format(&format),
+                    None => date.and_utc().format(&format),
                 }
             }
             None => return Err(Error::msg(format!("Filter `date` was invoked on a float: {}", n))),
@@ -440,6 +440,16 @@ mod tests {
         let result = date(&to_value(1648252203).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("2022-03-26").unwrap());
+    }
+
+    #[cfg(feature = "builtins")]
+    #[test]
+    fn date_timestamp_without_timezone_with_timezone_specifier() {
+        let mut args = HashMap::new();
+        args.insert("format".to_string(), to_value("%Y-%m-%d %H:%M:%S %Z (%z)").unwrap());
+        let result = date(&to_value(1648302603).unwrap(), &args);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), to_value("2022-03-26 13:50:03 UTC (+0000)").unwrap());
     }
 
     #[cfg(feature = "date-locale")]
