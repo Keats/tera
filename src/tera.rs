@@ -392,6 +392,15 @@ impl Tera {
         renderer.render()
     }
 
+    /// Async version of [`render()`](Self::render). Note that the await points for ``render_async`` are
+    /// in between each ast parse
+    #[cfg(feature = "async")]
+    pub async fn render_async(&self, template_name: &str, context: &Context) -> Result<String> {
+        let template = self.get_template(template_name)?;
+        let renderer = Renderer::new(template, self, context);
+        renderer.render_async().await
+    }
+
     /// Renders a Tera template given a [`Context`] to something that implements [`Write`].
     ///
     /// The only difference from [`render()`](Self::render) is that this version doesn't convert
@@ -726,6 +735,7 @@ impl Tera {
         self.register_filter("as_str", common::as_str);
 
         self.register_filter("get", object::get);
+        self.register_filter("merge", object::merge);
     }
 
     fn register_tera_testers(&mut self) {
@@ -751,7 +761,6 @@ impl Tera {
         self.register_function("throw", functions::throw);
         #[cfg(feature = "builtins")]
         self.register_function("get_random", functions::get_random);
-        self.register_function("get_env", functions::get_env);
     }
 
     /// Select which suffix(es) to automatically do HTML escaping on.
@@ -1039,7 +1048,7 @@ mod tests {
     #[test]
     fn test_can_autoescape_one_off_template() {
         let mut context = Context::new();
-        context.insert("greeting", &"<p>");
+        context.insert("greeting", &"<p>").unwrap();
         let result = Tera::one_off("{{ greeting }} world", &context, true).unwrap();
 
         assert_eq!(result, "&lt;p&gt; world");
@@ -1048,7 +1057,7 @@ mod tests {
     #[test]
     fn test_can_disable_autoescape_one_off_template() {
         let mut context = Context::new();
-        context.insert("greeting", &"<p>");
+        context.insert("greeting", &"<p>").unwrap();
         let result = Tera::one_off("{{ greeting }} world", &context, false).unwrap();
 
         assert_eq!(result, "<p> world");
@@ -1076,7 +1085,7 @@ mod tests {
         tera.autoescape_on(vec!["foo"]);
         tera.set_escape_fn(escape_c_string);
         let mut context = Context::new();
-        context.insert("content", &"Hello\n\'world\"!");
+        context.insert("content", &"Hello\n\'world\"!").unwrap();
         let result = tera.render("foo", &context).unwrap();
         assert_eq!(result, r#""Hello\n\'world\"!""#);
     }
@@ -1090,7 +1099,7 @@ mod tests {
         tera.set_escape_fn(no_escape);
         tera.reset_escape_fn();
         let mut context = Context::new();
-        context.insert("content", &"Hello\n\'world\"!");
+        context.insert("content", &"Hello\n\'world\"!").unwrap();
         let result = tera.render("foo", &context).unwrap();
         assert_eq!(result, "Hello\n&#x27;world&quot;!");
     }
@@ -1134,7 +1143,7 @@ mod tests {
         map.insert("https://example.com", "success");
 
         let mut tera_context = Context::new();
-        tera_context.insert("map", &map);
+        tera_context.insert("map", &map).unwrap();
 
         my_tera.render("dots", &tera_context).unwrap();
         my_tera.render("urls", &tera_context).unwrap();

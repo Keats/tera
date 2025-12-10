@@ -71,7 +71,7 @@ fn bench_big_loop_big_object(b: &mut test::Bencher) {
     )])
     .unwrap();
     let mut context = Context::new();
-    context.insert("objects", &objects);
+    context.insert("objects", &objects).unwrap();
     let rendering = tera.render("big_loop.html", &context).expect("Good render");
     assert_eq!(&rendering[..], "0123");
     // cloning as making the context is the bottleneck part
@@ -93,8 +93,8 @@ fn bench_macro_big_object(b: &mut test::Bencher) {
     ])
     .unwrap();
     let mut context = Context::new();
-    context.insert("big_object", &big_object);
-    context.insert("iterations", &(0..500).collect::<Vec<usize>>());
+    context.insert("big_object", &big_object).unwrap();
+    context.insert("iterations", &(0..500).collect::<Vec<usize>>()).unwrap();
     let rendering = tera.render("big_loop.html", &context).expect("Good render");
     assert_eq!(rendering.len(), 500);
     assert_eq!(rendering.chars().next().expect("Char"), '1');
@@ -116,7 +116,7 @@ fn bench_macro_big_object_no_loop_with_set(b: &mut test::Bencher) {
     )])
     .unwrap();
     let mut context = Context::new();
-    context.insert("two_fields", &TwoFields::new());
+    context.insert("two_fields", &TwoFields::new()).unwrap();
     let rendering = tera.render("no_loop.html", &context).expect("Good render");
     assert_eq!(&rendering[..], "\nA\nB\nC\n");
     // cloning as making the context is the bottleneck part
@@ -143,7 +143,7 @@ fn bench_macro_big_object_no_loop_macro_call(b: &mut test::Bencher) {
     ])
     .unwrap();
     let mut context = Context::new();
-    context.insert("two_fields", &TwoFields::new());
+    context.insert("two_fields", &TwoFields::new()).unwrap();
     let rendering = tera.render("no_loop.html", &context).expect("Good render");
     assert_eq!(&rendering[..], "A");
     // cloning as making the context is the bottleneck part

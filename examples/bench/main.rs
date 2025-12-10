@@ -27,7 +27,7 @@ fn main() {
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![("big-table.html", BIG_TABLE_TEMPLATE)]).unwrap();
     let mut ctx = Context::new();
-    ctx.insert("table", &table);
+    ctx.insert("table", &table).unwrap();
 
     let _ = tera.render("big-table.html", &ctx).unwrap();
     println!("Done!");

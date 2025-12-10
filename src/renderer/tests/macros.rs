@@ -36,7 +36,7 @@ fn render_macros_defined_in_template() {
 #[test]
 fn render_macros_expression_arg() {
     let mut context = Context::new();
-    context.insert("pages", &vec![1, 2, 3, 4, 5]);
+    context.insert("pages", &vec![1, 2, 3, 4, 5]).unwrap();
     let mut tera = Tera::default();
     tera.add_raw_templates(vec![
         ("macros", "{% macro hello(val)%}{{val}}{% endmacro hello %}"),
@@ -104,7 +104,7 @@ fn macro_param_arent_escaped() {
     ])
     .unwrap();
     let mut context = Context::new();
-    context.insert("my_var", &"&");
+    context.insert("my_var", &"&").unwrap();
     let result = tera.render("hello.html", &context);
 
     assert_eq!(result.unwrap(), "&".to_string());
@@ -177,7 +177,7 @@ fn recursive_macro_with_loops() {
         numbers: vec![1, 2, 3],
     };
     let mut context = Context::new();
-    context.insert("objects", &vec![child]);
+    context.insert("objects", &vec![child]).unwrap();
     let mut tera = Tera::default();
 
     tera.add_raw_templates(vec![

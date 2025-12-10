@@ -361,6 +361,95 @@ fn parse_variable_tag_negated_expr() {
 }
 
 #[test]
+fn parse_variable_tag_bitor() {
+    let ast = parse("{{ id bitor id2 }}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Math(MathExpr {
+                lhs: Box::new(Expr::new(ExprVal::Ident("id".to_string()))),
+                operator: MathOperator::BitOr,
+                rhs: Box::new(Expr::new(ExprVal::Ident("id2".to_string()))),
+            },))
+        )
+    );
+}
+
+#[test]
+fn parse_variable_tag_bitxor() {
+    let ast = parse("{{ id bitxor id2 }}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Math(MathExpr {
+                lhs: Box::new(Expr::new(ExprVal::Ident("id".to_string()))),
+                operator: MathOperator::BitXor,
+                rhs: Box::new(Expr::new(ExprVal::Ident("id2".to_string()))),
+            },))
+        )
+    );
+}
+
+#[test]
+fn parse_variable_tag_bitand() {
+    let ast = parse("{{ id bitand id2 }}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Math(MathExpr {
+                lhs: Box::new(Expr::new(ExprVal::Ident("id".to_string()))),
+                operator: MathOperator::BitAnd,
+                rhs: Box::new(Expr::new(ExprVal::Ident("id2".to_string()))),
+            },))
+        )
+    );
+}
+
+#[test]
+fn parse_variable_tag_bitlshift() {
+    let ast = parse("{{ id << id2 }}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Math(MathExpr {
+                lhs: Box::new(Expr::new(ExprVal::Ident("id".to_string()))),
+                operator: MathOperator::BitLeftShift,
+                rhs: Box::new(Expr::new(ExprVal::Ident("id2".to_string()))),
+            },))
+        )
+    );
+}
+
+#[test]
+fn parse_variable_tag_bitrshift() {
+    let ast = parse("{{ id >> id2 }}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(
+            WS::default(),
+            Expr::new(ExprVal::Math(MathExpr {
+                lhs: Box::new(Expr::new(ExprVal::Ident("id".to_string()))),
+                operator: MathOperator::BitRightShift,
+                rhs: Box::new(Expr::new(ExprVal::Ident("id2".to_string()))),
+            },))
+        )
+    );
+}
+
+#[test]
+fn parse_variable_tag_bitnot() {
+    let ast = parse("{{ bitnot id }}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::VariableBlock(WS::default(), Expr::new_bitnot(ExprVal::Ident("id".to_string())))
+    );
+}
+
+#[test]
 fn parse_variable_tag_negated_expr_with_parentheses() {
     let ast = parse("{{ (not id or not true) and not 1 + 1 }}").unwrap();
     assert_eq!(
@@ -748,6 +837,24 @@ fn parse_set_global_tag() {
                 global: true,
             },
         )
+    );
+}
+
+#[test]
+fn parse_delete() {
+    let ast = parse("{% delete hello %}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::Delete(WS::default(), Delete { key: "hello".to_string(), global: false },)
+    );
+}
+
+#[test]
+fn parse_delete_global() {
+    let ast = parse("{% delete_global hello %}").unwrap();
+    assert_eq!(
+        ast[0],
+        Node::Delete(WS::default(), Delete { key: "hello".to_string(), global: true },)
     );
 }
 

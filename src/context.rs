@@ -23,15 +23,19 @@ impl Context {
 
     /// Converts the `val` parameter to `Value` and insert it into the context.
     ///
-    /// Panics if the serialization fails.
-    ///
     /// ```rust
     /// # use tera::Context;
     /// let mut context = tera::Context::new();
     /// context.insert("number_users", &42);
     /// ```
-    pub fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) {
-        self.data.insert(key.into(), to_value(val).unwrap());
+    pub fn insert<T: Serialize + ?Sized, S: Into<String>>(
+        &mut self,
+        key: S,
+        val: &T,
+    ) -> Result<(), Error> {
+        self.data.insert(key.into(), to_value(val)?);
+
+        Ok(())
     }
 
     /// Converts the `val` parameter to `Value` and insert it into the context.
@@ -152,7 +156,10 @@ impl ValueRender for Value {
                 } else if let Some(v) = i.as_f64() {
                     write!(write, "{}", v)
                 } else {
-                    unreachable!()
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        "Number could not be converted to i64, u64 or f64",
+                    ))
                 }
             }
             Value::Bool(i) => write!(write, "{}", i),
@@ -455,11 +462,11 @@ mod tests {
     #[test]
     fn can_extend_context() {
         let mut target = Context::new();
-        target.insert("a", &1);
-        target.insert("b", &2);
+        target.insert("a", &1).unwrap();
+        target.insert("b", &2).unwrap();
         let mut source = Context::new();
-        source.insert("b", &3);
-        source.insert("c", &4);
+        source.insert("b", &3).unwrap();
+        source.insert("c", &4).unwrap();
         target.extend(source);
         assert_eq!(*target.data.get("a").unwrap(), to_value(1).unwrap());
         assert_eq!(*target.data.get("b").unwrap(), to_value(3).unwrap());
@@ -474,8 +481,8 @@ mod tests {
         });
         let context_from_value = Context::from_value(obj).unwrap();
         let mut context = Context::new();
-        context.insert("name", "bob");
-        context.insert("age", &25);
+        context.insert("name", "bob").unwrap();
+        context.insert("age", &25).unwrap();
         assert_eq!(context_from_value, context);
     }
 
@@ -486,19 +493,19 @@ mod tests {
         map.insert("last_name", "something");
         let context_from_serialize = Context::from_serialize(&map).unwrap();
         let mut context = Context::new();
-        context.insert("name", "bob");
-        context.insert("last_name", "something");
+        context.insert("name", "bob").unwrap();
+        context.insert("last_name", "something").unwrap();
         assert_eq!(context_from_serialize, context);
     }
 
     #[test]
     fn can_remove_a_key() {
         let mut context = Context::new();
-        context.insert("name", "foo");
-        context.insert("bio", "Hi, I'm foo.");
+        context.insert("name", "foo").unwrap();
+        context.insert("bio", "Hi, I'm foo.").unwrap();
 
         let mut expected = Context::new();
-        expected.insert("name", "foo");
+        expected.insert("name", "foo").unwrap();
         assert_eq!(context.remove("bio"), Some(to_value("Hi, I'm foo.").unwrap()));
         assert_eq!(context.get("bio"), None);
         assert_eq!(context, expected);

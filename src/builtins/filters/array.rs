@@ -297,7 +297,7 @@ pub fn concat(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                     arr.push(val.clone());
                 }
             }
-            _ => unreachable!("Got something other than an array??"),
+            _ => return Err(Error::msg("The `concat` filter can only concat with an array")),
         }
     } else {
         arr.push(value.clone());
