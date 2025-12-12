@@ -1,9 +1,10 @@
 /// Filters operating on numbers
 use std::collections::HashMap;
 
-use serde_json::value::Value;
 
+use crate::dotted_pointer;
 use crate::errors::{Error, Result};
+use serde_json::value::Value;
 
 /// Returns a value by a `key` argument from a given object
 pub fn get(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
@@ -13,10 +14,8 @@ pub fn get(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         None => return Err(Error::msg("The `get` filter has to have an `key` argument")),
     };
 
-    match value.as_object() {
-        Some(o) => match o.get(&key) {
-            Some(val) => Ok(val.clone()),
-            // If the value is not present, allow for an optional default value
+    if value.is_object() {
+        match dotted_pointer(&value, &key) {
             None => match default {
                 Some(def) => Ok(def.clone()),
                 None => Err(Error::msg(format!(
@@ -24,8 +23,10 @@ pub fn get(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
                     &key
                 ))),
             },
-        },
-        None => Err(Error::msg("Filter `get` was used on a value that isn't an object")),
+            Some(val) => Ok(val.clone()),
+        }
+    } else {
+        Err(Error::msg("Filter `get` was used on a value that isn't an object"))
     }
 }
 
@@ -34,6 +35,8 @@ mod tests {
     use super::*;
     use serde_json::value::to_value;
     use std::collections::HashMap;
+    use serde_json::json;
+    use crate::filters::array::batch;
 
     #[test]
     fn test_get_filter_exists() {
@@ -86,5 +89,51 @@ mod tests {
         let result = get(&to_value(&obj).unwrap(), &args);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), to_value("default").unwrap());
+    }
+
+    #[test]
+    fn test_get_attribute() {
+        let input = json!({"id": 7, "year": [1900, 1901], "children": [{"id": 0}]});
+        let mut args = HashMap::new();
+        args.insert("key".to_string(), to_value("id").unwrap());
+        args.insert("default".to_string(), to_value(3).unwrap());
+
+        let expected = json!(7);
+
+        let res = get(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+
+        let mut args = HashMap::new();
+        args.insert("key".to_string(), to_value("id2").unwrap());
+        args.insert("default".to_string(), to_value(3).unwrap());
+
+        let expected = json!(3);
+
+        let res = get(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+
+        let mut args = HashMap::new();
+        args.insert("key".to_string(), to_value("year.3").unwrap());
+        args.insert("default".to_string(), to_value(3).unwrap());
+
+        let expected = json!(3);
+
+        let res = get(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
+
+        let mut args = HashMap::new();
+        args.insert("key".to_string(), to_value("children.0.id").unwrap());
+        args.insert("default".to_string(), to_value(3).unwrap());
+
+        let expected = json!(0);
+
+        let res = get(&input, &args);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), to_value(expected).unwrap());
     }
 }
