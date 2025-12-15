@@ -352,6 +352,8 @@ in for loop are valid until the end of the current iteration only.
 {% set my_var = [1, true, some_var | round] %}
 ```
 
+Note that variables names are limited to ASCII letters, figures, and underscore, i.e. `[a-zA-Z0-9_]`.
+
 If you want to assign a value in the global context while in a for loop, you can use `set_global`:
 
 ```jinja2
@@ -601,6 +603,8 @@ To skip even-numbered items:
 {% endfor %}
 ```
 
+The `for` loop variable name is limited to ASCII letters, figures, and underscore, i.e. `[a-zA-Z0-9_]`.
+
 ### Include
 
 You can include a template to be rendered using the current context with the `include` tag.
@@ -667,6 +671,7 @@ A macro is called like this:
 ```
 Do note that macros, like filters, require keyword arguments.
 Use the `self` namespace when calling a macro defined in the same file. Macros must be defined top-level (they cannot be nested in an if, for, etc.) and should only reference arguments, not template variables directly.
+The macro names are limited to ASCII letters, figures, and underscore, i.e. `[a-zA-Z0-9_]`.
 
 
 Macros can be called recursively but there is no limit to recursion so make sure your macro ends.
