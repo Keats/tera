@@ -20,7 +20,20 @@
                                         {% if h2.children %}
                                             <input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-{{ index }}-{{ index2 }}-open"/><label aria-hidden="true" for="docs-{{ index }}-{{ index2 }}-open"></label>
                                             <ul>
-                                                {% for h3 in h2.children %}<li><a href="{{ h3.permalink }}">{{ h3.title }}</a></li>{% endfor %}
+                                                {% for h3 in h2.children %}
+                                                {% set index3 = loop.index %}
+                                                <li>
+                                                <a href="{{ h3.permalink }}">{{ h3.title }}</a>
+                                                {% if h3.children %}
+                                                <input aria-hidden="true" class="submenu-open" type="checkbox" id="docs-{{ index }}-{{ index2 }}-{{ index3 }}-open"/><label aria-hidden="true" for="docs-{{ index }}-{{ index2 }}-{{ index3 }}-open"></label>
+                                                <ul>
+                                                    {% for h4 in h3.children %}
+                                                    <li><a href="{{ h3.permalink }}">{{ h4.title }}</a></li>
+                                                    {% endfor %}
+                                                </ul>
+                                                {% endif %}
+                                                {% endfor %}
+                                    </li>
                                             </ul>
                                         {% endif %}
                                     </li>
