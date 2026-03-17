@@ -5,7 +5,7 @@ use std::io::Write;
 use serde_json::{to_string_pretty, to_value, Number, Value};
 
 use crate::context::{ValueRender, ValueTruthy};
-use crate::errors::{Error, Result};
+use crate::errors::{Error, ErrorKind, Result};
 use crate::parser::ast::*;
 use crate::renderer::call_stack::CallStack;
 use crate::renderer::for_loop::ForLoop;
@@ -75,7 +75,7 @@ fn process_path<'a>(path: &str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
     if !path.contains('[') {
         match call_stack.lookup(path) {
             Some(v) => Ok(v),
-            None => Err(Error::msg(format!(
+            None => Err(Error::variable_not_found(format!(
                 "Variable `{}` not found in context while rendering '{}'",
                 path,
                 call_stack.active_template().name
@@ -86,7 +86,7 @@ fn process_path<'a>(path: &str, call_stack: &CallStack<'a>) -> Result<Val<'a>> {
 
         match call_stack.lookup(&full_path) {
             Some(v) => Ok(v),
-            None => Err(Error::msg(format!(
+            None => Err(Error::variable_not_found(format!(
                 "Variable `{}` not found in context while rendering '{}': \
                  the evaluated version was `{}`. Maybe the index is out of bounds?",
                 path,
@@ -118,6 +118,11 @@ pub struct Processor<'a> {
     blocks: Vec<(&'a str, &'a str, usize)>,
 }
 
+/// System variable name used to enable relaxed rendering of undefined variables.
+/// When this variable is set in a template, undefined variables will be replaced
+/// with its value instead of causing an error.
+static SYSTEM_VARIABLE_NOT_FOUND_FALLBACK: &str = "system_variable_not_found_fallback";
+
 impl<'a> Processor<'a> {
     /// Create a new `Processor` that will do the rendering
     pub fn new(
@@ -144,6 +149,18 @@ impl<'a> Processor<'a> {
             macros: MacroCollection::from_original_template(template, tera),
             should_escape,
             blocks: Vec::new(),
+        }
+    }
+
+    /// Returns the fallback value if `system_variable_not_found_fallback` is defined in scope,
+    /// otherwise returns `None` (preserving normal error behavior).
+    fn system_variable_fallback_value(&self) -> Option<String> {
+        match self.call_stack.lookup(SYSTEM_VARIABLE_NOT_FOUND_FALLBACK) {
+            Some(v) => match v.as_ref() {
+                Value::String(s) => Some(s.clone()),
+                other => Some(other.to_string()),
+            },
+            None => None,
         }
     }
 
@@ -174,7 +191,19 @@ impl<'a> Processor<'a> {
         let for_loop_body = &for_loop.body;
         let for_loop_empty_body = &for_loop.empty_body;
 
-        let container_val = self.safe_eval_expression(&for_loop.container)?;
+        let container_val = match self.safe_eval_expression(&for_loop.container) {
+            Ok(val) => val,
+            Err(e) if matches!(e.kind, ErrorKind::VariableNotFound(_)) => {
+                if self.system_variable_fallback_value().is_some() {
+                    match for_loop_empty_body {
+                        Some(empty_body) => return self.render_body(empty_body, write),
+                        None => return Ok(()),
+                    }
+                }
+                return Err(e);
+            }
+            Err(e) => return Err(e),
+        };
 
         let for_loop = match *container_val {
             Value::Array(_) => {
@@ -303,8 +332,26 @@ impl<'a> Processor<'a> {
     }
 
     fn eval_in_condition(&mut self, in_cond: &'a In) -> Result<bool> {
-        let lhs = self.safe_eval_expression(&in_cond.lhs)?;
-        let rhs = self.safe_eval_expression(&in_cond.rhs)?;
+        let lhs = match self.safe_eval_expression(&in_cond.lhs) {
+            Ok(val) => val,
+            Err(e) if matches!(e.kind, ErrorKind::VariableNotFound(_)) => {
+                if self.system_variable_fallback_value().is_some() {
+                    return Ok(in_cond.negated);
+                }
+                return Err(e);
+            }
+            Err(e) => return Err(e),
+        };
+        let rhs = match self.safe_eval_expression(&in_cond.rhs) {
+            Ok(val) => val,
+            Err(e) if matches!(e.kind, ErrorKind::VariableNotFound(_)) => {
+                if self.system_variable_fallback_value().is_some() {
+                    return Ok(in_cond.negated);
+                }
+                return Err(e);
+            }
+            Err(e) => return Err(e),
+        };
 
         let present = match *rhs {
             Value::Array(ref v) => v.contains(&lhs),
@@ -461,7 +508,16 @@ impl<'a> Processor<'a> {
 
     /// Evaluate a set tag and add the value to the right context
     fn eval_set(&mut self, set: &'a Set) -> Result<()> {
-        let assigned_value = self.safe_eval_expression(&set.value)?;
+        let assigned_value = match self.safe_eval_expression(&set.value) {
+            Ok(val) => val,
+            Err(e) if matches!(e.kind, ErrorKind::VariableNotFound(_)) => {
+                match self.system_variable_fallback_value() {
+                    Some(fallback) => Cow::Owned(Value::String(fallback)),
+                    None => return Err(e),
+                }
+            }
+            Err(e) => return Err(e),
+        };
         self.call_stack.add_assignment(&set.key[..], set.global, assigned_value);
         Ok(())
     }
@@ -587,8 +643,26 @@ impl<'a> Processor<'a> {
                     | LogicOperator::Gte
                     | LogicOperator::Lt
                     | LogicOperator::Lte => {
-                        let l = self.eval_expr_as_number(lhs)?;
-                        let r = self.eval_expr_as_number(rhs)?;
+                        let l = match self.eval_expr_as_number(lhs) {
+                            Ok(n) => n,
+                            Err(e) if matches!(e.kind, ErrorKind::VariableNotFound(_)) => {
+                                if self.system_variable_fallback_value().is_some() {
+                                    return Ok(false);
+                                }
+                                return Err(e);
+                            }
+                            Err(e) => return Err(e),
+                        };
+                        let r = match self.eval_expr_as_number(rhs) {
+                            Ok(n) => n,
+                            Err(e) if matches!(e.kind, ErrorKind::VariableNotFound(_)) => {
+                                if self.system_variable_fallback_value().is_some() {
+                                    return Ok(false);
+                                }
+                                return Err(e);
+                            }
+                            Err(e) => return Err(e),
+                        };
                         let (ll, rr) = match (l, r) {
                             (Some(nl), Some(nr)) => (nl, nr),
                             _ => return Err(Error::msg("Comparison to NaN")),
@@ -603,8 +677,27 @@ impl<'a> Processor<'a> {
                         }
                     }
                     LogicOperator::Eq | LogicOperator::NotEq => {
-                        let mut lhs_val = self.eval_expression(lhs)?;
-                        let mut rhs_val = self.eval_expression(rhs)?;
+                        let mut lhs_val = match self.eval_expression(lhs) {
+                            Ok(val) => val,
+                            Err(e) if matches!(e.kind, ErrorKind::VariableNotFound(_)) => {
+                                if self.system_variable_fallback_value().is_some() {
+                                    // Undefined is never equal to anything
+                                    return Ok(*operator == LogicOperator::NotEq);
+                                }
+                                return Err(e);
+                            }
+                            Err(e) => return Err(e),
+                        };
+                        let mut rhs_val = match self.eval_expression(rhs) {
+                            Ok(val) => val,
+                            Err(e) if matches!(e.kind, ErrorKind::VariableNotFound(_)) => {
+                                if self.system_variable_fallback_value().is_some() {
+                                    return Ok(*operator == LogicOperator::NotEq);
+                                }
+                                return Err(e);
+                            }
+                            Err(e) => return Err(e),
+                        };
 
                         // Monomorphize number vals.
                         if lhs_val.is_number() || rhs_val.is_number() {
@@ -958,7 +1051,16 @@ impl<'a> Processor<'a> {
             // Comments are ignored when rendering
             Node::Comment(_, _) => (),
             Node::Text(ref s) | Node::Raw(_, ref s, _) => write!(write, "{}", s)?,
-            Node::VariableBlock(_, ref expr) => self.eval_expression(expr)?.render(write)?,
+            Node::VariableBlock(_, ref expr) => match self.eval_expression(expr) {
+                Ok(val) => val.render(write)?,
+                Err(e) if matches!(e.kind, ErrorKind::VariableNotFound(_)) => {
+                    match self.system_variable_fallback_value() {
+                        Some(fallback) => write!(write, "{}", fallback)?,
+                        None => return Err(e),
+                    }
+                }
+                Err(e) => return Err(e),
+            },
             Node::Set(_, ref set) => self.eval_set(set)?,
             Node::FilterSection(_, FilterSection { ref filter, ref body }, _) => {
                 let body = render_to_string(

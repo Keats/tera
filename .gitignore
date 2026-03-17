@@ -1,3 +1,9 @@
+# Claude Code local settings
+**/.claude/settings.local.json
+
+# Serena AI assistant
+.serena/
+
 /*.iml
 /.idea
 target/

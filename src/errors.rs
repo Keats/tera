@@ -30,6 +30,8 @@ pub enum ErrorKind {
     TestNotFound(String),
     /// A macro was defined in the middle of a template
     InvalidMacroDefinition(String),
+    /// A variable wasn't found in the context during rendering
+    VariableNotFound(String),
     /// A function wasn't found
     FunctionNotFound(String),
     /// An error happened while serializing JSON
@@ -81,6 +83,7 @@ impl fmt::Display for Error {
             ErrorKind::TemplateNotFound(ref name) => write!(f, "Template '{}' not found", name),
             ErrorKind::FilterNotFound(ref name) => write!(f, "Filter '{}' not found", name),
             ErrorKind::TestNotFound(ref name) => write!(f, "Test '{}' not found", name),
+            ErrorKind::VariableNotFound(ref msg) => write!(f, "{}", msg),
             ErrorKind::FunctionNotFound(ref name) => write!(f, "Function '{}' not found", name),
             ErrorKind::InvalidMacroDefinition(ref info) => {
                 write!(f, "Invalid macro definition: `{}`", info)
@@ -144,6 +147,11 @@ impl Error {
     /// Creates a test not found error
     pub fn test_not_found(name: impl ToString) -> Self {
         Self { kind: ErrorKind::TestNotFound(name.to_string()), source: None }
+    }
+
+    /// Creates a variable not found error
+    pub fn variable_not_found(msg: impl ToString) -> Self {
+        Self { kind: ErrorKind::VariableNotFound(msg.to_string()), source: None }
     }
 
     /// Creates a function not found error

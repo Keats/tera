@@ -1,0 +1,18 @@
+name: notification-template-parser
+CX_PRODUCT: notification-center
+cxMetadata:
+  cxFeatureId: notification-center
+  cxServiceRndOwnerId: hermes
+deployable_type: library
+code_language: rust
+tests: true
+extra_test_args: ["--locked"]
+extra_test_commands:
+  cargo-clippy:
+    command: [cargo]
+    args: [clippy, --all-targets, --, -Dwarnings]
+  cargo-fmt:
+    command: [cargo]
+    args: [fmt, --all, --check]
+
+platformFeaturesVersion: v2
