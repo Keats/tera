@@ -19,7 +19,6 @@
 //! - Expressive and familiar syntax
 //! - Extensible with custom filters and functions
 //! - Automatic escaping of HTML/XML by default
-//! - Strict mode for enforcing variable existence
 //! - Template caching and auto-reloading for efficient development
 //! - Built-in support for JSON and other data formats
 //! - Comprehensive error messages and debugging information
