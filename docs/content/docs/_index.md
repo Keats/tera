@@ -113,7 +113,7 @@ tera.autoescape_on(vec![]);
 ```
 
 Tera does not perform contextual auto-escaping, e.g. by parsing the template to know whether to escape JS, CSS or HTML (see 
-<https://rawgit.com/mikesamuel/sanitized-jquery-templates/trunk/safetemplate.html> for more details on that).
+<https://raw.githubusercontent.com/security-mirror/sanitized-jquery-templates/refs/heads/trunk/safetemplate.html> for more details on that).
 
 ## Advanced usage
 
