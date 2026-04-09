@@ -85,7 +85,12 @@ pub fn sort(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
         Error::msg(format!("attribute '{}' does not reference a field", attribute))
     })?;
 
-    let mut strategy = get_sort_strategy_for_type(first)?;
+    let case_sensitive = match args.get("case_sensitive") {
+        Some(val) => try_get_value!("sort", "case_sensitive", bool, val),
+        None => true,
+    };
+
+    let mut strategy = get_sort_strategy_for_type(first, case_sensitive)?;
     for v in &arr {
         let key = dotted_pointer(v, &attribute).ok_or_else(|| {
             Error::msg(format!("attribute '{}' does not reference a field", attribute))
@@ -448,6 +453,19 @@ mod tests {
                 Foo { a: 4, b: 7 },
             ])
             .unwrap()
+        );
+    }
+
+    #[test]
+    fn test_sort_case_insensitive() {
+        let v = to_value(vec!["apple", "coconut", "Banana", "Dog"]).unwrap();
+        let mut args = HashMap::new();
+        args.insert("case_sensitive".to_string(), to_value(false).unwrap());
+        let result = sort(&v, &args);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            to_value(vec!["apple", "Banana", "coconut", "Dog"]).unwrap()
         );
     }
 
