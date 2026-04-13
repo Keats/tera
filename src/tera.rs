@@ -887,6 +887,25 @@ impl Tera {
         self.build_inheritance_chains()?;
         self.check_macro_files()
     }
+
+    /// Remove a single template from the Tera instance.
+    ///
+    /// # Bulk loading
+    ///
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use tera::Tera;
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template("new.html", "Blabla").unwrap();
+    /// tera.remove_template("new.html").unwrap();
+    /// ```
+    pub fn remove_template(&mut self, name: &str) -> Option<Template> {
+        return self.templates.remove(name);
+    }
 }
 
 impl Default for Tera {
