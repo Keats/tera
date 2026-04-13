@@ -1280,6 +1280,26 @@ Returns a string representation of the given value.
 
 Example: `{{ value | as_str }}`
 
+#### substr
+
+Returns a substring of the given string, starting at the specified `begin` index and
+extending for `length` characters. If the range exceeds the string's length, it will return
+as many characters as possible.
+
+Example: `{{ value | find(begin = 0, length=300) }}`
+
+#### find
+
+Returns first position of the given string, or -1 if not found
+
+Example: `{{ value | find("Hello") }}`
+
+#### rfind
+
+Returns the last position of the given string, or string length if not found
+
+Example: `{{ value | rfind("World") }}`
+
 #### default
 Returns the default value given only if the variable evaluated is not present in the context
 and is therefore meant to be at the beginning of a filter chain if there are several filters.
@@ -1387,6 +1407,7 @@ Example:
 ```
 
 A comprehensive syntax description can be found in the [regex crate documentation](https://docs.rs/regex/).
+
 
 ### Built-in functions
 Tera comes with some built-in global functions.
