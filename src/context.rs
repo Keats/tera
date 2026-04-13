@@ -1,10 +1,63 @@
-use std::collections::BTreeMap;
 use std::io::Write;
+use std::{borrow::Cow, collections::BTreeMap};
 
 use serde::ser::Serialize;
 use serde_json::value::{to_value, Map, Value};
 
 use crate::errors::{Error, Result as TeraResult};
+use crate::renderer::stack_frame::value_by_pointer;
+
+/// The interface trait of a Context towards Tera
+///
+/// Implement this if you want to provide your own custom context implementation.
+pub trait ContextProvider {
+    /// Converts the `val` parameter to `Value` and insert it into the context.
+    ///
+    /// Panics if the serialization fails.
+    fn insert<T: Serialize + ?Sized, S: Into<String>>(&mut self, key: S, val: &T) {
+        self.try_insert(key, val).unwrap();
+    }
+
+    /// Converts the `val` parameter to `Value` and insert it into the context.
+    ///
+    /// Returns an error if the serialization fails.
+    fn try_insert<T: Serialize + ?Sized, S: Into<String>>(
+        &mut self,
+        key: S,
+        val: &T,
+    ) -> TeraResult<()>;
+
+    /// Return a value for a given key.
+    fn find_value(&self, key: &str) -> Option<Cow<Value>>;
+
+    /// Return a value given a dotted pointer path.
+    fn find_value_by_dotted_pointer(&self, pointer: &str) -> Option<Cow<Value>> {
+        let root = pointer.split('.').next().unwrap().replace("~1", "/").replace("~0", "~");
+        let rest = &pointer[root.len() + 1..];
+        self.find_value(&root).and_then(|val| value_by_pointer(rest, &val))
+    }
+
+    /// Convert the context into JSON.
+    fn into_json(self) -> Value;
+}
+
+impl ContextProvider for Context {
+    fn try_insert<T: Serialize + ?Sized, S: Into<String>>(
+        &mut self,
+        key: S,
+        val: &T,
+    ) -> TeraResult<()> {
+        self.try_insert(key, val)
+    }
+
+    fn find_value(&self, key: &str) -> Option<Cow<Value>> {
+        self.get(key).map(Cow::Borrowed)
+    }
+
+    fn into_json(self) -> Value {
+        self.into_json()
+    }
+}
 
 /// The struct that holds the context of a template rendering.
 ///
