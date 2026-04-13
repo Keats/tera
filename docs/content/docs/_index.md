@@ -1102,6 +1102,72 @@ or by author name:
 
 If `value` is not passed, it will drop any elements where the attribute is `null`.
 
+#### take_while
+Slice an array by a filter. Returns a slice of the array values that occur from the start before an
+element for which `attribute` is not equal to `value`. Unlike the `filter` filter, this stops at the
+first element that does not match.
+
+If `value` is not passed, produces elements while the attribute is not null.
+
+If the first element does not match, an empty array is returned. If all elements match, the whole array is returned.
+
+`attribute` is mandatory.
+
+Example:
+
+Given `sorted_orders` is an array of `Crate`
+
+```rust
+struct Crate {
+    label: String,
+    destination: String,
+    // ...
+}
+```
+
+```jinja2
+Next cargo ship to the happy place will be filled with
+{{ sorted_orders | take_while(attribute="destination", value="Finland") | len }}
+crates.
+```
+
+#### take_until
+Slice an array by a filter. Returns a slice of the array values that occur from the start before an
+element for which `attribute` is equal to `value`.
+
+If `value` is not passed, produces elements while the attribute is null.
+
+If the first element matches, an empty array is returned. If no elements match, the whole array is returned.
+
+`attribute` is mandatory.
+
+Example:
+
+Given `all_posts` is an array of `Post` and `current_page` is a single `Post`
+
+```rust
+struct Post {
+    title: String,
+    // unique to the nanosecond level
+    timestamp: String,
+    // ...
+}
+```
+
+The `attribute` argument with a `value` can be used to find the older and newer posts compared to a current post:
+
+```jinja2
+Number of posts older than this one:
+{{ all_posts | sort(attribute="timestamp")
+   | take_until(attribute="timestamp", value=current_page.timestamp) | len }}
+```
+
+```jinja2
+You should read the next post titled:
+{{ all_posts | sort(attribute="timestamp") | reverse
+   | take_until(attribute="timestamp", value=current_page.timestamp) | last }}
+```
+
 #### map
 
 Retrieves an attribute from each object in an array.  The `attribute` argument is mandatory and specifies what to extract.
