@@ -3,7 +3,7 @@ use std::collections::HashMap;
 #[cfg(feature = "builtins")]
 use chrono::prelude::*;
 #[cfg(feature = "builtins")]
-use rand::Rng;
+use rand::RngExt;
 use serde_json::value::{from_value, to_value, Value};
 
 use crate::errors::{Error, Result};
@@ -142,7 +142,7 @@ pub fn throw(args: &HashMap<String, Value>) -> Result<Value> {
 pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
     let start = match args.get("start") {
         Some(val) => match from_value::<isize>(val.clone()) {
-            Ok(v) => v,
+            Ok(v) => v as i64,
             Err(_) => {
                 return Err(Error::msg(format!(
                     "Function `get_random` received start={} but `start` can only be a number",
@@ -155,7 +155,7 @@ pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
 
     let end = match args.get("end") {
         Some(val) => match from_value::<isize>(val.clone()) {
-            Ok(v) => v,
+            Ok(v) => v as i64,
             Err(_) => {
                 return Err(Error::msg(format!(
                     "Function `get_random` received end={} but `end` can only be a number",
@@ -165,8 +165,8 @@ pub fn get_random(args: &HashMap<String, Value>) -> Result<Value> {
         },
         None => return Err(Error::msg("Function `get_random` didn't receive an `end` argument")),
     };
-    let mut rng = rand::thread_rng();
-    let res = rng.gen_range(start..end);
+    let mut rng = rand::rng();
+    let res = rng.random_range(start..end);
 
     Ok(Value::Number(res.into()))
 }
