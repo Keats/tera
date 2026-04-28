@@ -287,12 +287,12 @@ Age: << age >>
 
     let mut tera = Tera::default();
     tera.set_delimiters(Delimiters {
-        block_start: "<%",
-        block_end: "%>",
-        variable_start: "<<",
-        variable_end: ">>",
-        comment_start: "<#",
-        comment_end: "#>",
+        block_start: "<%".into(),
+        block_end: "%>".into(),
+        variable_start: "<<".into(),
+        variable_end: ">>".into(),
+        comment_start: "<#".into(),
+        comment_end: "#>".into(),
     })
     .unwrap();
     tera.add_raw_template("custom_delimiters.txt", tpl).unwrap();

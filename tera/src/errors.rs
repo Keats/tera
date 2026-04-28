@@ -7,7 +7,7 @@ use std::error::Error as StdError;
 use crate::utils::Span;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Note {
+pub(crate) struct Note {
     pub(crate) filename: String,
     pub(crate) source: String,
     pub(crate) span: Span,
@@ -23,7 +23,7 @@ pub struct ReportError {
 }
 
 impl ReportError {
-    pub fn new(message: String, filename: &str, source: &str, span: &Span) -> Self {
+    pub(crate) fn new(message: String, filename: &str, source: &str, span: &Span) -> Self {
         Self {
             message,
             filename: filename.to_string(),
@@ -34,7 +34,7 @@ impl ReportError {
     }
 
     /// Create a ReportError without filename/source - must call set_source before generating report
-    pub fn new_without_source(message: String, span: &Span) -> Self {
+    pub(crate) fn new_without_source(message: String, span: &Span) -> Self {
         Self {
             message,
             filename: String::new(),
@@ -44,12 +44,12 @@ impl ReportError {
         }
     }
 
-    pub fn set_source(&mut self, filename: &str, source: &str) {
+    pub(crate) fn set_source(&mut self, filename: &str, source: &str) {
         self.filename = filename.to_string();
         self.source = source.to_string();
     }
 
-    pub fn add_note(&mut self, filename: &str, source: &str, span: &Span) {
+    pub(crate) fn add_note(&mut self, filename: &str, source: &str, span: &Span) {
         self.notes.push(Note {
             filename: filename.to_string(),
             source: source.to_string(),
@@ -61,12 +61,29 @@ impl ReportError {
         generate_report(self)
     }
 
-    pub fn unexpected_end_of_input(span: &Span) -> Self {
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn span(&self) -> &Span {
+        &self.span
+    }
+
+    pub fn filename(&self) -> &str {
+        &self.filename
+    }
+
+    pub fn source(&self) -> &str {
+        &self.source
+    }
+
+    pub(crate) fn unexpected_end_of_input(span: &Span) -> Self {
         Self::new_without_source("Unexpected end of input".to_string(), span)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ErrorKind {
     /// Generic error
     Msg(String),
@@ -193,7 +210,7 @@ impl fmt::Display for ErrorKind {
 
 #[derive(Debug)]
 pub struct Error {
-    pub kind: ErrorKind,
+    pub(crate) kind: ErrorKind,
     // If the error comes from some third party libs, TODO we need that?
     pub(crate) source: Option<Box<dyn std::error::Error + Send + Sync>>,
 }
@@ -207,6 +224,10 @@ impl fmt::Display for Error {
 impl Error {
     pub fn new(kind: ErrorKind) -> Self {
         Self { kind, source: None }
+    }
+
+    pub fn kind(&self) -> &ErrorKind {
+        &self.kind
     }
 
     /// Creates generic error with a source

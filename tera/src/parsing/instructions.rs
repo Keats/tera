@@ -205,6 +205,24 @@ impl Chunk {
         // Map from old instruction index to new instruction index
         // +1 to handle jumps that target one-past-the-end (i.e., chunk.len())
         let mut index_map: Vec<usize> = vec![0; old_instructions.len() + 1];
+
+        // We don't fuse instructions with jumps.
+        // `{{ false and user.name }}` emits JumpIfFalseOrPop targeting
+        // the WriteTop; if that WriteTop were folded into WritePath, the jump would
+        // execute the path load it was meant to skip.
+        let mut is_jump_target: Vec<bool> = vec![false; old_instructions.len()];
+        for (instr, _) in &old_instructions {
+            if let Instruction::Jump(t)
+            | Instruction::PopJumpIfFalse(t)
+            | Instruction::JumpIfFalseOrPop(t)
+            | Instruction::JumpIfTrueOrPop(t)
+            | Instruction::Iterate(t) = instr
+                && *t < is_jump_target.len()
+            {
+                is_jump_target[*t] = true;
+            }
+        }
+
         let mut i = 0;
 
         // Placeholder for mem::replace - cheapest instruction (no heap allocation)
@@ -229,6 +247,10 @@ impl Chunk {
 
                 // Collect consecutive LoadAttr instructions
                 while j < old_instructions.len() {
+                    // Don't absorb a jump target into the fusion
+                    if is_jump_target[j] {
+                        break;
+                    }
                     if matches!(&old_instructions[j].0, Instruction::LoadAttr(_)) {
                         // Map the consumed LoadAttr to the same position as the first instruction
                         index_map[j] = optimized.len();
@@ -247,8 +269,11 @@ impl Chunk {
                     }
                 }
 
-                // Check if followed by WriteTop
+                // Check if followed by WriteTop. Skip fusion when WriteTop is a jump
+                // target: short-circuit `and`/`or` land their jump on WriteTop, and
+                // fusing into WritePath would make the skipped path execute anyway.
                 let has_write = j < old_instructions.len()
+                    && !is_jump_target[j]
                     && matches!(&old_instructions[j].0, Instruction::WriteTop);
 
                 if has_write {

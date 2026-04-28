@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
@@ -32,21 +33,18 @@ pub type EscapeFn = fn(&[u8], &mut dyn Write) -> std::io::Result<()>;
 pub struct Tera {
     /// The glob used to load templates if there was one.
     /// Only used if the `glob_fs` feature is turned on
-    #[doc(hidden)]
     #[allow(dead_code)]
-    glob: Option<String>,
-    #[doc(hidden)]
-    pub templates: HashMap<String, Template>,
+    pub(crate) glob: Option<String>,
+    pub(crate) templates: HashMap<String, Template>,
     /// Which extensions does Tera automatically autoescape on.
     /// Defaults to [".html", ".htm", ".xml"]
-    #[doc(hidden)]
-    autoescape_suffixes: Vec<&'static str>,
+    pub(crate) autoescape_suffixes: Vec<&'static str>,
     #[doc(hidden)]
     pub(crate) escape_fn: EscapeFn,
     global_context: Context,
-    pub(crate) filters: HashMap<&'static str, StoredFilter>,
-    pub(crate) tests: HashMap<&'static str, StoredTest>,
-    pub(crate) functions: HashMap<&'static str, StoredFunction>,
+    pub(crate) filters: HashMap<Cow<'static, str>, StoredFilter>,
+    pub(crate) tests: HashMap<Cow<'static, str>, StoredTest>,
+    pub(crate) functions: HashMap<Cow<'static, str>, StoredFunction>,
     pub(crate) components: HashMap<String, (ComponentDefinition, Chunk)>,
     /// Custom delimiters for template syntax
     delimiters: Delimiters,
@@ -141,12 +139,12 @@ impl Tera {
     ///
     /// let mut tera = Tera::new();
     /// tera.set_delimiters(Delimiters {
-    ///     block_start: "<%",
-    ///     block_end: "%>",
-    ///     variable_start: "<<",
-    ///     variable_end: ">>",
-    ///     comment_start: "<#",
-    ///     comment_end: "#>",
+    ///     block_start: "<%".into(),
+    ///     block_end: "%>".into(),
+    ///     variable_start: "<<".into(),
+    ///     variable_end: ">>".into(),
+    ///     comment_start: "<#".into(),
+    ///     comment_end: "#>".into(),
     /// }).unwrap();
     /// tera.add_raw_template("example", "<< name >>").unwrap();
     /// ```
@@ -223,13 +221,16 @@ impl Tera {
     /// let mut tera = Tera::default();
     /// tera.register_filter("double", |x: i64, _: Kwargs, _: &State| x * 2);
     /// ```
-    pub fn register_filter<Func, Arg, Res>(&mut self, name: &'static str, filter: Func)
-    where
+    pub fn register_filter<Func, Arg, Res>(
+        &mut self,
+        name: impl Into<Cow<'static, str>>,
+        filter: Func,
+    ) where
         Func: Filter<Arg, Res> + for<'a> Filter<<Arg as ArgFromValue<'a>>::Output, Res>,
         Arg: for<'a> ArgFromValue<'a>,
         Res: FunctionResult,
     {
-        self.filters.insert(name, StoredFilter::new(filter));
+        self.filters.insert(name.into(), StoredFilter::new(filter));
     }
 
     /// Register a test with Tera.
@@ -241,24 +242,25 @@ impl Tera {
     /// let mut tera = Tera::default();
     /// tera.register_test("odd", |x: i64, _: Kwargs, _: &State| x % 2 != 0);
     /// ```
-    pub fn register_test<Func, Arg, Res>(&mut self, name: &'static str, test: Func)
+    pub fn register_test<Func, Arg, Res>(&mut self, name: impl Into<Cow<'static, str>>, test: Func)
     where
         Func: Test<Arg, Res> + for<'a> Test<<Arg as ArgFromValue<'a>>::Output, Res>,
         Arg: for<'a> ArgFromValue<'a>,
         Res: TestResult,
     {
-        self.tests.insert(name, StoredTest::new(test));
+        self.tests.insert(name.into(), StoredTest::new(test));
     }
 
     /// Register a function with Tera.
     ///
     /// If a function with that name already exists, it will be overwritten
-    pub fn register_function<Func, Res>(&mut self, name: &'static str, func: Func)
+    pub fn register_function<Func, Res>(&mut self, name: impl Into<Cow<'static, str>>, func: Func)
     where
         Func: Function<Res>,
         Res: FunctionResult,
     {
-        self.functions.insert(name, StoredFunction::new(func));
+        self.functions
+            .insert(name.into(), StoredFunction::new(func));
     }
 
     /// Register filters, tests, and functions from another [`Tera`] instance.
@@ -268,19 +270,19 @@ impl Tera {
     pub fn register_from(&mut self, other: &Tera) {
         for (name, filter) in &other.filters {
             if !self.filters.contains_key(name) {
-                self.filters.insert(name, filter.clone());
+                self.filters.insert(name.clone(), filter.clone());
             }
         }
 
         for (name, test) in &other.tests {
             if !self.tests.contains_key(name) {
-                self.tests.insert(name, test.clone());
+                self.tests.insert(name.clone(), test.clone());
             }
         }
 
         for (name, function) in &other.functions {
             if !self.functions.contains_key(name) {
-                self.functions.insert(name, function.clone());
+                self.functions.insert(name.clone(), function.clone());
             }
         }
     }
@@ -686,8 +688,12 @@ impl Tera {
         let mut inserted: Vec<(String, Option<Template>)> = Vec::new();
         let result = (|| -> TeraResult<()> {
             for (name, content) in templates {
-                let template =
-                    Template::new(name.as_ref(), content.as_ref(), None, self.delimiters)?;
+                let template = Template::new(
+                    name.as_ref(),
+                    content.as_ref(),
+                    None,
+                    self.delimiters.clone(),
+                )?;
                 let key = name.as_ref().to_string();
                 let previous = self.templates.insert(key.clone(), template);
                 inserted.push((key, previous));
@@ -736,7 +742,7 @@ impl Tera {
             tpl_name,
             &content,
             Some(path_str.to_string()),
-            self.delimiters,
+            self.delimiters.clone(),
         )?;
 
         let key = tpl_name.to_string();
@@ -868,9 +874,31 @@ impl Tera {
 
     /// Get a template by name, resolving fallback prefixes if needed.
     #[inline]
+    #[doc(hidden)]
     pub fn get_template(&self, template_name: &str) -> Option<&Template> {
         self.resolve_template_name(template_name)
             .map(|resolved| &self.templates[resolved])
+    }
+
+    /// Returns an iterator over the names of all registered templates in an
+    /// unspecified order.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use tera::Tera;
+    ///
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template("foo", "{{ hello }}");
+    /// tera.add_raw_template("another-one.html", "contents go here");
+    ///
+    /// let names: Vec<_> = tera.get_template_names().collect();
+    /// assert_eq!(names.len(), 2);
+    /// assert!(names.contains(&"foo"));
+    /// assert!(names.contains(&"another-one.html"));
+    /// ```
+    pub fn get_template_names(&self) -> impl Iterator<Item = &str> {
+        self.templates.keys().map(|s| s.as_str())
     }
 
     /// Get a template by name, returning an error if not found. Used internally.
@@ -1021,7 +1049,8 @@ impl Tera {
         autoescape: bool,
         write: impl Write,
     ) -> TeraResult<()> {
-        let mut template = Template::new(ONE_OFF_TEMPLATE_NAME, input, None, self.delimiters)?;
+        let mut template =
+            Template::new(ONE_OFF_TEMPLATE_NAME, input, None, self.delimiters.clone())?;
 
         if !template.parents.is_empty() {
             return Err(Error::message(
@@ -1356,12 +1385,12 @@ mod tests {
     fn custom_delimiters() {
         let mut tera = Tera::new();
         tera.set_delimiters(Delimiters {
-            block_start: "<%",
-            block_end: "%>",
-            variable_start: "<<",
-            variable_end: ">>",
-            comment_start: "<#",
-            comment_end: "#>",
+            block_start: "<%".into(),
+            block_end: "%>".into(),
+            variable_start: "<<".into(),
+            variable_end: ">>".into(),
+            comment_start: "<#".into(),
+            comment_end: "#>".into(),
         })
         .unwrap();
 

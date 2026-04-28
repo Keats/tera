@@ -14,7 +14,7 @@ fn memstr(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 
 /// Will try to go over `-? {name} -?{block_end}`.
 /// Returns None if the name doesn't match the tag or the (offset, ws) tuple for the end of the tag
-fn skip_tag(block_str: &str, name: &str, block_end: &'static str) -> Option<(usize, bool)> {
+fn skip_tag(block_str: &str, name: &str, block_end: &str) -> Option<(usize, bool)> {
     let mut ptr = block_str;
 
     if let Some(rest) = ptr.strip_prefix('-') {
@@ -40,7 +40,7 @@ fn skip_tag(block_str: &str, name: &str, block_end: &'static str) -> Option<(usi
 }
 
 /// We want to find the next time we see any start marker (variable, block, or comment)
-fn find_start_marker(tpl: &str, delimiters: Delimiters) -> Option<usize> {
+fn find_start_marker(tpl: &str, delimiters: &Delimiters) -> Option<usize> {
     let var_start = delimiters.variable_start.as_bytes();
     let block_start = delimiters.block_start.as_bytes();
     let comment_start = delimiters.comment_start.as_bytes();
@@ -418,7 +418,7 @@ fn basic_tokenize(
                             let ws = check_ws_start!();
 
                             if let Some((mut offset, end_ws_start_tag)) =
-                                skip_tag(rest, "raw", delimiters.block_end)
+                                skip_tag(rest, "raw", &delimiters.block_end)
                             {
                                 let body_start_offset = offset;
                                 // Then we see whether we find the start of the tag
@@ -432,7 +432,7 @@ fn basic_tokenize(
                                     let start_ws_end_tag =
                                         rest.as_bytes().get(offset + 1) == Some(&b'-');
                                     if let Some((endraw, ws_end)) =
-                                        skip_tag(&rest[offset..], "endraw", delimiters.block_end)
+                                        skip_tag(&rest[offset..], "endraw", &delimiters.block_end)
                                     {
                                         let mut result = &rest[body_start_offset..body_end_offset];
                                         // Then we trim the inner body of the raw tag as needed directly here
@@ -483,7 +483,7 @@ fn basic_tokenize(
                         _ => {}
                     }
 
-                    let text = match find_start_marker(rest, delimiters) {
+                    let text = match find_start_marker(rest, &delimiters) {
                         Some(start) => advance!(start),
                         None => advance!(rest.len()),
                     };
@@ -512,13 +512,13 @@ fn basic_tokenize(
                         State::Tag => {
                             // Check for whitespace control: -{block_end}
                             if rest.get(..1) == Some("-")
-                                && rest.get(1..3) == Some(delimiters.block_end)
+                                && rest.get(1..3) == Some(delimiters.block_end.as_ref())
                             {
                                 stack.pop();
                                 advance!(3);
                                 return Some(Ok((Token::TagEnd(true), make_span!(start_loc))));
                             }
-                            if rest.get(..2) == Some(delimiters.block_end) {
+                            if rest.get(..2) == Some(delimiters.block_end.as_ref()) {
                                 stack.pop();
                                 advance!(2);
                                 return Some(Ok((Token::TagEnd(false), make_span!(start_loc))));
@@ -527,13 +527,13 @@ fn basic_tokenize(
                         State::Variable => {
                             // Check for whitespace control: -{variable_end}
                             if rest.get(..1) == Some("-")
-                                && rest.get(1..3) == Some(delimiters.variable_end)
+                                && rest.get(1..3) == Some(delimiters.variable_end.as_ref())
                             {
                                 stack.pop();
                                 advance!(3);
                                 return Some(Ok((Token::VariableEnd(true), make_span!(start_loc))));
                             }
-                            if rest.get(..2) == Some(delimiters.variable_end) {
+                            if rest.get(..2) == Some(delimiters.variable_end.as_ref()) {
                                 stack.pop();
                                 advance!(2);
                                 return Some(Ok((

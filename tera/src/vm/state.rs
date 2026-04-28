@@ -6,6 +6,7 @@ use crate::vm::for_loop::ForLoop;
 use crate::vm::stack::Stack;
 use crate::{Context, HashMap, Value};
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 /// Special string indicating request to dump context
@@ -37,7 +38,7 @@ pub struct State<'tera> {
     pub(crate) blocks: BTreeMap<&'tera str, (Vec<&'tera Chunk>, usize)>,
     pub(crate) current_block_name: Option<&'tera str>,
     /// Reference to registered filters for calling filters from within filters (e.g., map filter)
-    pub(crate) filters: Option<&'tera HashMap<&'static str, StoredFilter>>,
+    pub(crate) filters: Option<&'tera HashMap<Cow<'static, str>, StoredFilter>>,
 }
 
 impl<'t> State<'t> {

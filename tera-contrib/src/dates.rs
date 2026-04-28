@@ -28,7 +28,9 @@ fn parse_to_zoned(val: &Value, tz: Option<TimeZone>) -> TeraResult<Zoned> {
                 ))
             })
     } else if let Some(Number::Integer(ts)) = val.as_number() {
-        Timestamp::new(ts as i64, 0)
+        let ts = i64::try_from(ts)
+            .map_err(|_| tera::Error::message(format!("Invalid timestamp: {ts}")))?;
+        Timestamp::new(ts, 0)
             .map(|t| t.to_zoned(default_tz))
             .map_err(|e| tera::Error::message(format!("Invalid timestamp: {e}")))
     } else {

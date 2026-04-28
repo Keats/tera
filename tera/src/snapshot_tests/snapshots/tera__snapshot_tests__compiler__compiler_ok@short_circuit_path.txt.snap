@@ -1,0 +1,22 @@
+---
+source: tera/src/snapshot_tests/compiler.rs
+expression: compiler.chunk
+input_file: tera/src/snapshot_tests/compiler_inputs/success/short_circuit_path.txt
+---
+=== short_circuit_path.txt ===
+0000 LoadConst(Bool(false))
+0001 JumpIfFalseOrPop(4)
+0002 LoadName("user")
+0003 LoadAttr("name")
+0004 WriteTop
+0005 LoadConst(Bool(true))
+0006 JumpIfTrueOrPop(9)
+0007 LoadName("user")
+0008 LoadAttr("name")
+0009 WriteTop
+0010 LoadName("some_bool")
+0011 JumpIfFalseOrPop(14)
+0012 LoadName("product")
+0013 LoadAttr("name")
+0014 WriteTop
+0015 WriteText("\n")

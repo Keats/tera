@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fmt;
 use std::fmt::Formatter;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::sync::Arc;
 
 use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
@@ -56,7 +56,7 @@ pub(crate) fn format_map(map: &Map, f: &mut impl std::io::Write) -> std::io::Res
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum StringKind {
+pub(crate) enum StringKind {
     Normal,
     Safe,
 }
@@ -219,18 +219,18 @@ impl PartialEq for Value {
             (ValueInner::String(v), ValueInner::String(v2)) => v.as_str() == v2.as_str(),
             (ValueInner::Map(v), ValueInner::Map(v2)) => v == v2,
             // Then the numbers
+            (ValueInner::F64(a), ValueInner::F64(b)) => (a.is_nan() && b.is_nan()) || a == b,
             // First if there's a float we need to convert to float
             (ValueInner::F64(v), _) => Some(*v) == other.as_f64(),
             (_, ValueInner::F64(v)) => Some(*v) == self.as_f64(),
-            // Then integers
-            (ValueInner::U64(_), _)
-            | (ValueInner::I64(_), _)
-            | (ValueInner::U128(_), _)
-            | (ValueInner::I128(_), _)
-            | (_, ValueInner::U64(_))
-            | (_, ValueInner::I64(_))
-            | (_, ValueInner::U128(_))
-            | (_, ValueInner::I128(_)) => self.as_i128() == other.as_i128(),
+            (
+                ValueInner::U64(_) | ValueInner::I64(_) | ValueInner::U128(_) | ValueInner::I128(_),
+                ValueInner::U64(_) | ValueInner::I64(_) | ValueInner::U128(_) | ValueInner::I128(_),
+            ) => match (self.as_u128(), other.as_u128()) {
+                (Some(a), Some(b)) => a == b,
+                (None, None) => self.as_i128() == other.as_i128(),
+                _ => false,
+            },
             (_, _) => false,
         }
     }
@@ -250,19 +250,23 @@ impl PartialOrd for Value {
             (ValueInner::Bytes(v), ValueInner::Bytes(v2)) => v.partial_cmp(v2),
             (ValueInner::String(v), ValueInner::String(v2)) => v.as_str().partial_cmp(v2.as_str()),
             // Then the numbers
+            (ValueInner::F64(a), ValueInner::F64(b)) => Some(a.total_cmp(b)),
             // First if there's a float we need to convert to float
             (ValueInner::F64(v), _) => v.partial_cmp(&other.as_f64()?),
             (_, ValueInner::F64(v)) => v.partial_cmp(&self.as_f64()?),
-
-            // Then integers
-            (ValueInner::U64(_), _)
-            | (ValueInner::I64(_), _)
-            | (ValueInner::U128(_), _)
-            | (ValueInner::I128(_), _)
-            | (_, ValueInner::U64(_))
-            | (_, ValueInner::I64(_))
-            | (_, ValueInner::U128(_))
-            | (_, ValueInner::I128(_)) => self.as_i128()?.partial_cmp(&other.as_i128()?),
+            (
+                ValueInner::U64(_) | ValueInner::I64(_) | ValueInner::U128(_) | ValueInner::I128(_),
+                ValueInner::U64(_) | ValueInner::I64(_) | ValueInner::U128(_) | ValueInner::I128(_),
+            ) => match (self.as_u128(), other.as_u128()) {
+                // both values are positive since they can be in a u128
+                (Some(a), Some(b)) => Some(a.cmp(&b)),
+                // one of them is negative
+                (Some(_), None) => Some(Ordering::Greater),
+                (None, Some(_)) => Some(Ordering::Less),
+                // both are negative; `as_i128` is always `Some` for them today, but `?` keeps
+                // us robust if the helpers ever drift (returning `None` falls to `type_order`).
+                (None, None) => Some(self.as_i128()?.cmp(&other.as_i128()?)),
+            },
             (_, _) => None,
         }
     }
@@ -296,24 +300,21 @@ impl Ord for Value {
     }
 }
 
-impl Hash for Value {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match &self.inner {
-            ValueInner::Undefined | ValueInner::None => 0.hash(state),
-            ValueInner::Bool(v) => v.hash(state),
-            ValueInner::U64(_)
-            | ValueInner::I64(_)
-            | ValueInner::U128(_)
-            | ValueInner::I128(_)
-            | ValueInner::F64(_) => self.as_number().hash(state),
-            ValueInner::Bytes(v) => v.hash(state),
-            ValueInner::String(v) => v.as_str().hash(state),
-            ValueInner::Array(v) => v.hash(state),
-            ValueInner::Map(v) => v.iter().for_each(|(k, v)| {
-                k.hash(state);
-                v.hash(state);
-            }),
-        }
+/// Resolves an integer-typed `item` into a valid `0..len` index.
+/// None if the index doesn't fit into a usize and errors for non-integer values
+fn resolve_index(item: &Value, len: usize, kind: &str) -> TeraResult<Option<usize>> {
+    if let Some(idx) = item.as_i128() {
+        let normalized = if idx < 0 { idx + len as i128 } else { idx };
+        Ok((0..len as i128)
+            .contains(&normalized)
+            .then_some(normalized as usize))
+    } else if item.is_u128() {
+        Ok(None)
+    } else {
+        Err(Error::message(format!(
+            "{kind} index must be an integer, got `{}`.",
+            item.name(),
+        )))
     }
 }
 
@@ -476,33 +477,42 @@ impl Value {
         match &self.inner {
             ValueInner::U64(v) => Some(*v as i128),
             ValueInner::I64(v) => Some(*v as i128),
-            // TODO: in theory this cannot necessarily fit in i128
-            ValueInner::U128(v) => Some(**v as i128),
+            ValueInner::U128(v) => i128::try_from(**v).ok(),
             ValueInner::I128(v) => Some(**v),
             _ => None,
         }
     }
 
-    pub(crate) fn as_f64(&self) -> Option<f64> {
-        // TODO: make sure we only cast to f64 if the value can fit in it
+    pub fn as_u128(&self) -> Option<u128> {
         match &self.inner {
-            ValueInner::U64(v) => Some(*v as f64),
-            ValueInner::I64(v) => Some(*v as f64),
-            ValueInner::F64(v) => Some(*v),
-            ValueInner::U128(v) => Some(**v as f64),
-            ValueInner::I128(v) => Some(**v as f64),
+            ValueInner::U64(v) => Some(*v as u128),
+            ValueInner::I64(v) => u128::try_from(*v).ok(),
+            ValueInner::U128(v) => Some(**v),
+            ValueInner::I128(v) => u128::try_from(**v).ok(),
             _ => None,
         }
     }
 
+    pub(crate) fn as_f64(&self) -> Option<f64> {
+        const MAX: u128 = 1u128 << f64::MANTISSA_DIGITS;
+        match &self.inner {
+            ValueInner::F64(v) => Some(*v),
+            ValueInner::U64(v) => (*v as u128 <= MAX).then_some(*v as f64),
+            ValueInner::I64(v) => (v.unsigned_abs() as u128 <= MAX).then_some(*v as f64),
+            ValueInner::U128(v) => (**v <= MAX).then_some(**v as f64),
+            ValueInner::I128(v) => (v.unsigned_abs() <= MAX).then_some(**v as f64),
+            _ => None,
+        }
+    }
+
+    /// Returns `None` for non-numeric values **and** for `u128` values exceeding `i128::MAX`,
+    /// since `Number::Integer` only carries `i128`. i128 ought to be enough for everyone.
     pub fn as_number(&self) -> Option<Number> {
-        // TODO: this might be problematic to convert u128 to i128
-        // We should probably expand the Number Enum
         match &self.inner {
             ValueInner::U64(v) => Some(Number::Integer(*v as i128)),
             ValueInner::I64(v) => Some(Number::Integer(*v as i128)),
             ValueInner::F64(v) => Some(Number::Float(*v)),
-            ValueInner::U128(v) => Some(Number::Integer(**v as i128)),
+            ValueInner::U128(v) => i128::try_from(**v).ok().map(Number::Integer),
             ValueInner::I128(v) => Some(Number::Integer(**v)),
             _ => None,
         }
@@ -658,7 +668,16 @@ impl Value {
             ValueInner::Map(v) => Some(v.len()),
             ValueInner::Array(v) => Some(v.len()),
             ValueInner::Bytes(v) => Some(v.len()),
-            ValueInner::String(v) => Some(v.as_str().chars().count()),
+            ValueInner::String(v) => {
+                #[cfg(feature = "unicode")]
+                {
+                    Some(v.as_str().graphemes(true).count())
+                }
+                #[cfg(not(feature = "unicode"))]
+                {
+                    Some(v.as_str().chars().count())
+                }
+            }
             _ => None,
         }
     }
@@ -671,7 +690,13 @@ impl Value {
                 Ok(Self::from(rev))
             }
             ValueInner::Bytes(v) => Ok(Self::from(v.iter().rev().copied().collect::<Vec<_>>())),
-            ValueInner::String(v) => Ok(Self::from(String::from_iter(v.as_str().chars().rev()))),
+            ValueInner::String(v) => {
+                #[cfg(feature = "unicode")]
+                let reversed: String = v.as_str().graphemes(true).rev().collect();
+                #[cfg(not(feature = "unicode"))]
+                let reversed: String = v.as_str().chars().rev().collect();
+                Ok(Self::from(reversed))
+            }
             _ => Err(Error::message(format!(
                 "Value of type {} cannot be reversed",
                 self.name()
@@ -757,22 +782,30 @@ impl Value {
                     item.name()
                 ))),
             },
-            ValueInner::Array(arr) => match item.as_i128() {
-                Some(idx) => {
-                    let correct_idx = if idx < 0 {
-                        arr.len() as i128 + idx
-                    } else {
-                        idx
-                    } as usize;
-                    Ok(arr.get(correct_idx).cloned().unwrap_or(Value {
-                        inner: ValueInner::Undefined,
-                    }))
-                }
-                None => Err(Error::message(format!(
-                    "Array index must be an integer, got `{}`.",
-                    item.name(),
-                ))),
-            },
+            ValueInner::Array(arr) => Ok(match resolve_index(&item, arr.len(), "Array")? {
+                Some(i) => arr[i].clone(),
+                None => Value::undefined(),
+            }),
+            ValueInner::String(s) => {
+                let kind = s.kind();
+                #[cfg(feature = "unicode")]
+                let chars: Vec<&str> = s.as_str().graphemes(true).collect();
+                #[cfg(not(feature = "unicode"))]
+                let chars: Vec<char> = s.as_str().chars().collect();
+                Ok(match resolve_index(&item, chars.len(), "String")? {
+                    Some(i) => {
+                        let c = &chars[i];
+                        #[cfg(feature = "unicode")]
+                        let out = (*c).to_string();
+                        #[cfg(not(feature = "unicode"))]
+                        let out = c.to_string();
+                        Value {
+                            inner: ValueInner::String(SmartString::new(&out, kind)),
+                        }
+                    }
+                    None => Value::undefined(),
+                })
+            }
             _ => Ok(Value {
                 inner: ValueInner::Undefined,
             }),
@@ -1145,5 +1178,27 @@ impl<I: Into<Value>> FunctionResult for TeraResult<I> {
 impl<I: Into<Value>> FunctionResult for I {
     fn into_result(self) -> TeraResult<Value> {
         Ok(self.into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // "école" with é = 'e' + U+0301
+    #[cfg(not(feature = "unicode"))]
+    #[test]
+    fn len_and_reverse_use_chars() {
+        let v = Value::from("e\u{0301}cole");
+        assert_eq!(v.len(), Some(6));
+        assert_eq!(v.reverse().unwrap().as_str(), Some("eloc\u{0301}e"));
+    }
+
+    #[cfg(feature = "unicode")]
+    #[test]
+    fn len_and_reverse_use_graphemes() {
+        let v = Value::from("e\u{0301}cole");
+        assert_eq!(v.len(), Some(5));
+        assert_eq!(v.reverse().unwrap().as_str(), Some("eloce\u{0301}"));
     }
 }

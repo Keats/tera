@@ -11,6 +11,7 @@ A lot of things have changed for the better.
   * `{{ hey }}` should error if hey is undefined
   * `{{ existing.hey }}` should error if hey is undefined but existing is
   * `{{ hey or 1 }}` should print 1
+  * `{{ false and user.name }}` will not evaluate `user.name` and print `false`
   * `{% if hey or true %}` should be truthy
   * `{% if hey.other or true %}` should error if `hey` is not defined (currently truthy)
   * `{{ hey.other or 1 }}` should error if `hey` is not defined (currently prints "true")

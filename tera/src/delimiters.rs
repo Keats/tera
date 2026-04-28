@@ -1,33 +1,35 @@
+use std::borrow::Cow;
+
 use crate::errors::{Error, TeraResult};
 
 /// This allows customizing the delimiters used for blocks, variables, and comments in case
 /// you want to template files that contains text like `{{`, like LaTeX.
 /// Delimiters need to be 2 ASCII characters.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Delimiters {
     /// Start delimiter for blocks, default: `{%`
-    pub block_start: &'static str,
+    pub block_start: Cow<'static, str>,
     /// End delimiter for blocks, default: `%}`
-    pub block_end: &'static str,
+    pub block_end: Cow<'static, str>,
     /// Start delimiter for variables, default: `{{`
-    pub variable_start: &'static str,
+    pub variable_start: Cow<'static, str>,
     /// End delimiter for variables, default: `}}`
-    pub variable_end: &'static str,
+    pub variable_end: Cow<'static, str>,
     /// Start delimiter for comments, default: `{#`
-    pub comment_start: &'static str,
+    pub comment_start: Cow<'static, str>,
     /// End delimiter for comments, default: `#}`
-    pub comment_end: &'static str,
+    pub comment_end: Cow<'static, str>,
 }
 
 impl Default for Delimiters {
     fn default() -> Self {
         Self {
-            block_start: "{%",
-            block_end: "%}",
-            variable_start: "{{",
-            variable_end: "}}",
-            comment_start: "{#",
-            comment_end: "#}",
+            block_start: "{%".into(),
+            block_end: "%}".into(),
+            variable_start: "{{".into(),
+            variable_end: "}}".into(),
+            comment_start: "{#".into(),
+            comment_end: "#}".into(),
         }
     }
 }
@@ -93,16 +95,16 @@ mod tests {
     fn errors_on_invalid_delimiters() {
         let inputs = vec![
             Delimiters {
-                block_start: "",
+                block_start: "".into(),
                 ..Delimiters::default()
             },
             Delimiters {
-                block_start: "[[[",
+                block_start: "[[[".into(),
                 ..Delimiters::default()
             },
             Delimiters {
-                block_start: "[[",
-                comment_start: "[[",
+                block_start: "[[".into(),
+                comment_start: "[[".into(),
                 ..Delimiters::default()
             },
         ];

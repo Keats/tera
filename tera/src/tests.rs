@@ -100,19 +100,11 @@ pub(crate) fn is_iterable(val: &Value, _: Kwargs, _: &State) -> bool {
 }
 
 pub(crate) fn is_integer(val: &Value, _: Kwargs, _: &State) -> bool {
-    if let Some(num) = val.as_number() {
-        num.is_integer()
-    } else {
-        false
-    }
+    val.is_number() && !val.is_f64()
 }
 
 pub(crate) fn is_float(val: &Value, _: Kwargs, _: &State) -> bool {
-    if let Some(num) = val.as_number() {
-        num.is_float()
-    } else {
-        false
-    }
+    val.is_f64()
 }
 
 pub(crate) fn is_odd(val: Number, _: Kwargs, _: &State) -> TeraResult<bool> {
@@ -139,7 +131,10 @@ pub(crate) fn is_divisible_by(val: Number, kwargs: Kwargs, _: &State) -> TeraRes
         return Ok(false);
     }
     match val {
-        Number::Integer(u) => Ok(u % divisor == 0),
+        Number::Integer(u) => match u.checked_rem_euclid(divisor) {
+            Some(r) => Ok(r == 0),
+            None => Ok(true),
+        },
         Number::Float(u) => Err(Error::message(format!(
             "Value `{u}` is a float; cannot check divisibility"
         ))),

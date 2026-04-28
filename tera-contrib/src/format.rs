@@ -23,8 +23,13 @@ pub fn format(val: Value, kwargs: Kwargs, _: &State) -> TeraResult<String> {
             formatx::formatx!(&fmt_str, s)
                 .map_err(|e| Error::message(format!("format error: {}", e)))
         }
-        ValueKind::I64 | ValueKind::I128 | ValueKind::U64 | ValueKind::U128 => {
+        ValueKind::I64 | ValueKind::I128 | ValueKind::U64 => {
             let n = val.as_i128().unwrap();
+            formatx::formatx!(&fmt_str, n)
+                .map_err(|e| Error::message(format!("format error: {}", e)))
+        }
+        ValueKind::U128 => {
+            let n = val.as_u128().unwrap();
             formatx::formatx!(&fmt_str, n)
                 .map_err(|e| Error::message(format!("format error: {}", e)))
         }

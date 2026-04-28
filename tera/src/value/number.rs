@@ -2,7 +2,6 @@ use crate::errors::{Error, TeraResult};
 use crate::value::Value;
 use std::fmt;
 use std::fmt::Formatter;
-use std::hash::{Hash, Hasher};
 
 /// Simpler representation of numbers so operations are simpler to handle
 /// Also can be used for custom filters/tests/fn when you want to ensure you get a number
@@ -17,15 +16,6 @@ impl fmt::Display for Number {
         match self {
             Number::Integer(v) => write!(f, "{v}"),
             Number::Float(v) => write!(f, "{v}"),
-        }
-    }
-}
-
-impl Hash for Number {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            Number::Integer(v) => v.hash(state),
-            Number::Float(v) => v.to_bits().hash(state),
         }
     }
 }
@@ -55,13 +45,16 @@ impl Number {
 
     pub fn as_integer(&self) -> Option<i128> {
         match self {
-            Number::Float(f) => {
-                if f.fract() == 0.0 {
-                    Some((*f) as i128)
-                } else {
-                    None
-                }
+            // `i128::MAX as f64` rounds up to `2^127`, so the upper bound is exclusive.
+            Number::Float(f)
+                if f.fract() == 0.0
+                    && f.is_finite()
+                    && *f >= i128::MIN as f64
+                    && *f < i128::MAX as f64 =>
+            {
+                Some(*f as i128)
             }
+            Number::Float(_) => None,
             Number::Integer(f) => Some(*f),
         }
     }
@@ -71,6 +64,19 @@ impl Number {
             Number::Float(f) => f.is_finite() && f == &0.0,
             Number::Integer(f) => f == &0i128,
         }
+    }
+}
+
+fn arg_error(val: &Value) -> Error {
+    if val.is_number() {
+        Error::message(format!(
+            "Operand `{val}` is out of range for integer arithmetic (must fit in i128)"
+        ))
+    } else {
+        Error::message(format!(
+            "Only numbers can be used in arithmetic. This is a `{}`",
+            val.name()
+        ))
     }
 }
 
@@ -94,7 +100,8 @@ macro_rules! math {
                     };
                     Ok(val)
                 }
-                _ => unreachable!("Should be handled in the interpreter")
+                (None, _) => Err(arg_error(lhs)),
+                (_, None) => Err(arg_error(rhs)),
             }
         }
     }
@@ -114,7 +121,8 @@ pub(crate) fn div(lhs: &Value, rhs: &Value) -> TeraResult<Value> {
 
             Ok((left.as_float() / right.as_float()).into())
         }
-        _ => unreachable!("Should be handled in the interpreter"),
+        (None, _) => Err(arg_error(lhs)),
+        (_, None) => Err(arg_error(rhs)),
     }
 }
 
@@ -142,7 +150,8 @@ pub(crate) fn floor_div(lhs: &Value, rhs: &Value) -> TeraResult<Value> {
             };
             Ok(val)
         }
-        _ => unreachable!("Should be handled in the interpreter"),
+        (None, _) => Err(arg_error(lhs)),
+        (_, None) => Err(arg_error(rhs)),
     }
 }
 
@@ -177,7 +186,8 @@ pub(crate) fn pow(lhs: &Value, rhs: &Value) -> TeraResult<Value> {
             };
             Ok(val)
         }
-        _ => unreachable!("Should be handled in the interpreter"),
+        (None, _) => Err(arg_error(lhs)),
+        (_, None) => Err(arg_error(rhs)),
     }
 }
 
@@ -195,6 +205,10 @@ pub(crate) fn negate(val: &Value) -> TeraResult<Value> {
             },
         };
         Ok(val)
+    } else if val.is_number() {
+        Err(Error::message(format!(
+            "Cannot negate {val}: result would overflow i128"
+        )))
     } else {
         Err(Error::message(format!(
             "Only numbers can be negated. This is a `{}`",
@@ -217,5 +231,20 @@ mod tests {
             negate(&Value::from(i128::MAX)).unwrap(),
             Value::from(-i128::MAX)
         );
+        assert_eq!(negate(&Value::from(5u128)).unwrap(), Value::from(-5i128));
+        let err = negate(&Value::from(u128::MAX)).unwrap_err();
+        assert!(err.to_string().contains("overflow"));
+    }
+
+    #[test]
+    fn arithmetic_in_i128() {
+        let res = add(&Value::from(-1i64), &Value::from(2u128)).unwrap();
+        assert_eq!(res.as_i128(), Some(1));
+        let res = sub(&Value::from(5u128), &Value::from(10u64)).unwrap();
+        assert_eq!(res.as_i128(), Some(-5));
+        let err = add(&Value::from(i128::MAX), &Value::from(1i128)).unwrap_err();
+        assert!(err.to_string().contains("Unable to perform"));
+        let err = add(&Value::from(u128::MAX), &Value::from(0u64)).unwrap_err();
+        assert!(err.to_string().contains("out of range"));
     }
 }

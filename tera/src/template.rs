@@ -1,10 +1,11 @@
+use crate::HashMap;
 use crate::delimiters::Delimiters;
 use crate::errors::{Error, ErrorKind, TeraResult};
 use crate::parsing::ast::ComponentDefinition;
+use crate::parsing::parser::Parser;
 use crate::parsing::{Chunk, Compiler};
 use crate::tera::Tera;
 use crate::utils::Span;
-use crate::{HashMap, Parser};
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Clone)]

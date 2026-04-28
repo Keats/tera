@@ -1,0 +1,1 @@
+{{ false and user.name }}{{ true or user.name }}{{ some_bool and product.name }}

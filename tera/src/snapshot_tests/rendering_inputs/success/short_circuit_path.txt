@@ -1,0 +1,4 @@
+{{ false and product.name }}
+{{ true or product.name }}
+{{ false and data.names }}
+{{ some_bool and product.name }}

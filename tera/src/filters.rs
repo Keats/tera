@@ -282,15 +282,14 @@ pub(crate) fn as_str(val: Value, _: Kwargs, _: &State) -> String {
 pub(crate) fn int(val: Value, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
     let base = kwargs.get::<u32>("base")?.unwrap_or(10);
 
-    let handle_f64 = |v: f64| {
-        if let Some(i) = Number::Float(v).as_integer() {
-            Ok(i.into())
-        } else {
-            Err(Error::message(format!(
-                "The float {v} would have to be truncated to convert to an int"
-            )))
-        }
-    };
+    let handle_f64 =
+        |v: f64| {
+            Number::Float(v).as_integer().map(Into::into).ok_or_else(|| {
+            Error::message(format!(
+                "The float {v} cannot be converted to an int (non-integer or out of i128 range)"
+            ))
+        })
+        };
 
     match val.kind() {
         ValueKind::String => {
@@ -331,10 +330,7 @@ pub(crate) fn int(val: Value, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
             let v = val.as_i128().unwrap();
             Ok(v.into())
         }
-        ValueKind::U128 => {
-            let v = val.as_i128().unwrap() as u128;
-            Ok(v.into())
-        }
+        ValueKind::U128 => Ok(val),
         ValueKind::F64 => {
             let v = val.as_f64().unwrap();
             handle_f64(v)
