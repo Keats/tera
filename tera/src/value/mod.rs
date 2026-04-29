@@ -22,9 +22,11 @@ use crate::errors::{Error, TeraResult};
 use crate::value::number::Number;
 pub use key::Key;
 
+/// The internal HashMap type used by Tera.
 #[cfg(not(feature = "preserve_order"))]
 pub type Map = HashMap<Key<'static>, Value>;
 
+/// The internal HashMap type used by Tera.
 #[cfg(feature = "preserve_order")]
 pub type Map = indexmap::IndexMap<Key<'static>, Value>;
 
@@ -61,19 +63,33 @@ pub(crate) enum StringKind {
     Safe,
 }
 
+/// The kind of values Tera can handle
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ValueKind {
+    /// This is mostly used internally to represent a lookup failure and you're unlikely to need to
+    /// use that except when writing some special filters/functions that lookups data in the state.
     Undefined,
+    /// An explicit `None` value: it is there and found, but it is `None`.
     None,
+    #[allow(missing_docs)]
     Bool,
+    #[allow(missing_docs)]
     U64,
+    #[allow(missing_docs)]
     I64,
+    #[allow(missing_docs)]
     U128,
+    #[allow(missing_docs)]
     I128,
+    #[allow(missing_docs)]
     F64,
+    #[allow(missing_docs)]
     String,
+    #[allow(missing_docs)]
     Array,
+    #[allow(missing_docs)]
     Map,
+    #[allow(missing_docs)]
     Bytes,
 }
 
@@ -179,6 +195,7 @@ pub(crate) enum ValueInner {
     Bytes(Arc<Vec<u8>>),
 }
 
+/// The Value type that Tera uses internally and that will handle ser/de
 #[derive(Clone)]
 pub struct Value {
     pub(crate) inner: ValueInner,
@@ -319,18 +336,21 @@ fn resolve_index(item: &Value, len: usize, kind: &str) -> TeraResult<Option<usiz
 }
 
 impl Value {
+    #[allow(missing_docs)]
     pub fn none() -> Self {
         Value {
             inner: ValueInner::None,
         }
     }
 
+    #[allow(missing_docs)]
     pub fn undefined() -> Self {
         Value {
             inner: ValueInner::Undefined,
         }
     }
 
+    #[allow(missing_docs)]
     pub fn kind(&self) -> ValueKind {
         match &self.inner {
             ValueInner::Undefined => ValueKind::Undefined,
@@ -349,39 +369,51 @@ impl Value {
     }
 
     // Type checks
+    #[allow(missing_docs)]
     pub fn is_undefined(&self) -> bool {
         matches!(self.kind(), ValueKind::Undefined)
     }
+    #[allow(missing_docs)]
     pub fn is_none(&self) -> bool {
         matches!(self.kind(), ValueKind::None)
     }
+    #[allow(missing_docs)]
     pub fn is_bool(&self) -> bool {
         matches!(self.kind(), ValueKind::Bool)
     }
+    #[allow(missing_docs)]
     pub fn is_string(&self) -> bool {
         matches!(self.kind(), ValueKind::String)
     }
+    #[allow(missing_docs)]
     pub fn is_i128(&self) -> bool {
         matches!(self.kind(), ValueKind::I128)
     }
+    #[allow(missing_docs)]
     pub fn is_u128(&self) -> bool {
         matches!(self.kind(), ValueKind::U128)
     }
+    #[allow(missing_docs)]
     pub fn is_i64(&self) -> bool {
         matches!(self.kind(), ValueKind::I64)
     }
+    #[allow(missing_docs)]
     pub fn is_u64(&self) -> bool {
         matches!(self.kind(), ValueKind::U64)
     }
+    #[allow(missing_docs)]
     pub fn is_f64(&self) -> bool {
         matches!(self.kind(), ValueKind::F64)
     }
+    #[allow(missing_docs)]
     pub fn is_array(&self) -> bool {
         matches!(self.kind(), ValueKind::Array)
     }
+    #[allow(missing_docs)]
     pub fn is_map(&self) -> bool {
         matches!(self.kind(), ValueKind::Map)
     }
+    #[allow(missing_docs)]
     pub fn is_bytes(&self) -> bool {
         matches!(self.kind(), ValueKind::Bytes)
     }
@@ -452,27 +484,33 @@ impl Value {
         }
     }
 
+    /// Creates a Value from something that impl Serialize.
+    /// Panics if serialization fails; see [`Self::try_from_serializable`] for the fallible variant.
     pub fn from_serializable<T: Serialize + ?Sized>(value: &T) -> Value {
         Self::try_from_serializable(value).unwrap()
     }
 
+    /// Fallible way to create a Value from something that impl Serialize
     pub fn try_from_serializable<T: Serialize + ?Sized>(value: &T) -> TeraResult<Value> {
         Serialize::serialize(value, ser::ValueSerializer)
             .map_err(|err| Error::message(err.to_string()))
     }
 
+    /// Creates a normal string that will be escaped
     pub fn normal_string(val: &str) -> Value {
         Value {
             inner: ValueInner::String(SmartString::new(val, StringKind::Normal)),
         }
     }
 
+    /// Creates a safe string that won't be escaped
     pub fn safe_string(val: &str) -> Value {
         Value {
             inner: ValueInner::String(SmartString::new(val, StringKind::Safe)),
         }
     }
 
+    /// If the Value is an integer that can fit in a i128, return that otherwise None.
     pub fn as_i128(&self) -> Option<i128> {
         match &self.inner {
             ValueInner::U64(v) => Some(*v as i128),
@@ -483,6 +521,7 @@ impl Value {
         }
     }
 
+    /// If the Value is an integer that can fit in a u128, return that otherwise None.
     pub fn as_u128(&self) -> Option<u128> {
         match &self.inner {
             ValueInner::U64(v) => Some(*v as u128),
@@ -493,7 +532,8 @@ impl Value {
         }
     }
 
-    pub(crate) fn as_f64(&self) -> Option<f64> {
+    /// If the Value is a f64 return the associated f64, otherwise None.
+    pub fn as_f64(&self) -> Option<f64> {
         const MAX: u128 = 1u128 << f64::MANTISSA_DIGITS;
         match &self.inner {
             ValueInner::F64(v) => Some(*v),
@@ -518,6 +558,7 @@ impl Value {
         }
     }
 
+    /// Returns `true` if the value is an integer or a float
     pub fn is_number(&self) -> bool {
         matches!(
             &self.inner,
@@ -529,6 +570,7 @@ impl Value {
         )
     }
 
+    /// If the Value is a string return the associated str, otherwise None.
     pub fn as_str(&self) -> Option<&str> {
         match &self.inner {
             ValueInner::String(s) => Some(s.as_str()),
@@ -536,6 +578,7 @@ impl Value {
         }
     }
 
+    /// If the Value is a bool return the associated bool, otherwise None.
     pub fn as_bool(&self) -> Option<bool> {
         match &self.inner {
             ValueInner::Bool(b) => Some(*b),
@@ -543,6 +586,8 @@ impl Value {
         }
     }
 
+    /// Returns whether the value is safe (i.e. does not need escaping). Non-safe strings and
+    /// arrays/maps/bytes return `false`; safe strings and all other scalar kinds return `true`.
     #[inline]
     pub fn is_safe(&self) -> bool {
         match &self.inner {
@@ -552,6 +597,7 @@ impl Value {
         }
     }
 
+    /// Consumes the Value, marking it as a safe string if it is one.
     #[inline]
     pub fn mark_safe(self) -> Self {
         match self.inner {
@@ -562,6 +608,7 @@ impl Value {
         }
     }
 
+    /// If the Value is a map return the associated Map, otherwise None.
     pub fn as_map(&self) -> Option<&Map> {
         match &self.inner {
             ValueInner::Map(s) => Some(s),
@@ -569,6 +616,7 @@ impl Value {
         }
     }
 
+    /// If the Value is an array return the associated Vec, otherwise None.
     pub fn as_vec(&self) -> Option<&Vec<Value>> {
         match &self.inner {
             ValueInner::Array(s) => Some(s),
@@ -576,6 +624,7 @@ impl Value {
         }
     }
 
+    /// If the Value is a Bytes return the associated bytes, otherwise None.
     pub fn as_bytes(&self) -> Option<&[u8]> {
         match &self.inner {
             ValueInner::Bytes(s) => Some(s),
@@ -583,6 +632,7 @@ impl Value {
         }
     }
 
+    /// Consumes the current Value to return its inner Map if it is one, otherwise None.
     pub fn into_map(self) -> Option<Map> {
         match self.inner {
             ValueInner::Map(arc) => Some(Arc::try_unwrap(arc).unwrap_or_else(|arc| (*arc).clone())),
@@ -645,6 +695,8 @@ impl Value {
         current.clone()
     }
 
+    /// Returns the truthiness of a value, eg not empty map/arrays/string and numbers different
+    /// from 0
     pub fn is_truthy(&self) -> bool {
         match &self.inner {
             ValueInner::Undefined => false,
@@ -662,6 +714,9 @@ impl Value {
         }
     }
 
+    /// Returns the length of the value. Only works with maps, arrays, bytes and strings.
+    /// For strings, if you use the `unicode` feature it will return the number of graphemes otherwise
+    /// the number of chars.
     #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> Option<usize> {
         match &self.inner {
@@ -682,6 +737,7 @@ impl Value {
         }
     }
 
+    /// Reverses the content: only works for arrays, bytes and strings
     pub fn reverse(&self) -> TeraResult<Value> {
         match &self.inner {
             ValueInner::Array(v) => {
@@ -1164,8 +1220,9 @@ impl<K: Into<Key<'static>>, T: Into<Value>> From<indexmap::IndexMap<K, T>> for V
     }
 }
 
-// TODO: move somewhere else
+/// The trait that automatically converts a value into a `TeraResult<Value>`
 pub trait FunctionResult {
+    #[allow(missing_docs)]
     fn into_result(self) -> TeraResult<Value>;
 }
 

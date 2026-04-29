@@ -7,7 +7,10 @@ use std::fmt::Formatter;
 /// Also can be used for custom filters/tests/fn when you want to ensure you get a number
 #[derive(Debug, Copy, Clone)]
 pub enum Number {
+    /// Integers are stored in i128, which means we can't use numbers from u128 above i128::MAX
+    /// for math, which is probably ok for a template engine.
     Integer(i128),
+    #[allow(missing_docs)]
     Float(f64),
 }
 
@@ -21,21 +24,25 @@ impl fmt::Display for Number {
 }
 
 impl Number {
+    /// Is the number a float?
     pub fn is_float(&self) -> bool {
         matches!(self, Number::Float(..))
     }
 
+    /// Is the number an integer? Does not check whether the float could be converted
+    /// to an integer losslessly, just checks the type.
     pub fn is_integer(&self) -> bool {
         matches!(self, Number::Integer(..))
     }
 
-    pub fn into_float(self) -> Self {
+    pub(crate) fn into_float(self) -> Self {
         match self {
             Number::Float(f) => Number::Float(f),
             Number::Integer(f) => Number::Float(f as f64),
         }
     }
 
+    /// Converts a number to a float.
     pub fn as_float(&self) -> f64 {
         match self {
             Number::Float(f) => *f,
@@ -43,6 +50,7 @@ impl Number {
         }
     }
 
+    /// Tries to convert a number to a i128.
     pub fn as_integer(&self) -> Option<i128> {
         match self {
             // `i128::MAX as f64` rounds up to `2^127`, so the upper bound is exclusive.

@@ -10,16 +10,24 @@ use std::sync::Arc;
 /// The key of anything looking like a hashmap (struct/hashmaps)
 #[derive(Debug, Clone)]
 pub enum Key<'a> {
+    #[allow(missing_docs)]
     Bool(bool),
+    #[allow(missing_docs)]
     U64(u64),
+    #[allow(missing_docs)]
     I64(i64),
+    #[allow(missing_docs)]
     U128(u128),
+    #[allow(missing_docs)]
     I128(i128),
+    #[allow(missing_docs)]
     String(Arc<str>),
+    #[allow(missing_docs)]
     Str(&'a str),
 }
 
 impl<'a> Key<'a> {
+    /// Returns the content if the key is a string
     pub fn as_str(&self) -> Option<&str> {
         match self {
             Key::String(s) => Some(s),
@@ -28,6 +36,7 @@ impl<'a> Key<'a> {
         }
     }
 
+    #[allow(missing_docs)]
     pub fn as_value(&self) -> Value {
         match self {
             Key::Bool(b) => Value::from(*b),

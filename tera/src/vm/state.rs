@@ -48,6 +48,8 @@ impl<'t> State<'t> {
         s
     }
 
+    /// Creates a new state from a `Context`.
+    /// Public since it's needed to test filters/fns/tests.
     pub fn new(context: &'t Context) -> Self {
         Self {
             stack: Stack::new(),

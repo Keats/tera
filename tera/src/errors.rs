@@ -1,8 +1,8 @@
 //! The Tera error type, with optional nice terminal error reporting.
+use std::error::Error as StdError;
 use std::fmt::{self};
 
 use crate::reporting::generate_report;
-use std::error::Error as StdError;
 
 use crate::utils::Span;
 
@@ -13,6 +13,7 @@ pub(crate) struct Note {
     pub(crate) span: Span,
 }
 
+/// An error that knows how to present itself nicely, with the right spans/notes etc.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReportError {
     pub(crate) message: String,
@@ -82,6 +83,8 @@ impl ReportError {
     }
 }
 
+/// All the kind of errors Tera can produce.
+/// Non-exhaustive so we can add more if needed without a breaking change.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ErrorKind {
@@ -135,11 +138,16 @@ pub enum ErrorKind {
     ComponentNotFound(String),
     /// A filter/test main value was not the expected type
     InvalidArgument {
+        #[allow(missing_docs)]
         expected_type: String,
+        #[allow(missing_docs)]
         actual_type: String,
     },
     /// A function/test/filter was expecting an argument but it wasn't found
-    MissingArgument { arg_name: String },
+    MissingArgument {
+        #[allow(missing_docs)]
+        arg_name: String,
+    },
     /// An IO error occurred
     Io(std::io::ErrorKind),
     /// UTF-8 conversion error when converting output to UTF-8
@@ -208,6 +216,7 @@ impl fmt::Display for ErrorKind {
     }
 }
 
+/// The Error struct for Tera.
 #[derive(Debug)]
 pub struct Error {
     pub(crate) kind: ErrorKind,
@@ -222,10 +231,12 @@ impl fmt::Display for Error {
 }
 
 impl Error {
+    /// Creates a new error of the given kind.
     pub fn new(kind: ErrorKind) -> Self {
         Self { kind, source: None }
     }
 
+    /// Returns the kind of error
     pub fn kind(&self) -> &ErrorKind {
         &self.kind
     }
@@ -238,6 +249,7 @@ impl Error {
         }
     }
 
+    /// Creates generic error with a message and no source.
     pub fn message(message: impl ToString) -> Self {
         Self {
             kind: ErrorKind::Msg(message.to_string()),
@@ -351,6 +363,7 @@ impl From<std::string::FromUtf8Error> for Error {
     }
 }
 
+/// A custom Result type for this library
 pub type TeraResult<T> = Result<T, Error>;
 
 #[cfg(test)]

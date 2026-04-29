@@ -207,16 +207,20 @@ impl<'k, T: ArgFromValue<'k, Output = T>> ArgFromValue<'k> for Vec<T> {
     }
 }
 
+/// The keyword arguments of a filter/function
 #[derive(Debug, Clone, Default)]
 pub struct Kwargs {
     values: Arc<Map>,
 }
 
 impl Kwargs {
+    /// Creates a new Kwargs struct from a Map. The Map is Arc<_> since internally
+    /// that's what we have.
     pub fn new(map: Arc<Map>) -> Self {
         Self { values: map }
     }
 
+    /// Deserialize the kwargs into something that impl Deserialize
     pub fn deserialize<'a, T: Deserialize<'a>>(&'a self) -> TeraResult<T> {
         T::deserialize(&Value {
             inner: ValueInner::Map(self.values.clone()),

@@ -29,6 +29,41 @@ const ONE_OFF_TEMPLATE_NAME: &str = "__tera_one_off";
 /// The escape function type definition
 pub type EscapeFn = fn(&[u8], &mut dyn Write) -> std::io::Result<()>;
 
+/// Main point of interaction in this library.
+///
+/// The [`Tera`] struct is the primary interface for working with the Tera template engine. It contains parsed templates, registered filters (which can filter
+/// data), functions, and testers. It also contains some configuration options, such as a list of
+/// suffixes for files that have autoescaping turned on.
+///
+/// It is responsible for:
+///
+/// - Loading and managing templates from files or strings
+/// - Parsing templates and checking for syntax errors
+/// - Maintaining a cache of compiled templates for efficient rendering
+/// - Providing an interface for rendering templates with given contexts
+/// - Managing template inheritance and includes
+/// - Handling custom filters and functions
+/// - Overriding settings, such as autoescape rules
+///
+/// # Example
+///
+/// Basic usage:
+///
+/// ```
+/// use tera::Tera;
+///
+/// let mut tera = Tera::default();
+/// tera.load_from_glob("examples/basic/templates/**/*").unwrap();
+/// tera.add_raw_template("hello", "Hello, {{ name }}!").unwrap();
+///
+/// // Prepare the context with some data
+/// let mut context = tera::Context::new();
+/// context.insert("name", "World");
+///
+/// // Render the template with the given context
+/// let rendered = tera.render("hello", &context).unwrap();
+/// assert_eq!(rendered, "Hello, World!");
+/// ```
 #[derive(Clone)]
 pub struct Tera {
     /// The glob used to load templates if there was one.
@@ -53,10 +88,31 @@ pub struct Tera {
 }
 
 impl Tera {
+    /// Create a new instance of Tera. Equivalent of `Tera::default()`.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Loads all the parsed templates found in the `dir` glob.
+    ///
+    /// A glob is a pattern for matching multiple file paths, employing special characters such as
+    /// the single asterisk (`*`) to match any sequence of characters within a single directory
+    /// level, and the double asterisk (`**`) to match any sequence of characters across multiple
+    /// directory levels, thereby providing a flexible and concise way to select files based on
+    /// their names, extensions, or hierarchical relationships. For example, the glob pattern
+    /// `templates/*.html` will match all files with the `.html` extension located directly inside
+    /// the `templates` folder, while the glob pattern `templates/**/*.html` will match all files
+    /// with the `.html` extension directly inside or in a subdirectory of `templates`.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use tera::Tera;
+    /// let mut tera = Tera::default();
+    /// tera.load_from_glob("examples/basic/templates/**/*").unwrap();
+    /// ```
     #[cfg(feature = "glob_fs")]
     pub fn load_from_glob(&mut self, glob: &str) -> TeraResult<()> {
         self.glob = Some(glob.to_string());
@@ -182,9 +238,9 @@ impl Tera {
     ///
     /// // Override escape function to escape the capital letter A, why not
     /// tera.set_escape_fn(|input: &[u8], output: &mut dyn Write| {
-    ///     for &byte in input {
+    ///     for &byte in input {<
     ///         match byte {
-    ///             b'A' => output.write_all(b"Ɐ")?,
+    ///             b'A' => output.write_all(b"\xc6\x90")?,
     ///             _ => output.write_all(&[byte])?,
     ///         }
     ///     }

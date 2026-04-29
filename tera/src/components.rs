@@ -7,16 +7,24 @@ use crate::value::Value;
 /// The type of component arguments.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ComponentArgType {
+    #[allow(missing_docs)]
     String,
+    #[allow(missing_docs)]
     Bool,
+    #[allow(missing_docs)]
     Integer,
+    #[allow(missing_docs)]
     Float,
+    #[allow(missing_docs)]
     Number,
+    #[allow(missing_docs)]
     Array,
+    #[allow(missing_docs)]
     Map,
 }
 
 impl ComponentArgType {
+    /// Returns the name of this argument type
     pub fn as_str(&self) -> &'static str {
         match self {
             ComponentArgType::String => "string",
