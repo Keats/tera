@@ -1,9 +1,10 @@
 # Tera
 
+v1 is currently frozen but v2 is available on crates.io and the migration guide is available in <https://github.com/Keats/tera2>.
+
 [![Actions Status](https://github.com/Keats/tera/workflows/ci/badge.svg)](https://github.com/Keats/tera/actions)
 [![Crates.io](https://img.shields.io/crates/v/tera.svg)](https://crates.io/crates/tera)
 [![Docs](https://docs.rs/tera/badge.svg)](https://docs.rs/crate/tera/)
-[![Gitter](https://badges.gitter.im/Tera-templates/community.svg)](https://gitter.im/Tera-templates/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 Tera is a template engine inspired by [Jinja2](http://jinja.pocoo.org/) and the [Django template language](https://docs.djangoproject.com/en/3.1/topics/templates/).
 
