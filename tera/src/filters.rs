@@ -144,7 +144,7 @@ pub(crate) fn pluralize(val: Value, kwargs: Kwargs, _: &State) -> TeraResult<Str
     let plural = kwargs.get::<&str>("plural")?.unwrap_or("s");
 
     let is_singular = match val.as_i128() {
-        Some(n) => n == 1,
+        Some(n) => n == 1 || n == -1,
         None => {
             return Err(Error::message(format!(
                 "pluralize filter requires an integer, got `{}`",
