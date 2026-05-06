@@ -1,0 +1,6 @@
+$$ top
+{% block hey %}A{% endblock hey %}
+$$ mid
+{% extends "top" %}{% block hey %}M-{{ super() }}-M{% endblock hey %}
+$$ bottom
+{% extends "mid" %}{% block hey %}{{ super() }} | {{ super() }}{% endblock hey %}

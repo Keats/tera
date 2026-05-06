@@ -416,6 +416,11 @@ impl<'tera> VirtualMachine<'tera> {
                         state.blocks.insert(current_block_name, (blocks, level + 1));
                         let res = self.interpret(state, output);
                         state.chunk = old_chunk;
+                        state
+                            .blocks
+                            .get_mut(current_block_name)
+                            .expect("super() lineage went missing")
+                            .1 = level;
                         res?;
                         state.stack.push(Value::none(), None);
                     } else {
