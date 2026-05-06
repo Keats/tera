@@ -1,0 +1,8 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/for_else.txt
+---
+else-empty
+body:42|
+body:1|body:2|body:3|

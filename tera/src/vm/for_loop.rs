@@ -204,6 +204,7 @@ pub(crate) struct ForLoop {
     value_name: String,
     key_name: Option<String>,
     current_values: (Option<Value>, Value),
+    iterated: bool,
 }
 
 impl ForLoop {
@@ -227,6 +228,7 @@ impl ForLoop {
             value_name: String::new(), // Will be set by store_local
             key_name: None,
             current_values: (None, Value::undefined()), // Will be set by first advance()
+            iterated: false,
         }
     }
 
@@ -246,6 +248,7 @@ impl ForLoop {
     pub(crate) fn advance(&mut self) {
         if let Some((key, value)) = self.iterator.next() {
             self.current_values = (key, value);
+            self.iterated = true;
             if self.end_ip != 0 {
                 self.loop_data.advance();
                 if !self.context.is_empty() {
@@ -261,7 +264,7 @@ impl ForLoop {
     }
 
     pub(crate) fn iterated(&self) -> bool {
-        self.loop_data.index0 > 0
+        self.iterated
     }
 
     pub(crate) fn store(&mut self, name: &str, value: Value) {
