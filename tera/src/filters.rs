@@ -281,6 +281,11 @@ pub(crate) fn as_str(val: Value, _: Kwargs, _: &State) -> String {
 /// Converts a Value into an int. It defaults to a base of `10` but can be changed.
 pub(crate) fn int(val: Value, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
     let base = kwargs.get::<u32>("base")?.unwrap_or(10);
+    if !(2..=36).contains(&base) {
+        return Err(Error::message(format!(
+            "int filter `base` must be between 2 and 36, got {base}"
+        )));
+    }
 
     let handle_f64 =
         |v: f64| {
