@@ -22,6 +22,8 @@ pub enum ComponentArgType {
     Array,
     #[allow(missing_docs)]
     Map,
+    #[allow(missing_docs)]
+    Bytes,
 }
 
 impl ComponentArgType {
@@ -35,6 +37,7 @@ impl ComponentArgType {
             ComponentArgType::Number => "number",
             ComponentArgType::Array => "array",
             ComponentArgType::Map => "map",
+            ComponentArgType::Bytes => "bytes",
         }
     }
 }
@@ -55,6 +58,7 @@ impl From<Type> for ComponentArgType {
             Type::Number => ComponentArgType::Number,
             Type::Array => ComponentArgType::Array,
             Type::Map => ComponentArgType::Map,
+            Type::Bytes => ComponentArgType::Bytes,
         }
     }
 }

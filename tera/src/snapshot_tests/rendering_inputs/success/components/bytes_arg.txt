@@ -1,0 +1,4 @@
+$$ components
+{% component show(payload: bytes) %}len={{payload | length}}: {{payload}}{% endcomponent show %}
+$$ tpl
+{{<show payload={bytes}/>}}

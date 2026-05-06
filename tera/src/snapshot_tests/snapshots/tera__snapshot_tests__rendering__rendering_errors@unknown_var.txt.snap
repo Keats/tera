@@ -3,7 +3,7 @@ source: tera/src/snapshot_tests/rendering.rs
 expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/unknown_var.txt
 ---
-error: Variable `hey` is not defined. Available variables: age, data, description, empty, malicious, name, numbers, objects, one, product, reviews, some_bool, some_html, to, vectors, year_data
+error: Variable `hey` is not defined. Available variables: age, bytes, data, description, empty, malicious, name, numbers, objects, one, product, reviews, some_bool, some_html, to, vectors, year_data
  --> unknown_var.txt:1:9
   |
 1 | Hello {{ hey }}

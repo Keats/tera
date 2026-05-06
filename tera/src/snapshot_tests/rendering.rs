@@ -119,6 +119,12 @@ fn get_context() -> Context {
             },
         ],
     );
+    context.insert_value(
+        "bytes",
+        Value {
+            inner: crate::value::ValueInner::Bytes(std::sync::Arc::new(b"hello".to_vec())),
+        },
+    );
     context
 }
 

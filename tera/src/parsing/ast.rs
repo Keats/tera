@@ -646,6 +646,7 @@ pub enum Type {
     Number,
     Array,
     Map,
+    Bytes,
 }
 
 impl FromStr for Type {
@@ -660,8 +661,9 @@ impl FromStr for Type {
             "number" => Ok(Type::Number),
             "array" => Ok(Type::Array),
             "map" => Ok(Type::Map),
+            "bytes" => Ok(Type::Bytes),
             _ => Err(Error::message(format!(
-                "Found {s} but the only types allowed are: string, bool, integer, float, number, array and map"
+                "Found {s} but the only types allowed are: string, bool, integer, float, number, array, map and bytes"
             ))),
         }
     }
@@ -677,6 +679,7 @@ impl Type {
             Type::Number => "number",
             Type::Array => "array",
             Type::Map => "map",
+            Type::Bytes => "bytes",
         }
     }
 
@@ -694,6 +697,7 @@ impl Type {
             Type::Number => value.is_number(),
             Type::Map => value.is_map(),
             Type::Array => value.is_array(),
+            Type::Bytes => value.is_bytes(),
         }
     }
 
@@ -709,7 +713,8 @@ impl Type {
             ValueKind::F64 => Some(Type::Float),
             ValueKind::Array => Some(Type::Array),
             ValueKind::Map => Some(Type::Map),
-            ValueKind::Undefined | ValueKind::None | ValueKind::Bytes => None,
+            ValueKind::Bytes => Some(Type::Bytes),
+            ValueKind::Undefined | ValueKind::None => None,
         }
     }
 }
