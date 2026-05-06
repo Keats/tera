@@ -1387,6 +1387,23 @@ mod tests {
     }
 
     #[test]
+    fn rendering_invalid_utf8_bytes_does_not_panic() {
+        let mut tera = Tera::default();
+        tera.add_raw_template("page.html", "{{ data }}")
+            .unwrap();
+
+        let mut ctx = Context::new();
+        ctx.insert_value(
+            "data",
+            Value {
+                inner: crate::value::ValueInner::Bytes(std::sync::Arc::new(vec![0xFF, 0xFE, 0xFD])),
+            },
+        );
+        let out = tera.render("page.html", &ctx).unwrap();
+        assert_eq!(out, "\u{FFFD}\u{FFFD}\u{FFFD}");
+    }
+
+    #[test]
     fn test_render_component() {
         let mut tera = Tera::default();
         tera.add_raw_template(

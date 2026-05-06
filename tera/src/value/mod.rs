@@ -90,7 +90,10 @@ pub enum ValueKind {
     Array,
     #[allow(missing_docs)]
     Map,
-    #[allow(missing_docs)]
+    /// If you try to display bytes values in a template (eg `{{ bytes }}`)
+    /// it will try to render it as lossy UTF-8.
+    /// There is no way to create a `Value::Bytes` from inside a template: it's mostly there
+    /// for interaction with filters etc
     Bytes,
 }
 
@@ -423,7 +426,7 @@ impl Value {
         match &self.inner {
             ValueInner::None | ValueInner::Undefined => Ok(()),
             ValueInner::Bool(v) => f.write_all(if *v { b"true" } else { b"false" }),
-            ValueInner::Bytes(v) => f.write_all(v),
+            ValueInner::Bytes(v) => f.write_all(String::from_utf8_lossy(v).as_bytes()),
             ValueInner::String(v) => f.write_all(v.as_str().as_bytes()),
             ValueInner::Array(v) => {
                 f.write_all(b"[")?;
