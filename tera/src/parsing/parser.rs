@@ -279,7 +279,20 @@ impl<'a> Parser<'a> {
     /// Can be just an ident or a component call/fn
     fn parse_ident(&mut self, ident: &str) -> TeraResult<Expression> {
         let mut start_span = self.current_span.clone();
-        // We might not end up using that one if it's a component or a fn call
+
+        // A function call must come directly after the ident: `foo(...)`.
+        if matches!(self.next, Some(Ok((Token::LeftParen, _)))) {
+            let kwargs = self.parse_kwargs()?;
+            start_span.expand(&self.current_span);
+            return Ok(Expression::FunctionCall(Spanned::new(
+                FunctionCall {
+                    name: ident.to_owned(),
+                    kwargs,
+                },
+                start_span,
+            )));
+        }
+
         let mut expr = Expression::Var(Spanned::new(
             Var {
                 name: ident.to_string(),
@@ -335,18 +348,13 @@ impl<'a> Parser<'a> {
                 Some(Ok((Token::LeftBracket, _)) | Ok((Token::QuestionMarkLeftBracket, _))) => {
                     expr = self.parse_subscript(expr)?;
                 }
-                // Function
+                // Function call after a chain
                 Some(Ok((Token::LeftParen, _))) => {
-                    let kwargs = self.parse_kwargs()?;
-                    start_span.expand(&self.current_span);
-                    expr = Expression::FunctionCall(Spanned::new(
-                        FunctionCall {
-                            name: ident.to_owned(),
-                            kwargs,
-                        },
-                        start_span,
+                    return Err(Error::syntax_error(
+                        "Function calls are only allowed at the first element of a chain"
+                            .to_string(),
+                        &self.current_span,
                     ));
-                    break;
                 }
                 _ => break,
             }

@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/build_errors.rs
+expression: "&err"
+input_file: tera/src/snapshot_tests/build_errors/syntax/dotted_function_call.txt
+---
+error: Function calls are only allowed at the first element of a chain
+ --> test.html:1:9
+  |
+1 | {{ range.foo(end=3) }}
+  |          ^^^
