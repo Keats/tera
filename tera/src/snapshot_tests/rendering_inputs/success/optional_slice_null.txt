@@ -1,0 +1,4 @@
+{{ objects[0].parent.parent?[:1] or "fallback-null-slice" }}
+{{ objects[0].parent.parent?[0:1] or "fallback-null-rangeslice" }}
+{{ objects[0].parent.parent?[::1] or "fallback-null-stepslice" }}
+{{ objects[0].missing?[:1] or "fallback-undefined-slice" }}

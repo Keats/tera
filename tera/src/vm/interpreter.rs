@@ -241,7 +241,7 @@ impl<'tera> VirtualMachine<'tera> {
                     let (end, _) = state.stack.pop();
                     let (start, _) = state.stack.pop();
                     let (val, val_span) = state.stack.pop();
-                    if is_optional && val.is_undefined() {
+                    if is_optional && (val.is_undefined() || val.is_none()) {
                         state
                             .stack
                             .push(Value::undefined(), Some(current_ip..=current_ip));
