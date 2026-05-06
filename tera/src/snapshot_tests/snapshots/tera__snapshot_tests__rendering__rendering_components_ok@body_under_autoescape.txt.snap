@@ -1,0 +1,6 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/components/body_under_autoescape.txt
+---
+<div><b>&lt;html&gt;</b></div>

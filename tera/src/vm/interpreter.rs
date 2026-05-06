@@ -141,7 +141,7 @@ impl<'tera> VirtualMachine<'tera> {
                 let current_span: SpanRange = Some($span_idx..=$span_idx);
 
                 let body = if $has_body {
-                    Some(state.stack.pop().0)
+                    Some(state.stack.pop().0.mark_safe())
                 } else {
                     None
                 };

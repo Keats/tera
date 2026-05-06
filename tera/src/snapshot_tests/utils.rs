@@ -33,6 +33,7 @@ pub fn create_multi_templates_tera(body: &str) -> (Tera, String) {
     let tpls = split_multi_templates(&normalized_body);
     let last_filename = tpls.last().unwrap().0.clone();
     let mut tera = Tera::default();
+    tera.autoescape_on(vec![".html"]);
     tera.add_raw_templates(tpls).unwrap();
 
     (tera, last_filename)

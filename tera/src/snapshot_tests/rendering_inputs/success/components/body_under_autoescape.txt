@@ -1,0 +1,4 @@
+$$ card.html
+{% component card() %}<div>{{body}}</div>{% endcomponent %}
+$$ page.html
+{% <card> %}<b>{{malicious}}</b>{% </card> %}
