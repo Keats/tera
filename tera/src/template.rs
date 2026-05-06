@@ -86,6 +86,7 @@ impl Template {
         let mut test_calls = body_compiler.test_calls;
         let mut function_calls = body_compiler.function_calls;
         let mut include_calls = body_compiler.include_calls;
+        let mut component_calls = body_compiler.component_calls;
         let top_level_variables = body_compiler.top_level_variables;
 
         let components = parser_output
@@ -95,7 +96,7 @@ impl Template {
                 let mut compiler = Compiler::new(tpl_name);
                 // We don't need the nodes again after it's compiled
                 compiler.compile(c.body.clone());
-                // Collect filter/test/function/include calls from component body
+                // Collect filter/test/function/include/component calls from component body
                 for (name, spans) in compiler.filter_calls {
                     filter_calls.entry(name).or_default().extend(spans);
                 }
@@ -108,12 +109,14 @@ impl Template {
                 for (name, spans) in compiler.include_calls {
                     include_calls.entry(name).or_default().extend(spans);
                 }
+                for (name, spans) in compiler.component_calls {
+                    component_calls.entry(name).or_default().extend(spans);
+                }
                 let mut chunk = compiler.chunk;
                 chunk.optimize();
                 (c.name.clone(), (c, chunk))
             })
             .collect();
-        let component_calls = body_compiler.component_calls;
         let block_name_spans = body_compiler.block_name_spans;
 
         Ok(Self {

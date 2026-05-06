@@ -1,0 +1,4 @@
+$$ tpl
+{% component outer() %}
+{{ <inner_missing/> }}
+{% endcomponent %}
