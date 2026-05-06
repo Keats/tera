@@ -163,7 +163,12 @@ impl<'tera> VirtualMachine<'tera> {
                             if let Some(span) =
                                 current_span.as_ref().and_then(|r| chunk.expand_span(r))
                             {
-                                report.add_note(&self.template.name, &self.template.source, &span);
+                                report.add_note(
+                                    "called from",
+                                    &self.template.name,
+                                    &self.template.source,
+                                    &span,
+                                );
                             }
                         }
                         return Err(e);
@@ -306,7 +311,12 @@ impl<'tera> VirtualMachine<'tera> {
                         if let ErrorKind::RenderingError(ref mut report) = e.kind {
                             let chunk = state.chunk.expect("to have a chunk");
                             if let Some(span) = chunk.get_span(current_ip) {
-                                report.add_note(&self.template.name, &self.template.source, span);
+                                report.add_note(
+                                    "called from",
+                                    &self.template.name,
+                                    &self.template.source,
+                                    span,
+                                );
                             }
                         }
                         return Err(e);

@@ -103,6 +103,9 @@ pub struct ParserOutput {
 pub struct Parser<'a> {
     #[allow(clippy::type_complexity)]
     lexer: Peekable<Box<dyn Iterator<Item = Result<(Token<'a>, Span), Error>> + 'a>>,
+    // The source + filename are there to generate errors with full source context
+    source: &'a str,
+    filename: &'a str,
     // The next token/span tuple.
     next: Option<Result<(Token<'a>, Span), Error>>,
     // We keep track of the current span
@@ -117,14 +120,17 @@ pub struct Parser<'a> {
     // We limit the number of nesting for brackets in idents
     num_left_brackets: usize,
     blocks_seen: HashSet<String>,
+    components_seen: HashMap<String, Span>,
     output: ParserOutput,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(source: &'a str, delimiters: Delimiters) -> Self {
+    pub fn new(filename: &'a str, source: &'a str, delimiters: Delimiters) -> Self {
         let iter = Box::new(tokenize(source, delimiters)) as Box<dyn Iterator<Item = _>>;
         Self {
             lexer: iter.peekable(),
+            source,
+            filename,
             next: None,
             current_span: Span::default(),
             body_contexts: Vec::new(),
@@ -132,6 +138,7 @@ impl<'a> Parser<'a> {
             array_dimension: 0,
             num_left_brackets: 0,
             blocks_seen: HashSet::with_capacity(10),
+            components_seen: HashMap::with_capacity(10),
             output: ParserOutput::default(),
         }
     }
@@ -154,6 +161,20 @@ impl<'a> Parser<'a> {
         Error::new(ErrorKind::SyntaxError(Box::new(
             ReportError::unexpected_end_of_input(&span),
         )))
+    }
+
+    fn syntax_error_with_note(
+        &self,
+        msg: String,
+        span: &Span,
+        note_label: &str,
+        note_span: &Span,
+    ) -> Error {
+        let mut err = Error::syntax_error(msg, span);
+        if let ErrorKind::SyntaxError(ref mut report) = err.kind {
+            report.add_note(note_label, self.filename, self.source, note_span);
+        }
+        err
     }
 
     fn different_name_end_tag(&self, start_name: &str, end_name: &str, kind: &str) -> Error {
@@ -1024,8 +1045,19 @@ impl<'a> Parser<'a> {
         }
         self.body_contexts.push(BodyContext::ComponentDefinition);
         let name = self.parse_dotted_component_name()?;
+        let name_span = self.current_span.clone();
+        if let Some(prev_span) = self.components_seen.get(&name) {
+            return Err(self.syntax_error_with_note(
+                format!("Template already contains a component named `{name}`"),
+                &name_span,
+                "first defined here",
+                prev_span,
+            ));
+        }
+        self.components_seen.insert(name.clone(), name_span);
         expect_token!(self, Token::LeftParen, "(")?;
         let mut kwargs = BTreeMap::new();
+        let mut kwarg_spans: HashMap<&str, Span> = HashMap::new();
 
         let mut component_def = ComponentDefinition {
             name: name.to_string(),
@@ -1066,7 +1098,17 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            let (arg_name, _) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
+            let (arg_name, arg_name_span) =
+                expect_token!(self, Token::Ident(id) => id, "identifier")?;
+            if let Some(prev_span) = kwarg_spans.get(arg_name) {
+                return Err(self.syntax_error_with_note(
+                    format!("Component argument `{arg_name}` is defined more than once"),
+                    &arg_name_span,
+                    "first defined here",
+                    prev_span,
+                ));
+            }
+            kwarg_spans.insert(arg_name, arg_name_span);
             let mut kwarg = ComponentArgument::default();
 
             // First a potential type

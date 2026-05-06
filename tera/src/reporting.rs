@@ -76,10 +76,11 @@ pub(crate) fn generate_report(error: &ReportError) -> String {
         let note_line_num_width = note_loc.start_line.to_string().len();
         let note_padding = " ".repeat(note_line_num_width);
         output.push_str(&format!(
-            "\n\nnote: called from {}:{}:{}\n\
+            "\n\nnote: {} {}:{}:{}\n\
              {note_padding} |\n\
              {} | {}\n\
              {note_padding} | {}",
+            note.label,
             note.filename,
             note_loc.start_line,
             note_loc.start_col,

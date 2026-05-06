@@ -1389,8 +1389,7 @@ mod tests {
     #[test]
     fn rendering_invalid_utf8_bytes_does_not_panic() {
         let mut tera = Tera::default();
-        tera.add_raw_template("page.html", "{{ data }}")
-            .unwrap();
+        tera.add_raw_template("page.html", "{{ data }}").unwrap();
 
         let mut ctx = Context::new();
         ctx.insert_value(

@@ -8,6 +8,7 @@ use crate::utils::Span;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Note {
+    pub(crate) label: String,
     pub(crate) filename: String,
     pub(crate) source: String,
     pub(crate) span: Span,
@@ -50,8 +51,9 @@ impl ReportError {
         self.source = source.to_string();
     }
 
-    pub(crate) fn add_note(&mut self, filename: &str, source: &str, span: &Span) {
+    pub(crate) fn add_note(&mut self, label: &str, filename: &str, source: &str, span: &Span) {
         self.notes.push(Note {
+            label: label.to_string(),
             filename: filename.to_string(),
             source: source.to_string(),
             span: span.clone(),

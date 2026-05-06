@@ -1,0 +1,2 @@
+{% component foo() %}First{% endcomponent %}
+{% component foo() %}Second{% endcomponent %}

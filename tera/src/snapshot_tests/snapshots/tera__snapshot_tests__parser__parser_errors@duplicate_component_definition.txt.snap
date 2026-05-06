@@ -1,0 +1,15 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: res.unwrap_err()
+input_file: tera/src/snapshot_tests/parser_inputs/errors/duplicate_component_definition.txt
+---
+error: Template already contains a component named `foo`
+ --> duplicate_component_definition.txt:2:13
+  |
+2 | {% component foo() %}Second{% endcomponent %}
+  |              ^^^
+
+note: first defined here duplicate_component_definition.txt:1:13
+  |
+1 | {% component foo() %}First{% endcomponent %}
+  |              ^^^

@@ -43,7 +43,7 @@ impl Template {
         path: Option<String>,
         delimiters: Delimiters,
     ) -> TeraResult<Self> {
-        let parser = Parser::new(source, delimiters);
+        let parser = Parser::new(tpl_name, source, delimiters);
         let parser_output = match parser.parse() {
             Ok(p) => p,
             Err(e) => match e.kind {

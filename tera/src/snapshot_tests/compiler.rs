@@ -8,7 +8,7 @@ fn compiler_ok() {
     insta::glob!("compiler_inputs/success/*.txt", |path| {
         let contents = std::fs::read_to_string(path).unwrap();
         let normalized_contents = normalize_line_endings(&contents);
-        let nodes = Parser::new(&normalized_contents, Delimiters::default())
+        let nodes = Parser::new("", &normalized_contents, Delimiters::default())
             .parse()
             .unwrap()
             .nodes;
@@ -24,7 +24,7 @@ fn compiler_blocks() {
     insta::glob!("compiler_inputs/blocks/*.txt", |path| {
         let contents = std::fs::read_to_string(path).unwrap();
         let normalized_contents = normalize_line_endings(&contents);
-        let nodes = Parser::new(&normalized_contents, Delimiters::default())
+        let nodes = Parser::new("", &normalized_contents, Delimiters::default())
             .parse()
             .unwrap()
             .nodes;
