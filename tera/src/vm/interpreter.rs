@@ -307,7 +307,16 @@ impl<'tera> VirtualMachine<'tera> {
                     state.store_global(name, val);
                 }
                 Instruction::Include(name) => {
-                    if let Err(mut e) = self.render_include(name, state, output) {
+                    let res = if state.capture_buffers.is_empty() {
+                        self.render_include(name, state, output)
+                    } else {
+                        let last = state.capture_buffers.len() - 1;
+                        let mut buf = std::mem::take(&mut state.capture_buffers[last]);
+                        let result = self.render_include(name, state, &mut buf);
+                        state.capture_buffers[last] = buf;
+                        result
+                    };
+                    if let Err(mut e) = res {
                         if let ErrorKind::RenderingError(ref mut report) = e.kind {
                             let chunk = state.chunk.expect("to have a chunk");
                             if let Some(span) = chunk.get_span(current_ip) {

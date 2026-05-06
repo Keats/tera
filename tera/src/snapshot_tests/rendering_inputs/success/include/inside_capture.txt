@@ -1,0 +1,4 @@
+$$ partial
+A
+$$ tpl
+{% set val %}before{% include "partial" %}after{% endset %}({{ val }})
