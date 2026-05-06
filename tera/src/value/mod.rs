@@ -65,6 +65,7 @@ pub(crate) enum StringKind {
 
 /// The kind of values Tera can handle
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum ValueKind {
     /// This is mostly used internally to represent a lookup failure and you're unlikely to need to
     /// use that except when writing some special filters/functions that lookups data in the state.

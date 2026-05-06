@@ -6,6 +6,7 @@ use crate::value::Value;
 
 /// The type of component arguments.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ComponentArgType {
     #[allow(missing_docs)]
     String,
