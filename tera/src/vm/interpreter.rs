@@ -398,8 +398,12 @@ impl<'tera> VirtualMachine<'tera> {
                 Instruction::CallFunction(name) => {
                     let (kwargs, _) = state.stack.pop();
                     if name == "super" {
-                        let current_block_name =
-                            state.current_block_name.expect("no current block");
+                        let Some(current_block_name) = state.current_block_name else {
+                            rendering_error!(
+                                "super() called outside of a block".to_string(),
+                                Some(current_ip..=current_ip)
+                            );
+                        };
                         let (blocks, level) = state
                             .blocks
                             .remove(current_block_name)
