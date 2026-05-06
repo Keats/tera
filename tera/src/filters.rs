@@ -271,6 +271,10 @@ pub(crate) fn indent(val: &str, kwargs: Kwargs, _: &State) -> TeraResult<String>
         res.push_str(line);
     }
 
+    if val.ends_with('\n') {
+        res.push('\n');
+    }
+
     Ok(res)
 }
 
