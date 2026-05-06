@@ -43,7 +43,8 @@ fn binary_binding_power(op: BinaryOperator) -> (u8, u8) {
         Pipe => (5, 6),
         Equal | NotEqual | LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual => (7, 8),
         Plus | Minus => (11, 12),
-        Mul | Div | Mod | StrConcat | FloorDiv | Power => (13, 14),
+        Mul | Div | Mod | StrConcat | FloorDiv => (13, 14),
+        Power => (16, 15),
     }
 }
 
