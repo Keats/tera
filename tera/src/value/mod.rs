@@ -274,7 +274,7 @@ impl PartialOrd for Value {
             (ValueInner::F64(a), ValueInner::F64(b)) => Some(a.total_cmp(b)),
             // First if there's a float we need to convert to float
             (ValueInner::F64(v), _) => v.partial_cmp(&other.as_f64()?),
-            (_, ValueInner::F64(v)) => v.partial_cmp(&self.as_f64()?),
+            (_, ValueInner::F64(v)) => self.as_f64()?.partial_cmp(v),
             (
                 ValueInner::U64(_) | ValueInner::I64(_) | ValueInner::U128(_) | ValueInner::I128(_),
                 ValueInner::U64(_) | ValueInner::I64(_) | ValueInner::U128(_) | ValueInner::I128(_),
