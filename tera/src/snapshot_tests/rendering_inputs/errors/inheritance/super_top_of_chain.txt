@@ -1,0 +1,4 @@
+$$ top
+{% block hey %}{{ super() }}{% endblock hey %}
+$$ child
+{% extends "top" %}{% block hey %}{{ super() }}{% endblock hey %}

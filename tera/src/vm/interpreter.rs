@@ -413,17 +413,20 @@ impl<'tera> VirtualMachine<'tera> {
                                 Some(current_ip..=current_ip)
                             );
                         };
-                        let (blocks, level) = state
-                            .blocks
-                            .remove(current_block_name)
-                            .expect("no lineage found");
-                        if blocks.len() == 1 {
-                            rendering_error!(
-                                format!("Tried to use super() in the top level block"),
-                                Some(current_ip..=current_ip)
-                            );
+                        // We can't use super() in the top level block
+                        {
+                            let (blocks, level) = state
+                                .blocks
+                                .get(current_block_name)
+                                .expect("no lineage found");
+                            if level + 1 >= blocks.len() {
+                                rendering_error!(
+                                    "Tried to use super() in the top level block".to_string(),
+                                    Some(current_ip..=current_ip)
+                                );
+                            }
                         }
-
+                        let (blocks, level) = state.blocks.remove(current_block_name).unwrap();
                         let block_chunk = blocks[level + 1];
                         let old_chunk = state.chunk.replace(block_chunk);
                         state.blocks.insert(current_block_name, (blocks, level + 1));
