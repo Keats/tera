@@ -1,0 +1,8 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/include/simple.txt
+---
+Before
+Hello from the included template!
+After

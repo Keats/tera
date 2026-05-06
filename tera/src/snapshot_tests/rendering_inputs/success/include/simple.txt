@@ -1,0 +1,6 @@
+$$ child
+Hello from the included template!
+$$ tpl
+Before
+{% include "child" %}
+After

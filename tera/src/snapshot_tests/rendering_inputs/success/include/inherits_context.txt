@@ -1,0 +1,4 @@
+$$ greeting
+Hello, {{ name }}! You are {{ age }}.
+$$ tpl
+{% include "greeting" %}

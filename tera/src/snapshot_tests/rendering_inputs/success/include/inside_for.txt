@@ -1,0 +1,4 @@
+$$ row
+{{ num }}|
+$$ tpl
+{% for num in numbers %}{% include "row" %}{% endfor %}

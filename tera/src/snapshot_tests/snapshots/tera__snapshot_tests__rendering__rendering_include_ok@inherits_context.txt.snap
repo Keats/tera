@@ -1,0 +1,6 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/include/inherits_context.txt
+---
+Hello, Bob! You are 18.

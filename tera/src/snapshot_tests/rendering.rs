@@ -220,6 +220,17 @@ fn rendering_include_errors() {
     });
 }
 
+#[test]
+fn rendering_include_ok() {
+    insta::glob!("rendering_inputs/success/include/*.txt", |path| {
+        let contents = std::fs::read_to_string(path).unwrap();
+        let (tera, tpl_name) = create_multi_templates_tera(&contents);
+        let out = tera.render(&tpl_name, &get_context()).unwrap();
+        let normalized_out = normalize_line_endings(&out);
+        insta::assert_snapshot!(&normalized_out);
+    });
+}
+
 #[cfg(feature = "unicode")]
 #[test]
 fn can_iterate_on_graphemes() {
