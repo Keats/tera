@@ -115,22 +115,32 @@ impl Tera {
     /// ```
     #[cfg(feature = "glob_fs")]
     pub fn load_from_glob(&mut self, glob: &str) -> TeraResult<()> {
-        self.glob = Some(glob.to_string());
-        self.templates.clear();
+        let prev_templates = std::mem::take(&mut self.templates);
+        let prev_glob = self.glob.replace(glob.to_string());
 
-        let mut errors = Vec::new();
-        for (path, name) in load_from_glob(glob)? {
-            match self.add_file(&path, Some(&name)) {
-                Ok(_) => (),
-                Err(e) => errors.push(format!("Failed to load {}: {e}", path.display(),)),
+        let result = match load_from_glob(glob) {
+            Ok(entries) => {
+                let mut errors = Vec::new();
+                for (path, name) in entries {
+                    if let Err(e) = self.add_file(&path, Some(&name)) {
+                        errors.push(format!("Failed to load {}: {e}", path.display()));
+                    }
+                }
+                if !errors.is_empty() {
+                    Err(Error::message(errors.join("\n")))
+                } else {
+                    self.finalize_templates()
+                }
             }
-        }
+            Err(e) => Err(e),
+        };
 
-        if !errors.is_empty() {
-            Err(Error::message(errors.join("\n")))
-        } else {
-            self.finalize_templates()
+        // Reset to what was there before
+        if result.is_err() {
+            self.templates = prev_templates;
+            self.glob = prev_glob;
         }
+        result
     }
 
     /// Re-parse all templates found in the glob given to Tera.
@@ -1340,6 +1350,26 @@ mod tests {
         let mut tera = Tera::default();
         let result = tera.load_from_glob(&glob);
         assert!(result.is_err());
+    }
+
+    #[cfg(feature = "glob_fs")]
+    #[test]
+    fn failed_full_reload_preserves_existing_templates() {
+        let dir = tempfile::tempdir().unwrap();
+        let good_path = dir.path().join("good.html");
+        std::fs::write(&good_path, "Hello {{ name }}").unwrap();
+        let glob = dir.path().join("**/*").to_string_lossy().to_string();
+
+        let mut tera = Tera::default();
+        tera.load_from_glob(&glob).unwrap();
+        let mut ctx = Context::new();
+        ctx.insert("name", &"world");
+        assert_eq!(tera.render("good.html", &ctx).unwrap(), "Hello world");
+
+        std::fs::write(&good_path, "{% if x %}oops").unwrap();
+        let result = tera.full_reload();
+        assert!(result.is_err());
+        assert_eq!(tera.render("good.html", &ctx).unwrap(), "Hello world");
     }
 
     #[test]
