@@ -4,7 +4,7 @@ use crate::errors::{Error, TeraResult};
 
 /// This allows customizing the delimiters used for blocks, variables, and comments in case
 /// you want to template files that contains text like `{{`, like LaTeX.
-/// Delimiters need to be 2 ASCII characters.
+/// Delimiters need to be exactly 2 bytes long (e.g. `{{`, `«`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Delimiters {
     /// Start delimiter for blocks, default: `{%`
@@ -37,32 +37,32 @@ impl Default for Delimiters {
 impl Delimiters {
     /// Returns an error if any delimiter is empty or if there are conflicts
     pub(crate) fn validate(&self) -> TeraResult<()> {
-        if self.block_start.chars().count() != 2 {
+        if self.block_start.len() != 2 {
             return Err(Error::message(
-                "`block_start` delimiter must be 2 characters",
+                "`block_start` delimiter must be 2 bytes long",
             ));
         }
-        if self.block_end.chars().count() != 2 {
-            return Err(Error::message("`block_end` delimiter must be 2 characters"));
+        if self.block_end.len() != 2 {
+            return Err(Error::message("`block_end` delimiter must be 2 bytes long"));
         }
-        if self.variable_start.chars().count() != 2 {
+        if self.variable_start.len() != 2 {
             return Err(Error::message(
-                "`variable_start` delimiter must be 2 characters",
+                "`variable_start` delimiter must be 2 bytes long",
             ));
         }
-        if self.variable_end.chars().count() != 2 {
+        if self.variable_end.len() != 2 {
             return Err(Error::message(
-                "`variable_end` delimiter must be 2 characters",
+                "`variable_end` delimiter must be 2 bytes long",
             ));
         }
-        if self.comment_start.chars().count() != 2 {
+        if self.comment_start.len() != 2 {
             return Err(Error::message(
-                "`comment_start` delimiter must be 2 characters",
+                "`comment_start` delimiter must be 2 bytes long",
             ));
         }
-        if self.comment_end.chars().count() != 2 {
+        if self.comment_end.len() != 2 {
             return Err(Error::message(
-                "`comment_end` delimiter must be 2 characters",
+                "`comment_end` delimiter must be 2 bytes long",
             ));
         }
 
@@ -105,6 +105,11 @@ mod tests {
             Delimiters {
                 block_start: "[[".into(),
                 comment_start: "[[".into(),
+                ..Delimiters::default()
+            },
+            Delimiters {
+                // 3 bytes
+                block_start: "日".into(),
                 ..Delimiters::default()
             },
         ];
