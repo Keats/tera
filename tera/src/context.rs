@@ -24,7 +24,7 @@ impl Context {
     /// Meant to be used if you have a hashmap or a struct and don't want to insert values
     /// one by one in the context.
     pub fn from_serialize<T: Serialize + ?Sized>(value: &T) -> crate::TeraResult<Self> {
-        let val = Value::from_serializable(value);
+        let val = Value::try_from_serializable(value)?;
         let type_name = val.name();
 
         match val.into_map() {
