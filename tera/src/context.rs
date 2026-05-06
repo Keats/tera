@@ -125,7 +125,7 @@ macro_rules! context {
         )*
     ) => {
         {
-            let mut context = Context::new();
+            let mut context = $crate::Context::new();
             $(
                 context.insert(stringify!($key), $($value)?);
             )*
