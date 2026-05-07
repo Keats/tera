@@ -1,0 +1,11 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+assertion_line: 51
+expression: res.unwrap_err()
+input_file: tera/src/snapshot_tests/parser_inputs/errors/component_args_missing_comma.txt
+---
+error: Found identifier but expected ,.
+ --> component_args_missing_comma.txt:1:24
+  |
+1 | {% component card(title body) %}{% endcomponent %}
+  |                         ^^^^

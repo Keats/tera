@@ -1083,6 +1083,15 @@ impl<'a> Parser<'a> {
                 break;
             }
 
+            if !kwargs.is_empty() {
+                expect_token!(self, Token::Comma, ",")?;
+            }
+
+            if matches!(self.next, Some(Ok((Token::RightParen, _)))) {
+                self.next_or_error()?;
+                break;
+            }
+
             // Check for rest parameter: ...ident
             if matches!(self.next, Some(Ok((Token::Spread, _)))) {
                 self.next_or_error()?;
@@ -1205,11 +1214,6 @@ impl<'a> Parser<'a> {
                 if kwarg.typ.is_none() {
                     kwarg.typ = Type::from_value(&val);
                 }
-            }
-
-            // And finally maybe a comma
-            if let Some(Ok((Token::Comma, _))) = self.next {
-                self.next_or_error()?;
             }
 
             kwargs.insert(arg_name.to_string(), kwarg);

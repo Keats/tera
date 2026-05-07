@@ -1,0 +1,1 @@
+{% component card(title body) %}{% endcomponent %}

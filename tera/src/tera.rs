@@ -248,7 +248,7 @@ impl Tera {
     ///
     /// // Override escape function to escape the capital letter A, why not
     /// tera.set_escape_fn(|input: &[u8], output: &mut dyn Write| {
-    ///     for &byte in input {<
+    ///     for &byte in input {
     ///         match byte {
     ///             b'A' => output.write_all(b"\xc6\x90")?,
     ///             _ => output.write_all(&[byte])?,
