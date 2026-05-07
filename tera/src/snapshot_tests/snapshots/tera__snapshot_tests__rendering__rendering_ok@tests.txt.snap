@@ -30,6 +30,8 @@ ending_with(err): false
 containing(ok): true
 containing(ok): true
 containing(ok): true
+containing(ok): true
+containing(ok): true
 containing(err): false
 defined: true
 undefined: true

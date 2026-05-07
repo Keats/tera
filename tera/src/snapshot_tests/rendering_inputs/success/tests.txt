@@ -25,6 +25,8 @@ ending_with(err): {{ 'hello world' is ending_with(pat="hello") }}
 containing(ok): {{ 'hello world' is containing(pat="ll") }}
 containing(ok): {{ [1, 2] is containing(pat=1) }}
 containing(ok): {{ {"a": 1} is containing(pat="a") }}
+containing(ok): {{ {1: "one"} is containing(pat=1) }}
+containing(ok): {{ {true: "yes"} is containing(pat=true) }}
 containing(err): {{ 'hello world' is containing(pat="x") }}
 defined: {{ data is defined }}
 undefined: {{ unknown is undefined }}

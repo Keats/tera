@@ -4,7 +4,7 @@ use crate::Value;
 use crate::args::{ArgFromValue, Kwargs};
 use crate::errors::{Error, TeraResult};
 use crate::value::number::Number;
-use crate::value::{Key, ValueKind};
+use crate::value::ValueKind;
 use crate::vm::state::State;
 
 pub trait TestResult {
@@ -160,10 +160,10 @@ pub(crate) fn is_containing(val: &Value, kwargs: Kwargs, _: &State) -> TeraResul
             Ok(val.as_str().unwrap().contains(s))
         }
         ValueKind::Array => Ok(val.as_vec().unwrap().contains(pat)),
-        ValueKind::Map => {
-            let s = <&str as ArgFromValue>::from_value(pat)?;
-            Ok(val.as_map().unwrap().contains_key(&Key::Str(s)))
-        }
+        ValueKind::Map => Ok(match pat.as_key() {
+            Ok(key) => val.as_map().unwrap().contains_key(&key),
+            Err(_) => false,
+        }),
         _ => Err(Error::message(format!(
             "Value `{val}` is not a container; cannot check for containment"
         ))),
