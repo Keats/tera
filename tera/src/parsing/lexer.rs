@@ -430,7 +430,7 @@ fn basic_tokenize(
                                     offset += block + 2;
                                     // Check if the tag starts with a {%- so we know we need to end trim the body
                                     let start_ws_end_tag =
-                                        rest.as_bytes().get(offset + 1) == Some(&b'-');
+                                        rest.as_bytes().get(offset) == Some(&b'-');
                                     if let Some((endraw, ws_end)) =
                                         skip_tag(&rest[offset..], "endraw", &delimiters.block_end)
                                     {

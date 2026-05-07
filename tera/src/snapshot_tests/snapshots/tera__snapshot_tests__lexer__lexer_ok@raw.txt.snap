@@ -5,7 +5,7 @@ input_file: tera/src/snapshot_tests/lexer_inputs/success/raw.txt
 ---
 [
     CONTENT("Hello"),
-    CONTENT("Some ignored {{ content }}  {% if true %} hello {%\n"),
+    CONTENT("Some ignored {{ content }}  {% if true %} hello {%"),
     CONTENT("World\n\nInline as well "),
     CONTENT(" {{ hey }} "),
     CONTENT("\n"),
