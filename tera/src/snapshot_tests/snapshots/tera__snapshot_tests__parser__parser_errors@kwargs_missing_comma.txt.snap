@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: res.unwrap_err()
+input_file: tera/src/snapshot_tests/parser_inputs/errors/kwargs_missing_comma.txt
+---
+error: Found identifier but expected ,.
+ --> kwargs_missing_comma.txt:1:11
+  |
+1 | {{ foo(a=1 b=2) }}
+  |            ^

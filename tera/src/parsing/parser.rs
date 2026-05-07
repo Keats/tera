@@ -368,7 +368,15 @@ impl<'a> Parser<'a> {
         expect_token!(self, Token::LeftParen, "(")?;
 
         loop {
-            if let Some(Ok((Token::RightParen, _))) = self.next {
+            if matches!(self.next, Some(Ok((Token::RightParen, _)))) {
+                break;
+            }
+
+            if !kwargs.is_empty() {
+                expect_token!(self, Token::Comma, ",")?;
+            }
+
+            if matches!(self.next, Some(Ok((Token::RightParen, _)))) {
                 break;
             }
 
@@ -376,10 +384,6 @@ impl<'a> Parser<'a> {
             expect_token!(self, Token::Assign, "=")?;
             let value = self.parse_expression(0)?;
             kwargs.insert(arg_name.to_string(), value);
-
-            if let Some(Ok((Token::Comma, _))) = self.next {
-                self.next_or_error()?;
-            }
         }
 
         expect_token!(self, Token::RightParen, ")")?;
