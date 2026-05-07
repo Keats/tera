@@ -137,7 +137,11 @@ impl<'tera> VirtualMachine<'tera> {
             ($name:expr, $span_idx:expr, $has_body:expr) => {{
                 let (kwargs, _) = state.stack.pop();
                 let kwargs = kwargs.into_map().expect("to have kwargs");
-                let (component_def, component_chunk) = &self.tera.components[$name];
+                let (component_def, component_chunk) = self
+                    .tera
+                    .components
+                    .get($name)
+                    .unwrap_or_else(|| &self.template.components[$name]);
                 let current_span: SpanRange = Some($span_idx..=$span_idx);
 
                 let body = if $has_body {

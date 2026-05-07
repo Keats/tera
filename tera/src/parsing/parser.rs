@@ -972,7 +972,9 @@ impl<'a> Parser<'a> {
         let (mut name, _) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
         if RESERVED_NAMES.contains(&name) {
             return Err(Error::syntax_error(
-                format!("{name} is a reserved keyword of Tera, it cannot be used as a loop variable."),
+                format!(
+                    "{name} is a reserved keyword of Tera, it cannot be used as a loop variable."
+                ),
                 &self.current_span,
             ));
         }
@@ -983,7 +985,9 @@ impl<'a> Parser<'a> {
             let (val, _) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
             if RESERVED_NAMES.contains(&val) {
                 return Err(Error::syntax_error(
-                    format!("{val} is a reserved keyword of Tera, it cannot be used as a loop variable."),
+                    format!(
+                        "{val} is a reserved keyword of Tera, it cannot be used as a loop variable."
+                    ),
                     &self.current_span,
                 ));
             }

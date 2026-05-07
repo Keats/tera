@@ -166,6 +166,14 @@ fn can_render_to_write() {
     assert_eq!(String::from_utf8(out).unwrap(), "Hello Bob")
 }
 
+#[test]
+fn render_str_can_use_locally_defined_component() {
+    let tera = Tera::default();
+    let src = r#"{% component greet(name="world") %}Hello {{name}}!{% endcomponent greet %}{{<greet name="Bob"/>}}"#;
+    let out = tera.render_str(src, &Context::new(), false).unwrap();
+    assert_eq!(out, "Hello Bob!");
+}
+
 struct BoldFilter;
 
 impl Filter<&str, String> for BoldFilter {

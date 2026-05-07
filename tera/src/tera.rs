@@ -485,7 +485,7 @@ impl Tera {
     fn validate_template_references(
         &self,
         tpl: &Template,
-        components: &HashMap<String, (ComponentDefinition, Chunk)>,
+        is_known_component: impl Fn(&str) -> bool,
     ) -> Vec<(usize, String)> {
         let mut errors = Vec::new();
 
@@ -532,7 +532,7 @@ impl Tera {
         }
 
         for (component, spans) in &tpl.component_calls {
-            if !components.contains_key(component.as_str()) {
+            if !is_known_component(component.as_str()) {
                 for span in spans {
                     let err = ReportError::new(
                         format!("Unknown component `{component}`"),
@@ -633,7 +633,9 @@ impl Tera {
 
         for (name, tpl) in &self.templates {
             // Validate filter/test/function/component/include references
-            for (pos, report) in self.validate_template_references(tpl, &components) {
+            for (pos, report) in
+                self.validate_template_references(tpl, |c| components.contains_key(c))
+            {
                 errors.push((&tpl.name, pos, report));
             }
 
@@ -1130,7 +1132,9 @@ impl Tera {
         template.autoescape_enabled = autoescape;
 
         // Validate template references
-        let errors = self.validate_template_references(&template, &self.components);
+        let errors = self.validate_template_references(&template, |c| {
+            self.components.contains_key(c) || template.components.contains_key(c)
+        });
         if !errors.is_empty() {
             let reports: Vec<String> = errors.into_iter().map(|(_, report)| report).collect();
             return Err(Error::message(reports.join("\n\n")));
