@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: res.unwrap_err()
+input_file: tera/src/snapshot_tests/parser_inputs/errors/postfix_not_before_subscript.txt
+---
+error: `not` is only valid here as part of `not in`
+ --> postfix_not_before_subscript.txt:1:5
+  |
+1 | {{ x not [0] }}
+  |      ^^^

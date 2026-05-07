@@ -749,9 +749,15 @@ impl<'a> Parser<'a> {
                 Token::NotEqual => BinaryOperator::NotEqual,
                 Token::Tilde => BinaryOperator::StrConcat,
                 Token::Ident("not") => {
-                    negated = true;
-                    // eat it and continue
+                    // Only `in` is allowed after `not`
                     self.next_or_error()?;
+                    if !matches!(self.next, Some(Ok((Token::Ident("in"), _)))) {
+                        return Err(Error::syntax_error(
+                            "`not` is only valid here as part of `not in`".to_string(),
+                            &self.current_span,
+                        ));
+                    }
+                    negated = true;
                     continue;
                 }
                 Token::Ident("in") => BinaryOperator::In,
