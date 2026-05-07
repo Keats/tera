@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: res.unwrap_err()
+input_file: tera/src/snapshot_tests/parser_inputs/errors/component_body_rest_reserved.txt
+---
+error: The name `body` is reserved for component body content.
+ --> component_body_rest_reserved.txt:1:22
+  |
+1 | {% component panel(...body) %}{% endcomponent %}
+  |                       ^^^^

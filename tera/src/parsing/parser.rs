@@ -1096,6 +1096,12 @@ impl<'a> Parser<'a> {
             if matches!(self.next, Some(Ok((Token::Spread, _)))) {
                 self.next_or_error()?;
                 let (rest_name, span) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
+                if rest_name == "body" {
+                    return Err(Error::syntax_error(
+                        "The name `body` is reserved for component body content.".to_string(),
+                        &span,
+                    ));
+                }
 
                 // Rest param name must not conflict with existing params
                 if kwargs.contains_key(rest_name) {
@@ -1122,6 +1128,12 @@ impl<'a> Parser<'a> {
 
             let (arg_name, arg_name_span) =
                 expect_token!(self, Token::Ident(id) => id, "identifier")?;
+            if arg_name == "body" {
+                return Err(Error::syntax_error(
+                    "The name `body` is reserved for component body content.".to_string(),
+                    &arg_name_span,
+                ));
+            }
             if let Some(prev_span) = kwarg_spans.get(arg_name) {
                 return Err(self.syntax_error_with_note(
                     format!("Component argument `{arg_name}` is defined more than once"),
