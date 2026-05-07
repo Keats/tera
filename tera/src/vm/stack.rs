@@ -39,7 +39,7 @@ impl Stack {
     }
 
     #[inline]
-    pub(crate) fn peek(&mut self) -> &(Value, SpanRange) {
+    pub(crate) fn peek(&self) -> &(Value, SpanRange) {
         self.values.last().expect("to peek a value")
     }
 }

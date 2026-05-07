@@ -398,7 +398,7 @@ fn basic_tokenize(
 
     std::iter::from_fn(move || {
         loop {
-            if rest.is_empty() | errored {
+            if rest.is_empty() || errored {
                 return None;
             }
 

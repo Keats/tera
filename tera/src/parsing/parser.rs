@@ -247,8 +247,8 @@ impl<'a> Parser<'a> {
                 step = Some(self.parse_expression(0)?);
             }
         }
-        span.expand(&self.current_span);
         expect_token!(self, Token::RightBracket, "]")?;
+        span.expand(&self.current_span);
 
         let expr = if slice {
             Expression::Slice(Spanned::new(
