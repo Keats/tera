@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&err"
+input_file: tera/src/snapshot_tests/rendering_inputs/errors/slice_invalid_step.txt
+---
+error: Slice step must be an integer, got `string`
+ --> slice_invalid_step.txt:1:13
+  |
+1 | {{ numbers[::name] }}
+  |              ^^^^

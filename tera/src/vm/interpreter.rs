@@ -237,9 +237,9 @@ impl<'tera> VirtualMachine<'tera> {
                 }
                 Instruction::Slice | Instruction::SliceOpt => {
                     let is_optional = matches!(instr, Instruction::SliceOpt);
-                    let (step, _) = state.stack.pop();
-                    let (end, _) = state.stack.pop();
-                    let (start, _) = state.stack.pop();
+                    let (step, step_span) = state.stack.pop();
+                    let (end, end_span) = state.stack.pop();
+                    let (start, start_span) = state.stack.pop();
                     let (val, val_span) = state.stack.pop();
                     if is_optional && (val.is_undefined() || val.is_none()) {
                         state
@@ -253,9 +253,46 @@ impl<'tera> VirtualMachine<'tera> {
                             );
                         }
 
+                        let s = if start.is_undefined() || start.is_none() {
+                            None
+                        } else {
+                            match start.as_i128() {
+                                Some(n) => Some(n),
+                                None => rendering_error!(
+                                    format!(
+                                        "Slice start must be an integer, got `{}`",
+                                        start.name()
+                                    ),
+                                    start_span
+                                ),
+                            }
+                        };
+                        let e = if end.is_undefined() || end.is_none() {
+                            None
+                        } else {
+                            match end.as_i128() {
+                                Some(n) => Some(n),
+                                None => rendering_error!(
+                                    format!("Slice end must be an integer, got `{}`", end.name()),
+                                    end_span
+                                ),
+                            }
+                        };
+                        let st = if step.is_undefined() || step.is_none() {
+                            None
+                        } else {
+                            match step.as_i128() {
+                                Some(n) => Some(n),
+                                None => rendering_error!(
+                                    format!("Slice step must be an integer, got `{}`", step.name()),
+                                    step_span
+                                ),
+                            }
+                        };
+
                         // This returns an error if the value is not an array/string so we don't need to
                         // expand the span.
-                        match val.slice(start.as_i128(), end.as_i128(), step.as_i128()) {
+                        match val.slice(s, e, st) {
                             Ok(v) => {
                                 state.stack.push(v, val_span);
                             }

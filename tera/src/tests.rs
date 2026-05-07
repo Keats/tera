@@ -3,8 +3,8 @@ use std::sync::Arc;
 use crate::Value;
 use crate::args::{ArgFromValue, Kwargs};
 use crate::errors::{Error, TeraResult};
-use crate::value::number::Number;
 use crate::value::ValueKind;
+use crate::value::number::Number;
 use crate::vm::state::State;
 
 pub trait TestResult {
