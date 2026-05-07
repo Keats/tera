@@ -5,3 +5,5 @@ input_file: tera/src/snapshot_tests/rendering_inputs/success/functions.txt
 ---
 [0, 1]
 [-10, -8, -6, -4, -2]
+[10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+[10, 7, 4, 1]

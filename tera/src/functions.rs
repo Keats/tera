@@ -65,10 +65,10 @@ impl StoredFunction {
 const MAX_RANGE_LEN: usize = 100_000;
 
 pub(crate) fn range(kwargs: Kwargs, _: &State) -> TeraResult<Vec<isize>> {
-    let start = kwargs.get::<isize>("start")?.unwrap_or_default();
-    let end = kwargs.must_get::<isize>("end")?;
-    let step_by = kwargs.get::<usize>("step_by")?.unwrap_or(1);
-    if start > end {
+    let start = kwargs.get::<i128>("start")?.unwrap_or_default();
+    let end = kwargs.must_get::<i128>("end")?;
+    let step_by = kwargs.get::<i128>("step_by")?.unwrap_or(1);
+    if start > end && step_by > 0 {
         return Err(Error::message(
             "Function `range` was called with a `start` argument greater than the `end` one",
         ));
@@ -79,16 +79,27 @@ pub(crate) fn range(kwargs: Kwargs, _: &State) -> TeraResult<Vec<isize>> {
         ));
     }
 
-    let span = (end as i128) - (start as i128);
-    let step = step_by as i128;
-    let len = (span + step - 1) / step;
+    let len = if step_by > 0 {
+        let span = end - start;
+        (span + step_by - 1) / step_by
+    } else if start <= end {
+        0
+    } else {
+        let span = start - end;
+        let step = -step_by;
+        (span + step - 1) / step
+    };
     if len > MAX_RANGE_LEN as i128 {
         return Err(Error::message(format!(
             "Function `range` would produce {len} elements, which exceeds the limit of {MAX_RANGE_LEN}"
         )));
     }
 
-    Ok((start..end).step_by(step_by).collect())
+    let mut values = Vec::with_capacity(len as usize);
+    for i in 0..len {
+        values.push((start + i * step_by) as isize);
+    }
+    Ok(values)
 }
 
 pub(crate) fn throw(kwargs: Kwargs, _: &State) -> TeraResult<bool> {

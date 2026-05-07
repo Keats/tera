@@ -1257,7 +1257,7 @@ There are 3 arguments, all integers:
 
 - `end`: stop before `end`, mandatory
 - `start`: where to start from, defaults to `0`
-- `step_by`: with what number do we increment, defaults to `1`
+- `step_by`: the step between values, defaults to `1`, use a negative value to count down
 
 ##### throw
 The template rendering will error with the given message when encountered.

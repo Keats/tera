@@ -1,2 +1,4 @@
 {{ range(end=2) }}
 {{ range(start=-10, end=0, step_by=2) }}
+{{ range(start=10, end=0, step_by=-1) }}
+{{ range(start=10, end=0, step_by=-3) }}
