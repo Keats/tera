@@ -118,7 +118,35 @@ macro_rules! math {
 math!(add, checked_add, +);
 math!(sub, checked_sub, -);
 math!(mul, checked_mul, *);
-math!(rem, checked_rem_euclid, %);
+
+pub(crate) fn rem(lhs: &Value, rhs: &Value) -> TeraResult<Value> {
+    match (lhs.as_number(), rhs.as_number()) {
+        (Some(mut left), Some(mut right)) => {
+            if right.is_zero() {
+                return Err(Error::message("Cannot divide by 0".to_string()));
+            }
+
+            if left.is_float() || right.is_float() {
+                left = left.into_float();
+                right = right.into_float();
+            }
+
+            let val = match (left, right) {
+                (Number::Integer(a), Number::Integer(b)) => match a.checked_rem_euclid(b) {
+                    Some(val) => Value::from(val),
+                    None => {
+                        return Err(Error::message(format!("Unable to perform {lhs} % {rhs}")));
+                    }
+                },
+                (Number::Float(a), Number::Float(b)) => Value::from(a.rem_euclid(b)),
+                _ => unreachable!(),
+            };
+            Ok(val)
+        }
+        (None, _) => Err(arg_error(lhs)),
+        (_, None) => Err(arg_error(rhs)),
+    }
+}
 
 pub(crate) fn div(lhs: &Value, rhs: &Value) -> TeraResult<Value> {
     match (lhs.as_number(), rhs.as_number()) {
