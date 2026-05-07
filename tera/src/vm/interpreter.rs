@@ -468,7 +468,9 @@ impl<'tera> VirtualMachine<'tera> {
                         let old_chunk = state.chunk.replace(block_chunk);
                         state.blocks.insert(current_block_name, (blocks, level + 1));
                         let mut super_output = Vec::with_capacity(128);
+                        let old_capture_buffers = std::mem::take(&mut state.capture_buffers);
                         let res = self.interpret(state, &mut super_output);
+                        state.capture_buffers = old_capture_buffers;
                         state.chunk = old_chunk;
                         state
                             .blocks

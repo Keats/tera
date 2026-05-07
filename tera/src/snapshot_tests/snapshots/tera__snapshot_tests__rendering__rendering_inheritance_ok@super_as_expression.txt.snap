@@ -7,4 +7,5 @@ input_file: tera/src/snapshot_tests/rendering_inputs/success/inheritance/super_a
 bare=[Parent Bob]
 filtered=[PARENT BOB]
 set=[Parent Bob]
+captured=[PARENT BOB]
 twice=[Parent Bob|Parent Bob]

@@ -5,5 +5,6 @@ $$ child
 bare=[{{ super() }}]
 filtered=[{{ super() | upper }}]
 {% set parent = super() %}set=[{{ parent }}]
+{% set captured_parent %}{{ super() | upper }}{% endset %}captured=[{{ captured_parent }}]
 twice=[{{ super() }}|{{ super() }}]
 {% endblock body %}
