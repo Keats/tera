@@ -5,6 +5,7 @@ input_file: tera/src/snapshot_tests/rendering_inputs/success/conditions.txt
 ---
 false
 true
+true
 0
 Moto G
 should print

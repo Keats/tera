@@ -1,1 +1,1 @@
-{{ a and b }}{{ a or b }}{{ a and b or c }}
+{{ a and b }}{{ a or b }}{{ a and b or c }}{{ a or b and c }}

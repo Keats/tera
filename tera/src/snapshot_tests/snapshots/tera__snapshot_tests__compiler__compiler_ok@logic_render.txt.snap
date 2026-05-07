@@ -18,3 +18,10 @@ input_file: tera/src/snapshot_tests/compiler_inputs/success/logic_render.txt
 0011 JumpIfTrueOrPop(13)
 0012 LoadName("c")
 0013 WriteTop
+0014 LoadName("a")
+0015 JumpIfTrueOrPop(19)
+0016 LoadName("b")
+0017 JumpIfFalseOrPop(19)
+0018 LoadName("c")
+0019 WriteTop
+0020 WriteText("\n")

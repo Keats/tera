@@ -85,7 +85,7 @@ three' indent{})
 (and (> a b) (> a c))
 (and (in person groupA) (in person groupB))
 (| (~ (~ query.tags ' ') tags) trim{})
-(and (or (and a (is a containing{pat='a'})) b) (is b containing{pat='b'}))
+(or (and a (is a containing{pat='a'})) (and b (is b containing{pat='b'})))
 ["up", "down", "left", "right"][1]
 {"hello": "world"}['hello']
 {"hel\nlo": "world"}

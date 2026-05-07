@@ -29,7 +29,7 @@ fn unary_binding_power(op: UnaryOperator) -> ((), u8) {
     use UnaryOperator::*;
 
     match op {
-        Not => ((), 3),
+        Not => ((), 5),
         Minus => ((), 20),
     }
 }
@@ -38,10 +38,11 @@ fn binary_binding_power(op: BinaryOperator) -> (u8, u8) {
     use BinaryOperator::*;
 
     match op {
-        And | Or => (1, 2),
-        In | Is => (3, 4),
-        Pipe => (5, 6),
-        Equal | NotEqual | LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual => (7, 8),
+        Or => (1, 2),
+        And => (3, 4),
+        In | Is => (5, 6),
+        Pipe => (7, 8),
+        Equal | NotEqual | LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual => (9, 10),
         Plus | Minus => (11, 12),
         Mul | Div | Mod | StrConcat | FloorDiv => (13, 14),
         Power => (16, 15),
