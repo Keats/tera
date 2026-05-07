@@ -1,0 +1,26 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: "components[0]"
+input_file: tera/src/snapshot_tests/parser_inputs/success/components/def/escaped_default.txt
+---
+ComponentDefinition {
+    name: "greet",
+    kwargs: {
+        "label": ComponentArgument {
+            default: Some(
+                String("hello
+                world"),
+            ),
+            typ: Some(
+                String,
+            ),
+        },
+    },
+    rest_param_name: None,
+    metadata: {},
+    body: [
+        Var {
+            name: "label",
+        } @ 1:45-1:50 (45..50),
+    ],
+}

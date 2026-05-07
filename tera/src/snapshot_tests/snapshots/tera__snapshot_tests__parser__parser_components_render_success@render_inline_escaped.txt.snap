@@ -1,0 +1,7 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: Expressions(expr_nodes)
+input_file: tera/src/snapshot_tests/parser_inputs/success/components/render_inline_escaped.txt
+---
+<button{label: 'hello
+world'}/>

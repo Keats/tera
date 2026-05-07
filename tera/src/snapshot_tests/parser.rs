@@ -118,6 +118,10 @@ fn parser_extends_success() {
     let parser = Parser::new("", "{% extends 'a.html' %}", Delimiters::default());
     let parent = parser.parse().unwrap().parent;
     assert_eq!(parent, Some("a.html".to_string()));
+
+    let parser = Parser::new("", r#"{% extends "base\t.html" %}"#, Delimiters::default());
+    let parent = parser.parse().unwrap().parent;
+    assert_eq!(parent, Some("base\t.html".to_string()));
 }
 
 #[test]

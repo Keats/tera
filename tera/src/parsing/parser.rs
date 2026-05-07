@@ -429,6 +429,12 @@ impl<'a> Parser<'a> {
                                     self.next_or_error()?;
                                     Expression::Const(Spanned::new(Value::from(s_copy), span))
                                 }
+                                Some(Ok((Token::String(s), _))) => {
+                                    let s_copy = s.clone();
+                                    let span = self.current_span.clone();
+                                    self.next_or_error()?;
+                                    Expression::Const(Spanned::new(Value::from(s_copy), span))
+                                }
                                 // If it starts with {, parse as expression until matching }
                                 Some(Ok((Token::LeftBrace, _))) => {
                                     self.next_or_error()?;
@@ -1185,6 +1191,7 @@ impl<'a> Parser<'a> {
                 let (val, eat_next) = match &self.next {
                     Some(Ok((Token::Bool(b), _))) => (Value::from(*b), true),
                     Some(Ok((Token::Str(b), _))) => (Value::from(*b), true),
+                    Some(Ok((Token::String(b), _))) => (Value::from(b.clone()), true),
                     Some(Ok((Token::Integer(b), _))) => (Value::from(*b), true),
                     Some(Ok((Token::Float(b), _))) => (Value::from(*b), true),
                     Some(Ok((Token::Ident("none") | Token::Ident("None"), _))) => {
@@ -1330,13 +1337,31 @@ impl<'a> Parser<'a> {
                 self.parse_set(tag_token == Token::Ident("set_global"))?,
             )),
             Token::Ident("include") => {
-                let (name, span) = expect_token!(self, Token::Str(s) => s, "identifier")?;
+                let (name, span) = match self.next_or_error()? {
+                    (Token::Str(s), span) => (s.to_string(), span),
+                    (Token::String(s), span) => (s, span),
+                    (token, _) => {
+                        return Err(Error::syntax_error(
+                            format!("Found {} but expected string.", token),
+                            &self.current_span,
+                        ));
+                    }
+                };
                 Ok(Some(Node::Include(Include {
-                    name: Spanned::new(name.to_string(), span),
+                    name: Spanned::new(name, span),
                 })))
             }
             Token::Ident("extends") => {
-                let (name, _) = expect_token!(self, Token::Str(s) => s, "identifier")?;
+                let name = match self.next_or_error()? {
+                    (Token::Str(s), _) => s.to_string(),
+                    (Token::String(s), _) => s,
+                    (token, _) => {
+                        return Err(Error::syntax_error(
+                            format!("Found {} but expected string.", token),
+                            &self.current_span,
+                        ));
+                    }
+                };
                 if let Some(ref parent) = self.output.parent {
                     return Err(Error::syntax_error(
                         format!("Template is already extending `{parent}`"),

@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: "&res_nodes"
+input_file: tera/src/snapshot_tests/parser_inputs/success/tags/include_escaped.txt
+---
+[
+    Include {
+        name: "esc\nape.html" @ 1:11-1:26 (11..26),
+    },
+]
