@@ -1,0 +1,4 @@
+$$ partial
+{{ name }}
+$$ tpl
+{% set name = "local" %}{% include "partial" %}

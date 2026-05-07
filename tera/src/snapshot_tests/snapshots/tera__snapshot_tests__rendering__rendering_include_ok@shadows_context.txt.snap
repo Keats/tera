@@ -1,0 +1,7 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+assertion_line: 236
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/include/shadows_context.txt
+---
+local

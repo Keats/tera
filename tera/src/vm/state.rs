@@ -83,9 +83,9 @@ impl<'t> State<'t> {
     /// It goes in the following order for scopes:
     /// 1. All loops from the inner to the outer
     /// 2. set_variables
-    /// 3. self.context (user context)
-    /// 4. self.global_context (Tera's global context)
-    /// 5. include_parent or return Value::Undefined
+    /// 3. include_parent
+    /// 4. self.context (user context)
+    /// 5. self.global_context (Tera's global context) or return Value::Undefined
     pub(crate) fn get_value(&self, name: &str) -> Value {
         for forloop in self.for_loops.iter().rev() {
             if let Some(v) = forloop.get(name) {
@@ -95,6 +95,13 @@ impl<'t> State<'t> {
 
         if let Some(val) = self.set_variables.get(name) {
             return val.clone();
+        }
+
+        if let Some(parent) = self.include_parent {
+            let val = parent.get_value(name);
+            if !val.is_undefined() {
+                return val;
+            }
         }
 
         if let Some(val) = self.context.data.get(name) {
@@ -107,11 +114,7 @@ impl<'t> State<'t> {
             return val.clone();
         }
 
-        if let Some(parent) = self.include_parent {
-            parent.get_value(name)
-        } else {
-            Value::undefined()
-        }
+        Value::undefined()
     }
 
     /// Get a variable from the context by name and convert it to the specified type.
