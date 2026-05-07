@@ -60,15 +60,24 @@ pub fn round(value: &Value, args: &HashMap<String, Value>) -> Result<Value> {
     };
     let multiplier = if precision == 0 { 1.0 } else { 10.0_f64.powi(precision) };
 
-    match method.as_ref() {
-        "common" => Ok(to_value((multiplier * num).round() / multiplier).unwrap()),
-        "ceil" => Ok(to_value((multiplier * num).ceil() / multiplier).unwrap()),
-        "floor" => Ok(to_value((multiplier * num).floor() / multiplier).unwrap()),
-        _ => Err(Error::msg(format!(
-            "Filter `round` received an incorrect value for arg `method`: got `{:?}`, \
+    let intermediate_result = match method.as_ref() {
+        "common" => (multiplier * num).round() / multiplier,
+        "ceil" => (multiplier * num).ceil() / multiplier,
+        "floor" => (multiplier * num).floor() / multiplier,
+        _ => {
+            return Err(Error::msg(format!(
+                "Filter `round` received an incorrect value for arg `method`: got `{:?}`, \
              only common, ceil and floor are allowed",
-            method
-        ))),
+                method
+            )))
+        }
+    };
+
+    // Do we need to return an integer or a float?
+    if precision == 0 {
+        Ok(to_value(intermediate_result as i128).unwrap())
+    } else {
+        Ok(to_value(intermediate_result).unwrap())
     }
 }
 
@@ -165,7 +174,7 @@ mod tests {
     fn test_round_default() {
         let result = round(&to_value(2.1).unwrap(), &HashMap::new());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(2.0).unwrap());
+        assert_eq!(result.unwrap(), to_value(2).unwrap());
     }
 
     #[test]
@@ -183,7 +192,7 @@ mod tests {
         args.insert("method".to_string(), to_value("ceil").unwrap());
         let result = round(&to_value(2.1).unwrap(), &args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(3.0).unwrap());
+        assert_eq!(result.unwrap(), to_value(3).unwrap());
     }
 
     #[test]
@@ -202,7 +211,7 @@ mod tests {
         args.insert("method".to_string(), to_value("floor").unwrap());
         let result = round(&to_value(2.1).unwrap(), &args);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), to_value(2.0).unwrap());
+        assert_eq!(result.unwrap(), to_value(2).unwrap());
     }
 
     #[test]
