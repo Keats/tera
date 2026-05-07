@@ -263,8 +263,7 @@ impl Compiler {
                     .or_default()
                     .push(span.clone());
 
-                let is_inline = component_call.body.is_empty();
-                if !is_inline {
+                if !component_call.self_closing {
                     self.chunk.add(Instruction::Capture, None);
                     for node in component_call.body {
                         self.compile_node(node);
@@ -274,7 +273,7 @@ impl Compiler {
 
                 self.compile_map_entries(component_call.kwargs, None);
 
-                if is_inline {
+                if component_call.self_closing {
                     self.chunk.add(
                         Instruction::RenderInlineComponent(component_call.name),
                         Some(span),

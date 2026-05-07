@@ -1,0 +1,4 @@
+$$ components
+{% component card() %}<div>{{body}}</div>{% endcomponent card %}
+$$ tpl
+{% <card> %}{% </card> %}
