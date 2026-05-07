@@ -1,0 +1,9 @@
+$$ base
+{% block body %}Parent {{ name }}{% endblock body %}
+$$ child
+{% extends "base" %}{% block body %}
+bare=[{{ super() }}]
+filtered=[{{ super() | upper }}]
+{% set parent = super() %}set=[{{ parent }}]
+twice=[{{ super() }}|{{ super() }}]
+{% endblock body %}

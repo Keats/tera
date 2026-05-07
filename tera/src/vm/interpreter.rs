@@ -430,7 +430,8 @@ impl<'tera> VirtualMachine<'tera> {
                         let block_chunk = blocks[level + 1];
                         let old_chunk = state.chunk.replace(block_chunk);
                         state.blocks.insert(current_block_name, (blocks, level + 1));
-                        let res = self.interpret(state, output);
+                        let mut super_output = Vec::with_capacity(128);
+                        let res = self.interpret(state, &mut super_output);
                         state.chunk = old_chunk;
                         state
                             .blocks
@@ -438,7 +439,10 @@ impl<'tera> VirtualMachine<'tera> {
                             .expect("super() lineage went missing")
                             .1 = level;
                         res?;
-                        state.stack.push(Value::none(), None);
+                        let val = String::from_utf8(super_output)?;
+                        state
+                            .stack
+                            .push(Value::safe_string(&val), Some(current_ip..=current_ip));
                     } else {
                         let f = &self.tera.functions[name.as_str()];
                         let val = match f

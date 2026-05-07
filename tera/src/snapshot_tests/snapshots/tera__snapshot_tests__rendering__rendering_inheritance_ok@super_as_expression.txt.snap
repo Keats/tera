@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/inheritance/super_as_expression.txt
+---
+
+bare=[Parent Bob]
+filtered=[PARENT BOB]
+set=[Parent Bob]
+twice=[Parent Bob|Parent Bob]
