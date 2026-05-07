@@ -30,6 +30,7 @@ const USERINFO_ENCODE_SET: &AsciiSet = &PATH_ENCODE_SET
 /// with `/` not escaped
 const PYTHON_ENCODE_SET: &AsciiSet = &USERINFO_ENCODE_SET
     .remove(b'/')
+    .add(b'%')
     .add(b':')
     .add(b'?')
     .add(b'#')
