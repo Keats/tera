@@ -970,11 +970,23 @@ impl<'a> Parser<'a> {
     fn parse_for_loop(&mut self) -> TeraResult<ForLoop> {
         self.body_contexts.push(BodyContext::ForLoop);
         let (mut name, _) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
+        if RESERVED_NAMES.contains(&name) {
+            return Err(Error::syntax_error(
+                format!("{name} is a reserved keyword of Tera, it cannot be used as a loop variable."),
+                &self.current_span,
+            ));
+        }
         // Do we have a key?
         let mut key = None;
         if matches!(self.next, Some(Ok((Token::Comma, _)))) {
             self.next_or_error()?;
             let (val, _) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
+            if RESERVED_NAMES.contains(&val) {
+                return Err(Error::syntax_error(
+                    format!("{val} is a reserved keyword of Tera, it cannot be used as a loop variable."),
+                    &self.current_span,
+                ));
+            }
             key = Some(name.to_string());
             name = val;
         }
