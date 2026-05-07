@@ -29,3 +29,4 @@ containing(err): {{ 'hello world' is containing(pat="x") }}
 defined: {{ data is defined }}
 undefined: {{ unknown is undefined }}
 iterable: {{ data is iterable }}
+iterable bytes: {{ bytes is iterable }}

@@ -10,3 +10,4 @@
 {% for i in empty %}{{i}}{% else %}Empty forloop{% endfor %}
 {% for i in empty %}{{i}}{% endfor %}
 {% for x in [1, ] %}{{loop.index0}} -> {% if loop.first %}First{% endif %}-{% if loop.last %}Last{% endif %}{% endfor %}
+{% for b in bytes %}{{ b }}|{% endfor %}

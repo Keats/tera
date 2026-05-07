@@ -97,7 +97,7 @@ pub(crate) fn is_defined(val: &Value, _: Kwargs, _: &State) -> bool {
 }
 
 pub(crate) fn is_iterable(val: &Value, _: Kwargs, _: &State) -> bool {
-    val.is_map() || val.is_array() || val.is_string()
+    val.is_map() || val.is_array() || val.is_string() || val.is_bytes()
 }
 
 pub(crate) fn is_integer(val: &Value, _: Kwargs, _: &State) -> bool {

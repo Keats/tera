@@ -34,3 +34,4 @@ containing(err): false
 defined: true
 undefined: true
 iterable: true
+iterable bytes: true
