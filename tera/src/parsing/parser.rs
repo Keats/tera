@@ -790,11 +790,9 @@ impl<'a> Parser<'a> {
             // Advance past the op
             self.next_or_error()?;
 
-            // Whether we get is not/and not/or not
-            if matches!(
-                op,
-                BinaryOperator::Is | BinaryOperator::And | BinaryOperator::Or
-            ) && matches!(self.next, Some(Ok((Token::Ident("not"), _))))
+            // Whether we get `is not`
+            if matches!(op, BinaryOperator::Is)
+                && matches!(self.next, Some(Ok((Token::Ident("not"), _))))
             {
                 // eat the "not"
                 self.next_or_error()?;

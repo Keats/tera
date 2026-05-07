@@ -644,7 +644,7 @@ pub(crate) fn group_by(val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult
         match v.get_from_path(attribute) {
             x if x.is_undefined() => {
                 return Err(Error::message(format!(
-                    "Value {v} does not have an attribute after following path; {attribute}"
+                    "Value {v} does not have an attribute after following path: {attribute}"
                 )));
             }
             x if x.is_none() => (),
