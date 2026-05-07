@@ -751,6 +751,12 @@ impl<'tera> VirtualMachine<'tera> {
                         let mut cur: &Value = &val;
                         let mut undefined_tail = false;
                         for (k, attr) in path[1..].iter().enumerate() {
+                            if cur.is_undefined() {
+                                let span = chunk
+                                    .get_span_at(current_ip, k + 1)
+                                    .expect("to have a span for error");
+                                return Err(self.undefined_field_error(cur, attr, span, chunk));
+                            }
                             match cur.get_attr(attr) {
                                 Some(next) => cur = next,
                                 None => {

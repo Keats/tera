@@ -1,6 +1,8 @@
+use std::collections::BTreeMap;
+
 use serde_derive::Serialize;
 
-use tera::{Context, Tera};
+use tera::{Context, Tera, Value};
 
 #[derive(Debug, Serialize, Default)]
 pub struct SomeStruct {
@@ -15,7 +17,10 @@ pub struct SomeStruct {
 // - `{{ hey.other or 1 }}` should error if `hey` is not defined (currently prints "true")
 #[test]
 fn handles_undefined_correctly() {
+    let mut data = BTreeMap::new();
+    data.insert("key".to_string(), Value::undefined());
     let mut context = Context::new();
+    context.insert_value("m", Value::from(data));
     let existing = SomeStruct::default();
     context.insert("existing", &existing);
 
@@ -26,6 +31,8 @@ fn handles_undefined_correctly() {
         ("{{ hey.other or 1 }}", None),
         ("{% if hey or true %}truthy{% endif %}", Some("truthy")),
         ("{% if hey.other or true %}truthy{% endif %}", None),
+        ("{{ m.key | default(value='fallback') }}", Some("fallback")),
+        ("{{ m.key.foo | default(value='fallback') }}", None),
     ];
 
     for (input, expected) in tests {
