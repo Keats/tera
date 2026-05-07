@@ -70,9 +70,9 @@ macro_rules! expect_token {
     }};
 }
 
-const RESERVED_NAMES: [&str; 14] = [
+const RESERVED_NAMES: [&str; 16] = [
     "true", "True", "false", "False", "loop", "self", "and", "or", "not", "is", "in", "continue",
-    "break", "null",
+    "break", "none", "None", "null",
 ];
 
 /// This enum is only used to error when some tags are used in places they are not allowed
@@ -674,7 +674,7 @@ impl<'a> Parser<'a> {
             Token::Str(s) => Expression::Const(Spanned::new(Value::from(s), span.clone())),
             Token::String(s) => Expression::Const(Spanned::new(Value::from(s), span.clone())),
             Token::Bool(b) => Expression::Const(Spanned::new(Value::from(b), span.clone())),
-            Token::Ident("none") | Token::Ident("None") => {
+            Token::Ident("none") | Token::Ident("None") | Token::Ident("null") => {
                 Expression::Const(Spanned::new(Value::none(), span.clone()))
             }
             Token::Minus | Token::Ident("not") => {
@@ -1210,9 +1210,10 @@ impl<'a> Parser<'a> {
                     Some(Ok((Token::String(b), _))) => (Value::from(b.clone()), true),
                     Some(Ok((Token::Integer(b), _))) => (Value::from(*b), true),
                     Some(Ok((Token::Float(b), _))) => (Value::from(*b), true),
-                    Some(Ok((Token::Ident("none") | Token::Ident("None"), _))) => {
-                        (Value::none(), true)
-                    }
+                    Some(Ok((
+                        Token::Ident("none") | Token::Ident("None") | Token::Ident("null"),
+                        _,
+                    ))) => (Value::none(), true),
                     Some(Ok((Token::LeftBracket, _))) => {
                         expect_token!(self, Token::LeftBracket, "[")?;
                         let array = self.parse_array()?;
