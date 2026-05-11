@@ -1,5 +1,6 @@
 ---
 source: tera/src/snapshot_tests/parser.rs
+assertion_line: 153
 expression: "&nodes"
 input_file: tera/src/snapshot_tests/parser_inputs/success/tpl/tpl_slightly_complex.txt
 ---
@@ -50,23 +51,23 @@ input_file: tera/src/snapshot_tests/parser_inputs/success/tpl/tpl_slightly_compl
                         ],
                     },
                     "Price: $",
-                    Filter {
-                        expr: BinaryOperation {
-                            op: Minus,
-                            left: BinaryOperation {
-                                op: Mul,
-                                left: GetAttr {
-                                    expr: Var {
-                                        name: "item",
-                                    } @ 9:23-9:27 (265..269),
-                                    name: "price",
-                                    optional: false,
-                                } @ 9:28-9:33 (270..275),
-                                right: Var {
-                                    name: "vat",
-                                } @ 9:36-9:39 (278..281),
-                            } @ 9:23-9:39 (265..281),
-                            right: BinaryOperation {
+                    BinaryOperation {
+                        op: Minus,
+                        left: BinaryOperation {
+                            op: Mul,
+                            left: GetAttr {
+                                expr: Var {
+                                    name: "item",
+                                } @ 9:23-9:27 (265..269),
+                                name: "price",
+                                optional: false,
+                            } @ 9:28-9:33 (270..275),
+                            right: Var {
+                                name: "vat",
+                            } @ 9:36-9:39 (278..281),
+                        } @ 9:23-9:39 (265..281),
+                        right: Filter {
+                            expr: BinaryOperation {
                                 op: Mul,
                                 left: GetAttr {
                                     expr: Var {
@@ -79,12 +80,12 @@ input_file: tera/src/snapshot_tests/parser_inputs/success/tpl/tpl_slightly_compl
                                     name: "discount",
                                 } @ 9:56-9:64 (298..306),
                             } @ 9:43-9:65 (285..307),
-                        } @ 9:23-9:65 (265..307),
-                        name: "integer",
-                        kwargs: {
-                            "base": 10 @ 9:81-9:83 (323..325),
-                        },
-                    } @ 9:68-9:84 (310..326),
+                            name: "integer",
+                            kwargs: {
+                                "base": 10 @ 9:81-9:83 (323..325),
+                            },
+                        } @ 9:68-9:84 (310..326),
+                    } @ 9:23-9:84 (265..326),
                     "\n\n            ",
                     FilterSection {
                         name: "markdown" @ 11:22-11:30 (353..361),

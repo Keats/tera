@@ -12,7 +12,7 @@
 {{ "HELLO" | capitalize }}
 {{ [1, 2, 3] | length }}
 {{ "abcdefghdijklm" | split(pat="d") | safe }}
-{{ 2.8 * 2 | round }}
+{{ (2.8 * 2) | round }}
 {{ "hello" | upper }}
 {{ "HELLO" | lower }}
 {{ " html " | upper | trim }}
@@ -30,7 +30,7 @@
 {{ -1.2 | abs + 1 }}
 {{ reviews | length > 1 }}
 {{ reviews | length == 2 }}
-{{ reviews | length == 2 | str | capitalize }}
+{{ (reviews | length == 2) | str | capitalize }}
 {{ [1, 2, 3] | reverse }}
 {{ [1, 2, 3] | first }}
 {{ [1, 2, 3] | last }}

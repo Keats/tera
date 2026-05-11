@@ -41,11 +41,14 @@ fn binary_binding_power(op: BinaryOperator) -> (u8, u8) {
         Or => (1, 2),
         And => (3, 4),
         In | Is => (5, 6),
-        Pipe => (7, 8),
-        Equal | NotEqual | LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual => (9, 10),
+        Equal | NotEqual | LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual => (7, 8),
         Plus | Minus => (11, 12),
         Mul | Div | Mod | StrConcat | FloorDiv => (13, 14),
         Power => (16, 15),
+        // Filter `|` binds tighter than every binary op (including `**`) but looser than
+        // unary `-` so `1 + 2 | filter` => `1 + (2 | filter)`, and `-1.2 | abs` => `(-1.2) | abs`
+        // to match jinja2
+        Pipe => (17, 18),
     }
 }
 
@@ -756,9 +759,15 @@ impl<'a> Parser<'a> {
                 Token::NotEqual => BinaryOperator::NotEqual,
                 Token::Tilde => BinaryOperator::StrConcat,
                 Token::Ident("not") => {
-                    // Only `in` is allowed after `not`
+                    // `not` is only valid for `not in` here. But we need to check against `min_bp`
+                    // since otherwise we `a * b not in c` would not work correctly
+                    let (in_l_bp, _) = binary_binding_power(BinaryOperator::In);
+                    if in_l_bp < min_bp {
+                        break;
+                    }
+                    let next_is_in = matches!(self.lexer.peek(), Some(Ok((Token::Ident("in"), _))));
                     self.next_or_error()?;
-                    if !matches!(self.next, Some(Ok((Token::Ident("in"), _)))) {
+                    if !next_is_in {
                         return Err(Error::syntax_error(
                             "`not` is only valid here as part of `not in`".to_string(),
                             &self.current_span,
