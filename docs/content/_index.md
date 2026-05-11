@@ -229,11 +229,6 @@ You can use the following operators:
 - `*`: performs a multiplication, `{{ 5 * 2 }}` will print `10`
 - `%`: performs a modulo, `{{ 2 % 2 }}` will print `0`
 
-The priority of operations is the following, from lowest to highest:
-
-- `+` and `-`
-- `*` and `/` and `%`
-
 #### Comparisons
 
 - `==`: checks whether the values are equal
@@ -316,6 +311,25 @@ You can use slicing on your arrays, similar to Python slicing:
 #### Ternary
 
 You can do `{{ "majeur" if age >= 18 else "mineur" }}`. Both `if` and `else` are required.
+
+#### Operator precedence
+
+From lowest to highest binding power. Operators on the same row have the same precedence.
+
+| Operators |
+|---|
+| `or` |
+| `and` |
+| `not` |
+| `in`, `not in`, `is`, `is not` |
+| `==`, `!=`, `<`, `<=`, `>`, `>=` |
+| `+`, `-` |
+| `*`, `/`, `//`, `%`, `~` |
+| `**` |
+| `\|` |
+| `-` (unary) |
+| `.`, `[]`, `()` |
+
 
 ### Filters
 
