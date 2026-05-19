@@ -180,7 +180,10 @@ impl Tera {
         // an empty list for paths starting with `./` or `../`.
         // See https://github.com/Keats/tera/issues/574 for the Tera discussion
         // and https://github.com/Gilnaa/globwalk/issues/28 for the upstream issue.
-        let (parent_dir, glob_end) = glob.split_at(glob.find('*').unwrap());
+        // Split on the last slash before the first `*` so the base directory ends on a real path component (issue #740).
+        let first_star = glob.find('*').unwrap();
+        let split_at = glob[..first_star].rfind('/').map_or(0, |i| i + 1);
+        let (parent_dir, glob_end) = glob.split_at(split_at);
         let parent_dir = match std::fs::canonicalize(parent_dir) {
             Ok(d) => d,
             // If canonicalize fails, just abort it and resume with the given path.
@@ -1354,6 +1357,19 @@ mod tests {
                 assert!(res.is_err());
             }
         }
+    }
+
+    // https://github.com/Keats/tera/issues/740
+    #[test]
+    fn glob_base_dir_splits_on_path_component() {
+        let tmp_dir = tempdir().expect("create temp dir");
+        let cwd = tmp_dir.path().canonicalize().unwrap();
+        let sub = cwd.join("templates");
+        std::fs::create_dir(&sub).expect("create templates dir");
+        File::create(sub.join("hey.html")).expect("Failed to create a test file");
+        let glob = cwd.join("templ*").join("*.html").into_os_string().into_string().unwrap();
+        let tera = Tera::new(&glob).expect("Couldn't build Tera instance");
+        assert_eq!(tera.templates.len(), 1);
     }
 
     // https://github.com/Keats/tera/issues/819
