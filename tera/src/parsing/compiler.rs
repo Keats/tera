@@ -254,6 +254,54 @@ impl Compiler {
                 self.compile_expr(ternary.false_expr);
                 self.end_branch(self.chunk.len());
             }
+            Expression::ListComprehension(e) => {
+                let (list_comp, span) = e.into_parts();
+
+                self.chunk
+                    .add(Instruction::BuildList(0), Some(span.clone()));
+                self.compile_expr(list_comp.target);
+                self.chunk.add(
+                    Instruction::StartIterateComprehension(list_comp.key.is_some()),
+                    None,
+                );
+                let mut loop_vars = HashSet::new();
+                loop_vars.insert(list_comp.value.clone());
+                self.chunk
+                    .add(Instruction::StoreLocal(list_comp.value), None);
+                if let Some(k) = list_comp.key {
+                    loop_vars.insert(k.clone());
+                    self.chunk.add(Instruction::StoreLocal(k), None);
+                }
+                self.temp_variables.push(loop_vars);
+
+                let start_idx = self.chunk.add(Instruction::Iterate(0), None) as usize;
+                let cond_skip_idx = if let Some(c) = list_comp.condition {
+                    self.compile_expr(c);
+                    Some(self.chunk.add(Instruction::PopJumpIfFalse(0), None) as usize)
+                } else {
+                    None
+                };
+                self.compile_expr(list_comp.expr);
+                self.chunk.add(Instruction::AppendToList, None);
+                if let Some(idx) = cond_skip_idx {
+                    let jump_back_target = self.chunk.len();
+                    if let Some((Instruction::PopJumpIfFalse(t), _)) = self.chunk.get_mut(idx) {
+                        *t = jump_back_target;
+                    } else {
+                        unreachable!();
+                    }
+                }
+                self.chunk.add(Instruction::Jump(start_idx), None);
+                let loop_end = self.chunk.len();
+                if let Some((Instruction::Iterate(t), _)) = self.chunk.get_mut(start_idx) {
+                    *t = loop_end;
+                } else {
+                    unreachable!();
+                }
+
+                self.chunk.add(Instruction::PopLoop, None);
+                self.temp_variables.pop();
+            }
             Expression::ComponentCall(e) => {
                 let (component_call, span) = e.into_parts();
 

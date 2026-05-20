@@ -1,0 +1,16 @@
+{{ [a for a in numbers if a is odd] }}
+{{ [a | str | safe for a in numbers] | safe }}
+{{ [(a * 2) + 1 for a in numbers] }}
+{{ [k for k, _ in data] | sort | safe }}
+{{ [name | upper for name in data.names] | sort | safe }}
+{{ [x for x in range(end=10)] }}
+{{ [x for x in [1,2,3] if false] }}
+{{ [x for x in [y for y in [1,2,3]]] }}
+{{ [[y for y in row] for row in [[1,2], [3,4]]]}}
+{{ [x if x > 1 else 0 for x in numbers] }}
+{{ [x for x in []] }}
+{{ [x for x in numbers if x > 100] }}
+{{ [x for x in (numbers if true else []) ] }}
+{% for o in [1,2] %}{{ [o + x for x in [10,20]] }}{% endfor %}
+{% set xs = [x*2 for x in numbers] %}{{ xs }}
+{% for o in [1, 2] %}{{ [loop.index + x for x in [10, 20]] }}{% endfor %}

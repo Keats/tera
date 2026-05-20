@@ -140,6 +140,24 @@ Hello {{ world }}
 
 You can now do `{{ "majeur" if age >= 18 else "mineur" }}`. Both if and else are required.
 
+### List comprehension
+
+Before v2, it was quite common to have this pattern:
+
+```jinja
+{% set posts = [] %}
+{% for id in ids %}
+    {% set_global posts = posts | concat(with=get_post(id=id) %}
+{% endfor %}
+{% set posts = posts | sort(attribute="date") %}
+```
+
+This is actually the reason why `set_global` was added in the first place. With list comprehension, the above is:
+
+```jinja
+{% set posts = [get_post(id=id) for id in ids] | sort(attribute="date") %}
+```
+
 ### Global context
 
 You can now set a context on the Tera instance that will be passed automatically to all render calls.

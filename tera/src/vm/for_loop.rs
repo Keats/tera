@@ -205,6 +205,8 @@ pub(crate) struct ForLoop {
     key_name: Option<String>,
     current_values: (Option<Value>, Value),
     iterated: bool,
+    /// List comprehension are desugared to for loops but we don't expose inner loop.* vars
+    is_comprehension: bool,
 }
 
 impl ForLoop {
@@ -229,7 +231,14 @@ impl ForLoop {
             key_name: None,
             current_values: (None, Value::undefined()), // Will be set by first advance()
             iterated: false,
+            is_comprehension: false,
         }
+    }
+
+    pub fn new_comprehension(container: Value) -> Self {
+        let mut for_loop = Self::new(container);
+        for_loop.is_comprehension = true;
+        for_loop
     }
 
     pub(crate) fn store_local(&mut self, name: &str) {
@@ -275,11 +284,19 @@ impl ForLoop {
     pub(crate) fn get(&self, name: &str) -> Option<Value> {
         // Special casing the loop variable
         match name {
-            "__tera_loop_index" => Some(Value::from(self.loop_data.index() as u64)),
-            "__tera_loop_index0" => Some(Value::from(self.loop_data.index0 as u64)),
-            "__tera_loop_first" => Some(Value::from(self.loop_data.first)),
-            "__tera_loop_last" => Some(Value::from(self.loop_data.last)),
-            "__tera_loop_length" => Some(Value::from(self.loop_data.length as u64)),
+            "__tera_loop_index" if !self.is_comprehension => {
+                Some(Value::from(self.loop_data.index() as u64))
+            }
+            "__tera_loop_index0" if !self.is_comprehension => {
+                Some(Value::from(self.loop_data.index0 as u64))
+            }
+            "__tera_loop_first" if !self.is_comprehension => {
+                Some(Value::from(self.loop_data.first))
+            }
+            "__tera_loop_last" if !self.is_comprehension => Some(Value::from(self.loop_data.last)),
+            "__tera_loop_length" if !self.is_comprehension => {
+                Some(Value::from(self.loop_data.length as u64))
+            }
             _ => {
                 // Check if this is the value variable
                 if self.value_name == name {

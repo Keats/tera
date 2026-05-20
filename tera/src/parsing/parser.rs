@@ -8,7 +8,8 @@ use crate::errors::{Error, ErrorKind, ReportError, TeraResult};
 use crate::parsing::ast::{
     Array, ArrayEntry, BinaryOperation, Block, BlockSet, ComponentArgument, ComponentCall,
     ComponentDefinition, Expression, Filter, FilterSection, ForLoop, FunctionCall, GetAttr,
-    GetItem, If, Include, Map, MapEntry, Set, Slice, Ternary, Test, Type, UnaryOperation, Var,
+    GetItem, If, Include, ListComprehension, Map, MapEntry, Set, Slice, Ternary, Test, Type,
+    UnaryOperation, Var,
 };
 use crate::parsing::ast::{BinaryOperator, Node, UnaryOperator};
 use crate::parsing::lexer::{Token, tokenize};
@@ -33,6 +34,11 @@ fn unary_binding_power(op: UnaryOperator) -> ((), u8) {
         Minus => ((), 20),
     }
 }
+
+/// Pratt l_bp for the ternary `if`.
+/// It's not a binary op, but we do want to not get those sometimes (eg list comprehension value
+/// expression)
+const TERNARY_L_BP: u8 = 0;
 
 fn binary_binding_power(op: BinaryOperator) -> (u8, u8) {
     use BinaryOperator::*;
@@ -640,6 +646,11 @@ impl<'a> Parser<'a> {
             }
 
             let expr = self.inner_parse_expression(0)?;
+
+            if items.is_empty() && matches!(self.next, Some(Ok((Token::Ident("for"), _)))) {
+                self.array_dimension -= 1;
+                return self.parse_list_comprehension(expr, span);
+            }
             if !expr.is_literal() {
                 literal_only = false;
             }
@@ -786,6 +797,9 @@ impl<'a> Parser<'a> {
                 }
                 // A ternary
                 Token::Ident("if") => {
+                    if TERNARY_L_BP < min_bp {
+                        break;
+                    }
                     self.next_or_error()?;
                     let expr = self.parse_expression(0)?;
                     expect_token!(self, Token::Ident("else"), "else")?;
@@ -974,6 +988,74 @@ impl<'a> Parser<'a> {
     fn parse_expression(&mut self, min_bp: u8) -> TeraResult<Expression> {
         self.num_expr_calls = 0;
         self.inner_parse_expression(min_bp)
+    }
+
+    fn parse_list_comprehension(
+        &mut self,
+        expr: Expression,
+        mut span: Span,
+    ) -> TeraResult<Expression> {
+        expect_token!(self, Token::Ident("for"), "for")?;
+        // TODO: DRY that with forloop
+        let (mut value, _) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
+        if RESERVED_NAMES.contains(&value) {
+            return Err(Error::syntax_error(
+                format!(
+                    "{value} is a reserved keyword of Tera, it cannot be used as a list comprehension variable."
+                ),
+                &self.current_span,
+            ));
+        }
+
+        // Do we have a key?
+        let mut key = None;
+        if matches!(self.next, Some(Ok((Token::Comma, _)))) {
+            self.next_or_error()?;
+            let (val, _) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
+            if RESERVED_NAMES.contains(&val) {
+                return Err(Error::syntax_error(
+                    format!(
+                        "{val} is a reserved keyword of Tera, it cannot be used as a list comprehension variable."
+                    ),
+                    &self.current_span,
+                ));
+            }
+            key = Some(value.to_string());
+            value = val;
+        }
+
+        expect_token!(self, Token::Ident("in"), "in")?;
+
+        let target = self.inner_parse_expression(TERNARY_L_BP + 1)?;
+
+        let condition = if matches!(self.next, Some(Ok((Token::Ident("if"), _)))) {
+            self.next_or_error()?;
+            Some(self.inner_parse_expression(TERNARY_L_BP + 1)?)
+        } else {
+            None
+        };
+
+        if matches!(self.next, Some(Ok((Token::Ident("for"), _)))) {
+            self.next_or_error()?;
+            return Err(Error::syntax_error(
+                "List comprehensions support only a single `for` clause.".to_string(),
+                &self.current_span,
+            ));
+        }
+
+        expect_token!(self, Token::RightBracket, "]")?;
+        span.expand(&self.current_span);
+
+        Ok(Expression::ListComprehension(Spanned::new(
+            ListComprehension {
+                expr,
+                key,
+                value: value.to_string(),
+                target,
+                condition,
+            },
+            span,
+        )))
     }
 
     fn parse_for_loop(&mut self) -> TeraResult<ForLoop> {

@@ -606,7 +606,8 @@ impl<'tera> VirtualMachine<'tera> {
                     let val = Value::from(String::from_utf8(captured)?);
                     state.stack.push(val, None);
                 }
-                Instruction::StartIterate(is_key_value) => {
+                Instruction::StartIterate(is_key_value)
+                | Instruction::StartIterateComprehension(is_key_value) => {
                     let (container, container_span) = state.stack.pop();
                     if !container.can_be_iterated_on() {
                         rendering_error!(
@@ -625,7 +626,11 @@ impl<'tera> VirtualMachine<'tera> {
                         );
                     }
 
-                    state.for_loops.push(ForLoop::new(container));
+                    if matches!(instr, Instruction::StartIterateComprehension(_)) {
+                        state.for_loops.push(ForLoop::new_comprehension(container));
+                    } else {
+                        state.for_loops.push(ForLoop::new(container));
+                    }
                 }
                 Instruction::StoreLocal(name) => {
                     if let Some(for_loop) = state.for_loops.last_mut() {
@@ -655,6 +660,15 @@ impl<'tera> VirtualMachine<'tera> {
                 }
                 Instruction::PopLoop => {
                     state.for_loops.pop();
+                }
+                Instruction::AppendToList => {
+                    let (val, _) = state.stack.pop();
+                    let (list, _) = state.stack.peek_mut();
+                    if let ValueInner::Array(arr) = &mut list.inner {
+                        Arc::make_mut(arr).push(val);
+                    } else {
+                        unreachable!("AppendToList only works on arrays")
+                    }
                 }
                 Instruction::Mul => math_binop!(mul),
                 Instruction::Div => math_binop!(div),

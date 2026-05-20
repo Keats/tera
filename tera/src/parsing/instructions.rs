@@ -74,6 +74,9 @@ pub(crate) enum Instruction {
 
     /// Start an iteration. `true` if it's iterating on (key, value)
     StartIterate(bool),
+    /// Like `StartIterate` but for list comprehension. It's a separate instruction
+    /// since we don't expose loop.* things in it despite desugaring to a loop
+    StartIterateComprehension(bool),
     /// Start to iterate on the value at the top of the stack. The integer is the ip to jump to
     /// when the for loop is over
     Iterate(usize),
@@ -86,6 +89,9 @@ pub(crate) enum Instruction {
     Break,
     /// At the end of a loop we want to remove it
     PopLoop,
+
+    /// Used by list comprehensions
+    AppendToList,
 
     // math
     Mul,

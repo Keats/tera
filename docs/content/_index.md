@@ -312,6 +312,21 @@ You can use slicing on your arrays, similar to Python slicing:
 
 You can do `{{ "majeur" if age >= 18 else "mineur" }}`. Both `if` and `else` are required.
 
+#### List comprehension
+
+You can use list comprehension similar to the ones in Python:
+
+```jinja
+{{ [a for a in numbers if a is odd] }}
+{{ [x if x > 1 else 0 for x in numbers] }}
+{{ [a | str | safe for a in numbers] | safe }}
+{{ [(a * 2) + 1 for a in numbers] }}
+{{ [v for k, v in data] | safe }}
+{{ [x for x in numbers if x > 100] }}
+```
+
+This is syntax sugar for a `for` loop internally but you cannot use the `loop.*` variables in list comprehension.
+
 #### Operator precedence
 
 From lowest to highest binding power. Operators on the same row have the same precedence.

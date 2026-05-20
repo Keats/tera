@@ -1,0 +1,12 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: Expressions(expr_nodes)
+input_file: tera/src/snapshot_tests/parser_inputs/success/expr/list_comprehension.txt
+---
+[id for id in ids]
+[{k: k, v: v} for k, v in m]
+[(| name upper{}) for name in (| names unique{})]
+[v for v in vals if (> v 0)]
+[x for x in a if c else b]
+[x for x in [y for y in ys if (> y 0)]]
+[x if (> a b) else y for x in xs if (> x 0)]

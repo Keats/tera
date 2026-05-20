@@ -108,6 +108,8 @@ pub enum Expression {
     Test(Spanned<Test>),
     /// 'a' if truthy else 'b'
     Ternary(Spanned<Ternary>),
+    /// `[id | str for id in ids]`
+    ListComprehension(Spanned<ListComprehension>),
     ComponentCall(Spanned<ComponentCall>),
     FunctionCall(Spanned<FunctionCall>),
     UnaryOperation(Spanned<UnaryOperation>),
@@ -142,6 +144,7 @@ impl Expression {
             Expression::Slice(s) => s.span(),
             Expression::Filter(s) => s.span(),
             Expression::Ternary(s) => s.span(),
+            Expression::ListComprehension(s) => s.span(),
         }
     }
 
@@ -161,16 +164,15 @@ impl Expression {
             Expression::Slice(s) => s.span_mut().expand(span),
             Expression::Filter(s) => s.span_mut().expand(span),
             Expression::Ternary(s) => s.span_mut().expand(span),
+            Expression::ListComprehension(s) => s.span_mut().expand(span),
         }
     }
 }
 
 impl fmt::Debug for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Expression::*;
-
         match self {
-            Const(i) => match &i.node().inner {
+            Expression::Const(i) => match &i.node().inner {
                 ValueInner::Bool(j) => fmt::Debug::fmt(&Spanned::new(*j, i.span().clone()), f),
                 ValueInner::I64(j) => fmt::Debug::fmt(&Spanned::new(*j, i.span().clone()), f),
                 ValueInner::F64(j) => fmt::Debug::fmt(&Spanned::new(*j, i.span().clone()), f),
@@ -180,29 +182,28 @@ impl fmt::Debug for Expression {
                 ValueInner::None => fmt::Debug::fmt(&Spanned::new((), i.span().clone()), f),
                 _ => unreachable!("{self} is not implemented"),
             },
-            Map(i) => fmt::Debug::fmt(i, f),
-            Array(i) => fmt::Debug::fmt(i, f),
-            Test(i) => fmt::Debug::fmt(i, f),
-            ComponentCall(i) => fmt::Debug::fmt(i, f),
-            Filter(i) => fmt::Debug::fmt(i, f),
-            FunctionCall(i) => fmt::Debug::fmt(i, f),
-            UnaryOperation(i) => fmt::Debug::fmt(i, f),
-            BinaryOperation(i) => fmt::Debug::fmt(i, f),
-            Var(i) => fmt::Debug::fmt(i, f),
-            GetAttr(i) => fmt::Debug::fmt(i, f),
-            GetItem(i) => fmt::Debug::fmt(i, f),
-            Slice(i) => fmt::Debug::fmt(i, f),
-            Ternary(i) => fmt::Debug::fmt(i, f),
+            Expression::Map(i) => fmt::Debug::fmt(i, f),
+            Expression::Array(i) => fmt::Debug::fmt(i, f),
+            Expression::Test(i) => fmt::Debug::fmt(i, f),
+            Expression::ComponentCall(i) => fmt::Debug::fmt(i, f),
+            Expression::Filter(i) => fmt::Debug::fmt(i, f),
+            Expression::FunctionCall(i) => fmt::Debug::fmt(i, f),
+            Expression::UnaryOperation(i) => fmt::Debug::fmt(i, f),
+            Expression::BinaryOperation(i) => fmt::Debug::fmt(i, f),
+            Expression::Var(i) => fmt::Debug::fmt(i, f),
+            Expression::GetAttr(i) => fmt::Debug::fmt(i, f),
+            Expression::GetItem(i) => fmt::Debug::fmt(i, f),
+            Expression::Slice(i) => fmt::Debug::fmt(i, f),
+            Expression::Ternary(i) => fmt::Debug::fmt(i, f),
+            Expression::ListComprehension(i) => fmt::Debug::fmt(i, f),
         }
     }
 }
 
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Expression::*;
-
         match self {
-            Const(i) => match &i.node().inner {
+            Expression::Const(i) => match &i.node().inner {
                 ValueInner::String(s) => write!(f, "'{}'", *s),
                 ValueInner::I64(s) => write!(f, "{}", *s),
                 ValueInner::F64(s) => write!(f, "{}", *s),
@@ -236,19 +237,20 @@ impl fmt::Display for Expression {
                     )
                 }
             },
-            Map(i) => write!(f, "{}", **i),
-            Array(i) => write!(f, "{}", **i),
-            Test(i) => write!(f, "{}", **i),
-            ComponentCall(i) => write!(f, "{}", **i),
-            Filter(i) => write!(f, "{}", **i),
-            FunctionCall(i) => write!(f, "{}", **i),
-            UnaryOperation(i) => write!(f, "{}", **i),
-            BinaryOperation(i) => write!(f, "{}", **i),
-            Var(i) => write!(f, "{}", **i),
-            GetAttr(i) => write!(f, "{}", **i),
-            GetItem(i) => write!(f, "{}", **i),
-            Slice(i) => write!(f, "{}", **i),
-            Ternary(i) => write!(f, "{}", **i),
+            Expression::Map(i) => write!(f, "{}", **i),
+            Expression::Array(i) => write!(f, "{}", **i),
+            Expression::Test(i) => write!(f, "{}", **i),
+            Expression::ComponentCall(i) => write!(f, "{}", **i),
+            Expression::Filter(i) => write!(f, "{}", **i),
+            Expression::FunctionCall(i) => write!(f, "{}", **i),
+            Expression::UnaryOperation(i) => write!(f, "{}", **i),
+            Expression::BinaryOperation(i) => write!(f, "{}", **i),
+            Expression::Var(i) => write!(f, "{}", **i),
+            Expression::GetAttr(i) => write!(f, "{}", **i),
+            Expression::GetItem(i) => write!(f, "{}", **i),
+            Expression::Slice(i) => write!(f, "{}", **i),
+            Expression::Ternary(i) => write!(f, "{}", **i),
+            Expression::ListComprehension(i) => write!(f, "{}", **i),
         }
     }
 }
@@ -860,6 +862,41 @@ pub struct ForLoop {
     pub body: Vec<Node>,
     /// The body to execute in case of an empty object in the `{% for .. %}{% else %}{% endfor %}` construct
     pub else_body: Vec<Node>,
+}
+
+/// A `[id | str for id in ids if id > 0]` construct like in Python
+/// We do not allow multiple for clause in the same list comprehension since they are confusing and probably
+/// not needed in a template engine.
+/// Instead of `[x for x in xs for xs in ys]` you can do `[x for x in [y for y in ys]]`
+#[derive(Clone, Debug, PartialEq)]
+pub struct ListComprehension {
+    /// The `id | str` part in the example
+    pub expr: Expression,
+    /// Name of the key in the loop (only when iterating on map-like objects)
+    pub key: Option<String>,
+    /// Name of the local variable for the value in the loop
+    pub value: String,
+    /// The `ids` in the example: what we are iterating on
+    pub target: Expression,
+    /// The `id > 0` part in the example
+    pub condition: Option<Expression>,
+}
+
+impl fmt::Display for ListComprehension {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let names = if let Some(key) = &self.key {
+            format!("{key}, {}", self.value)
+        } else {
+            self.value.to_string()
+        };
+
+        let cond = if let Some(condition) = &self.condition {
+            format!(" if {condition}")
+        } else {
+            String::new()
+        };
+        write!(f, "[{} for {names} in {}{cond}]", self.expr, self.target)
+    }
 }
 
 #[derive(Clone, PartialEq)]

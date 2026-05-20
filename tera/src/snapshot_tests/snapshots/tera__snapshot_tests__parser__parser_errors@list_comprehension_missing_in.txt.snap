@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: res.unwrap_err()
+input_file: tera/src/snapshot_tests/parser_inputs/errors/list_comprehension_missing_in.txt
+---
+error: Found identifier but expected in.
+ --> list_comprehension_missing_in.txt:1:12
+  |
+1 | {{ [x for x xs] }}
+  |             ^^

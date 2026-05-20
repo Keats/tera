@@ -42,4 +42,10 @@ impl Stack {
     pub(crate) fn peek(&self) -> &(Value, SpanRange) {
         self.values.last().expect("to peek a value")
     }
+
+    /// Only used by list comprehension to avoid pop + push
+    #[inline]
+    pub(crate) fn peek_mut(&mut self) -> &mut (Value, SpanRange) {
+        self.values.last_mut().expect("to peek a value")
+    }
 }
