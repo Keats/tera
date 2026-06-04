@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::io::{self, Write};
 use std::sync::Arc;
 
 use crate::errors::{Error, ErrorKind, ReportError, TeraResult};
@@ -564,7 +564,14 @@ impl<'tera> VirtualMachine<'tera> {
                     let old_chunk = state.chunk.replace(block_chunk);
                     state.blocks.insert(block_name, (block_lineage, 0));
                     let old_block_name = state.current_block_name.replace(block_name);
-                    let res = self.interpret(state, output);
+                    let res = if state.capture_block == Some(block_name.as_str()) {
+                        let mut buf = Vec::with_capacity(256);
+                        let r = self.interpret(state, &mut buf);
+                        state.block_buffer = buf;
+                        r
+                    } else {
+                        self.interpret(state, output)
+                    };
                     state.chunk = old_chunk;
                     state.current_block_name = old_block_name;
                     res?;
@@ -944,12 +951,24 @@ impl<'tera> VirtualMachine<'tera> {
         global_context: &Context,
     ) -> TeraResult<String> {
         let mut output = Vec::with_capacity(self.template.size_hint());
-        self.render_to(context, global_context, &mut output)?;
+        self.render_to(None, context, global_context, &mut output)?;
+        Ok(String::from_utf8(output)?)
+    }
+
+    pub(crate) fn render_block(
+        &mut self,
+        block_name: &str,
+        context: &Context,
+        global_context: &Context,
+    ) -> TeraResult<String> {
+        let mut output = Vec::with_capacity(self.template.size_hint());
+        self.render_to(Some(block_name), context, global_context, &mut output)?;
         Ok(String::from_utf8(output)?)
     }
 
     pub(crate) fn render_to(
         &mut self,
+        block_name: Option<&str>,
         context: &Context,
         global_context: &Context,
         mut output: impl Write,
@@ -964,6 +983,15 @@ impl<'tera> VirtualMachine<'tera> {
         let mut state = State::new_with_chunk(context, chunk);
         state.global_context = Some(global_context);
         state.filters = Some(&self.tera.filters);
-        self.interpret(&mut state, &mut output)
+
+        if let Some(block) = block_name {
+            state.capture_block = Some(block);
+            // we don't care about keeping the full rendered template
+            self.interpret(&mut state, &mut io::sink())?;
+            output.write_all(&state.block_buffer)?;
+        } else {
+            self.interpret(&mut state, &mut output)?;
+        }
+        Ok(())
     }
 }

@@ -33,6 +33,10 @@ pub struct State<'tera> {
     pub(crate) escape_buffer: Vec<u8>,
     /// Used in includes only
     pub(crate) include_parent: Option<&'tera State<'tera>>,
+    /// Which block we are asked to render
+    pub(crate) capture_block: Option<&'tera str>,
+    /// The buffer just for the one block we want to return
+    pub(crate) block_buffer: Vec<u8>,
 
     /// (block name, (all_chunks, level))
     pub(crate) blocks: BTreeMap<&'tera str, (Vec<&'tera Chunk>, usize)>,
@@ -61,6 +65,8 @@ impl<'t> State<'t> {
             capture_buffers: Vec::with_capacity(4),
             escape_buffer: Vec::with_capacity(128),
             include_parent: None,
+            capture_block: None,
+            block_buffer: Vec::new(),
             blocks: BTreeMap::new(),
             current_block_name: None,
             filters: None,

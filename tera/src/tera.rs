@@ -997,7 +997,7 @@ impl Tera {
     /// assert_eq!(output, "My age is 18.");
     /// ```
     ///
-    /// To render a template with an empty context, simply pass an empty [`Context`] object.
+    /// To render a template with no context, simply pass a [`Context::new()`] object.
     ///
     /// ```
     /// # use tera::{Tera, Context};
@@ -1047,7 +1047,7 @@ impl Tera {
     ) -> TeraResult<()> {
         let template = self.must_get_template(template_name)?;
         let mut vm = VirtualMachine::new(self, template);
-        vm.render_to(context, &self.global_context, write)
+        vm.render_to(None, context, &self.global_context, write)
     }
 
     /// Returns the global context, allowing modifications to it
@@ -1141,7 +1141,7 @@ impl Tera {
         }
 
         let mut vm = VirtualMachine::new(self, &template);
-        vm.render_to(context, &self.global_context, write)
+        vm.render_to(None, context, &self.global_context, write)
     }
 
     /// Renders a one off template (for example a template coming from a user input) given a `Context`
@@ -1268,6 +1268,66 @@ impl Tera {
         vm.interpret(&mut state, &mut write)?;
 
         Ok(())
+    }
+
+    /// Renders a block by name with the given context.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use tera::{Tera, Context};
+    /// // Create new tera instance with demo template
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template("hello.html", "<h1>Hello</h1>{% block content %}in block{% endblock %}");
+    ///
+    /// // Render a template with an empty context
+    /// let output = tera.render_block("hello.html", "content", &Context::new()).unwrap();
+    /// assert_eq!(output, "in block");
+    /// ```
+    pub fn render_block(
+        &self,
+        template_name: &str,
+        block_name: &str,
+        context: &Context,
+    ) -> TeraResult<String> {
+        let template = self.must_get_template(template_name)?;
+        if !template.block_lineage.contains_key(block_name) {
+            return Err(Error::message(format!(
+                "Block `{block_name}` not found in template `{template_name}`",
+            )));
+        }
+        let mut vm = VirtualMachine::new(self, template);
+        vm.render_block(block_name, context, &self.global_context)
+    }
+
+    /// Renders a block by name with the given context to something that implements [`Write`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use tera::{Tera, Context};
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template("hello.html", "<h1>Hello</h1>{% block content %}in block{% endblock %}");
+    ///
+    /// let mut buffer = Vec::new();
+    /// tera.render_block_to("hello.html", "content", &Context::new(), &mut buffer).unwrap();
+    /// assert_eq!(buffer, b"in block");
+    /// ```
+    pub fn render_block_to(
+        &self,
+        template_name: &str,
+        block_name: &str,
+        context: &Context,
+        write: impl Write,
+    ) -> TeraResult<()> {
+        let template = self.must_get_template(template_name)?;
+        if !template.block_lineage.contains_key(block_name) {
+            return Err(Error::message(format!(
+                "Block `{block_name}` not found in template `{template_name}`",
+            )));
+        }
+        let mut vm = VirtualMachine::new(self, template);
+        vm.render_to(Some(block_name), context, &self.global_context, write)
     }
 }
 
@@ -1679,5 +1739,44 @@ mod tests {
             .render_str("{{ html }}", &context! { html => "<script>" }, false)
             .unwrap();
         insta::assert_snapshot!(result, @"<script>");
+    }
+
+    #[test]
+    fn render_block_works() {
+        let mut tera = Tera::default();
+        tera.add_raw_templates(vec![
+            (
+                "base.html",
+                "{% block nav %}nav{% endblock %}{% block content %}default{% endblock %}",
+            ),
+            (
+                "child.html",
+                "{% extends \"base.html\" %}{% block content %}child-{{super()}}{% endblock %}",
+            ),
+            (
+                "nested.html",
+                "{% block outer %}<o>{% block inner %}inner{% endblock %}</o>{% endblock %}",
+            ),
+        ])
+        .unwrap();
+
+        // unknown blocks error
+        assert!(
+            tera.render_block("child.html", "unknown", &Context::new())
+                .is_err()
+        );
+        let result = tera
+            .render_block("child.html", "content", &Context::new())
+            .unwrap();
+        assert_eq!(result, "child-default");
+
+        let inner = tera
+            .render_block("nested.html", "inner", &Context::new())
+            .unwrap();
+        assert_eq!(inner, "inner");
+        let outer = tera
+            .render_block("nested.html", "outer", &Context::new())
+            .unwrap();
+        assert_eq!(outer, "<o>inner</o>");
     }
 }
