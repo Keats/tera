@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: res.unwrap_err()
+input_file: tera/src/snapshot_tests/parser_inputs/errors/continue_in_for_else.txt
+---
+error: continue can only be used in a for loop
+ --> continue_in_for_else.txt:1:31
+  |
+1 | {% for x in [] %}a{% else %}{% continue %}{% endfor %}
+  |                                ^^^^^^^^

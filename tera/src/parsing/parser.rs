@@ -1090,6 +1090,7 @@ impl<'a> Parser<'a> {
         expect_token!(self, Token::TagEnd(..), "%}")?;
         let body =
             self.parse_until(|tok| matches!(tok, Token::Ident("endfor") | Token::Ident("else")))?;
+        self.body_contexts.pop();
         let mut else_body = None;
         if matches!(self.next, Some(Ok((Token::Ident("else"), _)))) {
             self.next_or_error()?;
@@ -1098,7 +1099,6 @@ impl<'a> Parser<'a> {
         }
         // eat the endfor
         self.next_or_error()?;
-        self.body_contexts.pop();
 
         Ok(ForLoop {
             key,
