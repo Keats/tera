@@ -177,13 +177,14 @@ pub(crate) fn find_parents(
     template: &Template,
     mut parents: Vec<String>,
 ) -> Result<Vec<String>, Error> {
-    if !parents.is_empty() && start.name == template.name {
-        return Err(Error::circular_extend(&start.name, parents));
-    }
-
     match template.parents.last() {
         Some(ref p) => match tera.resolve_template_name(p) {
             Some(resolved) => {
+                if resolved == start.name || parents.iter().any(|name| name == resolved) {
+                    let mut chain = parents.clone();
+                    chain.push(resolved.to_string());
+                    return Err(Error::circular_extend(&start.name, chain));
+                }
                 let parent = &tera.templates[resolved];
                 parents.push(parent.name.clone());
                 find_parents(tera, start, parent, parents)
@@ -222,6 +223,25 @@ mod tests {
         let parents_c =
             find_parents(&tera, &tera.templates["c"], &tera.templates["c"], vec![]).unwrap();
         assert_eq!(parents_c, vec!["a".to_string(), "b".to_string()]);
+    }
+
+    #[test]
+    fn detects_circular_extends() {
+        let cases = vec![
+            vec![("a", "{% extends 'a' %}")],
+            vec![("a", "{% extends 'b' %}"), ("b", "{% extends 'a' %}")],
+            vec![
+                ("a", "{% extends 'b' %}"),
+                ("b", "{% extends 'c' %}"),
+                ("c", "{% extends 'b' %}"),
+            ],
+        ];
+
+        for templates in cases {
+            let mut tera = Tera::default();
+            let res = tera.add_raw_templates(templates).unwrap_err();
+            assert!(matches!(res.kind(), ErrorKind::CircularExtend { .. }));
+        }
     }
 
     #[test]
