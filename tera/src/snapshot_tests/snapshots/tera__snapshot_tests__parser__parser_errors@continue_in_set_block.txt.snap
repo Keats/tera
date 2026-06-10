@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: res.unwrap_err()
+input_file: tera/src/snapshot_tests/parser_inputs/errors/continue_in_set_block.txt
+---
+error: `continue` cannot be used inside a filter section, `set` block or component body
+ --> continue_in_set_block.txt:1:39
+  |
+1 | {% for i in [1,2] %}{% set y %}{{i}}{% continue %}{% endset %}{% endfor %}
+  |                                        ^^^^^^^^

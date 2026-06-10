@@ -93,12 +93,13 @@ enum BodyContext {
     Block,
     If,
     ComponentDefinition,
-    FilterSection,
+    /// A filter section/set block/component call
+    Capture,
 }
 
 impl BodyContext {
     fn can_contain_blocks(&self) -> bool {
-        matches!(self, BodyContext::Block | BodyContext::FilterSection)
+        matches!(self, BodyContext::Block | BodyContext::Capture)
     }
 }
 
@@ -950,7 +951,9 @@ impl<'a> Parser<'a> {
         expect_token!(self, Token::TagEnd(..), "%}")?;
 
         // Parse body content until {% </component> %}
+        self.body_contexts.push(BodyContext::Capture);
         let body = self.parse_until(|tok| matches!(tok, Token::ClosingTagStart))?;
+        self.body_contexts.pop();
 
         // Check for unclosed component (EOF reached)
         if self.next.is_none() {
@@ -1415,7 +1418,9 @@ impl<'a> Parser<'a> {
                     }
                 }
 
+                self.body_contexts.push(BodyContext::Capture);
                 let body = self.parse_until(|tok| matches!(tok, Token::Ident("endset")))?;
+                self.body_contexts.pop();
                 self.next_or_error()?;
                 Node::BlockSet(BlockSet {
                     name: name.to_string(),
@@ -1537,7 +1542,7 @@ impl<'a> Parser<'a> {
                 Ok(Some(Node::If(node)))
             }
             Token::Ident("filter") => {
-                self.body_contexts.push(BodyContext::FilterSection);
+                self.body_contexts.push(BodyContext::Capture);
                 let (name, ident_span) = expect_token!(self, Token::Ident(s) => s, "identifier")?;
 
                 let kwargs = if matches!(self.next, Some(Ok((Token::LeftParen, _)))) {
@@ -1564,12 +1569,25 @@ impl<'a> Parser<'a> {
             }
             Token::Ident("break") | Token::Ident("continue") => {
                 let is_break = tag_token == Token::Ident("break");
-                if !self.is_in_loop() {
+                let kw = if is_break { "break" } else { "continue" };
+                let mut in_loop = false;
+                for ctx in self.body_contexts.iter().rev() {
+                    if *ctx == BodyContext::ForLoop {
+                        in_loop = true;
+                        break;
+                    }
+                    if *ctx == BodyContext::Capture {
+                        return Err(Error::syntax_error(
+                            format!(
+                                "`{kw}` cannot be used inside a filter section, `set` block or component body"
+                            ),
+                            &self.current_span,
+                        ));
+                    }
+                }
+                if !in_loop {
                     return Err(Error::syntax_error(
-                        format!(
-                            "{} can only be used in a for loop",
-                            if is_break { "break" } else { "continue" }
-                        ),
+                        format!("{kw} can only be used in a for loop"),
                         &self.current_span,
                     ));
                 }

@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: res.unwrap_err()
+input_file: tera/src/snapshot_tests/parser_inputs/errors/break_in_filter_section.txt
+---
+error: `break` cannot be used inside a filter section, `set` block or component body
+ --> break_in_filter_section.txt:1:46
+  |
+1 | {% for i in [1,2] %}{% filter upper %}{{i}}{% break %}{% endfilter %}{% endfor %}
+  |                                               ^^^^^
