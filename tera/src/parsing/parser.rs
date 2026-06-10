@@ -17,8 +17,8 @@ use crate::utils::{Span, Spanned};
 use crate::value::{Key, Value};
 use crate::{HashMap, HashSet};
 
-/// parse_expression can call itself max 100 times, after that it's an error
-const MAX_EXPR_RECURSION: usize = 100;
+/// Maximum recursion depth for the parser, shared between expression and statement parsing
+const MAX_RECURSION_DEPTH: usize = 40;
 /// We only allow that many dimensions in an array literal
 const MAX_DIMENSION_ARRAY: usize = 2;
 /// How many nesting of brackets can we have in an variable, eg `a[b[e]]` counts as 2
@@ -126,9 +126,8 @@ pub struct Parser<'a> {
     body_contexts: Vec<BodyContext>,
     // The current array dimension, to avoid stack overflows with too many of them
     array_dimension: usize,
-    // We limit the length of an expression to avoid stack overflows with crazy expressions like
-    // 100 `(`
-    num_expr_calls: usize,
+    // Current parser recursion depth
+    recursion_depth: usize,
     // We limit the number of nesting for brackets in idents
     num_left_brackets: usize,
     blocks_seen: HashSet<String>,
@@ -146,7 +145,7 @@ impl<'a> Parser<'a> {
             next: None,
             current_span: Span::default(),
             body_contexts: Vec::new(),
-            num_expr_calls: 0,
+            recursion_depth: 0,
             array_dimension: 0,
             num_left_brackets: 0,
             blocks_seen: HashSet::with_capacity(10),
@@ -673,14 +672,20 @@ impl<'a> Parser<'a> {
     /// to avoid stack overflow. In practice, normal users will not run into the limit at all.
     /// We're talking 100 parentheses for example
     fn inner_parse_expression(&mut self, min_bp: u8) -> TeraResult<Expression> {
-        self.num_expr_calls += 1;
-        if self.num_expr_calls > MAX_EXPR_RECURSION {
+        self.recursion_depth += 1;
+        if self.recursion_depth > MAX_RECURSION_DEPTH {
+            self.recursion_depth -= 1;
             return Err(Error::syntax_error(
                 "The expression is too complex".to_string(),
                 &self.current_span,
             ));
         }
+        let res = self.parse_expr_bp(min_bp);
+        self.recursion_depth -= 1;
+        res
+    }
 
+    fn parse_expr_bp(&mut self, min_bp: u8) -> TeraResult<Expression> {
         let (token, mut span) = self.next_or_error()?;
 
         let mut lhs = match token {
@@ -988,7 +993,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression(&mut self, min_bp: u8) -> TeraResult<Expression> {
-        self.num_expr_calls = 0;
         self.inner_parse_expression(min_bp)
     }
 
@@ -1621,6 +1625,24 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_until<F: Fn(&Token) -> bool>(&mut self, end_check_fn: F) -> TeraResult<Vec<Node>> {
+        // We want to avoid stack overflow when having super nested templates, eg 40+ nested if
+        self.recursion_depth += 1;
+        if self.recursion_depth > MAX_RECURSION_DEPTH {
+            self.recursion_depth -= 1;
+            return Err(Error::syntax_error(
+                "The template nesting is too deep".to_string(),
+                &self.current_span,
+            ));
+        }
+        let res = self.parse_until_inner(end_check_fn);
+        self.recursion_depth -= 1;
+        res
+    }
+
+    fn parse_until_inner<F: Fn(&Token) -> bool>(
+        &mut self,
+        end_check_fn: F,
+    ) -> TeraResult<Vec<Node>> {
         let mut nodes = Vec::new();
 
         while let Some((token, _)) = self.next()? {

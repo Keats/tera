@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: res.unwrap_err()
+input_file: tera/src/snapshot_tests/parser_inputs/errors/nested_kwargs_too_deep.txt
+---
+error: The expression is too complex
+ --> nested_kwargs_too_deep.txt:1:159
+  |
+1 | {{ f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=f(a=1)))))))))))))))))))))))))))))))))))))))))))))))))) }}
+  |                                                                                                                                                               ^

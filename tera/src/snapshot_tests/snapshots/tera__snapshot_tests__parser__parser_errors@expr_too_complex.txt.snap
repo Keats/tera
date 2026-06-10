@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/expr_too_complex.txt
 ---
 error: The expression is too complex
- --> expr_too_complex.txt:1:103
+ --> expr_too_complex.txt:1:42
   |
 1 | {{ (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((
-  |                                                                                                       ^
+  |                                          ^

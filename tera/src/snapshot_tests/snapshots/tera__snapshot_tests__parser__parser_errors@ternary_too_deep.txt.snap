@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: res.unwrap_err()
+input_file: tera/src/snapshot_tests/parser_inputs/errors/ternary_too_deep.txt
+---
+error: The expression is too complex
+ --> ternary_too_deep.txt:1:576
+  |
+1 | {{ 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 if true else 1 }}
+  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ^^
