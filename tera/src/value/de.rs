@@ -67,14 +67,24 @@ impl<'de> de::Deserializer<'de> for ValueDeserializer {
     {
         let (variant, params) = match self.value.inner {
             ValueInner::Map(m) => {
-                if let Some((k, v)) = m.iter().next() {
-                    (k.as_value(), Some(v.clone()))
-                } else {
+                let mut iter = m.iter();
+                let (variant, value) = match iter.next() {
+                    Some(v) => v,
+                    None => {
+                        return Err(de::Error::invalid_value(
+                            Unexpected::Map,
+                            &"map with a single key",
+                        ));
+                    }
+                };
+                // enums are encoded as maps with a single key:value pair
+                if iter.next().is_some() {
                     return Err(de::Error::invalid_value(
                         Unexpected::Map,
-                        &"map without an entry",
+                        &"map with a single key",
                     ));
                 }
+                (variant.as_value(), Some(value.clone()))
             }
             ValueInner::String(_) => (self.value.clone(), None),
             _ => {
