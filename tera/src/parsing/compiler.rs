@@ -499,8 +499,9 @@ impl Compiler {
                         self.filter_calls
                             .entry(filter.name.clone())
                             .or_default()
-                            .push(span);
-                        self.chunk.add(Instruction::ApplyFilter(filter.name), None);
+                            .push(span.clone());
+                        self.chunk
+                            .add(Instruction::ApplyFilter(filter.name), Some(span));
                     }
                 }
                 let scope = if b.global {
@@ -625,8 +626,9 @@ impl Compiler {
                 self.filter_calls
                     .entry(filter_name.clone())
                     .or_default()
-                    .push(span);
-                self.chunk.add(Instruction::ApplyFilter(filter_name), None);
+                    .push(span.clone());
+                self.chunk
+                    .add(Instruction::ApplyFilter(filter_name), Some(span));
                 self.chunk.add(Instruction::WriteTop, None);
             }
         }

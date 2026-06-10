@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&err"
+input_file: tera/src/snapshot_tests/rendering_inputs/errors/set_block_filter_conversion_error.txt
+---
+error: The string `abc` cannot be converted to an int in base 10
+ --> set_block_filter_conversion_error.txt:1:12
+  |
+1 | {% set x | int %}abc{% endset %}{{ x }}
+  |            ^^^
