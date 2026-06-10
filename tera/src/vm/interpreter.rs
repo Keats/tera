@@ -91,6 +91,22 @@ impl<'tera> VirtualMachine<'tera> {
             }};
         }
 
+        // For `<`/`>`/`<=`/`>=`
+        macro_rules! ordering_binop {
+            ($op:tt) => {{
+                let (b, b_span) = state.stack.pop();
+                let (a, a_span) = state.stack.pop();
+                let span = combine_spans(&a_span, &b_span);
+                match a.partial_cmp(&b) {
+                    Some(ord) => state.stack.push(Value::from(ord $op std::cmp::Ordering::Equal), span),
+                    None => rendering_error!(
+                        format!("Cannot compare `{}` with `{}`", a.name(), b.name()),
+                        span
+                    ),
+                }
+            }};
+        }
+
         macro_rules! math_binop {
             ($fn:ident) => {{
                 let (b, b_span) = state.stack.pop();
@@ -709,10 +725,10 @@ impl<'tera> VirtualMachine<'tera> {
                 }
                 Instruction::Minus => math_binop!(sub),
                 Instruction::Power => math_binop!(pow),
-                Instruction::LessThan => op_binop!(<),
-                Instruction::GreaterThan => op_binop!(>),
-                Instruction::LessThanOrEqual => op_binop!(<=),
-                Instruction::GreaterThanOrEqual => op_binop!(>=),
+                Instruction::LessThan => ordering_binop!(<),
+                Instruction::GreaterThan => ordering_binop!(>),
+                Instruction::LessThanOrEqual => ordering_binop!(<=),
+                Instruction::GreaterThanOrEqual => ordering_binop!(>=),
                 Instruction::Equal => op_binop!(==),
                 Instruction::NotEqual => op_binop!(!=),
                 Instruction::StrConcat => {

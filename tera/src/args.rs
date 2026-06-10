@@ -84,9 +84,7 @@ where
         ValueInner::I128(v) => T::try_from(**v).ok(),
         ValueInner::U64(v) => T::try_from(*v).ok(),
         ValueInner::U128(v) => T::try_from(**v).ok(),
-        ValueInner::F64(v) if v.trunc() == *v => {
-            T::try_from(*v as i128).ok()
-        }
+        ValueInner::F64(v) if v.trunc() == *v => T::try_from(*v as i128).ok(),
         _ => return Err(Error::invalid_arg_type(target_type, value.name())),
     };
     res.ok_or_else(|| Error::out_of_range_arg(value, target_type))
