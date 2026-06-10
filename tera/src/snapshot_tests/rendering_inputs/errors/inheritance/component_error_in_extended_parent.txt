@@ -1,0 +1,8 @@
+$$ comp
+{% component Boom() %}{{ 1 / 0 }}{% endcomponent Boom %}
+$$ base
+some base content
+more base content
+{{ <Boom/> }}
+$$ child
+{% extends "base" %}

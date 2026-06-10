@@ -1,0 +1,8 @@
+$$ partial
+{{ 1 / 0 }}
+$$ base
+some base content
+more base content
+{% include "partial" %}
+$$ child
+{% extends "base" %}

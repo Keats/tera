@@ -59,12 +59,7 @@ impl<'tera> VirtualMachine<'tera> {
                 let span = chunk
                     .expand_span(&$span_range)
                     .expect("to have a span for error");
-                let (name, source) = if self.template.name != chunk.name {
-                    let tpl = &self.tera.templates[&chunk.name];
-                    (&tpl.name, &tpl.source)
-                } else {
-                    (&self.template.name, &self.template.source)
-                };
+                let (name, source) = self.report_target(chunk);
                 let err = ReportError::new($msg, name, source, &span);
                 return Err(Error::new(ErrorKind::RenderingError(Box::new(err))));
             }};
@@ -72,12 +67,7 @@ impl<'tera> VirtualMachine<'tera> {
             ($msg:expr, span: $span:expr) => {{
                 let chunk = state.chunk.expect("to have a chunk");
                 let span = $span.expect("to have a span for error");
-                let (name, source) = if self.template.name != chunk.name {
-                    let tpl = &self.tera.templates[&chunk.name];
-                    (&tpl.name, &tpl.source)
-                } else {
-                    (&self.template.name, &self.template.source)
-                };
+                let (name, source) = self.report_target(chunk);
                 let err = ReportError::new($msg, name, source, span);
                 return Err(Error::new(ErrorKind::RenderingError(Box::new(err))));
             }};
@@ -180,12 +170,8 @@ impl<'tera> VirtualMachine<'tera> {
                         if let ErrorKind::RenderingError(ref mut report) = e.kind {
                             let chunk = state.chunk.expect("to have a chunk");
                             if let Some(span) = chunk.expand_span(&current_span) {
-                                report.add_note(
-                                    "called from",
-                                    &self.template.name,
-                                    &self.template.source,
-                                    &span,
-                                );
+                                let (name, source) = self.report_target(chunk);
+                                report.add_note("called from", name, source, &span);
                             }
                         }
                         return Err(e);
@@ -378,12 +364,8 @@ impl<'tera> VirtualMachine<'tera> {
                         if let ErrorKind::RenderingError(ref mut report) = e.kind {
                             let chunk = state.chunk.expect("to have a chunk");
                             if let Some(span) = chunk.get_span(current_ip) {
-                                report.add_note(
-                                    "called from",
-                                    &self.template.name,
-                                    &self.template.source,
-                                    span,
-                                );
+                                let (name, source) = self.report_target(chunk);
+                                report.add_note("called from", name, source, span);
                             }
                         }
                         return Err(e);
@@ -927,13 +909,17 @@ impl<'tera> VirtualMachine<'tera> {
         )
     }
 
-    fn rendering_error(&self, msg: String, chunk: &Chunk, span: &Span) -> Error {
-        let (name, source) = if self.template.name != chunk.name {
+    fn report_target(&self, chunk: &Chunk) -> (&'tera str, &'tera str) {
+        if self.template.name != chunk.name {
             let tpl = &self.tera.templates[&chunk.name];
             (&tpl.name, &tpl.source)
         } else {
             (&self.template.name, &self.template.source)
-        };
+        }
+    }
+
+    fn rendering_error(&self, msg: String, chunk: &Chunk, span: &Span) -> Error {
+        let (name, source) = self.report_target(chunk);
         let err = ReportError::new(msg, name, source, span);
         Error::new(ErrorKind::RenderingError(Box::new(err)))
     }
