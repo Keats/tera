@@ -447,7 +447,8 @@ impl Value {
             ValueInner::F64(v) => {
                 // We could use ryu to print floats but it doesn't match the output from
                 // the std so tests become annoying.
-                write!(f, "{v}")
+                // Debug rather than Display so integral floats keep their `.0`
+                write!(f, "{v:?}")
             }
             ValueInner::U64(v) => {
                 #[cfg(feature = "no_fmt")]

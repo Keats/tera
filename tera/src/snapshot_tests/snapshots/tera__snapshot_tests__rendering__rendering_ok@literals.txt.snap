@@ -4,12 +4,12 @@ expression: "&normalized_out"
 input_file: tera/src/snapshot_tests/rendering_inputs/success/literals.txt
 ---
 Hello
-5
+5.0
 0
 32
 18
 512
-5
+5.0
 50
 false
 true
@@ -23,9 +23,11 @@ true
 1.9
 10.5
 10.605
-4
+4.0
 4.2
 10
 false
 down
 world
+1.0
+3.0

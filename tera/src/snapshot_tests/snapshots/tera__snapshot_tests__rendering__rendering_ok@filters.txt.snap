@@ -17,7 +17,7 @@ Default val
 Hello
 3
 ["abc", "efgh", "ijklm"]
-6
+6.0
 HELLO
 hello
 HTML
@@ -31,7 +31,7 @@ HTML
 $ hello 
 2
 2
-19
+19.0
 2.2
 true
 true
