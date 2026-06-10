@@ -1,6 +1,5 @@
 ---
 source: tera/src/snapshot_tests/parser.rs
-assertion_line: 153
 expression: "&nodes"
 input_file: tera/src/snapshot_tests/parser_inputs/success/tpl/tpl_slightly_complex.txt
 ---
@@ -79,7 +78,7 @@ input_file: tera/src/snapshot_tests/parser_inputs/success/tpl/tpl_slightly_compl
                                 right: Var {
                                     name: "discount",
                                 } @ 9:56-9:64 (298..306),
-                            } @ 9:43-9:65 (285..307),
+                            } @ 9:43-9:64 (285..306),
                             name: "integer",
                             kwargs: {
                                 "base": 10 @ 9:81-9:83 (323..325),

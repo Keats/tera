@@ -56,9 +56,8 @@ impl<'tera> VirtualMachine<'tera> {
         macro_rules! rendering_error {
             ($msg:expr,$span_range:expr) => {{
                 let chunk = state.chunk.expect("to have a chunk");
-                let span = $span_range
-                    .as_ref()
-                    .and_then(|r| chunk.expand_span(r))
+                let span = chunk
+                    .expand_span(&$span_range)
                     .expect("to have a span for error");
                 let (name, source) = if self.template.name != chunk.name {
                     let tpl = &self.tera.templates[&chunk.name];
@@ -142,7 +141,7 @@ impl<'tera> VirtualMachine<'tera> {
                     .components
                     .get($name)
                     .unwrap_or_else(|| &self.template.components[$name]);
-                let current_span: SpanRange = Some($span_idx..=$span_idx);
+                let current_span: SpanRange = $span_idx..=$span_idx;
 
                 let body = if $has_body {
                     Some(state.stack.pop().0.mark_safe())
@@ -164,9 +163,7 @@ impl<'tera> VirtualMachine<'tera> {
                     Err(mut e) => {
                         if let ErrorKind::RenderingError(ref mut report) = e.kind {
                             let chunk = state.chunk.expect("to have a chunk");
-                            if let Some(span) =
-                                current_span.as_ref().and_then(|r| chunk.expand_span(r))
-                            {
+                            if let Some(span) = chunk.expand_span(&current_span) {
                                 report.add_note(
                                     "called from",
                                     &self.template.name,
@@ -188,7 +185,7 @@ impl<'tera> VirtualMachine<'tera> {
 
             match instr {
                 Instruction::LoadConst(v) => {
-                    state.stack.push(v.clone(), Some(current_ip..=current_ip));
+                    state.stack.push(v.clone(), current_ip..=current_ip);
                 }
                 Instruction::LoadName(n) => state.load_name(n, current_ip),
                 Instruction::LoadAttr(attr) | Instruction::LoadAttrOpt(attr) => {
@@ -197,13 +194,13 @@ impl<'tera> VirtualMachine<'tera> {
                     if is_optional && (a.is_undefined() || a.is_none()) {
                         state
                             .stack
-                            .push(Value::undefined(), Some(current_ip..=current_ip));
+                            .push(Value::undefined(), current_ip..=current_ip);
                     } else {
                         if a.is_undefined() {
                             rendering_error!(format!("Field `{}` is not defined", attr), a_span);
                         }
                         let next = a.get_attr(attr).cloned().unwrap_or_else(Value::undefined);
-                        state.stack.push(next, Some(current_ip..=current_ip));
+                        state.stack.push(next, current_ip..=current_ip);
                     }
                 }
                 Instruction::BinarySubscript | Instruction::BinarySubscriptOpt => {
@@ -213,7 +210,7 @@ impl<'tera> VirtualMachine<'tera> {
                     if is_optional && (val.is_undefined() || val.is_none()) {
                         state
                             .stack
-                            .push(Value::undefined(), Some(current_ip..=current_ip));
+                            .push(Value::undefined(), current_ip..=current_ip);
                     } else {
                         if val.is_undefined() {
                             rendering_error!(
@@ -248,7 +245,7 @@ impl<'tera> VirtualMachine<'tera> {
                     if is_optional && (val.is_undefined() || val.is_none()) {
                         state
                             .stack
-                            .push(Value::undefined(), Some(current_ip..=current_ip));
+                            .push(Value::undefined(), current_ip..=current_ip);
                     } else {
                         if val.is_undefined() {
                             rendering_error!(
@@ -381,7 +378,7 @@ impl<'tera> VirtualMachine<'tera> {
                     }
                     elems.reverse();
                     let map: crate::value::Map = elems.into_iter().collect();
-                    state.stack.push(Value::from(map), None)
+                    state.stack.push(Value::from(map), current_ip..=current_ip)
                 }
                 Instruction::BuildMapWithSpreads(entry_types) => {
                     let mut result_map = crate::value::Map::new();
@@ -410,7 +407,9 @@ impl<'tera> VirtualMachine<'tera> {
                         }
                     }
 
-                    state.stack.push(Value::from(result_map), None);
+                    state
+                        .stack
+                        .push(Value::from(result_map), current_ip..=current_ip);
                 }
                 Instruction::BuildList(num_elem) => {
                     let mut elems = Vec::with_capacity(*num_elem);
@@ -418,7 +417,9 @@ impl<'tera> VirtualMachine<'tera> {
                         elems.push(state.stack.pop().0);
                     }
                     elems.reverse();
-                    state.stack.push(Value::from(elems), None);
+                    state
+                        .stack
+                        .push(Value::from(elems), current_ip..=current_ip);
                 }
                 Instruction::BuildListWithSpreads(entry_types) => {
                     let mut result = Vec::with_capacity(entry_types.len());
@@ -443,7 +444,9 @@ impl<'tera> VirtualMachine<'tera> {
                     }
                     result.reverse();
 
-                    state.stack.push(Value::from(result), None);
+                    state
+                        .stack
+                        .push(Value::from(result), current_ip..=current_ip);
                 }
                 Instruction::CallFunction(name) => {
                     let (kwargs, _) = state.stack.pop();
@@ -451,7 +454,7 @@ impl<'tera> VirtualMachine<'tera> {
                         let Some(current_block_name) = state.current_block_name else {
                             rendering_error!(
                                 "super() called outside of a block".to_string(),
-                                Some(current_ip..=current_ip)
+                                current_ip..=current_ip
                             );
                         };
                         // We can't use super() in the top level block
@@ -463,7 +466,7 @@ impl<'tera> VirtualMachine<'tera> {
                             if level + 1 >= blocks.len() {
                                 rendering_error!(
                                     "Tried to use super() in the top level block".to_string(),
-                                    Some(current_ip..=current_ip)
+                                    current_ip..=current_ip
                                 );
                             }
                         }
@@ -485,7 +488,7 @@ impl<'tera> VirtualMachine<'tera> {
                         let val = String::from_utf8(super_output)?;
                         state
                             .stack
-                            .push(Value::safe_string(&val), Some(current_ip..=current_ip));
+                            .push(Value::safe_string(&val), current_ip..=current_ip);
                     } else {
                         let f = &self.tera.functions[name.as_str()];
                         let val = match f
@@ -493,11 +496,11 @@ impl<'tera> VirtualMachine<'tera> {
                         {
                             Ok(v) => v,
                             Err(err) => {
-                                rendering_error!(format!("{err}"), Some(current_ip..=current_ip))
+                                rendering_error!(format!("{err}"), current_ip..=current_ip)
                             }
                         };
                         let val = if f.is_safe() { val.mark_safe() } else { val };
-                        state.stack.push(val, Some(current_ip..=current_ip));
+                        state.stack.push(val, current_ip..=current_ip);
                     }
                 }
                 Instruction::ApplyFilter(name) => {
@@ -514,11 +517,11 @@ impl<'tera> VirtualMachine<'tera> {
                             ErrorKind::InvalidArgument { .. } => {
                                 rendering_error!(format!("{err}"), value_span)
                             }
-                            _ => rendering_error!(format!("{err}"), Some(current_ip..=current_ip)),
+                            _ => rendering_error!(format!("{err}"), current_ip..=current_ip),
                         },
                     };
                     let val = if f.is_safe() { val.mark_safe() } else { val };
-                    state.stack.push(val, Some(current_ip..=current_ip));
+                    state.stack.push(val, current_ip..=current_ip);
                 }
                 Instruction::RunTest(name) => {
                     let f = &self.tera.tests[name.as_str()];
@@ -534,11 +537,11 @@ impl<'tera> VirtualMachine<'tera> {
                             ErrorKind::InvalidArgument { .. } => {
                                 rendering_error!(format!("{err}"), value_span)
                             }
-                            _ => rendering_error!(format!("{err}"), Some(current_ip..=current_ip)),
+                            _ => rendering_error!(format!("{err}"), current_ip..=current_ip),
                         },
                     };
 
-                    state.stack.push(val.into(), Some(current_ip..=current_ip));
+                    state.stack.push(val.into(), current_ip..=current_ip);
                 }
                 Instruction::RenderBodyComponent(name) => {
                     component!(name, current_ip, true);
@@ -611,7 +614,7 @@ impl<'tera> VirtualMachine<'tera> {
                 Instruction::EndCapture => {
                     let captured = state.capture_buffers.pop().unwrap();
                     let val = Value::from(String::from_utf8(captured)?);
-                    state.stack.push(val, None);
+                    state.stack.push(val, current_ip..=current_ip);
                 }
                 Instruction::StartIterate(is_key_value)
                 | Instruction::StartIterateComprehension(is_key_value) => {
@@ -656,7 +659,9 @@ impl<'tera> VirtualMachine<'tera> {
                 }
                 Instruction::StoreDidNotIterate => {
                     if let Some(for_loop) = state.for_loops.last() {
-                        state.stack.push(Value::from(!for_loop.iterated()), None);
+                        state
+                            .stack
+                            .push(Value::from(!for_loop.iterated()), current_ip..=current_ip);
                     }
                 }
                 Instruction::Break => {
@@ -731,7 +736,7 @@ impl<'tera> VirtualMachine<'tera> {
                     let (needle, _) = state.stack.pop();
                     match container.contains(&needle) {
                         Ok(b) => {
-                            state.stack.push(Value::from(b), None);
+                            state.stack.push(Value::from(b), current_ip..=current_ip);
                         }
                         Err(e) => {
                             rendering_error!(e.to_string(), container_span);
@@ -800,7 +805,7 @@ impl<'tera> VirtualMachine<'tera> {
                             cur.clone()
                         };
                     }
-                    state.stack.push(val, Some(current_ip..=current_ip));
+                    state.stack.push(val, current_ip..=current_ip);
                 }
                 Instruction::WritePath(path) => {
                     let chunk = state.chunk.expect("to have a chunk");

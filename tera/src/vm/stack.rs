@@ -3,17 +3,12 @@ use std::ops::RangeInclusive;
 
 /// A range of span indices (inclusive) for error reporting.
 /// When an error occurs, spans can be looked up from the chunk and expanded.
-pub(crate) type SpanRange = Option<RangeInclusive<u32>>;
+pub(crate) type SpanRange = RangeInclusive<u32>;
 
 /// Combine two span ranges into one that covers both
 #[inline]
 pub(crate) fn combine_spans(first: &SpanRange, second: &SpanRange) -> SpanRange {
-    match (first, second) {
-        (Some(a), Some(b)) => Some(*a.start().min(b.start())..=*a.end().max(b.end())),
-        (Some(a), None) => Some(a.clone()),
-        (None, Some(b)) => Some(b.clone()),
-        (None, None) => None,
-    }
+    *first.start().min(second.start())..=*first.end().max(second.end())
 }
 
 #[derive(Debug, Eq, PartialEq, Default)]

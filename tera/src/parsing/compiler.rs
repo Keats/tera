@@ -316,7 +316,7 @@ impl Compiler {
                     for node in component_call.body {
                         self.compile_node(node);
                     }
-                    self.chunk.add(Instruction::EndCapture, None);
+                    self.chunk.add(Instruction::EndCapture, Some(span.clone()));
                 }
 
                 self.compile_map_entries(component_call.kwargs, None);
@@ -492,7 +492,9 @@ impl Compiler {
                 for node in b.body {
                     self.compile_node(node);
                 }
-                self.chunk.add(Instruction::EndCapture, None);
+                // We can only have an error on a filter so point to the first one
+                let capture_span = b.filters.first().map(|f| f.span().clone());
+                self.chunk.add(Instruction::EndCapture, capture_span);
                 for expr in b.filters {
                     if let Expression::Filter(f) = expr {
                         let (filter, span) = f.into_parts();
@@ -619,7 +621,8 @@ impl Compiler {
                 for node in f.body {
                     self.compile_node(node);
                 }
-                self.chunk.add(Instruction::EndCapture, None);
+                self.chunk
+                    .add(Instruction::EndCapture, Some(f.name.span().clone()));
                 self.compile_kwargs(f.kwargs);
                 let (filter_name, span) = f.name.into_parts();
                 self.filter_calls

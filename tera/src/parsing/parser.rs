@@ -735,9 +735,8 @@ impl<'a> Parser<'a> {
             Token::LeftBrace => self.parse_map()?,
             Token::LeftBracket => self.parse_array()?,
             Token::LeftParen => {
-                let mut lhs = self.inner_parse_expression(0)?;
+                let lhs = self.inner_parse_expression(0)?;
                 expect_token!(self, Token::RightParen, ")")?;
-                lhs.expand_span(&self.current_span);
                 lhs
             }
             _ => {

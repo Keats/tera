@@ -163,10 +163,9 @@ impl<'t> State<'t> {
 
     pub(crate) fn load_name(&mut self, name: &str, span_idx: u32) {
         if name == MAGICAL_DUMP_VAR {
-            self.stack.push(self.dump_context(), None);
+            self.stack.push(self.dump_context(), span_idx..=span_idx);
         } else {
-            self.stack
-                .push(self.get_value(name), Some(span_idx..=span_idx));
+            self.stack.push(self.get_value(name), span_idx..=span_idx);
         }
     }
 

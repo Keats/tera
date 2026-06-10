@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&err"
+input_file: tera/src/snapshot_tests/rendering_inputs/errors/math_on_list_literal.txt
+---
+error: Math operations can only be done on numbers, found `array`
+ --> math_on_list_literal.txt:1:3
+  |
+1 | {{ [one, 1] * 2 }}
+  |    ^^^^^^^^
