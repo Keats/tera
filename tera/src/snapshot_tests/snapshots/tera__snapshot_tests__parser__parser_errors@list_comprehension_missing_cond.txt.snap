@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/list_comprehension_missing_cond.txt
 ---
 error: Found `]` but expected one of: integer, float, string, bool, ident, `-`, `not`, `<`, `{`, `[` or `(`
- --> list_comprehension_missing_cond.txt:1:20
+ --> list_comprehension_missing_cond.txt:1:21
   |
 1 | {{ [x for x in xs if] }}
   |                     ^

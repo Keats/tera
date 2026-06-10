@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/unknown_subscript.txt
 ---
 error: Index expression is undefined
- --> unknown_subscript.txt:1:11
+ --> unknown_subscript.txt:1:12
   |
 1 | {{ numbers[unknown] }}
   |            ^^^^^^^

@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/extends_in_body.txt
 ---
 error: `extends` cannot be nested in other tags.
- --> extends_in_body.txt:1:24
+ --> extends_in_body.txt:1:25
   |
 1 | {% if true %}{% extends "a" %}{% endif %}
   |                         ^^^

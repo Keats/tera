@@ -4,19 +4,19 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/build_errors/validation/unknown_across_files.txt
 ---
 error: Unknown filter `unknown_filter`
- --> a.txt:1:10
+ --> a.txt:1:11
   |
 1 | {{ name | unknown_filter }}
   |           ^^^^^^^^^^^^^^
 
 error: Unknown function `unknown_func`
- --> b.txt:1:3
+ --> b.txt:1:4
   |
 1 | {{ unknown_func() }}
   |    ^^^^^^^^^^^^^^
 
 error: Unknown test `unknown_test`
- --> c.txt:1:14
+ --> c.txt:1:15
   |
 1 | {% if name is unknown_test %}yes{% endif %}
   |               ^^^^^^^^^^^^

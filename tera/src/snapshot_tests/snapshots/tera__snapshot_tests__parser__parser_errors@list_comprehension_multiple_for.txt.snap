@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/list_comprehension_multiple_for.txt
 ---
 error: List comprehensions support only a single `for` clause.
- --> list_comprehension_multiple_for.txt:1:18
+ --> list_comprehension_multiple_for.txt:1:19
   |
 1 | {{ [x for x in xs for y in ys] }}
   |                   ^^^

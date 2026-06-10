@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/build_errors/unknown_include.txt
 ---
 error: Unknown template `missing.html`
- --> main:1:11
+ --> main:1:12
   |
 1 | {% include "missing.html" %}
   |            ^^^^^^^^^^^^^^

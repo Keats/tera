@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/unknown_path_in_set.txt
 ---
 error: Variable `unknown` is not defined. Available variables: age, bytes, data, description, empty, malicious, name, numbers, objects, one, product, reviews, some_bool, some_html, to, vectors, year_data
- --> unknown_path_in_set.txt:1:13
+ --> unknown_path_in_set.txt:1:14
   |
 1 | {% set foo = unknown.username %}
   |              ^^^^^^^

@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/build_errors/syntax/invalid_expression.txt
 ---
 error: Found `}}` but expected one of: integer, float, string, bool, ident, `-`, `not`, `<`, `{`, `[` or `(`
- --> test.html:1:7
+ --> test.html:1:8
   |
 1 | {{ 1 + }}
   |        ^^

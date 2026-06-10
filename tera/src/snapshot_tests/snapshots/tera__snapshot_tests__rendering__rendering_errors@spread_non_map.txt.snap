@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/spread_non_map.txt
 ---
 error: Spread operator requires a map, found `i64`
- --> spread_non_map.txt:1:7
+ --> spread_non_map.txt:1:8
   |
 1 | {{ {...age} }}
   |        ^^^

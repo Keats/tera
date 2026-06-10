@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/super_in_top_blocks.txt
 ---
 error: Tried to use super() in the top level block
- --> super_in_top_blocks.txt:2:3
+ --> super_in_top_blocks.txt:2:4
   |
 2 | {{ super() }}
   |    ^^^^^^^

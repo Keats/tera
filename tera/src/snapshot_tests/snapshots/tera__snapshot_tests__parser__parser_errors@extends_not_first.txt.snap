@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/extends_not_first.txt
 ---
 error: `extends` needs to be the first tag of the template
- --> extends_not_first.txt:3:11
+ --> extends_not_first.txt:3:12
   |
 3 | {% extends "a" %}
   |            ^^^

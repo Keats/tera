@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/iterate_on_non_array.txt
 ---
 error: Iteration not possible on type `i64`
- --> iterate_on_non_array.txt:1:12
+ --> iterate_on_non_array.txt:1:13
   |
 1 | {% for i in age %}
   |             ^^^

@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/loop_invalid_field.txt
 ---
 error: Found invalid field of `loop`: unknown. Only `index`, `index0`, `first`, `last` and `length` exist.
- --> loop_invalid_field.txt:1:23
+ --> loop_invalid_field.txt:1:24
   |
 1 | {% for a in v %}{{loop.unknown}}{% endfor %}
   |                        ^^^^^^^

@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/for_loop_reserved_value.txt
 ---
 error: loop is a reserved keyword of Tera, it cannot be used as a loop variable.
- --> for_loop_reserved_value.txt:1:7
+ --> for_loop_reserved_value.txt:1:8
   |
 1 | {% for loop in items %}{{ loop.index }}{% endfor %}
   |        ^^^^

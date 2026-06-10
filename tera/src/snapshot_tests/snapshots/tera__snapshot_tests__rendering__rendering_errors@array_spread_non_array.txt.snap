@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/array_spread_non_array.txt
 ---
 error: Spread operator requires an array, found `undefined`
- --> array_spread_non_array.txt:1:7
+ --> array_spread_non_array.txt:1:8
   |
 1 | {{ [...username] }}
   |        ^^^^^^^^

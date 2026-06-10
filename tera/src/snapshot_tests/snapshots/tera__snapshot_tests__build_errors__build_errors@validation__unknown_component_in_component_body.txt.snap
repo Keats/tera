@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/build_errors/validation/unknown_component_in_component_body.txt
 ---
 error: Unknown component `inner_missing`
- --> tpl:2:3
+ --> tpl:2:4
   |
 2 | {{ <inner_missing/> }}
   |    ^^^^^^^^^^^^^^^^

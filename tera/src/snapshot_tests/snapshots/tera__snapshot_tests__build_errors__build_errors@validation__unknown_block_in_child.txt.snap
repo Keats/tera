@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/build_errors/validation/unknown_block_in_child.txt
 ---
 error: Block `sidebar` is not defined in any parent template
- --> child:3:9
+ --> child:3:10
   |
 3 | {% block sidebar %}not in parent{% endblock sidebar %}
   |          ^^^^^^^

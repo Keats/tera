@@ -269,12 +269,12 @@ It will depend on what you are doing inside the template and the size of your co
 
 ```
 error: Field `undefined_var` is not defined
- --> included:1:3
+ --> included:1:4
   |
 1 | {{ undefined_var }}
   |    ^^^^^^^^^^^^^
 
-note: called from tpl:1:11
+note: called from tpl:1:12
   |
 1 | {% include "included" %}
   |            ^^^^^^^^^^

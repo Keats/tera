@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/block_in_other_tag.txt
 ---
 error: Blocks cannot be written in a tag other than block or filter section.
- --> block_in_other_tag.txt:2:3
+ --> block_in_other_tag.txt:2:4
   |
 2 | {% block popup -%} hello {%- endblock %}
   |    ^^^^^

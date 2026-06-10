@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/filter_missing_required_kwarg.txt
 ---
 error: Missing keyword argument `pat`
- --> filter_missing_required_kwarg.txt:1:11
+ --> filter_missing_required_kwarg.txt:1:12
   |
 1 | {{ "hey" | split }}
   |            ^^^^^

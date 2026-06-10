@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/undefined_slice.txt
 ---
 error: Cannot slice an undefined value
- --> undefined_slice.txt:1:3
+ --> undefined_slice.txt:1:4
   |
 1 | {{ missing[:1] }}
   |    ^^^^^^^

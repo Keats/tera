@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/unexpected_token_component_def_args.txt
 ---
 error: Found identifier but component default arguments can only be one of: string, bool, integer, float, array or map
- --> unexpected_token_component_def_args.txt:1:21
+ --> unexpected_token_component_def_args.txt:1:22
   |
 1 | {% component hello(a=b) %}{% endcomponent %}
   |                      ^

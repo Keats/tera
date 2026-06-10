@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/components/wrong_type_arg.txt
 ---
 error: Component argument `name` (type: `i64`) does not match expected type: `string`
- --> tpl:1:3
+ --> tpl:1:4
   |
 1 | {{ <display_name name={1}/> }}
   |    ^^^^^^^^^^^^^^^^^^^^^^^^

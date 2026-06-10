@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/super_outside_block.txt
 ---
 error: super() called outside of a block
- --> super_outside_block.txt:1:3
+ --> super_outside_block.txt:1:4
   |
 1 | {{ super() }}
   |    ^^^^^^^

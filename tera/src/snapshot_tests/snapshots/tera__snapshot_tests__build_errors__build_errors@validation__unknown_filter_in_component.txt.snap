@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/build_errors/validation/unknown_filter_in_component.txt
 ---
 error: Unknown filter `unknown_filter`
- --> tpl:2:10
+ --> tpl:2:11
   |
 2 | {{ name | unknown_filter }}
   |           ^^^^^^^^^^^^^^

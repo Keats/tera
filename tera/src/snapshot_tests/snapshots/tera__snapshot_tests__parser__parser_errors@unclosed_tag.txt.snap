@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/unclosed_tag.txt
 ---
 error: Unexpected end of input
- --> unclosed_tag.txt:1:27
+ --> unclosed_tag.txt:1:28
   |
 1 | {% if i + 2 | integer > x %
   |                            ^

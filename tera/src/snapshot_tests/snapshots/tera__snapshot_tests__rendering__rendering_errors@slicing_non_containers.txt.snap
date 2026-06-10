@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/slicing_non_containers.txt
 ---
 error: Slicing can only be used on arrays or strings, not on `i64`.
- --> slicing_non_containers.txt:1:3
+ --> slicing_non_containers.txt:1:4
   |
 1 | {{ one[-1:] }}
   |    ^^^

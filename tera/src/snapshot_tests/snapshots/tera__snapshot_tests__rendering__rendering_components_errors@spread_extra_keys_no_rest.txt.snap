@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/components/spread_extra_keys_no_rest.txt
 ---
 error: Unknown argument(s) `extra_key` in component call. Possible argument(s) are: `name`
- --> tpl:2:3
+ --> tpl:2:4
   |
 2 | {{ <strict {...props}/> }}
   |    ^^^^^^^^^^^^^^^^^^^^

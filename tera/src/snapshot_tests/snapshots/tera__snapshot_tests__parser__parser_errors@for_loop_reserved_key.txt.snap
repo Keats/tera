@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/for_loop_reserved_key.txt
 ---
 error: break is a reserved keyword of Tera, it cannot be used as a loop variable.
- --> for_loop_reserved_key.txt:1:10
+ --> for_loop_reserved_key.txt:1:11
   |
 1 | {% for k, break in items %}{{ break }}{% endfor %}
   |           ^^^^^

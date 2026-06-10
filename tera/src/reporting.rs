@@ -65,7 +65,8 @@ pub(crate) fn generate_report(error: &ReportError) -> String {
         error.message,
         error.filename,
         loc.start_line,
-        loc.start_col,
+        // columns are stored 0-based but the locus is conventionally 1-based
+        loc.start_col + 1,
         loc.start_line,
         loc.line,
         loc.underline,
@@ -83,7 +84,7 @@ pub(crate) fn generate_report(error: &ReportError) -> String {
             note.label,
             note.filename,
             note_loc.start_line,
-            note_loc.start_col,
+            note_loc.start_col + 1,
             note_loc.start_line,
             note_loc.line,
             note_loc.underline,

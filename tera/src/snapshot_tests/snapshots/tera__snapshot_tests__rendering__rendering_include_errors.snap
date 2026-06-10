@@ -4,12 +4,12 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/include/error_in_included.txt
 ---
 error: Variable `undefined_var` is not defined. Available variables: age, bytes, data, description, empty, malicious, name, numbers, objects, one, product, reviews, some_bool, some_html, to, vectors, year_data
- --> included:1:3
+ --> included:1:4
   |
 1 | {{ undefined_var }}
   |    ^^^^^^^^^^^^^
 
-note: called from tpl:1:11
+note: called from tpl:1:12
   |
 1 | {% include "included" %}
   |            ^^^^^^^^^^

@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/build_errors/syntax/unclosed_component.txt
 ---
 error: Unclosed component 'card'
- --> test.html:2:26
+ --> test.html:2:27
   |
 2 | {% <card title="Hello"> %}
   |                           ^

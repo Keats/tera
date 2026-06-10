@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/unexpected_token_test.txt
 ---
 error: Found `,` but expected one of: integer, float, string, bool, ident, `-`, `not`, `<`, `{`, `[` or `(`
- --> unexpected_token_test.txt:1:16
+ --> unexpected_token_test.txt:1:17
   |
 1 | {{ a is upper(b=,) }}
   |                 ^

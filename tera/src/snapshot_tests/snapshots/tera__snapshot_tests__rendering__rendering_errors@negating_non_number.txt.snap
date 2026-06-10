@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/negating_non_number.txt
 ---
 error: Only numbers can be negated. This is a `array`
- --> negating_non_number.txt:1:5
+ --> negating_non_number.txt:1:6
   |
 1 | {{ - vectors }}
   |      ^^^^^^^

@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/unclosed_variable.txt
 ---
 error: Unexpected end of input
- --> unclosed_variable.txt:1:4
+ --> unclosed_variable.txt:1:5
   |
 1 | {{ 1
   |     ^

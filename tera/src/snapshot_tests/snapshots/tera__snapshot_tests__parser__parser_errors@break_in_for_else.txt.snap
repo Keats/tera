@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/break_in_for_else.txt
 ---
 error: break can only be used in a for loop
- --> break_in_for_else.txt:1:31
+ --> break_in_for_else.txt:1:32
   |
 1 | {% for x in [] %}a{% else %}{% break %}{% endfor %}
   |                                ^^^^^

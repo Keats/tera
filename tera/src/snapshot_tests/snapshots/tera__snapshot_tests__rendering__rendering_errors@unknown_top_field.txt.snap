@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/unknown_top_field.txt
 ---
 error: Variable `unknown` is not defined. Available variables: age, bytes, data, description, empty, malicious, name, numbers, objects, one, product, reviews, some_bool, some_html, to, vectors, year_data
- --> unknown_top_field.txt:1:3
+ --> unknown_top_field.txt:1:4
   |
 1 | {{ unknown.username }}
   |    ^^^^^^^

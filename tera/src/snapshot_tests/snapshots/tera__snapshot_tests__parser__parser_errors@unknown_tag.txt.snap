@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/unknown_tag.txt
 ---
 error: Unknown tag
- --> unknown_tag.txt:1:4
+ --> unknown_tag.txt:1:5
   |
 1 | i.{%a.
   |     ^

@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/duplicate_block_nested.txt
 ---
 error: Template already contains a block named `hello`
- --> duplicate_block_nested.txt:1:26
+ --> duplicate_block_nested.txt:1:27
   |
 1 | {% block hello %}{% block hello %}{% endblock %}{% endblock %}
   |                           ^^^^^

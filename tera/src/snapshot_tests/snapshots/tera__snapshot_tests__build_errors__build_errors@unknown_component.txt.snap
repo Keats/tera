@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/build_errors/unknown_component.txt
 ---
 error: Unknown component `missing`
- --> parent:1:3
+ --> parent:1:4
   |
 1 | {% <missing> -%} hello {%- </missing> %}
   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

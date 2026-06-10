@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/multiple_extends.txt
 ---
 error: Template is already extending `a`
- --> multiple_extends.txt:2:11
+ --> multiple_extends.txt:2:12
   |
 2 | {% extends "b" %}
   |            ^^^

@@ -1,11 +1,10 @@
 ---
 source: tera/src/snapshot_tests/rendering.rs
-assertion_line: 205
 expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/inheritance/super_top_of_chain.txt
 ---
 error: Tried to use super() in the top level block
- --> top:1:18
+ --> top:1:19
   |
 1 | {% block hey %}{{ super() }}{% endblock hey %}
   |                   ^^^^^^^

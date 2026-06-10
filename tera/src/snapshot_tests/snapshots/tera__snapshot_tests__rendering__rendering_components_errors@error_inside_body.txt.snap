@@ -4,12 +4,12 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/components/error_inside_body.txt
 ---
 error: Variable `undefined_var` is not defined. Available variables: name
- --> components:1:44
+ --> components:1:45
   |
 1 | {% component greet(name: string) %}Hello {{ undefined_var }}!{% endcomponent greet %}
   |                                             ^^^^^^^^^^^^^
 
-note: called from tpl:1:3
+note: called from tpl:1:4
   |
 1 | {{ <greet name="world"/> }}
   |    ^^^^^^^^^^^^^^^^^^^^^

@@ -1,11 +1,10 @@
 ---
 source: tera/src/snapshot_tests/rendering.rs
-assertion_line: 194
 expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/int_invalid_base.txt
 ---
 error: int filter `base` must be between 2 and 36, got 1
- --> int_invalid_base.txt:1:10
+ --> int_invalid_base.txt:1:11
   |
 1 | {{ "10" | int(base=1) }}
   |           ^^^^^^^^^^^

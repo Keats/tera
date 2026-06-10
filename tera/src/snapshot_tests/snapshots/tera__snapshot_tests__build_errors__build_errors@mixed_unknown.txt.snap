@@ -4,19 +4,19 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/build_errors/mixed_unknown.txt
 ---
 error: Unknown filter `unknown_filter`
- --> tpl:1:10
+ --> tpl:1:11
   |
 1 | {{ name | unknown_filter }}
   |           ^^^^^^^^^^^^^^
 
 error: Unknown component `unknown_component`
- --> tpl:2:2
+ --> tpl:2:3
   |
 2 | {{<unknown_component />}}
   |   ^^^^^^^^^^^^^^^^^^^^^
 
 error: Unknown function `unknown_func`
- --> tpl:3:3
+ --> tpl:3:4
   |
 3 | {{ unknown_func() }}
   |    ^^^^^^^^^^^^^^

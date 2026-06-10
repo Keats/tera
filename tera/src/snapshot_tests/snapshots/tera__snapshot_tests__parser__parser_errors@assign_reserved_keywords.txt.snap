@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/assign_reserved_keywords.txt
 ---
 error: break is a reserved keyword of Tera, it cannot be assigned to.
- --> assign_reserved_keywords.txt:1:7
+ --> assign_reserved_keywords.txt:1:8
   |
 1 | {% set break = false %}
   |        ^^^^^

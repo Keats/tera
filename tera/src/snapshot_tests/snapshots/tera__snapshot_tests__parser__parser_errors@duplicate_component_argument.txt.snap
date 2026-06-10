@@ -4,12 +4,12 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/duplicate_component_argument.txt
 ---
 error: Component argument `name` is defined more than once
- --> duplicate_component_argument.txt:1:31
+ --> duplicate_component_argument.txt:1:32
   |
 1 | {% component foo(name: string, name: integer) %}{% endcomponent %}
   |                                ^^^^
 
-note: first defined here duplicate_component_argument.txt:1:17
+note: first defined here duplicate_component_argument.txt:1:18
   |
 1 | {% component foo(name: string, name: integer) %}{% endcomponent %}
   |                  ^^^^

@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/build_errors/syntax/invalid_tag.txt
 ---
 error: Unexpected end of input
- --> test.html:2:5
+ --> test.html:2:6
   |
 2 | hello
   |      ^

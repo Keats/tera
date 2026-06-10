@@ -1,11 +1,10 @@
 ---
 source: tera/src/snapshot_tests/rendering.rs
-assertion_line: 194
 expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/modulo_by_zero.txt
 ---
 error: Cannot divide by 0
- --> modulo_by_zero.txt:1:10
+ --> modulo_by_zero.txt:1:11
   |
 1 | {{ age % (one - 1) }}
   |           ^^^^^^^

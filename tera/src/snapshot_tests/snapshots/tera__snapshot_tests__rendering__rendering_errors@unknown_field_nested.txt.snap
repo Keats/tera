@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/unknown_field_nested.txt
 ---
 error: Field `unknown` is not defined. Available fields: label, numbers, parent
- --> unknown_field_nested.txt:2:17
+ --> unknown_field_nested.txt:2:18
   |
 2 | {{ object.parent.unknown.label }}
   |                  ^^^^^^^

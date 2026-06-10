@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/break_in_component_body.txt
 ---
 error: `break` cannot be used inside a filter section, `set` block or component body
- --> break_in_component_body.txt:1:40
+ --> break_in_component_body.txt:1:41
   |
 1 | {% for i in [1,2] %}{% <Card> %}{{i}}{% break %}{% </Card> %}{% endfor %}
   |                                         ^^^^^

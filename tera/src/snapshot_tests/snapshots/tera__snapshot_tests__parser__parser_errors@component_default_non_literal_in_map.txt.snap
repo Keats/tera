@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/component_default_non_literal_in_map.txt
 ---
 error: Invalid default argument: this map should only contain literal values.
- --> component_default_non_literal_in_map.txt:1:25
+ --> component_default_non_literal_in_map.txt:1:26
   |
 1 | {% component array(array={"hello": a}) %}{% endcomponent %}
   |                          ^^^^^^^^^^^^

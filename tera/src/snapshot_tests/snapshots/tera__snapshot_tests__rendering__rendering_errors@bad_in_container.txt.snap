@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/bad_in_container.txt
 ---
 error: `in` cannot be used on a container of type `i64`. It can only be used on arrays, strings and map/structs
- --> bad_in_container.txt:1:10
+ --> bad_in_container.txt:1:11
   |
 1 | {{ 'a' in 1 }}
   |           ^

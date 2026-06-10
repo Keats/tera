@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/unknown_field_in_loop.txt
 ---
 error: Field `random` is not defined. Available fields: paragraphs, title
- --> unknown_field_in_loop.txt:3:5
+ --> unknown_field_in_loop.txt:3:6
   |
 3 | {{ r.random }}
   |      ^^^^^^

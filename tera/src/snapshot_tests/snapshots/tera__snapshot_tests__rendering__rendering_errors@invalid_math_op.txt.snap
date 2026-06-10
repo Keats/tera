@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/invalid_math_op.txt
 ---
 error: `+` requires both operands to be numbers, found `undefined` and `i64`
- --> invalid_math_op.txt:1:3
+ --> invalid_math_op.txt:1:4
   |
 1 | {{ username + 1 }}
   |    ^^^^^^^^^^^^

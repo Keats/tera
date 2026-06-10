@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/math_on_in_result.txt
 ---
 error: Math operations can only be done on numbers, found `bool`
- --> math_on_in_result.txt:1:4
+ --> math_on_in_result.txt:1:5
   |
 1 | {{ (1 in [1]) * 2 }}
   |     ^^^^^^^^

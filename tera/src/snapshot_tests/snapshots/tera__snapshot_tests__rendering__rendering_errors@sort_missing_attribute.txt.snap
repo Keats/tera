@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/sort_missing_attribute.txt
 ---
 error: Value {"id": 2} does not have an attribute after following path: year
- --> sort_missing_attribute.txt:1:42
+ --> sort_missing_attribute.txt:1:43
   |
 1 | {{ [{"id": 1, "year": 2015}, {"id": 2}] | sort(attribute="year") }}
   |                                           ^^^^^^^^^^^^^^^^^^^^^^

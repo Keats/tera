@@ -4,13 +4,13 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/build_errors/validation/unknown_test.txt
 ---
 error: Unknown test `unknown_test`
- --> tpl:1:14
+ --> tpl:1:15
   |
 1 | {% if name is unknown_test %}yes{% endif %}
   |               ^^^^^^^^^^^^
 
 error: Unknown test `another_unknown`
- --> tpl:2:14
+ --> tpl:2:15
   |
 2 | {% if name is another_unknown %}no{% endif %}
   |               ^^^^^^^^^^^^^^^

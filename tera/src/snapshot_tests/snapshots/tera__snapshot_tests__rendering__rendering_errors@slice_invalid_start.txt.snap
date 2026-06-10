@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/slice_invalid_start.txt
 ---
 error: Slice start must be an integer, got `string`
- --> slice_invalid_start.txt:1:11
+ --> slice_invalid_start.txt:1:12
   |
 1 | {{ numbers[name:] }}
   |            ^^^^

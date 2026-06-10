@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/filter_section_type_error.txt
 ---
 error: Invalid type for the value, expected `f64` but got `string`
- --> filter_section_type_error.txt:1:10
+ --> filter_section_type_error.txt:1:11
   |
 1 | {% filter round %}abc{% endfilter %}
   |           ^^^^^

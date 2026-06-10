@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/unknown_top_subscript.txt
 ---
 error: Cannot index into an undefined value
- --> unknown_top_subscript.txt:1:3
+ --> unknown_top_subscript.txt:1:4
   |
 1 | {{ unknown[username] }}
   |    ^^^^^^^

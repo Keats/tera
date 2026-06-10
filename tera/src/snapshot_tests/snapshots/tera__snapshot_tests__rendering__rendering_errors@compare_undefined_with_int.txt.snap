@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/compare_undefined_with_int.txt
 ---
 error: Cannot compare `undefined` with `i64`
- --> compare_undefined_with_int.txt:1:3
+ --> compare_undefined_with_int.txt:1:4
   |
 1 | {{ not_in_context < 1 }}
   |    ^^^^^^^^^^^^^^^^^^

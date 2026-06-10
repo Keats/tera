@@ -4,7 +4,7 @@ expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/different_end_component_name.txt
 ---
 error: component was named `hello` in the opening tag, found `hi` as name in the end tag
- --> different_end_component_name.txt:1:39
+ --> different_end_component_name.txt:1:40
   |
 1 | {% component hello() %}{% endcomponent hi %}
   |                                        ^^

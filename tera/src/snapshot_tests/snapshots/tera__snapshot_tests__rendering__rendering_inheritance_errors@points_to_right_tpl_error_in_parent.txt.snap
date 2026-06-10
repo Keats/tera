@@ -1,11 +1,10 @@
 ---
 source: tera/src/snapshot_tests/rendering.rs
-assertion_line: 205
 expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/inheritance/points_to_right_tpl_error_in_parent.txt
 ---
 error: Invalid type for the value, expected `&str` but got `i64`
- --> top:1:44
+ --> top:1:45
   |
 1 | {% block content %}{% endblock content %}{{ 1 | upper }}
   |                                             ^

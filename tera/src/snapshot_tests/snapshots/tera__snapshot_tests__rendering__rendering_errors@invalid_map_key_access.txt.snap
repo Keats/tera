@@ -4,7 +4,7 @@ expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/invalid_map_key_access.txt
 ---
 error: Map keys must be strings, integers, or bools, got `array`.
- --> invalid_map_key_access.txt:1:11
+ --> invalid_map_key_access.txt:1:12
   |
 1 | {{ product[reviews] }}
   |            ^^^^^^^
