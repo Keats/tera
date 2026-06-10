@@ -60,24 +60,23 @@ impl ReportError {
         });
     }
 
-    pub fn generate_report(&self) -> String {
+    pub(crate) fn generate_report(&self) -> String {
         generate_report(self)
     }
 
+    /// The error message, without the source context.
     pub fn message(&self) -> &str {
         &self.message
     }
 
+    /// Where in the template source the error occurred.
     pub fn span(&self) -> &Span {
         &self.span
     }
 
+    /// The name of the template the error occurred in.
     pub fn filename(&self) -> &str {
         &self.filename
-    }
-
-    pub fn source(&self) -> &str {
-        &self.source
     }
 
     pub(crate) fn unexpected_end_of_input(span: &Span) -> Self {

@@ -15,7 +15,7 @@ Enable only what you need via Cargo features:
 | `filesize_format` | `filesize_format` filter                                           |
 | `format` | `format` filter (Rust-like formatting)                             |
 | `json` | `json_encode` filter                                               |
-| `rand` | `get_random` function                                              |
+| `rand` | `get_random`, `shuffle` functions                                  |
 | `regex` | `striptags`, `spaceless`, `regex_replace` filters, `matching` test |
 | `slug` | `slug` filter                                                      |
 | `urlencode` | `urlencode`, `urlencode_strict` filters                            |

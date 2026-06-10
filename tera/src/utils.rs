@@ -47,12 +47,18 @@ impl<T: fmt::Debug> fmt::Debug for Spanned<T> {
     }
 }
 
+/// The position of a node in the template source
 #[derive(Clone, PartialEq, Eq, Default)]
 pub struct Span {
+    /// Line the span starts on, 1-based
     pub start_line: usize,
+    /// Column the span starts on, 0-based
     pub start_col: usize,
+    /// Line the span ends on, 1-based
     pub end_line: usize,
+    /// Column the span ends on, 0-based
     pub end_col: usize,
+    /// Byte range of the span in the template source
     pub range: Range<usize>,
 }
 
@@ -76,7 +82,7 @@ impl fmt::Display for Span {
     }
 }
 impl Span {
-    pub fn expand(&mut self, other: &Span) {
+    pub(crate) fn expand(&mut self, other: &Span) {
         self.end_line = other.end_line;
         self.end_col = other.end_col;
         self.range = self.range.start..other.range.end;
