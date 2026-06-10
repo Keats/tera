@@ -99,19 +99,17 @@ impl Span {
 /// ' --> &#39;
 /// ```
 #[inline]
-pub fn escape_html(input: &[u8], buf: &mut dyn std::io::Write) -> std::io::Result<()> {
+pub fn escape_html(input: &str, buf: &mut dyn std::io::Write) -> std::io::Result<()> {
     #[cfg(feature = "fast_escape")]
     {
         use pulldown_cmark_escape::IoWriter;
-        // SAFETY: input comes from Value::format() which only produces valid UTF-8
-        let s = unsafe { std::str::from_utf8_unchecked(input) };
-        pulldown_cmark_escape::escape_html(IoWriter(buf), s)?;
+        pulldown_cmark_escape::escape_html(IoWriter(buf), input)?;
         Ok(())
     }
 
     #[cfg(not(feature = "fast_escape"))]
     {
-        for c in input {
+        for c in input.as_bytes() {
             match c {
                 b'&' => buf.write_all(b"&amp;")?,
                 b'<' => buf.write_all(b"&lt;")?,

@@ -113,7 +113,7 @@ pub(crate) fn wordcount(val: &str, _: Kwargs, _: &State) -> usize {
 
 pub(crate) fn escape(val: &str, _: Kwargs, _: &State) -> String {
     let mut buf = Vec::with_capacity(val.len());
-    escape_html(val.as_bytes(), &mut buf).unwrap();
+    escape_html(val, &mut buf).unwrap();
     // SAFETY: escape_html only produces valid UTF-8
     unsafe { String::from_utf8_unchecked(buf) }
 }

@@ -65,20 +65,20 @@ fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("escape_html_short", |b| {
         b.iter(|| {
             let mut out: Vec<u8> = Vec::new();
-            let _ = escape_html(NO_HTML_SHORT.as_bytes(), &mut out);
+            let _ = escape_html(NO_HTML_SHORT, &mut out);
             let _ = black_box(String::from_utf8_lossy(&out));
             let mut out: Vec<u8> = Vec::new();
-            let _ = escape_html(HTML_SHORT.as_bytes(), &mut out);
+            let _ = escape_html(HTML_SHORT, &mut out);
             let _ = black_box(String::from_utf8_lossy(&out));
         })
     });
     c.bench_function("escape_html_long", |b| {
         b.iter(|| {
             let mut out: Vec<u8> = Vec::new();
-            let _ = escape_html(NO_HTML_VERY_LONG.as_bytes(), &mut out);
+            let _ = escape_html(NO_HTML_VERY_LONG, &mut out);
             let _ = black_box(String::from_utf8_lossy(&out));
             let mut out: Vec<u8> = Vec::new();
-            let _ = escape_html(HTML_VERY_LONG.as_bytes(), &mut out);
+            let _ = escape_html(HTML_VERY_LONG, &mut out);
             let _ = black_box(String::from_utf8_lossy(&out));
         })
     });

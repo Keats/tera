@@ -27,7 +27,7 @@ use crate::parsing::ast::ComponentDefinition;
 const ONE_OFF_TEMPLATE_NAME: &str = "__tera_one_off";
 
 /// The escape function type definition
-pub type EscapeFn = fn(&[u8], &mut dyn Write) -> std::io::Result<()>;
+pub type EscapeFn = fn(&str, &mut dyn Write) -> std::io::Result<()>;
 
 /// Main point of interaction in this library.
 ///
@@ -259,8 +259,8 @@ impl Tera {
     /// let mut tera = Tera::default();
     ///
     /// // Override escape function to escape the capital letter A, why not
-    /// tera.set_escape_fn(|input: &[u8], output: &mut dyn Write| {
-    ///     for &byte in input {
+    /// tera.set_escape_fn(|input: &str, output: &mut dyn Write| {
+    ///     for byte in input.bytes() {
     ///         match byte {
     ///             b'A' => output.write_all(b"\xc6\x90")?,
     ///             _ => output.write_all(&[byte])?,

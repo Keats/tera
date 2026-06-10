@@ -345,10 +345,14 @@ impl<'tera> VirtualMachine<'tera> {
                         // Avoiding String as much as possible
                         state.escape_buffer.clear();
                         top.format(&mut state.escape_buffer)?;
+                        // SAFETY: the buffer was just filled by Value::format, which only
+                        // writes valid UTF-8
+                        let escaped =
+                            unsafe { std::str::from_utf8_unchecked(&state.escape_buffer) };
                         if let Some(captured) = state.capture_buffers.last_mut() {
-                            (self.tera.escape_fn)(&state.escape_buffer, captured)?;
+                            (self.tera.escape_fn)(escaped, captured)?;
                         } else {
-                            (self.tera.escape_fn)(&state.escape_buffer, output)?;
+                            (self.tera.escape_fn)(escaped, output)?;
                         }
                     }
                 }
@@ -864,10 +868,14 @@ impl<'tera> VirtualMachine<'tera> {
                     } else {
                         state.escape_buffer.clear();
                         val.format(&mut state.escape_buffer)?;
+                        // SAFETY: the buffer was just filled by Value::format, which only
+                        // writes valid UTF-8
+                        let escaped =
+                            unsafe { std::str::from_utf8_unchecked(&state.escape_buffer) };
                         if let Some(captured) = state.capture_buffers.last_mut() {
-                            (self.tera.escape_fn)(&state.escape_buffer, captured)?;
+                            (self.tera.escape_fn)(escaped, captured)?;
                         } else {
-                            (self.tera.escape_fn)(&state.escape_buffer, output)?;
+                            (self.tera.escape_fn)(escaped, output)?;
                         }
                     }
                 }
