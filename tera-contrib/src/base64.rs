@@ -1,6 +1,12 @@
 use base64::{Engine, engine::general_purpose};
 use tera::{Kwargs, State, TeraResult};
 
+const URL_SAFE_DECODE: general_purpose::GeneralPurpose = general_purpose::GeneralPurpose::new(
+    &base64::alphabet::URL_SAFE,
+    general_purpose::GeneralPurposeConfig::new()
+        .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent),
+);
+
 /// Encodes a string to base64.
 /// Takes an optional `url_safe` bool parameter if you want to use the URL SAFE b64 characters.
 ///
@@ -27,7 +33,7 @@ pub fn b64_encode(val: &str, kwargs: Kwargs, _: &State) -> TeraResult<String> {
 pub fn b64_decode(val: &str, kwargs: Kwargs, _: &State) -> TeraResult<String> {
     let url_safe = kwargs.get::<bool>("url_safe")?.unwrap_or(false);
     let decoded = if url_safe {
-        general_purpose::URL_SAFE.decode(val)
+        URL_SAFE_DECODE.decode(val)
     } else {
         general_purpose::STANDARD.decode(val)
     };
