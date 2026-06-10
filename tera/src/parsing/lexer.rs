@@ -184,7 +184,7 @@ impl<'a> fmt::Display for Token<'a> {
             Token::VariableEnd(_) => write!(f, "`}}}}`"),
             Token::TagStart(_) => write!(f, "`{{%`"),
             Token::TagEnd(_) => write!(f, "`%}}`"),
-            Token::Comment(_, _) => write!(f, "comment`"),
+            Token::Comment(_, _) => write!(f, "comment"),
             Token::Ident(_) => write!(f, "identifier"),
             Token::String(_) | Token::Str(_) => write!(f, "string"),
             Token::Integer(_) => write!(f, "integer"),
@@ -207,7 +207,7 @@ impl<'a> fmt::Display for Token<'a> {
             Token::Assign => write!(f, "`=`"),
             Token::Pipe => write!(f, "`|`"),
             Token::Equal => write!(f, "`==`"),
-            Token::NotEqual => write!(f, "`!="),
+            Token::NotEqual => write!(f, "`!=`"),
             Token::GreaterThan => write!(f, "`>`"),
             Token::GreaterThanOrEqual => write!(f, "`>=`"),
             Token::LessThan => write!(f, "`<`"),
@@ -292,7 +292,7 @@ fn basic_tokenize(
     }
 
     macro_rules! lex_number {
-        ($is_negative:expr) => {{
+        () => {{
             let start_loc = loc!();
             let mut is_float = false;
             let num_len = rest
@@ -311,7 +311,7 @@ fn basic_tokenize(
             if is_float {
                 return Some(Ok((
                     Token::Float(match num.parse::<f64>() {
-                        Ok(val) => val * if $is_negative { -1.0 } else { 1.0 },
+                        Ok(val) => val,
                         Err(_) => syntax_error!("Invalid float", make_span!(start_loc)),
                     }),
                     make_span!(start_loc),
@@ -319,7 +319,7 @@ fn basic_tokenize(
             } else {
                 return Some(Ok((
                     Token::Integer(match num.parse::<i64>() {
-                        Ok(val) => val * if $is_negative { -1 } else { 1 },
+                        Ok(val) => val,
                         Err(_) => syntax_error!("Invalid Integer", make_span!(start_loc)),
                     }),
                     make_span!(start_loc),
@@ -596,7 +596,7 @@ fn basic_tokenize(
                         Some(b'\'') => lex_string!(b'\''),
                         Some(b'"') => lex_string!(b'"'),
                         Some(b'`') => lex_string!(b'`'),
-                        Some(c) if c.is_ascii_digit() => lex_number!(false),
+                        Some(c) if c.is_ascii_digit() => lex_number!(),
                         _ => None,
                     };
                     if let Some(op) = op {
