@@ -298,17 +298,21 @@ impl ForLoop {
                 Some(Value::from(self.loop_data.length as u64))
             }
             _ => {
-                // Check if this is the value variable
+                if !self.context.is_empty()
+                    && let Some(v) = self.context.get(name)
+                {
+                    return Some(v.clone());
+                }
+
                 if self.value_name == name {
                     return Some(self.current_values.1.clone());
                 }
 
-                // Check if this is the key variable
                 if self.key_name.as_deref() == Some(name) {
                     return Some(self.current_values.0.clone().unwrap_or(Value::none()));
                 }
 
-                self.context.get(name).cloned()
+                None
             }
         }
     }
