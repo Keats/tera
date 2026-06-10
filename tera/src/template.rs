@@ -25,7 +25,7 @@ pub struct Template {
     pub(crate) function_calls: HashMap<String, Vec<Span>>,
     pub(crate) include_calls: HashMap<String, Vec<Span>>,
     /// The number of bytes of raw content in its parents and itself
-    pub(crate) raw_content_num_bytes: usize,
+    pub(crate) total_content_num_bytes: usize,
     /// The full list of parent templates names
     pub(crate) parents: Vec<String>,
     pub(crate) block_lineage: HashMap<String, Vec<Chunk>>,
@@ -80,8 +80,6 @@ impl Template {
             })
             .collect();
 
-        let raw_content_num_bytes = body_compiler.raw_content_num_bytes;
-
         let mut filter_calls = body_compiler.filter_calls;
         let mut test_calls = body_compiler.test_calls;
         let mut function_calls = body_compiler.function_calls;
@@ -125,7 +123,7 @@ impl Template {
             path,
             blocks,
             block_name_spans,
-            raw_content_num_bytes,
+            total_content_num_bytes: source.len(),
             chunk,
             parents,
             components,
@@ -141,7 +139,7 @@ impl Template {
     }
 
     pub(crate) fn size_hint(&self) -> usize {
-        (self.raw_content_num_bytes * 2).next_power_of_two()
+        (self.total_content_num_bytes * 2).next_power_of_two()
     }
 }
 

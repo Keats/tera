@@ -153,8 +153,7 @@ impl Tera {
     #[cfg(feature = "glob_fs")]
     pub fn full_reload(&mut self) -> TeraResult<()> {
         if let Some(glob) = self.glob.clone().as_ref() {
-            self.load_from_glob(glob)?;
-            self.finalize_templates()
+            self.load_from_glob(glob)
         } else {
             Err(Error::message(
                 "Reloading is only available if you are using a glob",
@@ -605,9 +604,11 @@ impl Tera {
                     }
                 }
             }
-            let mut size_hint = tpl.raw_content_num_bytes;
+
+            // This will include the Tera expr etc but it's ok, it's just a hint
+            let mut size_hint = tpl.source.len();
             for parent in &parents {
-                size_hint += self.templates[parent].raw_content_num_bytes;
+                size_hint += self.templates[parent].source.len();
             }
 
             tpl_parents.insert(name.clone(), parents);
@@ -701,7 +702,7 @@ impl Tera {
 
         // 3rd loop: we actually set everything we've done on the templates objects
         for (name, tpl) in self.templates.iter_mut() {
-            tpl.raw_content_num_bytes = tpl_size_hint.remove(name.as_str()).unwrap();
+            tpl.total_content_num_bytes = tpl_size_hint.remove(name.as_str()).unwrap();
             tpl.parents = tpl_parents.remove(name.as_str()).unwrap();
             tpl.block_lineage = tpl_blocks.remove(name.as_str()).unwrap();
         }

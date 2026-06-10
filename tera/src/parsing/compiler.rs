@@ -38,7 +38,6 @@ pub(crate) struct Compiler {
     pub(crate) top_level_variables: HashSet<String>,
     /// Represents variables set by a loop or by set
     pub(crate) temp_variables: Vec<HashSet<String>>,
-    pub(crate) raw_content_num_bytes: usize,
 }
 
 impl Compiler {
@@ -56,7 +55,6 @@ impl Compiler {
             top_level_variables: HashSet::default(),
             temp_variables: vec![HashSet::new()],
             block_depth: 0,
-            raw_content_num_bytes: 0,
         }
     }
 
@@ -465,7 +463,6 @@ impl Compiler {
     pub fn compile_node(&mut self, node: Node) {
         match node {
             Node::Content(text) => {
-                self.raw_content_num_bytes += text.len();
                 self.chunk.add(Instruction::WriteText(text), None);
             }
             Node::Expression(expr) => {
