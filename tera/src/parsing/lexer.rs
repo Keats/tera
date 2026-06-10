@@ -338,15 +338,16 @@ fn basic_tokenize(
                 .iter()
                 .skip(1)
                 .take_while(|&&c| {
+                    // If we were escaping something, continue
+                    if escaped {
+                        escaped = false;
+                        return true;
+                    }
+
                     // if we are escaping something, note it and continue
                     if c == b'\\' {
                         has_escapes = true;
                         escaped = true;
-                        return true;
-                    }
-                    // If we were escaping something, continue
-                    if escaped == true {
-                        escaped = false;
                         return true;
                     }
                     c != $delim

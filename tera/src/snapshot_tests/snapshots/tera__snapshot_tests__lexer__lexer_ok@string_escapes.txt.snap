@@ -1,0 +1,23 @@
+---
+source: tera/src/snapshot_tests/lexer.rs
+expression: "&tokens"
+input_file: tera/src/snapshot_tests/lexer_inputs/success/string_escapes.txt
+---
+[
+    VARIABLE_START(false),
+    STRING("\\"),
+    VARIABLE_END(false),
+    CONTENT(" "),
+    VARIABLE_START(false),
+    STRING("C:\\path"),
+    VARIABLE_END(false),
+    CONTENT(" "),
+    VARIABLE_START(false),
+    STRING("a\\b"),
+    VARIABLE_END(false),
+    CONTENT(" "),
+    VARIABLE_START(false),
+    STRING("a\"b"),
+    VARIABLE_END(false),
+    CONTENT("\n"),
+]
