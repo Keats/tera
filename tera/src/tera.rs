@@ -118,12 +118,24 @@ impl Tera {
         let prev_templates = std::mem::take(&mut self.templates);
         let prev_glob = self.glob.replace(glob.to_string());
 
+        // we keep manually-added templates
+        self.templates = prev_templates
+            .iter()
+            .filter(|(_, tpl)| !tpl.from_glob)
+            .map(|(name, tpl)| (name.clone(), tpl.clone()))
+            .collect();
+
         let result = match load_from_glob(glob) {
             Ok(entries) => {
                 let mut errors = Vec::new();
                 for (path, name) in entries {
-                    if let Err(e) = self.add_file(&path, Some(&name)) {
-                        errors.push(format!("Failed to load {}: {e}", path.display()));
+                    match self.add_file(&path, Some(&name)) {
+                        Ok((key, _)) => {
+                            if let Some(tpl) = self.templates.get_mut(&key) {
+                                tpl.from_glob = true;
+                            }
+                        }
+                        Err(e) => errors.push(format!("Failed to load {}: {e}", path.display())),
                     }
                 }
                 if !errors.is_empty() {
@@ -150,6 +162,7 @@ impl Tera {
     ///
     /// If you are adding templates without using a glob, we can't know when a template
     /// is deleted, which would result in an error if we are trying to reload that file.
+    /// Templates added manually are preserved.
     #[cfg(feature = "glob_fs")]
     pub fn full_reload(&mut self) -> TeraResult<()> {
         if let Some(glob) = self.glob.clone().as_ref() {
@@ -1435,6 +1448,28 @@ mod tests {
         let result = tera.full_reload();
         assert!(result.is_err());
         assert_eq!(tera.render("good.html", &ctx).unwrap(), "Hello world");
+    }
+
+    #[cfg(feature = "glob_fs")]
+    #[test]
+    fn load_from_glob_preserves_manual_templates() {
+        let dir = tempfile::tempdir().unwrap();
+        let page = dir.path().join("page.html");
+        std::fs::write(&page, "page").unwrap();
+        let glob = dir.path().join("**/*").to_string_lossy().to_string();
+
+        let mut tera = Tera::default();
+        tera.add_raw_template("main.html", "main").unwrap();
+        tera.load_from_glob(&glob).unwrap();
+
+        let ctx = Context::new();
+        assert_eq!(tera.render("main.html", &ctx).unwrap(), "main");
+        assert_eq!(tera.render("page.html", &ctx).unwrap(), "page");
+
+        std::fs::remove_file(&page).unwrap();
+        tera.full_reload().unwrap();
+        assert_eq!(tera.render("main.html", &ctx).unwrap(), "main");
+        assert!(tera.get_template("page.html").is_none());
     }
 
     #[test]

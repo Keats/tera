@@ -13,6 +13,8 @@ pub struct Template {
     pub name: String,
     pub(crate) source: String,
     pub(crate) path: Option<String>,
+    /// Whether this template was loaded by `load_from_glob`
+    pub(crate) from_glob: bool,
     pub(crate) chunk: Chunk,
     /// The blocks contained in this template only
     pub(crate) blocks: HashMap<String, Chunk>,
@@ -121,6 +123,7 @@ impl Template {
             name: tpl_name.to_string(),
             source: source.to_string(),
             path,
+            from_glob: false,
             blocks,
             block_name_spans,
             total_content_num_bytes: source.len(),
