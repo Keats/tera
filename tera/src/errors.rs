@@ -150,6 +150,13 @@ pub enum ErrorKind {
         #[allow(missing_docs)]
         arg_name: String,
     },
+    /// A numeric argument had the right type but did not fit in the target type
+    OutOfRangeArgument {
+        #[allow(missing_docs)]
+        value: String,
+        #[allow(missing_docs)]
+        target_type: String,
+    },
     /// An IO error occurred
     Io(std::io::ErrorKind),
     /// UTF-8 conversion error when converting output to UTF-8
@@ -203,6 +210,9 @@ impl fmt::Display for ErrorKind {
             ),
             ErrorKind::MissingArgument { arg_name } => {
                 write!(f, "Missing keyword argument `{arg_name}`")
+            }
+            ErrorKind::OutOfRangeArgument { value, target_type } => {
+                write!(f, "Value `{value}` is out of range for `{target_type}`")
             }
             ErrorKind::Io(io_error) => {
                 write!(
@@ -325,6 +335,16 @@ impl Error {
             kind: ErrorKind::InvalidArgument {
                 expected_type: expected_type.to_string(),
                 actual_type: actual_type.to_string(),
+            },
+            source: None,
+        }
+    }
+
+    pub(crate) fn out_of_range_arg(value: impl ToString, target_type: impl ToString) -> Self {
+        Self {
+            kind: ErrorKind::OutOfRangeArgument {
+                value: value.to_string(),
+                target_type: target_type.to_string(),
             },
             source: None,
         }

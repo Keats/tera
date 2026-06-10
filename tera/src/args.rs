@@ -74,16 +74,42 @@ macro_rules! impl_for_literal {
         }
     }
 }
+
+fn int_from_value<T>(value: &Value, target_type: &'static str) -> TeraResult<T>
+where
+    T: TryFrom<i64> + TryFrom<i128> + TryFrom<u64> + TryFrom<u128>,
+{
+    let res = match &value.inner {
+        ValueInner::I64(v) => T::try_from(*v).ok(),
+        ValueInner::I128(v) => T::try_from(**v).ok(),
+        ValueInner::U64(v) => T::try_from(*v).ok(),
+        ValueInner::U128(v) => T::try_from(**v).ok(),
+        ValueInner::F64(v) if v.trunc() == *v => {
+            T::try_from(*v as i128).ok()
+        }
+        _ => return Err(Error::invalid_arg_type(target_type, value.name())),
+    };
+    res.ok_or_else(|| Error::out_of_range_arg(value, target_type))
+}
+
 macro_rules! impl_for_int {
     ($ty:ident) => {
-        impl_for_literal!($ty, {
-            ValueInner::I64(v) => *v,
-            ValueInner::I128(v) => **v,
-            ValueInner::U64(v) => *v,
-            ValueInner::U128(v) => **v,
-            ValueInner::F64(v) if (*v == *v as i64 as f64) => *v as i64,
-        });
-    }
+        impl TryFrom<Value> for $ty {
+            type Error = Error;
+
+            fn try_from(value: Value) -> Result<Self, Self::Error> {
+                int_from_value(&value, stringify!($ty))
+            }
+        }
+
+        impl<'k> ArgFromValue<'k> for $ty {
+            type Output = Self;
+
+            fn from_value(value: &Value) -> Result<Self, Error> {
+                int_from_value(value, stringify!($ty))
+            }
+        }
+    };
 }
 impl_for_int!(u8);
 impl_for_int!(u16);
@@ -287,5 +313,16 @@ mod tests {
         let data: Data = kwargs.deserialize().unwrap();
         assert_eq!(data.num, 1.1);
         assert_eq!(data.hello, "world");
+    }
+
+    #[test]
+    fn int_out_of_range_reports_range_not_type() {
+        let kwargs = Kwargs::from([("n", Value::from(300))]);
+        let err = kwargs.get::<u8>("n").unwrap_err();
+        assert_eq!(err.to_string(), "Value `300` is out of range for `u8`");
+
+        let kwargs = Kwargs::from([("n", Value::from(-1))]);
+        let err = kwargs.get::<usize>("n").unwrap_err();
+        assert_eq!(err.to_string(), "Value `-1` is out of range for `usize`");
     }
 }
