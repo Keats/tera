@@ -1,4 +1,4 @@
-use jiff::fmt::temporal::DateTimeParser;
+use jiff::fmt::temporal::{DateTimeParser, Pieces};
 use jiff::tz::TimeZone;
 use jiff::{Timestamp, Zoned};
 use tera::{Kwargs, Number, State, TeraResult, Value};
@@ -12,9 +12,13 @@ fn parse_to_zoned(val: &Value, tz: Option<TimeZone>) -> TeraResult<Zoned> {
         PARSER
             .parse_zoned(s)
             .or_else(|_| {
-                PARSER
-                    .parse_timestamp(s)
-                    .map(|t| t.to_zoned(default_tz.clone()))
+                PARSER.parse_timestamp(s).map(|t| {
+                    let zone = Pieces::parse(s)
+                        .ok()
+                        .and_then(|p| p.to_numeric_offset())
+                        .map_or_else(|| default_tz.clone(), TimeZone::fixed);
+                    t.to_zoned(zone)
+                })
             })
             .or_else(|_| {
                 PARSER
@@ -155,6 +159,13 @@ mod tests {
                 Some("%Y-%m-%d %z"),
                 None,
                 "1996-12-19 -0800",
+            ),
+            // a bare RFC3339 offset (no brackets) preserves the offset too
+            (
+                Value::from("1996-12-19T16:39:57-08:00"),
+                Some("%Y-%m-%d %H:%M %z"),
+                None,
+                "1996-12-19 16:39 -0800",
             ),
             // simple date
             (
