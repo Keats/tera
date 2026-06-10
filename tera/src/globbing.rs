@@ -8,13 +8,21 @@ use crate::errors::{Error, TeraResult};
 /// Loads the glob and find all files matching that glob,
 /// returning a list of (path, filename)
 pub fn load_from_glob(glob: &str) -> TeraResult<Vec<(PathBuf, String)>> {
-    let Some(idx) = glob.find('*') else {
+    let Some(first_star) = glob.find('*') else {
         return Err(Error::message(format!(
             "Not a valid glob: no `*` were found in `{glob}`"
         )));
     };
 
-    let (parent_dir, glob_end) = glob.split_at(idx);
+    // https://github.com/Keats/tera/pull/991
+    let split_at = glob[..first_star].rfind('/').map_or(0, |i| i + 1);
+    let (parent_dir, glob_end) = glob.split_at(split_at);
+    // If no directory, we default to cwd
+    let parent_dir = if parent_dir.is_empty() {
+        "."
+    } else {
+        parent_dir
+    };
 
     // If canonicalize fails, just abort it and resume with the given path.
     // Consumers expect invalid globs to just return the empty set instead of failing.
@@ -49,12 +57,11 @@ pub fn load_from_glob(glob: &str) -> TeraResult<Vec<(PathBuf, String)>> {
             path = path.strip_prefix("./").unwrap().to_path_buf();
         }
 
-        let filepath = path
-            .strip_prefix(&parent_dir)
-            .unwrap()
-            .to_string_lossy()
-            // unify on forward slash
-            .replace('\\', "/");
+        let Ok(relative) = path.strip_prefix(&parent_dir) else {
+            continue;
+        };
+        // unify on forward slash
+        let filepath = relative.to_string_lossy().replace('\\', "/");
 
         paths.push((path, filepath));
     }
@@ -149,5 +156,31 @@ mod tests {
     fn empty_list_on_invalid_glob() {
         let data = load_from_glob("\\dev/null/*").unwrap();
         assert!(data.is_empty());
+    }
+
+    #[test]
+    fn glob_without_directory_resolves_against_cwd() {
+        let data = load_from_glob("*.toml").unwrap();
+        assert!(data.iter().any(|(_, name)| name == "Cargo.toml"));
+    }
+
+    // https://github.com/Keats/tera/issues/740
+    // A wildcard in a directory component (eg `templ*/`) must split the base dir on the path
+    // boundary, not mid-component. Ported from Keats/tera#991.
+    #[test]
+    fn glob_with_wildcard_in_directory_component() {
+        let tmp_dir = tempdir().expect("create temp dir");
+        let root = tmp_dir.path().canonicalize().unwrap();
+        std::fs::create_dir(root.join("templates")).unwrap();
+        File::create(root.join("templates").join("hey.html")).unwrap();
+
+        let glob = root
+            .join("templ*")
+            .join("*.html")
+            .to_string_lossy()
+            .to_string();
+        let data = load_from_glob(&glob).unwrap();
+        assert_eq!(data.len(), 1);
+        assert!(data.iter().any(|(_, name)| name == "templates/hey.html"));
     }
 }
