@@ -486,11 +486,18 @@ pub(crate) fn sort(mut val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult
     }
 
     if let Some(attribute) = kwargs.get::<&str>("attribute")? {
-        val.sort_by(|a, b| {
-            let key_a = a.get_from_path(attribute);
-            let key_b = b.get_from_path(attribute);
-            key_a.cmp(&key_b)
-        });
+        let mut decorated = Vec::with_capacity(val.len());
+        for v in val {
+            let key = v.get_from_path(attribute);
+            if key.is_undefined() {
+                return Err(Error::message(format!(
+                    "Value {v} does not have an attribute after following path: {attribute}"
+                )));
+            }
+            decorated.push((key, v));
+        }
+        decorated.sort_by(|(a, _), (b, _)| a.cmp(b));
+        val = decorated.into_iter().map(|(_, v)| v).collect();
     } else {
         val.sort();
     }

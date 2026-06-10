@@ -1,0 +1,1 @@
+{{ [{"id": 1, "year": 2015}, {"id": 2}] | sort(attribute="year") }}
