@@ -226,6 +226,50 @@ impl fmt::Debug for Value {
     }
 }
 
+fn cmp_f64_to_number(x: f64, other: &Value) -> Option<Ordering> {
+    if let Some(n) = other.as_i128() {
+        Some(cmp_f64_to_i128(x, n))
+    } else {
+        other.as_u128().map(|n| cmp_f64_to_u128(x, n))
+    }
+}
+
+fn cmp_f64_to_i128(x: f64, n: i128) -> Ordering {
+    if x.is_nan() {
+        return Ordering::Greater;
+    }
+    if x < i128::MIN as f64 {
+        return Ordering::Less;
+    }
+    if x >= i128::MAX as f64 {
+        return Ordering::Greater;
+    }
+
+    let floor = x.floor();
+    match (floor as i128).cmp(&n) {
+        Ordering::Equal if x > floor => Ordering::Greater,
+        ord => ord,
+    }
+}
+
+fn cmp_f64_to_u128(x: f64, n: u128) -> Ordering {
+    if x.is_nan() {
+        return Ordering::Greater;
+    }
+    if x < 0.0 {
+        return Ordering::Less;
+    }
+    if x >= u128::MAX as f64 {
+        return Ordering::Greater;
+    }
+
+    let floor = x.floor();
+    match (floor as u128).cmp(&n) {
+        Ordering::Equal if x > floor => Ordering::Greater,
+        ord => ord,
+    }
+}
+
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (&self.inner, &other.inner) {
@@ -241,9 +285,8 @@ impl PartialEq for Value {
             (ValueInner::Map(v), ValueInner::Map(v2)) => v == v2,
             // Then the numbers
             (ValueInner::F64(a), ValueInner::F64(b)) => (a.is_nan() && b.is_nan()) || a == b,
-            // First if there's a float we need to convert to float
-            (ValueInner::F64(v), _) => Some(*v) == other.as_f64(),
-            (_, ValueInner::F64(v)) => Some(*v) == self.as_f64(),
+            (ValueInner::F64(v), _) => cmp_f64_to_number(*v, other) == Some(Ordering::Equal),
+            (_, ValueInner::F64(v)) => cmp_f64_to_number(*v, self) == Some(Ordering::Equal),
             (
                 ValueInner::U64(_) | ValueInner::I64(_) | ValueInner::U128(_) | ValueInner::I128(_),
                 ValueInner::U64(_) | ValueInner::I64(_) | ValueInner::U128(_) | ValueInner::I128(_),
@@ -271,10 +314,18 @@ impl PartialOrd for Value {
             (ValueInner::Bytes(v), ValueInner::Bytes(v2)) => v.partial_cmp(v2),
             (ValueInner::String(v), ValueInner::String(v2)) => v.as_str().partial_cmp(v2.as_str()),
             // Then the numbers
-            (ValueInner::F64(a), ValueInner::F64(b)) => Some(a.total_cmp(b)),
-            // First if there's a float we need to convert to float
-            (ValueInner::F64(v), _) => v.partial_cmp(&other.as_f64()?),
-            (_, ValueInner::F64(v)) => self.as_f64()?.partial_cmp(v),
+            (ValueInner::F64(a), ValueInner::F64(b)) => {
+                let ord = a
+                    .partial_cmp(b)
+                    .unwrap_or_else(|| match (a.is_nan(), b.is_nan()) {
+                        (false, true) => Ordering::Less,
+                        (true, false) => Ordering::Greater,
+                        _ => Ordering::Equal,
+                    });
+                Some(ord)
+            }
+            (ValueInner::F64(v), _) => cmp_f64_to_number(*v, other),
+            (_, ValueInner::F64(v)) => cmp_f64_to_number(*v, self).map(Ordering::reverse),
             (
                 ValueInner::U64(_) | ValueInner::I64(_) | ValueInner::U128(_) | ValueInner::I128(_),
                 ValueInner::U64(_) | ValueInner::I64(_) | ValueInner::U128(_) | ValueInner::I128(_),

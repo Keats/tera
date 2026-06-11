@@ -1,6 +1,5 @@
 ---
 source: tera/src/snapshot_tests/rendering.rs
-assertion_line: 156
 expression: "&normalized_out"
 input_file: tera/src/snapshot_tests/rendering_inputs/success/mixed_numeric_compare.txt
 ---
@@ -14,4 +13,6 @@ false
 true
 true
 false
+true
+true
 true

@@ -479,6 +479,27 @@ pub(crate) fn join(val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult<Str
         .join(sep))
 }
 
+/// We want to check if the items can actually be sorted, eg be comparable. We allow null
+/// to stay though but eg a number and a string in the same vec will raise an error.
+fn ensure_comparable<'a>(keys: impl Iterator<Item = &'a Value>) -> TeraResult<()> {
+    let mut prev: Option<&Value> = None;
+    for key in keys {
+        if let Some(prev) = prev {
+            let skippable = prev.is_none() || key.is_none();
+            if !skippable && prev.partial_cmp(key).is_none() {
+                return Err(Error::message(format!(
+                    "Cannot sort: `{}` and `{}` are not comparable",
+                    prev.name(),
+                    key.name()
+                )));
+            }
+        }
+        prev = Some(key);
+    }
+
+    Ok(())
+}
+
 /// Sorts an array. If `attribute` is provided, sorts by that attribute.
 pub(crate) fn sort(mut val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
     if val.is_empty() {
@@ -497,9 +518,14 @@ pub(crate) fn sort(mut val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult
             decorated.push((key, v));
         }
         decorated.sort_by(|(a, _), (b, _)| a.cmp(b));
+        ensure_comparable(decorated.iter().map(|(k, _)| k))?;
         val = decorated.into_iter().map(|(_, v)| v).collect();
     } else {
-        val.sort();
+        // We sort with Ord::cmp because we have our own custom impl that the default sorting will
+        // disagree with
+        #[allow(clippy::unnecessary_sort_by)]
+        val.sort_by(|a, b| a.cmp(b));
+        ensure_comparable(val.iter())?;
     }
 
     Ok(val)

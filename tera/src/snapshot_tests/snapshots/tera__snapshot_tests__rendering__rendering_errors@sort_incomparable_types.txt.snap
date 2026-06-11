@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&err"
+input_file: tera/src/snapshot_tests/rendering_inputs/errors/sort_incomparable_types.txt
+---
+error: Cannot sort: `i64` and `string` are not comparable
+ --> sort_incomparable_types.txt:1:28
+  |
+1 | {{ [2, 'a', 1.5, 'b', 0] | sort }}
+  |                            ^^^^
