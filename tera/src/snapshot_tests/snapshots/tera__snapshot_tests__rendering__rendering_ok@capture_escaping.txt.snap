@@ -1,0 +1,8 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/capture_escaping.txt
+---
+capture: literal <b> and value &lt;p&gt;Some HTML chars &amp; more&lt;/p&gt;
+nested:[literal <b> and value &lt;p&gt;Some HTML chars &amp; more&lt;/p&gt;]
+safe inside:<p>Some HTML chars & more</p> vs &lt;p&gt;Some HTML chars &amp; more&lt;/p&gt;

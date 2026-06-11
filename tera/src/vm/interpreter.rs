@@ -615,7 +615,7 @@ impl<'tera> VirtualMachine<'tera> {
                 }
                 Instruction::EndCapture => {
                     let captured = state.capture_buffers.pop().unwrap();
-                    let val = Value::from(String::from_utf8(captured)?);
+                    let val = Value::safe_string(&String::from_utf8(captured)?);
                     state.stack.push(val, current_ip..=current_ip);
                 }
                 Instruction::StartIterate(is_key_value)

@@ -1,0 +1,2 @@
+filter: {% filter upper %}{{ some_html }}{% endfilter %}
+filter safe inside: {% filter upper %}{{ some_html | safe }}{% endfilter %}

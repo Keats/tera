@@ -1,0 +1,4 @@
+{%- set captured -%}literal <b> and value {{ some_html }}{%- endset -%}
+capture: {{ captured }}
+nested:  {%- set outer -%}[{{ captured }}]{%- endset -%} {{ outer }}
+safe inside: {%- set mixed -%}{{ some_html | safe }} vs {{ some_html }}{%- endset -%} {{ mixed }}

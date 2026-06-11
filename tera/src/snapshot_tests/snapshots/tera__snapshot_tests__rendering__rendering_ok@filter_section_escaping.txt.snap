@@ -1,0 +1,7 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/filter_section_escaping.txt
+---
+filter: &amp;LT;P&amp;GT;SOME HTML CHARS &amp;AMP; MORE&amp;LT;/P&amp;GT;
+filter safe inside: &lt;P&gt;SOME HTML CHARS &amp; MORE&lt;/P&gt;
