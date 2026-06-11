@@ -471,33 +471,29 @@ impl<'tera> VirtualMachine<'tera> {
                                 current_ip..=current_ip
                             );
                         };
+                        // The active block is the topmost matching entry on the stack
+                        let pos = state
+                            .blocks
+                            .iter()
+                            .rposition(|entry| entry.0 == current_block_name)
+                            .expect("no lineage found");
+                        let (_, lineage, level) = state.blocks[pos];
                         // We can't use super() in the top level block
-                        {
-                            let (blocks, level) = state
-                                .blocks
-                                .get(current_block_name)
-                                .expect("no lineage found");
-                            if level + 1 >= blocks.len() {
-                                rendering_error!(
-                                    "Tried to use super() in the top level block".to_string(),
-                                    current_ip..=current_ip
-                                );
-                            }
+                        if level + 1 >= lineage.len() {
+                            rendering_error!(
+                                "Tried to use super() in the top level block".to_string(),
+                                current_ip..=current_ip
+                            );
                         }
-                        let (blocks, level) = state.blocks.remove(current_block_name).unwrap();
-                        let block_chunk = blocks[level + 1];
+                        let block_chunk = &lineage[level + 1];
                         let old_chunk = state.chunk.replace(block_chunk);
-                        state.blocks.insert(current_block_name, (blocks, level + 1));
+                        state.blocks[pos].2 = level + 1;
                         let mut super_output = Vec::with_capacity(128);
                         let old_capture_buffers = std::mem::take(&mut state.capture_buffers);
                         let res = self.interpret(state, &mut super_output);
                         state.capture_buffers = old_capture_buffers;
                         state.chunk = old_chunk;
-                        state
-                            .blocks
-                            .get_mut(current_block_name)
-                            .expect("super() lineage went missing")
-                            .1 = level;
+                        state.blocks[pos].2 = level;
                         res?;
                         let val = String::from_utf8(super_output)?;
                         state
@@ -556,22 +552,21 @@ impl<'tera> VirtualMachine<'tera> {
                     component!(name, current_ip, false);
                 }
                 Instruction::RenderBlock(block_name) => {
-                    let block_lineage: Vec<_> = self
+                    let Some(block_lineage) = self
                         .template
                         .block_lineage
                         .get(block_name)
-                        .map(|bl| bl.iter().collect())
-                        .unwrap_or_default();
-                    if block_lineage.is_empty() {
+                        .filter(|bl| !bl.is_empty())
+                    else {
                         return Err(Error::message(format!(
                             "Block '{}' has no block lineage in template '{}'. \
                             This usually means the template was not properly finalized.",
                             block_name, self.template.name
                         )));
-                    }
-                    let block_chunk = block_lineage[0];
+                    };
+                    let block_chunk = &block_lineage[0];
                     let old_chunk = state.chunk.replace(block_chunk);
-                    state.blocks.insert(block_name, (block_lineage, 0));
+                    state.blocks.push((block_name, block_lineage, 0));
                     let old_block_name = state.current_block_name.replace(block_name);
                     let res = if state.capture_block == Some(block_name.as_str()) {
                         let mut buf = Vec::with_capacity(256);
@@ -583,6 +578,7 @@ impl<'tera> VirtualMachine<'tera> {
                     };
                     state.chunk = old_chunk;
                     state.current_block_name = old_block_name;
+                    state.blocks.pop();
                     res?;
                 }
                 Instruction::Jump(target_ip) => {

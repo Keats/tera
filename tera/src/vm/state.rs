@@ -38,8 +38,8 @@ pub struct State<'tera> {
     /// The buffer just for the one block we want to return
     pub(crate) block_buffer: Vec<u8>,
 
-    /// (block name, (all_chunks, level))
-    pub(crate) blocks: BTreeMap<&'tera str, (Vec<&'tera Chunk>, usize)>,
+    /// (block name, all_chunks, level).
+    pub(crate) blocks: Vec<(&'tera str, &'tera Vec<Chunk>, usize)>,
     pub(crate) current_block_name: Option<&'tera str>,
     /// Reference to registered filters for calling filters from within filters (e.g., map filter)
     pub(crate) filters: Option<&'tera HashMap<Cow<'static, str>, StoredFilter>>,
@@ -67,7 +67,7 @@ impl<'t> State<'t> {
             include_parent: None,
             capture_block: None,
             block_buffer: Vec::new(),
-            blocks: BTreeMap::new(),
+            blocks: Vec::new(),
             current_block_name: None,
             filters: None,
         }
