@@ -53,7 +53,6 @@ pub type EscapeFn = fn(&str, &mut dyn Write) -> std::io::Result<()>;
 /// use tera::Tera;
 ///
 /// let mut tera = Tera::default();
-/// tera.load_from_glob("examples/basic/templates/**/*").unwrap();
 /// tera.add_raw_template("hello", "Hello, {{ name }}!").unwrap();
 ///
 /// // Prepare the context with some data
@@ -258,11 +257,11 @@ impl Tera {
     /// // Create new Tera instance
     /// let mut tera = Tera::default();
     ///
-    /// // Override escape function to escape the capital letter A, why not
+    /// // Override escape function to escape the letter A, why not
     /// tera.set_escape_fn(|input: &str, output: &mut dyn Write| {
     ///     for byte in input.bytes() {
     ///         match byte {
-    ///             b'A' => output.write_all(b"\xc6\x90")?,
+    ///             b'a' => output.write_all(b"?")?,
     ///             _ => output.write_all(&[byte])?,
     ///         }
     ///     }
@@ -275,11 +274,11 @@ impl Tera {
     ///
     /// // Create context with some data
     /// let mut context = Context::new();
-    /// context.insert("content", &"Hello\n'world\"!");
+    /// context.insert("content", &r#"Hello tera"#);
     ///
     /// // Render template
     /// let result = tera.render("hello.js", &context).unwrap();
-    /// assert_eq!(result, r#"const data = "Hello\n\'world\"!";"#);
+    /// assert_eq!(result, r#"const data = "Hello ter?";"#);
     /// ```
     pub fn set_escape_fn(&mut self, function: EscapeFn) {
         self.escape_fn = function;

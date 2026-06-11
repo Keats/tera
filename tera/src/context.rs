@@ -105,6 +105,8 @@ impl Context {
 ///
 /// Example:
 /// ```rust
+/// use tera::context;
+///
 /// let age = 24;
 /// let ctx = context! {
 ///     name => "Brian",
@@ -113,6 +115,9 @@ impl Context {
 /// ```
 /// Expands to:
 /// ```
+/// use tera::Context;
+///
+/// let age = 24;
 /// let ctx = {
 ///     let mut context = Context::new();
 ///     context.insert("name", "Brian");

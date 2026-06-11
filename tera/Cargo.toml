@@ -52,9 +52,6 @@ features = [
     "glob_fs",
 ]
 
-[lib]
-doctest = false
-
 [[bench]]
 name = "value"
 harness = false
