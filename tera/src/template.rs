@@ -28,6 +28,8 @@ pub struct Template {
     pub(crate) include_calls: HashMap<String, Vec<Span>>,
     /// The number of bytes of raw content in its parents and itself
     pub(crate) total_content_num_bytes: usize,
+    /// The exact `{% extends %}` target in the source
+    pub(crate) extends: Option<String>,
     /// The full list of parent templates names
     pub(crate) parents: Vec<String>,
     pub(crate) block_lineage: HashMap<String, Vec<Chunk>>,
@@ -59,11 +61,7 @@ impl Template {
                 _ => unreachable!("Parser got something other than a SyntaxError: {e}"),
             },
         };
-        let parents = if let Some(p) = parser_output.parent {
-            vec![p]
-        } else {
-            vec![]
-        };
+        let extends = parser_output.parent;
 
         let mut body_compiler = Compiler::new(tpl_name);
         body_compiler.compile(parser_output.nodes);
@@ -128,7 +126,8 @@ impl Template {
             block_name_spans,
             total_content_num_bytes: source.len(),
             chunk,
-            parents,
+            extends,
+            parents: Vec::new(),
             components,
             component_calls,
             filter_calls,
@@ -188,8 +187,8 @@ pub(crate) fn find_parents(
     template: &Template,
     mut parents: Vec<String>,
 ) -> Result<Vec<String>, Error> {
-    match template.parents.last() {
-        Some(ref p) => match tera.resolve_template_name(p) {
+    match &template.extends {
+        Some(p) => match tera.resolve_template_name(p) {
             Some(resolved) => {
                 if resolved == start.name || parents.iter().any(|name| name == resolved) {
                     let mut chain = parents.clone();

@@ -1645,6 +1645,24 @@ mod tests {
     }
 
     #[test]
+    fn adding_template_re_resolves_lineage_properly() {
+        let mut tera = Tera::default();
+        tera.set_fallback_prefixes(vec!["themes/cool/".to_string()])
+            .unwrap();
+        tera.add_raw_template("themes/cool/base.html", "fallback")
+            .unwrap();
+        tera.add_raw_template("child.html", r#"{% extends "base.html" %}"#)
+            .unwrap();
+        assert_eq!(
+            tera.render("child.html", &Context::new()).unwrap(),
+            "fallback"
+        );
+
+        tera.add_raw_template("base.html", "main").unwrap();
+        assert_eq!(tera.render("child.html", &Context::new()).unwrap(), "main");
+    }
+
+    #[test]
     fn test_get_template_priority() {
         let mut tera = Tera::default();
         tera.set_fallback_prefixes(vec![
