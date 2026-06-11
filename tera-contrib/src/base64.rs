@@ -1,6 +1,12 @@
 use base64::{Engine, engine::general_purpose};
 use tera::{Kwargs, State, TeraResult};
 
+const STANDARD_DECODE: general_purpose::GeneralPurpose = general_purpose::GeneralPurpose::new(
+    &base64::alphabet::STANDARD,
+    general_purpose::GeneralPurposeConfig::new()
+        .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent),
+);
+
 const URL_SAFE_DECODE: general_purpose::GeneralPurpose = general_purpose::GeneralPurpose::new(
     &base64::alphabet::URL_SAFE,
     general_purpose::GeneralPurposeConfig::new()
@@ -8,23 +14,27 @@ const URL_SAFE_DECODE: general_purpose::GeneralPurpose = general_purpose::Genera
 );
 
 /// Encodes a string to base64.
-/// Takes an optional `url_safe` bool parameter if you want to use the URL SAFE b64 characters.
-///
+/// Takes an optional `url_safe` bool parameter (`false` by default) if you want to use the URL SAFE b64 characters
+/// and a `padded` bool parameter on whether you want padding (`true` by default).
+
 /// ```text
 /// {{ value | b64_encode }}
 /// {{ value | b64_encode(url_safe=true) }}
+/// {{ value | b64_encode(url_safe=true, padded=false) }}
 /// ```
 pub fn b64_encode(val: &str, kwargs: Kwargs, _: &State) -> TeraResult<String> {
     let url_safe = kwargs.get::<bool>("url_safe")?.unwrap_or(false);
-    if url_safe {
-        Ok(general_purpose::URL_SAFE.encode(val))
-    } else {
-        Ok(general_purpose::STANDARD.encode(val))
-    }
+    let padded = kwargs.get::<bool>("padded")?.unwrap_or(true);
+    let encoded = match (url_safe, padded) {
+        (false, true) => general_purpose::STANDARD.encode(val),
+        (false, false) => general_purpose::STANDARD_NO_PAD.encode(val),
+        (true, true) => general_purpose::URL_SAFE.encode(val),
+        (true, false) => general_purpose::URL_SAFE_NO_PAD.encode(val),
+    };
+    Ok(encoded)
 }
 
 /// Decodes a base64 string.
-/// Takes an optional `url_safe` bool parameter if you want to use the URL SAFE b64 characters.
 ///
 /// ```text
 /// {{ value | b64_decode }}
@@ -35,7 +45,7 @@ pub fn b64_decode(val: &str, kwargs: Kwargs, _: &State) -> TeraResult<String> {
     let decoded = if url_safe {
         URL_SAFE_DECODE.decode(val)
     } else {
-        general_purpose::STANDARD.decode(val)
+        STANDARD_DECODE.decode(val)
     };
     let bytes = decoded.map_err(|e| tera::Error::message(format!("Invalid base64: {e}")))?;
     String::from_utf8(bytes).map_err(|e| tera::Error::message(format!("Invalid UTF-8: {e}")))
@@ -59,6 +69,19 @@ mod tests {
     }
 
     #[test]
+    fn test_b64_encode_no_padding() {
+        let ctx = Context::new();
+        let state = State::new(&ctx);
+        let mut kwargs_map = Map::new();
+        kwargs_map.insert("padded".into(), false.into());
+        let kwargs = Kwargs::new(Arc::new(kwargs_map));
+        assert_eq!(
+            b64_encode("hello world", kwargs, &state).unwrap(),
+            "aGVsbG8gd29ybGQ"
+        );
+    }
+
+    #[test]
     fn test_b64_encode_url_safe() {
         let ctx = Context::new();
         let state = State::new(&ctx);
@@ -75,6 +98,11 @@ mod tests {
         let state = State::new(&ctx);
         assert_eq!(
             b64_decode("aGVsbG8gd29ybGQ=", Kwargs::default(), &state).unwrap(),
+            "hello world"
+        );
+        // works as well without padding
+        assert_eq!(
+            b64_decode("aGVsbG8gd29ybGQ", Kwargs::default(), &state).unwrap(),
             "hello world"
         );
     }
