@@ -1,4 +1,4 @@
-use crate::value::{Key, Map, ValueInner};
+use crate::value::{Key, ValueInner};
 use crate::{HashMap, Value};
 use std::sync::Arc;
 
@@ -10,13 +10,13 @@ pub(crate) enum ForLoopIterator {
         index: usize,
     },
     Map {
-        map: Arc<Map>,
-        keys: std::vec::IntoIter<Key<'static>>,
+        pairs: std::vec::IntoIter<(Key<'static>, Value)>,
     },
     #[cfg(not(feature = "unicode"))]
     String {
         content: Arc<str>,
         current_pos: usize,
+        remaining: usize,
     },
     Bytes {
         bytes: Arc<Vec<u8>>,
@@ -24,7 +24,9 @@ pub(crate) enum ForLoopIterator {
     },
     #[cfg(feature = "unicode")]
     Graphemes {
-        graphemes: Vec<String>,
+        content: Arc<str>,
+        /// Grapheme byte ranges into the shared `content`
+        ranges: Vec<(usize, usize)>,
         index: usize,
     },
 }
@@ -44,8 +46,7 @@ impl Iterator for ForLoopIterator {
                 }
             }
 
-            ForLoopIterator::Map { map, keys } => keys.next().map(|key| {
-                let value = map[&key].clone();
+            ForLoopIterator::Map { pairs } => pairs.next().map(|(key, value)| {
                 let key_value = key.into();
                 (Some(key_value), value)
             }),
@@ -54,21 +55,22 @@ impl Iterator for ForLoopIterator {
             ForLoopIterator::String {
                 content,
                 current_pos,
+                remaining,
             } => {
                 if *current_pos >= content.len() {
                     return None;
                 }
 
-                let remaining = &content[*current_pos..];
-                if let Some((char_end, _)) = remaining.char_indices().nth(1) {
-                    let char_str = &remaining[..char_end];
+                *remaining -= 1;
+                let rest = &content[*current_pos..];
+                if let Some((char_end, _)) = rest.char_indices().nth(1) {
+                    let char_str = &rest[..char_end];
                     *current_pos += char_end;
                     Some((None, Value::from(char_str)))
                 } else {
                     // Last character
-                    let char_str = remaining;
                     *current_pos = content.len();
-                    Some((None, Value::from(char_str)))
+                    Some((None, Value::from(rest)))
                 }
             }
 
@@ -83,13 +85,17 @@ impl Iterator for ForLoopIterator {
             }
 
             #[cfg(feature = "unicode")]
-            ForLoopIterator::Graphemes { graphemes, index } => {
-                if *index >= graphemes.len() {
+            ForLoopIterator::Graphemes {
+                content,
+                ranges,
+                index,
+            } => {
+                if *index >= ranges.len() {
                     return None;
                 }
-                let grapheme = &graphemes[*index];
+                let (start, end) = ranges[*index];
                 *index += 1;
-                Some((None, Value::from(grapheme.clone())))
+                Some((None, Value::from(&content[start..end])))
             }
         }
     }
@@ -97,19 +103,13 @@ impl Iterator for ForLoopIterator {
     fn size_hint(&self) -> (usize, Option<usize>) {
         match self {
             ForLoopIterator::Array { arr, index } => Self::indexed_size_hint(arr.len(), *index),
-            ForLoopIterator::Map { keys, .. } => keys.size_hint(),
+            ForLoopIterator::Map { pairs } => pairs.size_hint(),
             #[cfg(not(feature = "unicode"))]
-            ForLoopIterator::String {
-                content,
-                current_pos,
-            } => {
-                let remaining = content[*current_pos..].chars().count();
-                (remaining, Some(remaining))
-            }
+            ForLoopIterator::String { remaining, .. } => (*remaining, Some(*remaining)),
             ForLoopIterator::Bytes { bytes, index } => Self::indexed_size_hint(bytes.len(), *index),
             #[cfg(feature = "unicode")]
-            ForLoopIterator::Graphemes { graphemes, index } => {
-                let remaining = graphemes.len() - *index;
+            ForLoopIterator::Graphemes { ranges, index, .. } => {
+                let remaining = ranges.len() - *index;
                 (remaining, Some(remaining))
             }
         }
@@ -126,23 +126,28 @@ impl ForLoopIterator {
         #[cfg(feature = "unicode")]
         {
             use unicode_segmentation::UnicodeSegmentation;
-            let graphemes: Vec<String> = content.graphemes(true).map(|g| g.to_string()).collect();
+            let ranges: Vec<(usize, usize)> = content
+                .grapheme_indices(true)
+                .map(|(start, g)| (start, start + g.len()))
+                .collect();
             ForLoopIterator::Graphemes {
-                graphemes,
+                content,
+                ranges,
                 index: 0,
             }
         }
         #[cfg(not(feature = "unicode"))]
         {
+            let remaining = content.chars().count();
             ForLoopIterator::String {
                 content,
                 current_pos: 0,
+                remaining,
             }
         }
     }
 }
 
-/// Create a lazy iterator for for-loop iteration that only clones the current item
 pub(crate) fn create_for_loop_iterator(value: &Value) -> Option<ForLoopIterator> {
     match &value.inner {
         ValueInner::Array(arr) => Some(ForLoopIterator::Array {
@@ -151,15 +156,15 @@ pub(crate) fn create_for_loop_iterator(value: &Value) -> Option<ForLoopIterator>
         }),
 
         ValueInner::Map(map) => {
-            let keys: Vec<_> = map.keys().cloned().collect();
+            let pairs: Vec<(Key<'static>, Value)> =
+                map.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
             Some(ForLoopIterator::Map {
-                map: Arc::clone(map),
-                keys: keys.into_iter(),
+                pairs: pairs.into_iter(),
             })
         }
 
         ValueInner::String(smart_str) => {
-            let content = smart_str.clone().into_arc_str();
+            let content = smart_str.clone().to_arc_str();
             Some(ForLoopIterator::create_string_iterator(content))
         }
 

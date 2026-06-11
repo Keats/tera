@@ -159,11 +159,11 @@ impl SmartString {
         }
     }
 
-    /// Get string content as Arc<str>, cloning only for small strings
-    pub(crate) fn into_arc_str(self) -> Arc<str> {
+    /// Get string content as Arc<str>, allocating only for small strings
+    pub(crate) fn to_arc_str(&self) -> Arc<str> {
         match self {
             Self::Small { .. } => Arc::from(self.as_str()),
-            Self::Large(arc, _) => arc,
+            Self::Large(arc, _) => Arc::clone(arc),
         }
     }
 }
@@ -688,11 +688,27 @@ impl Value {
         }
     }
 
-    /// Consumes the current Value to return its inner Map if it is one, otherwise None.
+    /// Consumes the current Value to return its inner `Map` if it is one, otherwise None.
     pub fn into_map(self) -> Option<Map> {
         match self.inner {
             ValueInner::Map(arc) => Some(Arc::try_unwrap(arc).unwrap_or_else(|arc| (*arc).clone())),
             _ => None,
+        }
+    }
+
+    /// Consumes the Value to return its inner `Arc<Map>` if it is a map, otherwise None.
+    pub(crate) fn into_map_arc(self) -> Option<Arc<Map>> {
+        match self.inner {
+            ValueInner::Map(arc) => Some(arc),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn empty_map() -> Value {
+        static EMPTY_MAP: std::sync::LazyLock<Arc<Map>> =
+            std::sync::LazyLock::new(|| Arc::new(Map::new()));
+        Value {
+            inner: ValueInner::Map((*EMPTY_MAP).clone()),
         }
     }
 
@@ -833,7 +849,7 @@ impl Value {
             ValueInner::I64(v) => Key::I64(*v),
             ValueInner::U128(v) => Key::U128(**v),
             ValueInner::I128(v) => Key::I128(**v),
-            ValueInner::String(v) => Key::String(Arc::from(v.as_str())),
+            ValueInner::String(v) => Key::String(v.to_arc_str()),
             _ => return Err(Error::message("Not a valid key type".to_string())),
         };
         Ok(key)

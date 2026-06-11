@@ -378,15 +378,21 @@ impl<'tera> VirtualMachine<'tera> {
                     }
                 }
                 Instruction::BuildMap(num_elem) => {
-                    let mut elems = Vec::with_capacity(*num_elem);
-                    for _ in 0..*num_elem {
-                        let (val, _) = state.stack.pop();
-                        let (key, _) = state.stack.pop();
-                        elems.push((key.as_key()?, val));
+                    if *num_elem == 0 {
+                        state
+                            .stack
+                            .push(Value::empty_map(), current_ip..=current_ip);
+                    } else {
+                        let mut elems = Vec::with_capacity(*num_elem);
+                        for _ in 0..*num_elem {
+                            let (val, _) = state.stack.pop();
+                            let (key, _) = state.stack.pop();
+                            elems.push((key.as_key()?, val));
+                        }
+                        elems.reverse();
+                        let map: crate::value::Map = elems.into_iter().collect();
+                        state.stack.push(Value::from(map), current_ip..=current_ip)
                     }
-                    elems.reverse();
-                    let map: crate::value::Map = elems.into_iter().collect();
-                    state.stack.push(Value::from(map), current_ip..=current_ip)
                 }
                 Instruction::BuildMapWithSpreads(entry_types) => {
                     let mut result_map = crate::value::Map::new();
@@ -499,9 +505,7 @@ impl<'tera> VirtualMachine<'tera> {
                             .push(Value::safe_string(&val), current_ip..=current_ip);
                     } else {
                         let f = &self.tera.functions[name.as_str()];
-                        let val = match f
-                            .call(Kwargs::new(Arc::new(kwargs.into_map().unwrap())), state)
-                        {
+                        let val = match f.call(Kwargs::new(kwargs.into_map_arc().unwrap()), state) {
                             Ok(v) => v,
                             Err(err) => {
                                 rendering_error!(format!("{err}"), current_ip..=current_ip)
@@ -515,19 +519,16 @@ impl<'tera> VirtualMachine<'tera> {
                     let f = &self.tera.filters[name.as_str()];
                     let (kwargs, _) = state.stack.pop();
                     let (value, value_span) = state.stack.pop();
-                    let val = match f.call(
-                        &value,
-                        Kwargs::new(Arc::new(kwargs.into_map().unwrap())),
-                        state,
-                    ) {
-                        Ok(v) => v,
-                        Err(err) => match err.kind {
-                            ErrorKind::InvalidArgument { .. } => {
-                                rendering_error!(format!("{err}"), value_span)
-                            }
-                            _ => rendering_error!(format!("{err}"), current_ip..=current_ip),
-                        },
-                    };
+                    let val =
+                        match f.call(&value, Kwargs::new(kwargs.into_map_arc().unwrap()), state) {
+                            Ok(v) => v,
+                            Err(err) => match err.kind {
+                                ErrorKind::InvalidArgument { .. } => {
+                                    rendering_error!(format!("{err}"), value_span)
+                                }
+                                _ => rendering_error!(format!("{err}"), current_ip..=current_ip),
+                            },
+                        };
                     let val = if f.is_safe() { val.mark_safe() } else { val };
                     state.stack.push(val, current_ip..=current_ip);
                 }
@@ -535,19 +536,16 @@ impl<'tera> VirtualMachine<'tera> {
                     let f = &self.tera.tests[name.as_str()];
                     let (kwargs, _) = state.stack.pop();
                     let (value, value_span) = state.stack.pop();
-                    let val = match f.call(
-                        &value,
-                        Kwargs::new(Arc::new(kwargs.into_map().unwrap())),
-                        state,
-                    ) {
-                        Ok(v) => v,
-                        Err(err) => match err.kind {
-                            ErrorKind::InvalidArgument { .. } => {
-                                rendering_error!(format!("{err}"), value_span)
-                            }
-                            _ => rendering_error!(format!("{err}"), current_ip..=current_ip),
-                        },
-                    };
+                    let val =
+                        match f.call(&value, Kwargs::new(kwargs.into_map_arc().unwrap()), state) {
+                            Ok(v) => v,
+                            Err(err) => match err.kind {
+                                ErrorKind::InvalidArgument { .. } => {
+                                    rendering_error!(format!("{err}"), value_span)
+                                }
+                                _ => rendering_error!(format!("{err}"), current_ip..=current_ip),
+                            },
+                        };
 
                     state.stack.push(val.into(), current_ip..=current_ip);
                 }
