@@ -1,5 +1,6 @@
 use crate::utils::Span;
 use crate::value::Value;
+use crate::vm::state::MAGICAL_DUMP_VAR;
 use std::fmt;
 use std::fmt::Formatter;
 use std::ops::RangeInclusive;
@@ -238,8 +239,9 @@ impl Chunk {
             // Record the mapping for this instruction
             index_map[i] = optimized.len();
 
-            // Try to collect a path: LoadName followed by any number of LoadAttr
-            if matches!(&old_instructions[i].0, Instruction::LoadName(_)) {
+            // Try to collect a path: LoadName followed by any number of LoadAttr except for the magic dump var
+            if matches!(&old_instructions[i].0, Instruction::LoadName(n) if n.as_str() != MAGICAL_DUMP_VAR)
+            {
                 // Take ownership of the LoadName instruction
                 let (instr, spans) =
                     std::mem::replace(&mut old_instructions[i], placeholder.clone());
