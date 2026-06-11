@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&err"
+input_file: tera/src/snapshot_tests/rendering_inputs/errors/undefined_slice_step.txt
+---
+error: Slice step is undefined
+ --> undefined_slice_step.txt:1:16
+  |
+1 | {{ numbers[1:2:missing] }}
+  |                ^^^^^^^

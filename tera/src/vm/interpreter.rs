@@ -256,8 +256,10 @@ impl<'tera> VirtualMachine<'tera> {
                             );
                         }
 
-                        let s = if start.is_undefined() || start.is_none() {
+                        let s = if start.is_none() {
                             None
+                        } else if start.is_undefined() {
+                            rendering_error!("Slice start is undefined".to_owned(), start_span)
                         } else {
                             match start.as_i128() {
                                 Some(n) => Some(n),
@@ -270,8 +272,10 @@ impl<'tera> VirtualMachine<'tera> {
                                 ),
                             }
                         };
-                        let e = if end.is_undefined() || end.is_none() {
+                        let e = if end.is_none() {
                             None
+                        } else if end.is_undefined() {
+                            rendering_error!("Slice end is undefined".to_owned(), end_span)
                         } else {
                             match end.as_i128() {
                                 Some(n) => Some(n),
@@ -281,8 +285,10 @@ impl<'tera> VirtualMachine<'tera> {
                                 ),
                             }
                         };
-                        let st = if step.is_undefined() || step.is_none() {
+                        let st = if step.is_none() {
                             None
+                        } else if step.is_undefined() {
+                            rendering_error!("Slice step is undefined".to_owned(), step_span)
                         } else {
                             match step.as_i128() {
                                 Some(n) => Some(n),
