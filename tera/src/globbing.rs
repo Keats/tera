@@ -15,7 +15,9 @@ pub fn load_from_glob(glob: &str) -> TeraResult<Vec<(PathBuf, String)>> {
     };
 
     // https://github.com/Keats/tera/pull/991
-    let split_at = glob[..first_star].rfind('/').map_or(0, |i| i + 1);
+    let split_at = glob[..first_star]
+        .rfind(std::path::is_separator)
+        .map_or(0, |i| i + 1);
     let (parent_dir, glob_end) = glob.split_at(split_at);
     // If no directory, we default to cwd
     let parent_dir = if parent_dir.is_empty() {
