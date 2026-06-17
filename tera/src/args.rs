@@ -30,11 +30,13 @@ mod private {
     impl Sealed for isize {}
     impl Sealed for String {}
     impl Sealed for &str {}
+    impl Sealed for &[Value] {}
     impl<'a> Sealed for Cow<'a, str> {}
     impl Sealed for Value {}
     impl Sealed for &Value {}
     impl Sealed for Number {}
     impl Sealed for Map {}
+    impl Sealed for &Map {}
     impl<T: Sealed> Sealed for Vec<T> {}
 }
 
@@ -214,6 +216,16 @@ impl<'k> ArgFromValue<'k> for Map {
     }
 }
 
+impl<'k> ArgFromValue<'k> for &Map {
+    type Output = &'k Map;
+
+    fn from_value(value: &'k Value) -> TeraResult<Self::Output> {
+        value
+            .as_map()
+            .ok_or_else(|| Error::invalid_arg_type("Map", value.name()))
+    }
+}
+
 impl<'k, T: ArgFromValue<'k, Output = T>> ArgFromValue<'k> for Vec<T> {
     type Output = Vec<T>;
 
@@ -227,6 +239,17 @@ impl<'k, T: ArgFromValue<'k, Output = T>> ArgFromValue<'k> for Vec<T> {
                 Ok(res)
             }
             _ => Err(Error::invalid_arg_type("Vec<Value>", value.name())),
+        }
+    }
+}
+
+impl<'k> ArgFromValue<'k> for &[Value] {
+    type Output = &'k [Value];
+
+    fn from_value(value: &'k Value) -> TeraResult<Self::Output> {
+        match &value.inner {
+            ValueInner::Array(arr) => Ok(arr.as_slice()),
+            _ => Err(Error::invalid_arg_type("&[Value]", value.name())),
         }
     }
 }

@@ -452,28 +452,28 @@ pub(crate) fn round(val: f64, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
 
 /// Returns the first element of an array. None if the array is empty
 /// and errors if the value is not an array
-pub(crate) fn first(val: Vec<Value>, _: Kwargs, _: &State) -> TeraResult<Value> {
+pub(crate) fn first(val: &[Value], _: Kwargs, _: &State) -> TeraResult<Value> {
     Ok(val.first().cloned().unwrap_or(Value::none()))
 }
 
 /// Returns the last element of an array. None if the array is empty
 /// and errors if the value is not an array
-pub(crate) fn last(val: Vec<Value>, _: Kwargs, _: &State) -> TeraResult<Value> {
+pub(crate) fn last(val: &[Value], _: Kwargs, _: &State) -> TeraResult<Value> {
     Ok(val.last().cloned().unwrap_or(Value::none()))
 }
 
 /// Returns the nth element of an array. None if there isn't an element at that index.
 /// and errors if the value is not an array
-pub(crate) fn nth(val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
+pub(crate) fn nth(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Value> {
     let n = kwargs.must_get::<usize>("n")?;
-    Ok(val.into_iter().nth(n).unwrap_or(Value::none()))
+    Ok(val.get(n).cloned().unwrap_or(Value::none()))
 }
 
 /// Joins the elements
-pub(crate) fn join(val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult<String> {
+pub(crate) fn join(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<String> {
     let sep = kwargs.get::<&str>("sep")?.unwrap_or("");
     Ok(val
-        .into_iter()
+        .iter()
         .map(|x| format!("{x}"))
         .collect::<Vec<_>>()
         .join(sep))
@@ -501,9 +501,9 @@ fn ensure_comparable<'a>(keys: impl Iterator<Item = &'a Value>) -> TeraResult<()
 }
 
 /// Sorts an array. If `attribute` is provided, sorts by that attribute.
-pub(crate) fn sort(mut val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
+pub(crate) fn sort(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
     if val.is_empty() {
-        return Ok(val);
+        return Ok(Vec::new());
     }
 
     if let Some(attribute) = kwargs.get::<&str>("attribute")? {
@@ -519,30 +519,30 @@ pub(crate) fn sort(mut val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult
         }
         decorated.sort_by(|(a, _), (b, _)| a.cmp(b));
         ensure_comparable(decorated.iter().map(|(k, _)| k))?;
-        val = decorated.into_iter().map(|(_, v)| v).collect();
+        Ok(decorated.into_iter().map(|(_, v)| v.clone()).collect())
     } else {
+        let mut out = val.to_vec();
         // We sort with Ord::cmp because we have our own custom impl that the default sorting will
         // disagree with
         #[allow(clippy::unnecessary_sort_by)]
-        val.sort_by(|a, b| a.cmp(b));
-        ensure_comparable(val.iter())?;
+        out.sort_by(|a, b| a.cmp(b));
+        ensure_comparable(out.iter())?;
+        Ok(out)
     }
-
-    Ok(val)
 }
 
-pub(crate) fn unique(val: Vec<Value>, _: Kwargs, _: &State) -> Vec<Value> {
+pub(crate) fn unique(val: &[Value], _: Kwargs, _: &State) -> Vec<Value> {
     if val.is_empty() {
-        return val;
+        return Vec::new();
     }
 
     let mut seen = BTreeSet::new();
     let mut res = Vec::with_capacity(val.len());
 
     for v in val {
-        if !seen.contains(&v) {
+        if !seen.contains(v) {
             seen.insert(v.clone());
-            res.push(v);
+            res.push(v.clone());
         }
     }
 
@@ -556,9 +556,9 @@ pub(crate) fn unique(val: Vec<Value>, _: Kwargs, _: &State) -> Vec<Value> {
 ///
 /// At least one of `attribute` or `filter` must be provided.
 /// If both are provided, the attribute is extracted first, then the filter is applied.
-pub(crate) fn map(val: Vec<Value>, kwargs: Kwargs, state: &State) -> TeraResult<Vec<Value>> {
+pub(crate) fn map(val: &[Value], kwargs: Kwargs, state: &State) -> TeraResult<Vec<Value>> {
     if val.is_empty() {
-        return Ok(val);
+        return Ok(Vec::new());
     }
 
     let filter_name = kwargs.get::<&str>("filter")?;
@@ -596,7 +596,7 @@ pub(crate) fn map(val: Vec<Value>, kwargs: Kwargs, state: &State) -> TeraResult<
                 x => x,
             }
         } else {
-            v
+            v.clone()
         };
 
         // Step 2: Apply filter if specified
@@ -611,22 +611,22 @@ pub(crate) fn map(val: Vec<Value>, kwargs: Kwargs, state: &State) -> TeraResult<
     Ok(res)
 }
 
-pub(crate) fn values(val: Map, _: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
-    Ok(val.into_values().collect())
+pub(crate) fn values(val: &Map, _: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
+    Ok(val.values().cloned().collect())
 }
 
-pub(crate) fn keys(val: Map, _: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
-    Ok(val.into_keys().map(|k| k.into()).collect())
+pub(crate) fn keys(val: &Map, _: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
+    Ok(val.keys().map(|k| k.clone().into()).collect())
 }
 
-pub(crate) fn pairs(val: Map, _: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
+pub(crate) fn pairs(val: &Map, _: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
     Ok(val
-        .into_iter()
-        .map(|(k, v)| Value::from(vec![Value::from(k), v]))
+        .iter()
+        .map(|(k, v)| Value::from(vec![Value::from(k.clone()), v.clone()]))
         .collect())
 }
 
-pub(crate) fn get(val: Map, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
+pub(crate) fn get(val: &Map, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
     let key = kwargs.must_get::<&str>("key")?;
     let default = kwargs.get::<Value>("default")?;
     if let Some(val_found) = val.get(&Key::Str(key)) {
@@ -640,9 +640,9 @@ pub(crate) fn get(val: Map, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
     }
 }
 
-pub(crate) fn filter(val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
+pub(crate) fn filter(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
     if val.is_empty() {
-        return Ok(val);
+        return Ok(Vec::new());
     }
     let attribute = kwargs.must_get::<&str>("attribute")?;
     let value = kwargs.get::<Value>("value")?.unwrap_or(Value::none());
@@ -657,7 +657,7 @@ pub(crate) fn filter(val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult<V
             }
             x => {
                 if x == value {
-                    res.push(v)
+                    res.push(v.clone())
                 }
             }
         }
@@ -666,7 +666,7 @@ pub(crate) fn filter(val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult<V
     Ok(res)
 }
 
-pub(crate) fn group_by(val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult<Map> {
+pub(crate) fn group_by(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Map> {
     if val.is_empty() {
         return Ok(Map::new());
     }
@@ -684,9 +684,9 @@ pub(crate) fn group_by(val: Vec<Value>, kwargs: Kwargs, _: &State) -> TeraResult
             x => {
                 let key = x.as_key()?;
                 if let Some(arr) = grouped.get_mut(&key) {
-                    arr.push(v);
+                    arr.push(v.clone());
                 } else {
-                    grouped.insert(key, vec![v]);
+                    grouped.insert(key, vec![v.clone()]);
                 }
             }
         }
