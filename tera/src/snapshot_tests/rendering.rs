@@ -144,7 +144,10 @@ fn rendering_ok() {
         tera.register_filter("read_ctx", |x: &str, _: Kwargs, state: &State| {
             if let Some((start, rest)) = x.split_once('.') {
                 let base: Value = state.get(start)?.unwrap_or(Value::undefined());
-                Ok(base.get_from_path(rest))
+                Ok(base
+                    .get_from_path(rest)
+                    .cloned()
+                    .unwrap_or(Value::undefined()))
             } else {
                 Ok(state.get::<Value>(x)?.unwrap_or(Value::undefined()))
             }

@@ -509,16 +509,21 @@ pub(crate) fn sort(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Vec<V
     if let Some(attribute) = kwargs.get::<&str>("attribute")? {
         let mut decorated = Vec::with_capacity(val.len());
         for v in val {
-            let key = v.get_from_path(attribute);
-            if key.is_undefined() {
-                return Err(Error::message(format!(
-                    "Value {v} does not have an attribute after following path: {attribute}"
-                )));
-            }
+            let key = match v.get_from_path(attribute) {
+                Some(key) => key,
+                None => {
+                    return Err(Error::message(format!(
+                        "Value {v} does not have an attribute after following path: {attribute}"
+                    )));
+                }
+            };
             decorated.push((key, v));
         }
+        // We sort with Ord::cmp because we have our own custom impl that the default sorting will
+        // disagree with
+        #[allow(clippy::unnecessary_sort_by)]
         decorated.sort_by(|(a, _), (b, _)| a.cmp(b));
-        ensure_comparable(decorated.iter().map(|(k, _)| k))?;
+        ensure_comparable(decorated.iter().map(|(k, _)| *k))?;
         Ok(decorated.into_iter().map(|(_, v)| v.clone()).collect())
     } else {
         let mut out = val.to_vec();
@@ -588,12 +593,12 @@ pub(crate) fn map(val: &[Value], kwargs: Kwargs, state: &State) -> TeraResult<Ve
         // Step 1: Extract attribute if specified
         let extracted = if let Some(attr) = attribute {
             match v.get_from_path(attr) {
-                x if x.is_undefined() => {
+                None => {
                     return Err(Error::message(format!(
                         "Value {v} does not have an attribute at path: {attr}"
                     )));
                 }
-                x => x,
+                Some(x) => x.clone(),
             }
         } else {
             v.clone()
@@ -650,13 +655,13 @@ pub(crate) fn filter(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Vec
 
     for v in val {
         match v.get_from_path(attribute) {
-            x if x.is_undefined() => {
+            None => {
                 return Err(Error::message(format!(
                     "Value {v} does not have an attribute after following path: {attribute}"
                 )));
             }
-            x => {
-                if x == value {
+            Some(x) => {
+                if *x == value {
                     res.push(v.clone())
                 }
             }
@@ -675,13 +680,13 @@ pub(crate) fn group_by(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<M
     let mut grouped: HashMap<Key, Vec<Value>> = HashMap::new();
     for v in val {
         match v.get_from_path(attribute) {
-            x if x.is_undefined() => {
+            None => {
                 return Err(Error::message(format!(
                     "Value {v} does not have an attribute after following path: {attribute}"
                 )));
             }
-            x if x.is_none() => (),
-            x => {
+            Some(x) if x.is_none() => (),
+            Some(x) => {
                 let key = x.as_key()?;
                 if let Some(arr) = grouped.get_mut(&key) {
                     arr.push(v.clone());

@@ -721,10 +721,12 @@ impl Value {
         }
     }
 
-    /// Returns the Value at the given path, or Undefined if there's nothing there.
-    pub fn get_from_path(&self, path: &str) -> Value {
-        if matches!(&self.inner, ValueInner::Undefined | ValueInner::None) {
-            return self.clone();
+    /// Returns a reference to the Value at the given path or None if there's nothing there
+    pub fn get_from_path<'s>(&'s self, path: &'s str) -> Option<&'s Value> {
+        match &self.inner {
+            ValueInner::Undefined => return None,
+            ValueInner::None => return Some(self),
+            _ => {}
         }
 
         let mut current = self;
@@ -734,37 +736,21 @@ impl Value {
                 Ok(idx) => match &current.inner {
                     ValueInner::Array(arr) => match arr.get(idx) {
                         Some(v) => current = v,
-                        None => {
-                            return Value {
-                                inner: ValueInner::Undefined,
-                            };
-                        }
+                        None => return None,
                     },
-                    _ => {
-                        return Value {
-                            inner: ValueInner::Undefined,
-                        };
-                    }
+                    _ => return None,
                 },
                 Err(_) => match &current.inner {
                     ValueInner::Map(map) => match map.get(&Key::Str(elem)) {
                         Some(v) => current = v,
-                        None => {
-                            return Value {
-                                inner: ValueInner::Undefined,
-                            };
-                        }
+                        None => return None,
                     },
-                    _ => {
-                        return Value {
-                            inner: ValueInner::Undefined,
-                        };
-                    }
+                    _ => return None,
                 },
             }
         }
 
-        current.clone()
+        Some(current)
     }
 
     /// Returns the truthiness of a value, eg not empty map/arrays/string and numbers different
