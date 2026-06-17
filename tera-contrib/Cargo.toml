@@ -10,7 +10,7 @@ keywords = ["template", "jinja2", "tera"]
 categories = ["template-engine"]
 
 [dependencies]
-tera = { version = "2.0.0-alpha.5", path = "../tera", default-features = false }
+tera = { version = "2.0.0-alpha.8", path = "../tera", default-features = false }
 
 base64 = { version = "0.22.1", optional = true }
 regex = { version = "1.12.2", optional = true}
@@ -20,7 +20,7 @@ jiff = {version = "0.2.18", optional = true}
 percent-encoding = {version = "2.3.2", optional = true}
 serde_json = {version = "1.0.149", optional = true}
 humansize = {version = "2.1.3", optional = true}
-formatx = {version = "0.2.4", optional = true}
+formatx = {version = "0.3", optional = true}
 
 [features]
 base64 = ["dep:base64"]

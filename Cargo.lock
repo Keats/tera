@@ -311,9 +311,9 @@ checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
 name = "formatx"
-version = "0.2.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8866fac38f53fc87fa3ae1b09ddd723e0482f8fa74323518b4c59df2c55a00a"
+checksum = "c40f9ee993b100102723f778c82d3daf1808c494ce2fd6e9a06d58d6e8e59748"
 
 [[package]]
 name = "futures-core"
