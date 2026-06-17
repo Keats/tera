@@ -16,7 +16,7 @@ const URL_SAFE_DECODE: general_purpose::GeneralPurpose = general_purpose::Genera
 /// Encodes a string to base64.
 /// Takes an optional `url_safe` bool parameter (`false` by default) if you want to use the URL SAFE b64 characters
 /// and a `padded` bool parameter on whether you want padding (`true` by default).
-
+///
 /// ```text
 /// {{ value | b64_encode }}
 /// {{ value | b64_encode(url_safe=true) }}
