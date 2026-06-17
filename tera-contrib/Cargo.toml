@@ -1,6 +1,6 @@
 [package]
 name = "tera-contrib"
-version = "0.2.0-alpha.5"
+version = "0.2.0-alpha.6"
 edition = "2024"
 license = "MIT"
 description = "Additional filters, functions and tests for the Tera template engine"
