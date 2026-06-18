@@ -86,7 +86,14 @@ where
         ValueInner::I128(v) => T::try_from(**v).ok(),
         ValueInner::U64(v) => T::try_from(*v).ok(),
         ValueInner::U128(v) => T::try_from(**v).ok(),
-        ValueInner::F64(v) if v.trunc() == *v => T::try_from(*v as i128).ok(),
+        ValueInner::F64(v) if v.trunc() == *v => {
+            // We try to convert to a i128 only if it fits
+            if *v >= i128::MIN as f64 && *v < i128::MAX as f64 {
+                T::try_from(*v as i128).ok()
+            } else {
+                None
+            }
+        }
         _ => return Err(Error::invalid_arg_type(target_type, value.name())),
     };
     res.ok_or_else(|| Error::out_of_range_arg(value, target_type))
@@ -345,5 +352,14 @@ mod tests {
         let kwargs = Kwargs::from([("n", Value::from(-1))]);
         let err = kwargs.get::<usize>("n").unwrap_err();
         assert_eq!(err.to_string(), "Value `-1` is out of range for `usize`");
+
+        let kwargs = Kwargs::from([("n", Value::from(1e40_f64))]);
+        assert!(
+            kwargs
+                .get::<i128>("n")
+                .unwrap_err()
+                .to_string()
+                .contains("out of range")
+        );
     }
 }
