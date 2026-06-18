@@ -98,7 +98,7 @@ impl<'de> de::Deserializer<'de> for ValueDeserializer {
     }
 
     forward_to_deserialize_any! {
-        bool u8 u16 u32 u64 i8 i16 i32 i64 f32 f64 char str string unit
+        bool u8 u16 u32 u64 i8 i16 i32 i64 i128 u128 f32 f64 char str string unit
         seq bytes byte_buf map unit_struct
         tuple_struct struct tuple ignored_any identifier newtype_struct
     }
@@ -219,7 +219,7 @@ impl<'de> de::Deserializer<'de> for Value {
     }
 
     forward_to_deserialize_any! {
-        bool u8 u16 u32 u64 i8 i16 i32 i64 f32 f64 char str string unit
+        bool u8 u16 u32 u64 i8 i16 i32 i64 i128 u128 f32 f64 char str string unit
         seq bytes byte_buf map unit_struct
         tuple_struct struct tuple ignored_any identifier
     }
@@ -233,7 +233,7 @@ impl<'de> de::Deserializer<'de> for &Value {
     }
 
     forward_to_deserialize_any! {
-        bool u8 u16 u32 u64 i8 i16 i32 i64 f32 f64 char str string unit
+        bool u8 u16 u32 u64 i8 i16 i32 i64 i128 u128 f32 f64 char str string unit
         seq bytes byte_buf map unit_struct
         tuple_struct struct tuple ignored_any identifier
         option enum newtype_struct
