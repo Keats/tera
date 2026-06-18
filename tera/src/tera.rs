@@ -1133,7 +1133,7 @@ impl Tera {
         let mut template =
             Template::new(ONE_OFF_TEMPLATE_NAME, input, None, self.delimiters.clone())?;
 
-        if !template.parents.is_empty() {
+        if template.extends.is_some() {
             return Err(Error::message(
                 "Template inheritance ({% extends %}) is not supported in render_str.",
             ));
@@ -1762,11 +1762,7 @@ mod tests {
     #[test]
     fn render_str_errors_on_extends() {
         let tera = Tera::new();
-        let result = tera.render_str(
-            r#"{% extends "base.html" %}{% block content %}hi{% endblock %}"#,
-            &Context::new(),
-            false,
-        );
+        let result = tera.render_str(r#"{% extends "base.html" %}hi"#, &Context::new(), false);
         assert!(result.is_err());
     }
 
