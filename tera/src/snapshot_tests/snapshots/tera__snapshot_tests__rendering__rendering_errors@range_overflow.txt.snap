@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&err"
+input_file: tera/src/snapshot_tests/rendering_inputs/errors/range_overflow.txt
+---
+error: Function `range` was called with arguments that overflow i128
+ --> range_overflow.txt:1:4
+  |
+1 | {{ range(start=-100000000000000000000000000000000000000.0, end=100000000000000000000000000000000000000.0) }}
+  |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

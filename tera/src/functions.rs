@@ -64,7 +64,7 @@ impl StoredFunction {
 /// Upper bound on the number of elements `range()` will produce to avoid OOM.
 const MAX_RANGE_LEN: usize = 100_000;
 
-pub(crate) fn range(kwargs: Kwargs, _: &State) -> TeraResult<Vec<isize>> {
+pub(crate) fn range(kwargs: Kwargs, _: &State) -> TeraResult<Vec<i128>> {
     let start = kwargs.get::<i128>("start")?.unwrap_or_default();
     let end = kwargs.must_get::<i128>("end")?;
     let step_by = kwargs.get::<i128>("step_by")?.unwrap_or(1);
@@ -79,15 +79,16 @@ pub(crate) fn range(kwargs: Kwargs, _: &State) -> TeraResult<Vec<isize>> {
         ));
     }
 
+    let overflow = || Error::message("Function `range` was called with arguments that overflow i128");
     let len = if step_by > 0 {
-        let span = end - start;
-        (span + step_by - 1) / step_by
+        let span = end.checked_sub(start).ok_or_else(overflow)?;
+        span.checked_add(step_by - 1).ok_or_else(overflow)? / step_by
     } else if start <= end {
         0
     } else {
-        let span = start - end;
-        let step = -step_by;
-        (span + step - 1) / step
+        let step = step_by.checked_neg().ok_or_else(overflow)?;
+        let span = start.checked_sub(end).ok_or_else(overflow)?;
+        span.checked_add(step - 1).ok_or_else(overflow)? / step
     };
     if len > MAX_RANGE_LEN as i128 {
         return Err(Error::message(format!(
@@ -97,7 +98,7 @@ pub(crate) fn range(kwargs: Kwargs, _: &State) -> TeraResult<Vec<isize>> {
 
     let mut values = Vec::with_capacity(len as usize);
     for i in 0..len {
-        values.push((start + i * step_by) as isize);
+        values.push(start + i * step_by);
     }
     Ok(values)
 }
