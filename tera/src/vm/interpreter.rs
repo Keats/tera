@@ -13,11 +13,14 @@ use crate::args::Kwargs;
 use crate::vm::state::{MAGICAL_DUMP_VAR, State};
 use crate::{Context, Tera};
 
+const MAX_COMPONENT_RECURSION_DEPTH: usize = 20;
+
 pub(crate) struct VirtualMachine<'tera> {
     tera: &'tera Tera,
     template: &'tera Template,
     /// Only used when rendering a single component, to decide whether to auto-escape it or not
     autoescape_override: Option<bool>,
+    component_recursion_depth: usize,
 }
 
 impl<'tera> VirtualMachine<'tera> {
@@ -26,6 +29,7 @@ impl<'tera> VirtualMachine<'tera> {
             tera,
             template,
             autoescape_override: None,
+            component_recursion_depth: 0,
         }
     }
 
@@ -38,6 +42,7 @@ impl<'tera> VirtualMachine<'tera> {
             tera,
             template,
             autoescape_override: Some(autoescape),
+            component_recursion_depth: 0,
         }
     }
 
@@ -925,10 +930,17 @@ impl<'tera> VirtualMachine<'tera> {
     }
 
     fn render_component(&self, chunk: &Chunk, context: Context) -> TeraResult<String> {
+        let depth = self.component_recursion_depth + 1;
+        if depth > MAX_COMPONENT_RECURSION_DEPTH {
+            return Err(Error::message(
+                "Maximum render recursion depth for components exceeded.",
+            ));
+        }
         let vm = Self {
             tera: self.tera,
             template: self.template,
             autoescape_override: self.autoescape_override,
+            component_recursion_depth: depth,
         };
 
         let mut state = State::new_with_chunk(&context, chunk);
@@ -950,6 +962,7 @@ impl<'tera> VirtualMachine<'tera> {
             tera: self.tera,
             template: tpl,
             autoescape_override: self.autoescape_override,
+            component_recursion_depth: self.component_recursion_depth,
         };
 
         // We create a dummy state for variables to be written to, but we don't keep it around

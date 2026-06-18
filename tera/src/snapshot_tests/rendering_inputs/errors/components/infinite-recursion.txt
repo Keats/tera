@@ -1,0 +1,4 @@
+$$ components
+{% component display_name(name: string) %}{{ <display_name name={name} /> }}}{% endcomponent display_name %}
+$$ tpl
+{{ <display_name name="bob" /> }}
