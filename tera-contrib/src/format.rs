@@ -18,6 +18,11 @@ const MAX_SPEC_NUM: usize = 100;
 /// ```
 pub fn format(val: Value, kwargs: Kwargs, _: &State) -> TeraResult<String> {
     let spec = kwargs.must_get::<&str>("spec")?;
+    if spec.contains('$') {
+        return Err(Error::message(format!(
+            "format spec `{spec}` cannot reference arguments with `$`"
+        )));
+    }
     for digits in spec.split(|c: char| !c.is_ascii_digit()) {
         if !digits.is_empty() && !digits.parse::<usize>().is_ok_and(|n| n <= MAX_SPEC_NUM) {
             return Err(Error::message(format!(
@@ -118,6 +123,19 @@ mod tests {
                 .unwrap();
             let err = tera.render("test", &Context::new()).unwrap_err();
             assert!(err.to_string().contains("maximum allowed"), "{err}");
+        }
+    }
+
+    #[test]
+    fn test_dollar_reference_rejected() {
+        let mut tera = Tera::default();
+        tera.register_filter("format", format);
+        // `0$` would use the value (50000) as the width
+        for spec in ["0$", "0$.2", ">0$"] {
+            tera.add_raw_template("test", &format!("{{{{ 50000 | format(spec='{spec}') }}}}"))
+                .unwrap();
+            let err = tera.render("test", &Context::new()).unwrap_err();
+            assert!(err.to_string().contains('$'), "{err}");
         }
     }
 }
