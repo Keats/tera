@@ -375,6 +375,7 @@ impl<'a> Parser<'a> {
 
     fn parse_kwargs(&mut self) -> TeraResult<HashMap<String, Expression>> {
         let mut kwargs = HashMap::new();
+        let mut kwarg_spans: HashMap<&str, Span> = HashMap::new();
         expect_token!(self, Token::LeftParen, "(")?;
 
         loop {
@@ -390,7 +391,17 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            let (arg_name, _) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
+            let (arg_name, arg_name_span) =
+                expect_token!(self, Token::Ident(id) => id, "identifier")?;
+            if let Some(prev_span) = kwarg_spans.get(arg_name) {
+                return Err(self.syntax_error_with_note(
+                    format!("Keyword argument `{arg_name}` is defined more than once"),
+                    &arg_name_span,
+                    "first defined here",
+                    prev_span,
+                ));
+            }
+            kwarg_spans.insert(arg_name, arg_name_span);
             expect_token!(self, Token::Assign, "=")?;
             let value = self.parse_expression(0)?;
             kwargs.insert(arg_name.to_string(), value);
