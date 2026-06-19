@@ -79,7 +79,8 @@ pub(crate) fn range(kwargs: Kwargs, _: &State) -> TeraResult<Vec<i128>> {
         ));
     }
 
-    let overflow = || Error::message("Function `range` was called with arguments that overflow i128");
+    let overflow =
+        || Error::message("Function `range` was called with arguments that overflow i128");
     let len = if step_by > 0 {
         let span = end.checked_sub(start).ok_or_else(overflow)?;
         span.checked_add(step_by - 1).ok_or_else(overflow)? / step_by

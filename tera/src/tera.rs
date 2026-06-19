@@ -72,7 +72,7 @@ pub struct Tera {
     pub(crate) templates: HashMap<String, Template>,
     /// Which extensions does Tera automatically autoescape on.
     /// Defaults to [".html", ".htm", ".xml"]
-    pub(crate) autoescape_suffixes: Vec<&'static str>,
+    pub(crate) autoescape_suffixes: Vec<Cow<'static, str>>,
     #[doc(hidden)]
     pub(crate) escape_fn: EscapeFn,
     global_context: Context,
@@ -83,7 +83,7 @@ pub struct Tera {
     /// Custom delimiters for template syntax
     delimiters: Delimiters,
     /// Fallback prefixes to try when a template is not found by exact name.
-    fallback_prefixes: Vec<String>,
+    fallback_prefixes: Vec<Cow<'static, str>>,
 }
 
 impl Tera {
@@ -178,7 +178,7 @@ impl Tera {
             tpl.autoescape_enabled = self
                 .autoescape_suffixes
                 .iter()
-                .any(|s| tpl_name.ends_with(s));
+                .any(|s| tpl_name.ends_with(s.as_ref()));
         }
     }
 
@@ -195,12 +195,15 @@ impl Tera {
     /// # use tera::Tera;
     /// let mut tera = Tera::default();
     /// // escape only files ending with `.php.html`
-    /// tera.autoescape_on(vec![".php.html"]);
+    /// tera.autoescape_on([".php.html"]);
     /// // disable autoescaping completely
-    /// tera.autoescape_on(vec![]);
+    /// tera.autoescape_on(Vec::<&str>::new());
     /// ```
-    pub fn autoescape_on(&mut self, suffixes: Vec<&'static str>) {
-        self.autoescape_suffixes = suffixes;
+    pub fn autoescape_on(
+        &mut self,
+        suffixes: impl IntoIterator<Item = impl Into<Cow<'static, str>>>,
+    ) {
+        self.autoescape_suffixes = suffixes.into_iter().map(Into::into).collect();
         self.set_templates_auto_escape();
     }
 
@@ -915,15 +918,18 @@ impl Tera {
     /// # use tera::Tera;
     /// let mut tera = Tera::default();
     /// // Templates in "themes/cool/" can be referenced without the prefix
-    /// tera.set_fallback_prefixes(vec!["themes/cool/".to_string()]).unwrap();
+    /// tera.set_fallback_prefixes(["themes/cool/"]).unwrap();
     /// ```
-    pub fn set_fallback_prefixes(&mut self, prefixes: Vec<String>) -> TeraResult<()> {
+    pub fn set_fallback_prefixes(
+        &mut self,
+        prefixes: impl IntoIterator<Item = impl Into<Cow<'static, str>>>,
+    ) -> TeraResult<()> {
         if !self.templates.is_empty() {
             return Err(Error::message(
                 "set_fallback_prefixes must be called before adding templates",
             ));
         }
-        self.fallback_prefixes = prefixes;
+        self.fallback_prefixes = prefixes.into_iter().map(Into::into).collect();
         Ok(())
     }
 
@@ -931,7 +937,7 @@ impl Tera {
     /// 0 = highest priority (no prefix match), higher numbers = lower priority.
     fn get_template_priority(&self, name: &str) -> usize {
         for (i, prefix) in self.fallback_prefixes.iter().enumerate() {
-            if name.starts_with(prefix) {
+            if name.starts_with(prefix.as_ref()) {
                 return i + 1;
             }
         }
@@ -1353,7 +1359,11 @@ impl Default for Tera {
         let mut tera = Self {
             glob: None,
             templates: HashMap::new(),
-            autoescape_suffixes: vec![".html", ".htm", ".xml"],
+            autoescape_suffixes: vec![
+                Cow::Borrowed(".html"),
+                Cow::Borrowed(".htm"),
+                Cow::Borrowed(".xml"),
+            ],
             escape_fn: escape_html,
             global_context: Context::new(),
             filters: HashMap::new(),
