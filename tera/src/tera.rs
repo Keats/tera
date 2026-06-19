@@ -954,11 +954,15 @@ impl Tera {
     }
 
     /// Get a template by name, resolving fallback prefixes if needed.
-    #[inline]
-    #[doc(hidden)]
-    pub fn get_template(&self, template_name: &str) -> Option<&Template> {
+    pub(crate) fn get_template(&self, template_name: &str) -> Option<&Template> {
         self.resolve_template_name(template_name)
             .map(|resolved| &self.templates[resolved])
+    }
+
+    /// Lookups a template by name, resolving fallback prefixes if needed, returning whether it's
+    /// found or not
+    pub fn contains_template(&self, template_name: &str) -> bool {
+        self.resolve_template_name(template_name).is_some()
     }
 
     /// Returns an iterator over the names of all registered templates in an
