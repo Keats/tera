@@ -138,7 +138,6 @@ mod tests {
                     this_dir.display()
                 )
             });
-        dbg!(&scratch_dir.path().display());
 
         File::create(scratch_dir.path().join("hey.html")).expect("Failed to create a test file");
         File::create(scratch_dir.path().join("ho.html")).expect("Failed to create a test file");
