@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 /// The key of anything looking like a hashmap (struct/hashmaps)
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum Key<'a> {
     #[allow(missing_docs)]
     Bool(bool),

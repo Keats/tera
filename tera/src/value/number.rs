@@ -6,6 +6,7 @@ use std::fmt::Formatter;
 /// Simpler representation of numbers so operations are simpler to handle
 /// Also can be used for custom filters/tests/fn when you want to ensure you get a number
 #[derive(Debug, Copy, Clone)]
+#[non_exhaustive]
 pub enum Number {
     /// Integers are stored in i128, which means we can't use numbers from u128 above i128::MAX
     /// for math, which is probably ok for a template engine.
