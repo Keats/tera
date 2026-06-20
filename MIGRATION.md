@@ -144,7 +144,7 @@ You can now do `{{ "majeur" if age >= 18 else "mineur" }}`. Both if and else are
 
 Before v2, it was quite common to have this pattern:
 
-```jinja
+```j2
 {% set posts = [] %}
 {% for id in ids %}
     {% set_global posts = posts | concat(with=get_post(id=id) %}
@@ -154,7 +154,7 @@ Before v2, it was quite common to have this pattern:
 
 This is actually the reason why `set_global` was added in the first place. With list comprehension, the above is:
 
-```jinja
+```j2
 {% set posts = [get_post(id=id) for id in ids] | sort(attribute="date") %}
 ```
 
@@ -171,7 +171,7 @@ work to change, but it should be nicer to use.
 
 This is mostly the same as macros, except the block is called `component`/`endcomponent`:
 
-```rust
+```j2
 {% component button(label: string, variant: string = "primary") %}
 <button class="btn btn-{{variant}}">{{label}}</button>
 {% endcomponent button %}
@@ -183,7 +183,7 @@ be explained here.
 The component above is closed: any templates using an argument not listed will error. You can make it open by adding a 
 spread operator:
 
-```rust
+```j2
 {% component button(label: string, variant: string = "primary", ...rest) %}
 <button class="btn btn-{{variant}}">{{label}}</button>
 {% endcomponent button %}
@@ -261,7 +261,11 @@ The default delimiters `{{ }}`, `{% %}` and `{# #}` are the same as in Tera v1 b
 
 ## Performance
 
-It will depend on what you are doing inside the template and the size of your context but it is about 2x faster than Tera v1.
+It will depend on what you are doing inside the template and the size of your context but for the average usage it is about about 2-4x faster
+than v1.
+
+If you are doing a lot of context manipulation in your templates (mapping, slicing etc like you might do on some Zola pages) it can be
+_much_ faster, some benchmarks showed v2 to be 75x faster for some intensive data manipulation templates.
 
 ## Better error messages
 
