@@ -1,6 +1,6 @@
 [package]
 name = "tera-contrib"
-version = "0.2.0-alpha.6"
+version = "0.2.0-alpha.7"
 edition = "2024"
 license = "MIT"
 description = "Additional filters, functions and tests for the Tera template engine"
@@ -10,7 +10,7 @@ keywords = ["template", "jinja2", "tera"]
 categories = ["template-engine"]
 
 [dependencies]
-tera = { version = "2.0.0-alpha.8", path = "../tera", default-features = false }
+tera = { version = "2.0.0-alpha.9", path = "../tera", default-features = false }
 
 base64 = { version = "0.22.1", optional = true }
 regex = { version = "1.12.2", optional = true}
