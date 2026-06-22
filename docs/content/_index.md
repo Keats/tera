@@ -1022,44 +1022,6 @@ or by age:
 ##### unique
 Removes duplicate items from an array.
 
-##### filter
-
-Filters the array values, returning only the values where the `attribute` is equal to the `value`.
-Values with missing `attribute` or where `attribute` is null will be discarded.
-
-`attribute` is mandatory.
-
-
-Example:
-
-Given `posts` is an array of Post
-
-```rust
-struct Author {
-    name: String,
-};
-
-struct Post {
-    content: String,
-    year: u32,
-    author: Author,
-    draft: bool,
-}
-```
-
-The `attribute` argument can be used to filter posts by draft value:
-
-```jinja
-{{ posts | filter(attribute="draft", value=true) }}
-```
-
-or by author name:
-
-```jinja
-{{ posts | filter(attribute="author.name", value="Vincent") }}
-```
-
-If `value` is not passed, it will drop any elements where the attribute is `null`.
 
 ##### group_by
 Groups an array using the required `attribute` argument. The filter takes an array and returns
@@ -1115,37 +1077,7 @@ Example:
 {% endfor %}
 ```
 
-##### map
 
-Potentially retrieves an attribute from a list of objects and/or applies a filter to each element.
-
-This has 3 arguments
- - `attribute`: specifies what attribute to retrieve from each element
- - `filter`: specifies a filter to apply to each element (or to the extracted attribute)
- - `args`: optional map of arguments to pass to the filter
-
-At least one of `attribute` or `filter` must be provided.
-If both are provided, the attribute is extracted first, then the filter is applied.
-
-Example:
-
-Given `people` is an array of Person
-
-```rust
-struct Name(String, String);
-
-struct Person {
-    name: Name,
-    age: u32,
-}
-```
-
-The `attribute` argument is used to retrieve their ages.
-
-```jinja
-{{ people | map(attribute="age") }}
-{{ people | map(attribute="age", filter="str") }}
-```
 ##### default
 Returns the default value given only if the variable evaluated is not present in the context
 and is therefore meant to be at the beginning of a filter chain if there are several filters.
