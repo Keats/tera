@@ -32,7 +32,7 @@ what's available.
 
 Let's take the following directory as example.
 
-```sh
+```bash
 templates/
   hello.html
   index.html
@@ -101,7 +101,7 @@ Escaping follows the recommendations from [OWASP](https://www.owasp.org/index.ph
 
 You can override that or completely disable auto-escaping by calling the `autoescape_on` method:
 
-```rs
+```rust
 // escape only files ending with `.php.html`
 tera.autoescape_on(vec![".php.html"]);
 // disable autoescaping completely
