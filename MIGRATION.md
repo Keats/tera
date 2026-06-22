@@ -35,7 +35,7 @@ they can be enabled one by one.
 - `object` test has been renamed to `map`
 - `truncate` requires the `length` argument and does not default to 255 anymore
 - ISO 8601 dates using format `1996-12-19T16:39:57-08:00` are not supported anymore for the input of date filter, you can use `1996-12-19T16:39:57[-08:00]` instead
-- `addslashes`, `spaceless`, `get_env`, `concat` and `slice` filter have been removed (concat and slice are redundant with other features described later)
+- `addslashes`, `spaceless`, `get_env`, `map`, `filter`, concat` and `slice` filter have been removed (concat and slice are redundant with other features described later)
 - `first`, `last` and `nth` now return None when the array is empty instead of an empty string.
 - `unique` doesn't take arguments anymore
 

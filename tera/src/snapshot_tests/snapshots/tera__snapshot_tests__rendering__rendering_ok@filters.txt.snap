@@ -42,10 +42,6 @@ True
 2
 1, 2, 3
 [1, 2, 3, 4]
-["My review", "My review"]
-[2015, 2015, 2016, 2017, 2018, , 2018]
-[[0, 3, 6]]
-[{"paragraphs": ["A", "B", "C"], "title": "My review"}, {"paragraphs": ["A", "B", "C"], "title": "My review"}]
 {2015: [{"id": 1, "year": 2015}, {"id": 2, "year": 2015}], 2016: [{"id": 3, "year": 2016}], 2017: [{"id": 4, "year": 2017}], 2018: [{"id": 5, "year": 2018}, {"id": 7, "year": 2018}]}
 indent1:one
     two
@@ -88,10 +84,6 @@ sort(empty): []
 sort(strings): ["a", "b", "c"]
 sort(attribute): [1, 2, 3, 4, 5, 7, 6]
 sort(tuple index): [[1], [2], [3]]
-map(filter): ["HELLO", "WORLD"]
-map(filter+args): ["hello…", "foo b…"]
-map(attr+filter): ["MY REVIEW", "MY REVIEW"]
-map(attr+filter+args): ["My re…", "My re…"]
 pairs(sorted): [["a", 2], ["b", 1]]
 pairs(sort by value): [["b", 1], ["a", 2]]
 pairs(empty): []

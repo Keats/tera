@@ -554,68 +554,6 @@ pub(crate) fn unique(val: &[Value], _: Kwargs, _: &State) -> Vec<Value> {
     res
 }
 
-/// Map retrieves an attribute from a list of objects and/or applies a filter to each element.
-/// - `attribute`: specifies what attribute to retrieve from each element
-/// - `filter`: specifies a filter to apply to each element (or to the extracted attribute)
-/// - `args`: optional map of arguments to pass to the filter
-///
-/// At least one of `attribute` or `filter` must be provided.
-/// If both are provided, the attribute is extracted first, then the filter is applied.
-pub(crate) fn map(val: &[Value], kwargs: Kwargs, state: &State) -> TeraResult<Vec<Value>> {
-    if val.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let filter_name = kwargs.get::<&str>("filter")?;
-    let attribute = kwargs.get::<&str>("attribute")?;
-
-    // Must have at least one of filter or attribute
-    if filter_name.is_none() && attribute.is_none() {
-        return Err(Error::message(
-            "map filter requires either `filter` or `attribute` argument",
-        ));
-    }
-
-    // Prepare filter kwargs if filter is specified
-    let filter_kwargs = if filter_name.is_some() {
-        let args_map = kwargs
-            .get::<Value>("args")?
-            .and_then(|v| v.into_map())
-            .map(Arc::new)
-            .unwrap_or_else(|| Arc::new(Map::new()));
-        Some(Kwargs::new(args_map))
-    } else {
-        None
-    };
-
-    let mut res = Vec::with_capacity(val.len());
-    for v in val {
-        // Step 1: Extract attribute if specified
-        let extracted = if let Some(attr) = attribute {
-            match v.get_from_path(attr) {
-                None => {
-                    return Err(Error::message(format!(
-                        "Value {v} does not have an attribute at path: {attr}"
-                    )));
-                }
-                Some(x) => x.clone(),
-            }
-        } else {
-            v.clone()
-        };
-
-        // Step 2: Apply filter if specified
-        let final_val = if let (Some(name), Some(f_kwargs)) = (filter_name, &filter_kwargs) {
-            state.call_filter(name, &extracted, f_kwargs.clone())?
-        } else {
-            extracted
-        };
-
-        res.push(final_val);
-    }
-    Ok(res)
-}
-
 pub(crate) fn values(val: &Map, _: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
     Ok(val.values().cloned().collect())
 }
@@ -643,32 +581,6 @@ pub(crate) fn get(val: &Map, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
             "Map does not have a key {key} and no default values were defined"
         )))
     }
-}
-
-pub(crate) fn filter(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Vec<Value>> {
-    if val.is_empty() {
-        return Ok(Vec::new());
-    }
-    let attribute = kwargs.must_get::<&str>("attribute")?;
-    let value = kwargs.get::<Value>("value")?.unwrap_or(Value::none());
-    let mut res = Vec::with_capacity(val.len());
-
-    for v in val {
-        match v.get_from_path(attribute) {
-            None => {
-                return Err(Error::message(format!(
-                    "Value {v} does not have an attribute after following path: {attribute}"
-                )));
-            }
-            Some(x) => {
-                if *x == value {
-                    res.push(v.clone())
-                }
-            }
-        }
-    }
-
-    Ok(res)
 }
 
 pub(crate) fn group_by(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Map> {

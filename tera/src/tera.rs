@@ -461,11 +461,9 @@ impl Tera {
         self.register_filter("sort", crate::filters::sort);
         self.register_filter("unique", crate::filters::unique);
         self.register_filter("get", crate::filters::get);
-        self.register_filter("map", crate::filters::map);
         self.register_filter("values", crate::filters::values);
         self.register_filter("keys", crate::filters::keys);
         self.register_filter("pairs", crate::filters::pairs);
-        self.register_filter("filter", crate::filters::filter);
         self.register_filter("group_by", crate::filters::group_by);
     }
 
