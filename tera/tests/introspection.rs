@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+
 use tera::{ComponentArgType, Tera, Value};
 
 #[test]
@@ -15,7 +16,7 @@ fn test_get_component_definition() {
     assert_eq!(info.args().len(), 4);
     assert_eq!(info.rest_param(), Some("restant"));
 
-    let args = info.args();
+    let args: HashMap<_, _> = info.args().iter().map(|x| (x.name(), x)).collect();
 
     let label = args.get("label").unwrap();
     assert_eq!(label.name(), "label");

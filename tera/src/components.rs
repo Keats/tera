@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::fmt;
 
 use crate::parsing::ast::{ComponentDefinition, Type};
@@ -105,8 +105,8 @@ impl ComponentInfo {
         &self.name
     }
     /// All declared arguments
-    pub fn args(&self) -> HashMap<&str, &ComponentArg> {
-        HashMap::from_iter(self.args.iter().map(|arg| (arg.name(), arg)))
+    pub fn args(&self) -> &[ComponentArg] {
+        self.args.as_slice()
     }
     /// The rest parameter name (e.g. `rest` from `...rest`), if any.
     pub fn rest_param(&self) -> Option<&str> {
