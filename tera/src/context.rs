@@ -51,6 +51,7 @@ impl Context {
     }
 
     /// Converts the `val` parameter to `Value` and insert it into the context.
+    /// This can panic if the value cannot be serialised.
     ///
     /// ```rust
     /// # use tera::Context;
