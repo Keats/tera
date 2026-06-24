@@ -12,7 +12,7 @@ use crate::vm::state::State;
 use crate::{HashMap, Value};
 
 /// The filter function type definition
-pub trait Filter<Arg, Res>: Sync + Send + 'static {
+pub trait Filter<Arg, Res: FunctionResult>: Sync + Send + 'static {
     /// The filter function type definition
     fn call(&self, value: Arg, kwargs: Kwargs, state: &State) -> Res;
 

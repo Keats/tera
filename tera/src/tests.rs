@@ -26,7 +26,7 @@ impl TestResult for bool {
 }
 
 /// The test function type definition
-pub trait Test<Arg, Res>: Sync + Send + 'static {
+pub trait Test<Arg, Res: TestResult>: Sync + Send + 'static {
     /// The test function type definition
     fn call(&self, value: Arg, kwargs: Kwargs, state: &State) -> Res;
 }

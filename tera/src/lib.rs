@@ -84,9 +84,9 @@ pub use filters::Filter;
 pub use functions::Function;
 pub use tests::{Test, TestResult};
 pub use utils::{Span, escape_html};
-pub use value::number::Number;
 #[doc(inline)]
 pub use value::FunctionResult;
+pub use value::number::Number;
 pub use value::{Map, Value};
 pub use vm::state::State;
 

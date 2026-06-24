@@ -6,7 +6,7 @@ use crate::vm::state::State;
 use std::sync::Arc;
 
 /// The function function type definition
-pub trait Function<Res>: Sync + Send + 'static {
+pub trait Function<Res: FunctionResult>: Sync + Send + 'static {
     /// The function type definition
     fn call(&self, kwargs: Kwargs, state: &State) -> Res;
 
