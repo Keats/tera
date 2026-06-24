@@ -125,7 +125,7 @@ impl Context {
 ///     context.insert("age", &age);
 ///     context
 /// };
-///
+/// ```
 #[macro_export]
 macro_rules! context {
     (
