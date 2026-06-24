@@ -116,22 +116,6 @@ pub enum ErrorKind {
         /// The missing template
         parent: String,
     },
-    /// A template is calling a macro namespace that is not loaded
-    NamespaceNotLoaded {
-        /// Name of the template with the issue
-        tpl: String,
-        /// The namespace causing problems
-        namespace: String,
-    },
-    /// The template is calling a macro which isn't found in the namespace
-    MacroNotFound {
-        /// Name of the template with the issue
-        tpl: String,
-        /// The namespace used
-        namespace: String,
-        /// The name of the macro that cannot be found
-        name: String,
-    },
     /// A template was missing
     TemplateNotFound(String),
     /// A component was missing
@@ -188,18 +172,6 @@ impl fmt::Display for ErrorKind {
             ),
             ErrorKind::TemplateNotFound(name) => write!(f, "Template '{name}' not found"),
             ErrorKind::ComponentNotFound(name) => write!(f, "Component '{name}' not found"),
-            ErrorKind::NamespaceNotLoaded { tpl, namespace } => write!(
-                f,
-                "Template '{tpl}' is trying to use namespace `{namespace}` which is not loaded",
-            ),
-            ErrorKind::MacroNotFound {
-                tpl,
-                namespace,
-                name,
-            } => write!(
-                f,
-                "Template '{tpl}' is using macro `{namespace}::{name}` which is not found in the namespace",
-            ),
             ErrorKind::InvalidArgument {
                 expected_type,
                 actual_type,
