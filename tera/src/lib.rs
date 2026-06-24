@@ -75,16 +75,18 @@ pub mod value;
 pub(crate) mod vm;
 
 pub use crate::tera::{EscapeFn, Tera};
-pub use args::Kwargs;
+pub use args::{ArgFromValue, Kwargs};
 pub use components::{ComponentArg, ComponentArgType, ComponentInfo};
 pub use context::Context;
 pub use delimiters::Delimiters;
 pub use errors::{Error, ErrorKind, ReportError, TeraResult};
 pub use filters::Filter;
 pub use functions::Function;
-pub use tests::Test;
+pub use tests::{Test, TestResult};
 pub use utils::{Span, escape_html};
 pub use value::number::Number;
+#[doc(inline)]
+pub use value::FunctionResult;
 pub use value::{Map, Value};
 pub use vm::state::State;
 

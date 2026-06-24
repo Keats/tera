@@ -7,7 +7,9 @@ use crate::value::ValueKind;
 use crate::value::number::Number;
 use crate::vm::state::State;
 
+/// Converts a custom test return value into a `TeraResult<bool>`.
 pub trait TestResult {
+    #[allow(missing_docs)]
     fn into_result(self) -> TeraResult<bool>;
 }
 

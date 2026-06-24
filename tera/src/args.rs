@@ -40,10 +40,12 @@ mod private {
     impl<T: Sealed> Sealed for Vec<T> {}
 }
 
-#[doc(hidden)]
+/// Converts a template Value into a type that can be used in Rust code
 pub trait ArgFromValue<'k>: private::Sealed {
+    #[allow(missing_docs)]
     type Output;
 
+    #[allow(missing_docs)]
     fn from_value(value: &'k Value) -> TeraResult<Self::Output>;
 }
 
