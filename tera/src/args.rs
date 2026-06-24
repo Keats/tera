@@ -137,14 +137,38 @@ impl_for_literal!(bool, {
     ValueInner::Bool(b) => *b,
 });
 
-// TODO: test when value doesn't fit in f32
-impl_for_literal!(f32, {
-    ValueInner::I64(b) => *b as f32,
-    ValueInner::I128(b) => **b as f32,
-    ValueInner::U64(b) => *b as f32,
-    ValueInner::U128(b) => **b as f32,
-    ValueInner::F64(b) => *b as f32,
-});
+fn f32_from_value(value: &Value) -> TeraResult<f32> {
+    let (as_f32, input_finite) = match &value.inner {
+        ValueInner::I64(v) => (*v as f32, true),
+        ValueInner::I128(v) => (**v as f32, true),
+        ValueInner::U64(v) => (*v as f32, true),
+        ValueInner::U128(v) => (**v as f32, true),
+        ValueInner::F64(v) => (*v as f32, v.is_finite()),
+        _ => return Err(Error::invalid_arg_type("f32", value.name())),
+    };
+
+    if as_f32.is_finite() || !input_finite {
+        Ok(as_f32)
+    } else {
+        Err(Error::out_of_range_arg(value, "f32"))
+    }
+}
+
+impl TryFrom<Value> for f32 {
+    type Error = Error;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        f32_from_value(&value)
+    }
+}
+
+impl<'k> ArgFromValue<'k> for f32 {
+    type Output = Self;
+
+    fn from_value(value: &Value) -> Result<Self, Error> {
+        f32_from_value(value)
+    }
+}
 impl_for_literal!(f64, {
     ValueInner::I64(b) => *b as f64,
     ValueInner::I128(b) => **b as f64,
