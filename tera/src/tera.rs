@@ -1074,7 +1074,9 @@ impl Tera {
     /// Returns the global context, allowing modifications to it
     ///
     /// The global context is automatically included into every template,
-    /// which is useful for sharing common data
+    /// which is useful for sharing common data.
+    ///
+    /// The global context is *not* passed if you call `render_component`.
     ///
     /// ```
     /// # use tera::{Tera, Context, context};
