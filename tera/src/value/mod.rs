@@ -566,6 +566,13 @@ impl Value {
         }
     }
 
+    /// Creates a bytes Value
+    pub fn bytes(bytes: impl Into<Vec<u8>>) -> Value {
+        Value {
+            inner: ValueInner::Bytes(Arc::new(bytes.into())),
+        }
+    }
+
     /// If the Value is an integer that can fit in a i128, return that otherwise None.
     pub fn as_i128(&self) -> Option<i128> {
         match &self.inner {
@@ -584,6 +591,28 @@ impl Value {
             ValueInner::I64(v) => u128::try_from(*v).ok(),
             ValueInner::U128(v) => Some(**v),
             ValueInner::I128(v) => u128::try_from(**v).ok(),
+            _ => None,
+        }
+    }
+
+    /// If the Value is an integer that can fit in an i64, return that otherwise None.
+    pub fn as_i64(&self) -> Option<i64> {
+        match &self.inner {
+            ValueInner::U64(v) => i64::try_from(*v).ok(),
+            ValueInner::I64(v) => Some(*v),
+            ValueInner::U128(v) => i64::try_from(**v).ok(),
+            ValueInner::I128(v) => i64::try_from(**v).ok(),
+            _ => None,
+        }
+    }
+
+    /// If the Value is an integer that can fit in a u64, return that otherwise None.
+    pub fn as_u64(&self) -> Option<u64> {
+        match &self.inner {
+            ValueInner::U64(v) => Some(*v),
+            ValueInner::I64(v) => u64::try_from(*v).ok(),
+            ValueInner::U128(v) => u64::try_from(**v).ok(),
+            ValueInner::I128(v) => u64::try_from(**v).ok(),
             _ => None,
         }
     }
@@ -672,8 +701,8 @@ impl Value {
         }
     }
 
-    /// If the Value is an array return the associated Vec, otherwise None.
-    pub fn as_vec(&self) -> Option<&Vec<Value>> {
+    /// If the Value is an array return the associated slice, otherwise None.
+    pub fn as_array(&self) -> Option<&[Value]> {
         match &self.inner {
             ValueInner::Array(s) => Some(s),
             _ => None,
@@ -1093,6 +1122,13 @@ impl From<String> for Value {
     }
 }
 
+impl From<char> for Value {
+    fn from(value: char) -> Self {
+        let mut buf = [0; 4];
+        Value::normal_string(value.encode_utf8(&mut buf))
+    }
+}
+
 impl From<std::borrow::Cow<'_, str>> for Value {
     fn from(value: std::borrow::Cow<'_, str>) -> Self {
         Value {
@@ -1189,6 +1225,45 @@ impl From<f64> for Value {
     }
 }
 
+impl From<u16> for Value {
+    fn from(value: u16) -> Self {
+        Value {
+            inner: ValueInner::U64(value as u64),
+        }
+    }
+}
+
+impl From<i16> for Value {
+    fn from(value: i16) -> Self {
+        Value {
+            inner: ValueInner::I64(value as i64),
+        }
+    }
+}
+
+impl From<f32> for Value {
+    fn from(value: f32) -> Self {
+        Value {
+            inner: ValueInner::F64(value as f64),
+        }
+    }
+}
+
+impl From<()> for Value {
+    fn from(_: ()) -> Self {
+        Value::none()
+    }
+}
+
+impl<T: Into<Value>> From<Option<T>> for Value {
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(value) => value.into(),
+            None => Value::none(),
+        }
+    }
+}
+
 impl From<Key<'static>> for Value {
     fn from(value: Key<'static>) -> Self {
         match value {
@@ -1222,6 +1297,12 @@ impl From<&[Value]> for Value {
         Value {
             inner: ValueInner::Array(Arc::new(value.to_vec())),
         }
+    }
+}
+
+impl From<&[u8]> for Value {
+    fn from(value: &[u8]) -> Self {
+        Value::bytes(value)
     }
 }
 

@@ -161,7 +161,7 @@ pub(crate) fn is_containing(val: &Value, kwargs: Kwargs, _: &State) -> TeraResul
             let s = <&str as ArgFromValue>::from_value(pat)?;
             Ok(val.as_str().unwrap().contains(s))
         }
-        ValueKind::Array => Ok(val.as_vec().unwrap().contains(pat)),
+        ValueKind::Array => Ok(val.as_array().unwrap().contains(pat)),
         ValueKind::Map => Ok(match pat.as_key() {
             Ok(key) => val.as_map().unwrap().contains_key(&key),
             Err(_) => false,
