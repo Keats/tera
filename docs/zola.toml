@@ -18,4 +18,4 @@ error_on_missing_language = true
 
 [extra]
 author = "Vincent Prouillet"
-github_url = "https://github.com/Keats/tera2"
+github_url = "https://github.com/Keats/tera"

@@ -1,10 +1,10 @@
 [package]
 name = "tera-contrib"
-version = "0.2.0-alpha.7"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 description = "Additional filters, functions and tests for the Tera template engine"
-repository = "https://github.com/Keats/tera2"
+repository = "https://github.com/Keats/tera"
 documentation = "https://docs.rs/tera-contrib"
 keywords = ["template", "jinja2", "tera"]
 categories = ["template-engine"]
