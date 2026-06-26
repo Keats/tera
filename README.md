@@ -2,9 +2,6 @@
 
 For v1 users: see [migration guide](./MIGRATION.md).
 
-v1 repository is still available in <https://github.com/Keats/tera1>. v2 is a from-scratch rewrite and it didn't make
-sense to just overwrite the whole repo to me.
-
 Tera is a template engine inspired by [Jinja2](http://jinja.pocoo.org/) and the [Django template language](https://docs.djangoproject.com/en/6.0/topics/templates/).
 
 ```jinja2
