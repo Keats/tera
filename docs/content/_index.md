@@ -5,7 +5,7 @@ insert_anchor_links = "right"
 {% raw %}
 ## Getting started
 
-If you are coming from Tera v1, see the [migration guide](https://github.com/Keats/tera2/blob/master/MIGRATION.md).
+If you are coming from Tera v1, see the [migration guide](https://github.com/Keats/tera/blob/master/MIGRATION.md).
 
 To use Tera in your Rust projects, simply add it to your `Cargo.toml`:
 
@@ -23,7 +23,7 @@ A few features requiring more dependencies are available:
 - `preserve_order`: keep order of insertion for values
 
 There is also an additional crate, `tera-contrib`, which contains filters/functions/tests that require third party
-dependencies. See its [README](https://github.com/Keats/tera2/tree/master/tera-contrib) for the list of features and
+dependencies. See its [README](https://github.com/Keats/tera/tree/master/tera-contrib) for the list of features and
 what's available.
 
 ## API
