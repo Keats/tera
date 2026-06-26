@@ -1,0 +1,58 @@
+name: docs
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Resolve Zola next commit
+        id: zola
+        run: echo "sha=$(git ls-remote https://github.com/getzola/zola refs/heads/next | cut -f1)" >> "$GITHUB_OUTPUT"
+      - name: Cache Zola binary
+        id: cache-zola
+        uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/zola
+          key: zola-next-${{ steps.zola.outputs.sha }}
+      - name: Install Zola (next branch)
+        if: steps.cache-zola.outputs.cache-hit != 'true'
+        # Use next branch temporarily since these docs are built with it
+        run: cargo install --git https://github.com/getzola/zola --branch next --locked zola
+
+      - name: Build docs
+        run: zola build
+        working-directory: docs
+
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
