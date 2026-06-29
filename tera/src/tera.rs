@@ -428,6 +428,30 @@ impl Tera {
             .map(|(def, _)| ComponentInfo::from(def))
     }
 
+    /// Lookups a component by name, returning whether it's found or not
+    pub fn contains_component_definition(&self, component_name: &str) -> bool {
+        self.get_component_definition(component_name).is_some()
+    }
+
+    /// Returns an iterator over the names of all registered components in an
+    /// unspecified order.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use tera::Tera;
+    ///
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template("foo", "{% component hello(name) %}{{ name }}{% endcomponent %}");
+    ///
+    /// let names: Vec<_> = tera.get_component_names().collect();
+    /// assert_eq!(names.len(), 1);
+    /// assert!(names.contains(&"hello"));
+    /// ```
+    pub fn get_component_names(&self) -> impl Iterator<Item = &str> {
+        self.components.keys().map(|s| s.as_str())
+    }
+
     fn register_builtin_filters(&mut self) {
         self.register_filter("safe", crate::filters::safe);
         self.register_filter("default", crate::filters::default);
