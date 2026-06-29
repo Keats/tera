@@ -44,8 +44,18 @@
 //!
 //! ```toml
 //! [dependencies]
-//! tera = "2"
+//! # By default no features are selected.
+//! tera = {version = "2", features = ["fast"]}
 //! ```
+//!
+//! A few features requiring more dependencies are available:
+//!
+//! - `fast`: speed up template rendering (you can also select only some of the features from that feature group)
+//! - `glob_fs`: allows loading template on the filesystem using a glob
+//! - `unicode`: if you want Tera to work with graphemes clusters rather than utf-8 characters when iterating on strings
+//! - `preserve_order`: keep order of insertion for values
+//!
+//! Unless you want to trim down completely on your dependencies, the `fast` feature should be enabled.
 //!
 //! Then, consult the official documentation and examples to learn more about using Tera in your
 //! Rust projects.
