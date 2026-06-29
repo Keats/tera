@@ -18,5 +18,5 @@ It intentionally deviates from Jinja2/Django in many ways, only the overall look
 ## Documentation
 API documentation is available on [docs.rs](https://docs.rs/crate/tera/).
 
-Tera documentation is available on its [site](http://keats.github.io/tera/docs).
+Tera documentation is available on its [site](http://keats.github.io/tera/).
 
