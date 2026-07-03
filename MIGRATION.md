@@ -16,6 +16,7 @@ A lot of things have changed for the better.
   * `{% if hey.other or true %}` should error if `hey` is not defined (currently truthy)
   * `{{ hey.other or 1 }}` should error if `hey` is not defined (currently prints "true")
 - `{% if not_existing.field %}` errors if `not_existing` is undefined, we only allow one level of undefined-ness
+- You cannot use `my_vec.0` to access the first (or nth) element of an array, you need to use `my_vec[0]`
 
 ### Filter/function/tests changes
 
