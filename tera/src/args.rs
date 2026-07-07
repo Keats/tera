@@ -332,6 +332,12 @@ impl Kwargs {
             Err(Error::missing_arg(key))
         }
     }
+
+    /// Iterates over all the provided arguments. Order is not guaranteed unless the
+    /// "preserve_order" feature is set.
+    pub fn iter(&self) -> impl Iterator<Item = (&Key<'static>, &Value)> {
+        self.values.iter()
+    }
 }
 
 impl<const N: usize> From<[(&'static str, Value); N]> for Kwargs {
