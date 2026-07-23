@@ -310,7 +310,8 @@ impl Tera {
         Arg: for<'a> ArgFromValue<'a>,
         Res: FunctionResult,
     {
-        self.filters.insert(name.into(), StoredFilter::new(filter));
+        self.filters
+            .insert(name.into(), StoredFilter::new::<_, Arg, _>(filter));
     }
 
     /// Register a test with Tera.
@@ -328,7 +329,8 @@ impl Tera {
         Arg: for<'a> ArgFromValue<'a>,
         Res: TestResult,
     {
-        self.tests.insert(name.into(), StoredTest::new(test));
+        self.tests
+            .insert(name.into(), StoredTest::new::<_, Arg, _>(test));
     }
 
     /// Register a function with Tera.
