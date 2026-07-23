@@ -429,7 +429,21 @@ impl Tera {
     }
 
     /// Lookups a component by name, returning whether it's found or not
-    pub fn contains_component_definition(&self, component_name: &str) -> bool {
+    /// Returns `fakse` if no component with the given name is found.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use tera::Tera;
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template(
+    ///     "components.html",
+    ///     r#"{% component Button(label: String, variant="primary") %}<button>{{ label }}</button>{% endcomponent Button %}"#,
+    /// ).unwrap();
+    ///
+    /// assert!(tera.contains_component("Button"));
+    /// ```
+    pub fn contains_component(&self, component_name: &str) -> bool {
         self.get_component_definition(component_name).is_some()
     }
 
