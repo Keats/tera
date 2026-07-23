@@ -3,6 +3,7 @@
 ## 2.1.0 (2026-06-23)
 
 - Add .iter() method to Kwargs
+- Add `Tera::contains_component` and `Tera::get_components_names`
 
 ## 2.0.0 (2026-06-26)
 
