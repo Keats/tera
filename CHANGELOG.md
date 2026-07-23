@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.0 (2026-06-23)
+
+- Add .iter() method to Kwargs
+
 ## 2.0.0 (2026-06-26)
 
 see [migration guide](./MIGRATION.md) for all the changes.
