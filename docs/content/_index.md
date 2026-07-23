@@ -97,7 +97,7 @@ tera.global_context().insert("name", "John Doe");
 
 ### Auto-escaping
 By default, Tera will auto-escape all content in files ending with `".html"`, `".htm"` and `".xml"`.
-Escaping follows the recommendations from [OWASP](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet).
+Escaping follows the recommendations from [OWASP](http://web.archive.org/web/20090427053653/http://www.owasp.org:80/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet).
 
 You can override that or completely disable auto-escaping by calling the `autoescape_on` method:
 
