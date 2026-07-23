@@ -763,17 +763,17 @@ impl Value {
         for elem in path.split('.') {
             match elem.parse::<usize>() {
                 Ok(idx) => match &current.inner {
-                    ValueInner::Array(arr) => match arr.get(idx) {
-                        Some(v) => current = v,
-                        None => return None,
-                    },
+                    ValueInner::Array(arr) => {
+                        let v = arr.get(idx)?;
+                        current = v;
+                    }
                     _ => return None,
                 },
                 Err(_) => match &current.inner {
-                    ValueInner::Map(map) => match map.get(&Key::Str(elem)) {
-                        Some(v) => current = v,
-                        None => return None,
-                    },
+                    ValueInner::Map(map) => {
+                        let v = map.get(&Key::Str(elem))?;
+                        current = v;
+                    }
                     _ => return None,
                 },
             }
