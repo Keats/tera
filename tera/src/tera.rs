@@ -431,7 +431,7 @@ impl Tera {
     }
 
     /// Lookups a component by name, returning whether it's found or not
-    /// Returns `fakse` if no component with the given name is found.
+    /// Returns `false` if no component with the given name is found.
     ///
     /// # Examples
     ///
