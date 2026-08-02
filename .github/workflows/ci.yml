@@ -45,6 +45,8 @@ jobs:
             rust: stable
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
@@ -55,4 +57,3 @@ jobs:
         run: cargo test
       - name: tests without the default feature
         run: cargo test --all-features
-
