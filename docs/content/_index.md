@@ -189,6 +189,18 @@ Trying to access or render a variable that doesn't exist will result in an error
 
 A magical variable is available in every template if you want to print the current context: `__tera_context`.
 
+#### Valid names
+A variable name must start with an ASCII letter or an underscore (`_`) and can only contain ASCII
+letters, digits and underscores after that. In regex terms: `[a-zA-Z_][a-zA-Z0-9_]*`.
+
+Those restrictions also apply to block/component names.
+
+If a key is not a valid identifier, you can use the square bracket notation instead: `{{ product["some-key"] }}`.
+
+There are a few reserved names which cannot be used as variables in the templates: `true`, `True`, `false`, `False`, `loop`, `self`, `and`, `or`, `not`, `is`, `in`, `continue`, `break`,
+`none`, `None`, `null`.
+
+
 #### Dot notation:
 Constructs and attributes can be accessed by using the dot (`.`) like `{{ product.name }}`.
 Specific members of an array or tuple are accessed by using the `.i` notation, where i is a zero-based index.
