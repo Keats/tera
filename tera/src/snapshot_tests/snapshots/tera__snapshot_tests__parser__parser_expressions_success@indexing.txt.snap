@@ -4,18 +4,18 @@ expression: Expressions(expr_nodes)
 input_file: tera/src/snapshot_tests/parser_inputs/success/expr/indexing.txt
 ---
 array[0]
-array[(- 1)]
+array[-1]
 array[:2]
 array[1:2]
 array[1:2:2]
-array[:(- 1)]
+array[:-1]
 array?[0]
-array?[(- 1)]
+array?[-1]
 array?[:2]
 array?[1:2]
 array?[1:2:2]
-array?[:(- 1)]
+array?[:-1]
 (| array reverse{})[0]
 range{end=5}[2]
 numbers[0]
-(| (| array reverse{})[:(- 1)] first{})
+(| (| array reverse{})[:-1] first{})

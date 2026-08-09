@@ -14,7 +14,7 @@ use crate::parsing::ast::{
 use crate::parsing::ast::{BinaryOperator, Node, UnaryOperator};
 use crate::parsing::lexer::{Token, tokenize};
 use crate::utils::{Span, Spanned};
-use crate::value::{Key, Value};
+use crate::value::{Key, Value, ValueInner};
 use crate::{HashMap, HashSet};
 
 /// Maximum recursion depth for the parser, shared between expression and statement parsing
@@ -731,7 +731,27 @@ impl<'a> Parser<'a> {
                 let (_, r_bp) = unary_binding_power(op);
                 let expr = self.inner_parse_expression(r_bp)?;
                 span.expand(&self.current_span);
-                Expression::UnaryOperation(Spanned::new(UnaryOperation { op, expr }, span.clone()))
+                match (op, &expr) {
+                    (UnaryOperator::Minus, Expression::Const(value)) => match value.node().inner {
+                        ValueInner::I64(value) => Expression::Const(Spanned::new(
+                            Value::from(value.checked_neg().ok_or_else(|| {
+                                Error::syntax_error("Integer overflow".to_string(), &span)
+                            })?),
+                            span.clone(),
+                        )),
+                        ValueInner::F64(value) => {
+                            Expression::Const(Spanned::new(Value::from(-value), span.clone()))
+                        }
+                        _ => Expression::UnaryOperation(Spanned::new(
+                            UnaryOperation { op, expr },
+                            span.clone(),
+                        )),
+                    },
+                    _ => Expression::UnaryOperation(Spanned::new(
+                        UnaryOperation { op, expr },
+                        span.clone(),
+                    )),
+                }
             }
             Token::Ident(ident) => self.parse_ident(ident)?,
             Token::LessThan => {
@@ -1318,6 +1338,19 @@ impl<'a> Parser<'a> {
                     Some(Ok((Token::String(b), _))) => (Value::from(b.clone()), true),
                     Some(Ok((Token::Integer(b), _))) => (Value::from(*b), true),
                     Some(Ok((Token::Float(b), _))) => (Value::from(*b), true),
+                    Some(Ok((Token::Minus, _))) => {
+                        self.next_or_error()?;
+                        match &self.next {
+                            Some(Ok((Token::Integer(b), _))) => (Value::from(-*b), true),
+                            Some(Ok((Token::Float(b), _))) => (Value::from(-*b), true),
+                            _ => {
+                                return Err(Error::syntax_error(
+                                    "Found `-` but component default arguments can only be one of: string, bool, integer, float, array or map".to_string(),
+                                    &self.current_span,
+                                ));
+                            }
+                        }
+                    }
                     Some(Ok((
                         Token::Ident("none") | Token::Ident("None") | Token::Ident("null"),
                         _,
