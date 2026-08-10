@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use tera::{ComponentArgType, Tera, Value};
 
@@ -40,6 +40,42 @@ fn test_get_component_definition() {
     assert_eq!(meta.get("deprecated").unwrap(), &Value::from(true));
 
     assert!(tera.get_component_definition("DoesNotExist").is_none());
+}
+
+#[test]
+fn negative_component_defaults_preserve_value_and_type() {
+    let mut tera = Tera::default();
+    tera.add_raw_template(
+        "components.html",
+        r#"{% component Metrics(integer=-1, float=-1.5, positive_array=[1], negative_array=[-1], negative_map={"foo": -1}) %}{% endcomponent Metrics %}"#,
+    )
+    .unwrap();
+
+    let info = tera.get_component_definition("Metrics").unwrap();
+    let args: HashMap<_, _> = info.args().iter().map(|arg| (arg.name(), arg)).collect();
+
+    let integer = args.get("integer").unwrap();
+    assert_eq!(integer.arg_type(), Some(ComponentArgType::Integer));
+    assert_eq!(integer.default(), Some(&Value::from(-1)));
+
+    let float = args.get("float").unwrap();
+    assert_eq!(float.arg_type(), Some(ComponentArgType::Float));
+    assert_eq!(float.default(), Some(&Value::from(-1.5)));
+
+    let positive_array = args.get("positive_array").unwrap();
+    assert_eq!(positive_array.arg_type(), Some(ComponentArgType::Array));
+    assert_eq!(positive_array.default(), Some(&Value::from(vec![1])));
+
+    let negative_array = args.get("negative_array").unwrap();
+    assert_eq!(negative_array.arg_type(), Some(ComponentArgType::Array));
+    assert_eq!(negative_array.default(), Some(&Value::from(vec![-1])));
+
+    let negative_map = args.get("negative_map").unwrap();
+    assert_eq!(negative_map.arg_type(), Some(ComponentArgType::Map));
+    assert_eq!(
+        negative_map.default(),
+        Some(&Value::from(BTreeMap::from([("foo", -1)])))
+    );
 }
 
 #[test]

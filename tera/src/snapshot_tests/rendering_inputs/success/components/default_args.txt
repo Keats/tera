@@ -1,4 +1,4 @@
 $$ components
-{% component hello(val=1) %}{{val}}{% endcomponent hello %}
+{% component hello(integer=-1, float=-1.5, positive_array=[1], negative_array=[-1], negative_map={"foo": -1}) %}{{integer}} {{float}} {{positive_array}} {{negative_array}} {{negative_map.foo}}{% endcomponent hello %}
 $$ tpl
 {{<hello/>}}

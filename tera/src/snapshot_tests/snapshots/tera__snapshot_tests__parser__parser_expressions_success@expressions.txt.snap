@@ -1,14 +1,13 @@
 ---
 source: tera/src/snapshot_tests/parser.rs
-assertion_line: 35
 expression: Expressions(expr_nodes)
 input_file: tera/src/snapshot_tests/parser_inputs/success/expr/expressions.txt
 ---
-(- 1)
+-1
 1
 'hello'
 true
-(- 1.2)
+-1.2
 1.2
 a
 (- a)
@@ -26,7 +25,7 @@ hello.data[var].hey
 [(+ 1 1), 2, (* 3 2)]
 (~ hey ho)
 (~ 1 ho)
-(~ (- 1.2) ho)
+(~ -1.2 ho)
 (~ [] ho)
 (~ 'hey' ho)
 (~ (~ 'hello' ident) 'ho')
@@ -97,7 +96,7 @@ three' indent{})
 (== a null)
 (+ 1 (| 2 round{}))
 (== a (| b upper{}))
-(** (- 2) 2)
+(** -2 2)
 (** 2 (** 3 2))
 (not (== a b))
 (not (in (* a b) c))

@@ -3,4 +3,4 @@ source: tera/src/snapshot_tests/rendering.rs
 expression: "&out"
 input_file: tera/src/snapshot_tests/rendering_inputs/success/components/default_args.txt
 ---
-1
+-1 -1.5 [1] [-1] -1

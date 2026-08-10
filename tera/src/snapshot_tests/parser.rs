@@ -141,6 +141,25 @@ fn parser_can_convert_array_to_const_when_possible() {
 }
 
 #[test]
+fn parser_folds_negative_numbers_to_constants() {
+    let parser = Parser::new("", r#"{{ [-1, {"value": -1.5}] }}"#, Delimiters::default());
+    let nodes = parser.parse().unwrap().nodes;
+    let expected = Value::from(vec![
+        Value::from(-1),
+        Value::from(std::collections::BTreeMap::from([("value", -1.5)])),
+    ]);
+    match &nodes[0] {
+        Node::Expression(e) => {
+            assert_eq!(
+                e,
+                &Expression::Const(Spanned::new(expected, e.span().clone()))
+            );
+        }
+        _ => unreachable!(),
+    }
+}
+
+#[test]
 fn parser_templates_success() {
     insta::glob!("parser_inputs/success/tpl/*.txt", |path| {
         println!("{path:?}");
