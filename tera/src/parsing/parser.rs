@@ -1343,12 +1343,21 @@ impl<'a> Parser<'a> {
                         match &self.next {
                             Some(Ok((Token::Integer(b), _))) => (Value::from(-*b), true),
                             Some(Ok((Token::Float(b), _))) => (Value::from(-*b), true),
-                            _ => {
+                            Some(Ok((token, span))) => {
                                 return Err(Error::syntax_error(
-                                    "Found `-` but component default arguments can only be one of: string, bool, integer, float, array or map".to_string(),
-                                    &self.current_span,
+                                    format!(
+                                        "Found a {token} but `-` can only be followed by an integer or a float"
+                                    ),
+                                    span,
                                 ));
                             }
+                            Some(Err(e)) => {
+                                return Err(Error {
+                                    kind: e.kind.clone(),
+                                    source: None,
+                                });
+                            }
+                            None => return Err(self.eoi()),
                         }
                     }
                     Some(Ok((
