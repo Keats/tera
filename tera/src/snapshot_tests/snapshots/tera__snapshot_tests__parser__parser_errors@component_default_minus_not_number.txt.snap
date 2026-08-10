@@ -3,7 +3,7 @@ source: tera/src/snapshot_tests/parser.rs
 expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/component_default_minus_not_number.txt
 ---
-error: Found a bool but `-` can only be followed by an integer or a float
+error: Found bool but `-` can only be followed by an integer or a float
  --> component_default_minus_not_number.txt:1:27
   |
 1 | {% component array(array=-true) %}{% endcomponent %}

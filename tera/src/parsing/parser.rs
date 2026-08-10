@@ -734,9 +734,7 @@ impl<'a> Parser<'a> {
                 match (op, &expr) {
                     (UnaryOperator::Minus, Expression::Const(value)) => match value.node().inner {
                         ValueInner::I64(value) => Expression::Const(Spanned::new(
-                            Value::from(value.checked_neg().ok_or_else(|| {
-                                Error::syntax_error("Integer overflow".to_string(), &span)
-                            })?),
+                            Value::from(-value),
                             span.clone(),
                         )),
                         ValueInner::F64(value) => {
@@ -1313,7 +1311,7 @@ impl<'a> Parser<'a> {
                     Some(Ok((token, span))) => {
                         return Err(Error::syntax_error(
                             format!(
-                                "Found {token} but the only types allowed are: string, bool, integer, float, number, array and map"
+                                "Found {token} but the only types allowed are: string, bool, integer, float, number, bytes, array and map"
                             ),
                             span,
                         ));
@@ -1346,7 +1344,7 @@ impl<'a> Parser<'a> {
                             Some(Ok((token, span))) => {
                                 return Err(Error::syntax_error(
                                     format!(
-                                        "Found a {token} but `-` can only be followed by an integer or a float"
+                                        "Found {token} but `-` can only be followed by an integer or a float"
                                     ),
                                     span,
                                 ));
@@ -1404,6 +1402,23 @@ impl<'a> Parser<'a> {
                 // Infer type from default value if not explicitly specified
                 if kwarg.typ.is_none() {
                     kwarg.typ = Type::from_value(&val);
+                }
+
+                if let Some(typ) = kwarg.typ.as_ref()
+                    && let Some(default) = kwarg.default.as_ref()
+                {
+                    if !default.is_none() && !typ.matches_value(default) {
+                        let default_typ = Type::from_value(default)
+                            .map(|t| t.as_str())
+                            .unwrap_or_else(|| default.name());
+                        return Err(Error::syntax_error(
+                            format!(
+                                "Default value for `{arg_name}` has type `{default_typ}` but the argument has type `{}`",
+                                typ.as_str(),
+                            ),
+                            &self.current_span,
+                        ));
+                    }
                 }
             }
 

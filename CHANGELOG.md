@@ -3,6 +3,7 @@
 ## 2.1.1 (unreleased)
 
 - Fix component default value not allowing negative numbers
+- Fix component default value not checking whether default value matches expected type
 
 ## 2.1.0 (2026-06-23)
 

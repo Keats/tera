@@ -1,0 +1,1 @@
+{% component foo(bar: string = 1) %}{{bar}}{% endcomponent %}
