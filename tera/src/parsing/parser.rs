@@ -733,10 +733,9 @@ impl<'a> Parser<'a> {
                 span.expand(&self.current_span);
                 match (op, &expr) {
                     (UnaryOperator::Minus, Expression::Const(value)) => match value.node().inner {
-                        ValueInner::I64(value) => Expression::Const(Spanned::new(
-                            Value::from(-value),
-                            span.clone(),
-                        )),
+                        ValueInner::I64(value) => {
+                            Expression::Const(Spanned::new(Value::from(-value), span.clone()))
+                        }
                         ValueInner::F64(value) => {
                             Expression::Const(Spanned::new(Value::from(-value), span.clone()))
                         }
@@ -1406,19 +1405,19 @@ impl<'a> Parser<'a> {
 
                 if let Some(typ) = kwarg.typ.as_ref()
                     && let Some(default) = kwarg.default.as_ref()
+                    && !default.is_none()
+                    && !typ.matches_value(default)
                 {
-                    if !default.is_none() && !typ.matches_value(default) {
-                        let default_typ = Type::from_value(default)
-                            .map(|t| t.as_str())
-                            .unwrap_or_else(|| default.name());
-                        return Err(Error::syntax_error(
-                            format!(
-                                "Default value for `{arg_name}` has type `{default_typ}` but the argument has type `{}`",
-                                typ.as_str(),
-                            ),
-                            &self.current_span,
-                        ));
-                    }
+                    let default_typ = Type::from_value(default)
+                        .map(|t| t.as_str())
+                        .unwrap_or_else(|| default.name());
+                    return Err(Error::syntax_error(
+                        format!(
+                            "Default value for `{arg_name}` has type `{default_typ}` but the argument has type `{}`",
+                            typ.as_str(),
+                        ),
+                        &self.current_span,
+                    ));
                 }
             }
 
