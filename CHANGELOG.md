@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.1 (unreleased)
+## 2.1.1 (2026-08-11)
 
 - Fix component default value not allowing negative numbers
 - Fix component default value not checking whether default value matches expected type
