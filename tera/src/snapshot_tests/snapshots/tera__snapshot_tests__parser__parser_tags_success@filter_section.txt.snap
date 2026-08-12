@@ -5,26 +5,41 @@ input_file: tera/src/snapshot_tests/parser_inputs/success/tags/filter_section.tx
 ---
 [
     FilterSection {
-        name: "safe" @ 1:10-1:14 (10..14),
-        kwargs: {},
+        filters: [
+            Filter {
+                expr: () @ 1:3-1:9 (3..9),
+                name: "safe",
+                kwargs: {},
+            } @ 1:10-1:14 (10..14),
+        ],
         body: [
             " hello ",
         ],
     },
     FilterSection {
-        name: "upper" @ 2:10-2:15 (50..55),
-        kwargs: {
-            "hey": 1 @ 2:20-2:21 (60..61),
-        },
+        filters: [
+            Filter {
+                expr: () @ 2:3-2:9 (43..49),
+                name: "upper",
+                kwargs: {
+                    "hey": 1 @ 2:20-2:21 (60..61),
+                },
+            } @ 2:10-2:22 (50..62),
+        ],
         body: [
             "hello",
         ],
     },
     FilterSection {
-        name: "upper" @ 3:10-3:15 (100..105),
-        kwargs: {
-            "hey": 1 @ 3:20-3:21 (110..111),
-        },
+        filters: [
+            Filter {
+                expr: () @ 3:3-3:9 (93..99),
+                name: "upper",
+                kwargs: {
+                    "hey": 1 @ 3:20-3:21 (110..111),
+                },
+            } @ 3:10-3:22 (100..112),
+        ],
         body: [
             If {
                 expr: true @ 3:32-3:36 (122..126),

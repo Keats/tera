@@ -1613,25 +1613,27 @@ impl<'a> Parser<'a> {
                 Ok(Some(Node::If(node)))
             }
             Token::Ident("filter") => {
-                self.body_contexts.push(BodyContext::Capture);
-                let (name, ident_span) = expect_token!(self, Token::Ident(s) => s, "identifier")?;
+                let mut filters = Vec::with_capacity(1);
 
-                let kwargs = if matches!(self.next, Some(Ok((Token::LeftParen, _)))) {
-                    self.parse_kwargs()?
-                } else {
-                    HashMap::new()
-                };
-                let mut fn_span = ident_span.clone();
-                fn_span.expand(&self.current_span);
-                expect_token!(self, Token::TagEnd(..), "%}")?;
+                loop {
+                    filters.push(self.parse_filter(Expression::Const(Spanned::new(
+                        Value::none(),
+                        self.current_span.clone(),
+                    )))?);
+
+                    if let Some(Ok((Token::Pipe, _))) = self.next {
+                        expect_token!(self, Token::Pipe, "|")?;
+                    } else {
+                        expect_token!(self, Token::TagEnd(..), "%}")?;
+                        break;
+                    }
+                }
+
+                self.body_contexts.push(BodyContext::Capture);
                 let body = self.parse_until(|tok| matches!(tok, Token::Ident("endfilter")))?;
                 self.next_or_error()?;
                 self.body_contexts.pop();
-                Ok(Some(Node::FilterSection(FilterSection {
-                    name: Spanned::new(name.to_owned(), ident_span),
-                    kwargs,
-                    body,
-                })))
+                Ok(Some(Node::FilterSection(FilterSection { filters, body })))
             }
             Token::Ident("component") => {
                 let component_def = self.parse_component_definition()?;

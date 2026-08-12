@@ -87,8 +87,13 @@ input_file: tera/src/snapshot_tests/parser_inputs/success/tpl/tpl_slightly_compl
                     } @ 9:23-9:84 (265..326),
                     "\n\n            ",
                     FilterSection {
-                        name: "markdown" @ 11:22-11:30 (353..361),
-                        kwargs: {},
+                        filters: [
+                            Filter {
+                                expr: () @ 11:15-11:21 (346..352),
+                                name: "markdown",
+                                kwargs: {},
+                            } @ 11:22-11:30 (353..361),
+                        ],
                         body: [
                             "\n            ## Description\n\n            ",
                             Filter {

@@ -633,9 +633,9 @@ pub struct If {
 /// A filter section node `{% filter name(param="value") %} content {% endfilter %}`
 #[derive(Clone, Debug, PartialEq)]
 pub struct FilterSection {
-    pub name: Spanned<String>,
-    pub kwargs: HashMap<String, Expression>,
-    /// The filter body
+    /// The filters to apply to the body
+    pub filters: Vec<Expression>,
+    /// The filter section body
     pub body: Vec<Node>,
 }
 

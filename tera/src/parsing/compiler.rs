@@ -619,16 +619,21 @@ impl Compiler {
                 for node in f.body {
                     self.compile_node(node);
                 }
-                self.chunk
-                    .add(Instruction::EndCapture, Some(f.name.span().clone()));
-                self.compile_kwargs(f.kwargs);
-                let (filter_name, span) = f.name.into_parts();
-                self.filter_calls
-                    .entry(filter_name.clone())
-                    .or_default()
-                    .push(span.clone());
-                self.chunk
-                    .add(Instruction::ApplyFilter(filter_name), Some(span));
+                // We can only have an error on a filter so point to the first one
+                let capture_span = f.filters.first().map(|f| f.span().clone());
+                self.chunk.add(Instruction::EndCapture, capture_span);
+                for expr in f.filters {
+                    if let Expression::Filter(f) = expr {
+                        let (filter, span) = f.into_parts();
+                        self.compile_kwargs(filter.kwargs);
+                        self.filter_calls
+                            .entry(filter.name.clone())
+                            .or_default()
+                            .push(span.clone());
+                        self.chunk
+                            .add(Instruction::ApplyFilter(filter.name), Some(span));
+                    }
+                }
                 self.chunk.add(Instruction::WriteTop, None);
             }
         }
