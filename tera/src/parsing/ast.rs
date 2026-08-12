@@ -255,7 +255,7 @@ impl fmt::Display for Expression {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Filter {
     pub expr: Expression,
     pub name: String,
@@ -277,6 +277,21 @@ impl fmt::Display for Filter {
             }
         }
         write!(f, "}})",)
+    }
+}
+
+impl fmt::Debug for Filter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self { expr, name, kwargs } = &self;
+
+        // Ensures `Debug` output is stable in `insta` snapshot tests
+        let sorted_kwargs: BTreeMap<_, _> = kwargs.iter().collect();
+
+        f.debug_struct(stringify!(Filter))
+            .field("expr", expr)
+            .field("name", name)
+            .field("kwargs", &sorted_kwargs)
+            .finish()
     }
 }
 
