@@ -1,0 +1,1 @@
+{% filter replace(from="Robert", to="Bob") | safe -%} Hello I'm Robert! {%- endfilter %}

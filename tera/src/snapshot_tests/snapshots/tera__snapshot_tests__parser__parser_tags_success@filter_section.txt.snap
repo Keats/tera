@@ -50,4 +50,24 @@ input_file: tera/src/snapshot_tests/parser_inputs/success/tags/filter_section.tx
             },
         ],
     },
+    FilterSection {
+        filters: [
+            Filter {
+                expr: () @ 4:3-4:9 (160..166),
+                name: "safe",
+                kwargs: {},
+            } @ 4:10-4:14 (167..171),
+            Filter {
+                expr: () @ 4:15-4:16 (172..173),
+                name: "replace",
+                kwargs: {
+                    "from": "Robert" @ 4:30-4:38 (187..195),
+                    "to": "Bob" @ 4:43-4:48 (200..205),
+                },
+            } @ 4:17-4:49 (174..206),
+        ],
+        body: [
+            "Hello, I'm Robert",
+        ],
+    },
 ]
