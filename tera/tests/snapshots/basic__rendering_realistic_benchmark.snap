@@ -21,9 +21,7 @@ expression: out
             <a href="https://docs.rs/tera" class="nav-link">API Docs</a>
         </nav>
 
-        
-
-<ul>
+        <ul>
 
     <li>1. Hello world</li>
 
@@ -66,7 +64,6 @@ expression: out
     <li>20. Hello world</li>
 
 </ul>
-
 
         
 

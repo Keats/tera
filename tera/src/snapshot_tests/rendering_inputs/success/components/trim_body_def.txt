@@ -1,0 +1,9 @@
+$$ components
+{% component coverlink(dest) %}
+<a href="{{ dest }}">{{ dest }}</a>
+{% endcomponent coverlink %}
+$$ tpl
+<div>
+{{<coverlink dest="a"/>}}
+{{<coverlink dest="b"/>}}
+</div>

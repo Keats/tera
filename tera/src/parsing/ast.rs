@@ -755,6 +755,43 @@ impl ComponentDefinition {
         self.kwargs.keys().map(|k| k.as_str()).collect()
     }
 
+    /// Trim body unless the `trim` metadata field is set to `false`
+    pub fn maybe_trim_body(&mut self) {
+        let needs_trimming = self
+            .metadata
+            .get("trim")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+        if !needs_trimming {
+            return;
+        }
+
+        // We might have multiple Node::Content at start/end if there were comment nodes that got dropped
+        while let Some(Node::Content(c)) = self.body.first_mut() {
+            let t = c.trim_start();
+            if t.is_empty() {
+                self.body.remove(0);
+            } else {
+                if t.len() != c.len() {
+                    *c = t.to_string();
+                }
+                break;
+            }
+        }
+
+        while let Some(Node::Content(c)) = self.body.last_mut() {
+            let t = c.trim_end();
+            if t.is_empty() {
+                self.body.pop();
+            } else {
+                if t.len() != c.len() {
+                    *c = t.to_string();
+                }
+                break;
+            }
+        }
+    }
+
     /// Builds a validated context from provided kwargs, checking types and applying defaults.
     /// If rest_param_name is defined, unknown kwargs are collected into it.
     /// Otherwise, unknown kwargs will error.

@@ -1450,6 +1450,8 @@ impl<'a> Parser<'a> {
         self.body_contexts.pop();
         component_def.body = body;
 
+        component_def.maybe_trim_body();
+
         Ok(component_def)
     }
 

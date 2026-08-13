@@ -56,6 +56,7 @@ fn parser_errors() {
 fn parser_components_definition_success() {
     insta::glob!("parser_inputs/success/components/def/*.txt", |path| {
         let contents = std::fs::read_to_string(path).unwrap();
+        let contents = normalize_line_endings(&contents);
         let components = &Parser::new("", &contents, Delimiters::default())
             .parse()
             .unwrap()
@@ -68,6 +69,7 @@ fn parser_components_definition_success() {
 fn parser_components_render_success() {
     insta::glob!("parser_inputs/success/components/*.txt", |path| {
         let contents = std::fs::read_to_string(path).unwrap();
+        let contents = normalize_line_endings(&contents);
         println!("{path:?}");
         let nodes = &Parser::new("", &contents, Delimiters::default())
             .parse()

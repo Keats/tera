@@ -1,0 +1,3 @@
+{% component greet(label) %}
+{{label}}
+{% endcomponent %}

@@ -1,0 +1,4 @@
+{% component greet(label) %}
+{# this has ws after #}
+{{label}}
+{% endcomponent %}
