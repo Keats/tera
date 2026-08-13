@@ -2,7 +2,6 @@ use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::str::FromStr;
 
-use crate::HashMap;
 use crate::errors::Error;
 use crate::utils::{Span, Spanned};
 use crate::value::{Key, Value, ValueInner, format_map};
@@ -255,11 +254,11 @@ impl fmt::Display for Expression {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Filter {
     pub expr: Expression,
     pub name: String,
-    pub kwargs: HashMap<String, Expression>,
+    pub kwargs: BTreeMap<String, Expression>,
 }
 
 impl fmt::Display for Filter {
@@ -277,21 +276,6 @@ impl fmt::Display for Filter {
             }
         }
         write!(f, "}})",)
-    }
-}
-
-impl fmt::Debug for Filter {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Self { expr, name, kwargs } = &self;
-
-        // Ensures `Debug` output is stable in `insta` snapshot tests
-        let sorted_kwargs: BTreeMap<_, _> = kwargs.iter().collect();
-
-        f.debug_struct(stringify!(Filter))
-            .field("expr", expr)
-            .field("name", name)
-            .field("kwargs", &sorted_kwargs)
-            .finish()
     }
 }
 
@@ -413,7 +397,7 @@ impl Array {
 pub struct Test {
     pub expr: Expression,
     pub name: String,
-    pub kwargs: HashMap<String, Expression>,
+    pub kwargs: BTreeMap<String, Expression>,
 }
 
 impl fmt::Display for Test {
@@ -478,7 +462,7 @@ impl fmt::Display for ComponentCall {
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionCall {
     pub name: String,
-    pub kwargs: HashMap<String, Expression>,
+    pub kwargs: BTreeMap<String, Expression>,
 }
 
 impl fmt::Display for FunctionCall {

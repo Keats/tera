@@ -1,6 +1,6 @@
 //! AST -> bytecode
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
 use crate::HashMap;
 use crate::parsing::ast::{
@@ -58,7 +58,7 @@ impl Compiler {
         }
     }
 
-    fn compile_kwargs(&mut self, kwargs: HashMap<String, Expression>) {
+    fn compile_kwargs(&mut self, kwargs: BTreeMap<String, Expression>) {
         let num_args = kwargs.len();
         // TODO: push a single instr for all keys as a Vec<String> like Python? bench first
         for (key, value) in kwargs {

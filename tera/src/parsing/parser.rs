@@ -373,8 +373,8 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn parse_kwargs(&mut self) -> TeraResult<HashMap<String, Expression>> {
-        let mut kwargs = HashMap::new();
+    fn parse_kwargs(&mut self) -> TeraResult<BTreeMap<String, Expression>> {
+        let mut kwargs = BTreeMap::new();
         let mut kwarg_spans: HashMap<&str, Span> = HashMap::new();
         expect_token!(self, Token::LeftParen, "(")?;
 
@@ -511,7 +511,7 @@ impl<'a> Parser<'a> {
 
     fn parse_filter(&mut self, expr: Expression) -> TeraResult<Expression> {
         let (name, mut span) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
-        let mut kwargs = HashMap::new();
+        let mut kwargs = BTreeMap::new();
 
         // We have potentially args to handle
         if matches!(self.next, Some(Ok((Token::LeftParen, _)))) {
@@ -531,7 +531,7 @@ impl<'a> Parser<'a> {
 
     fn parse_test(&mut self, expr: Expression) -> TeraResult<Expression> {
         let (name, mut span) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
-        let mut kwargs = HashMap::new();
+        let mut kwargs = BTreeMap::new();
 
         // We have potentially args to handle
         if matches!(self.next, Some(Ok((Token::LeftParen, _)))) {
