@@ -548,8 +548,7 @@ impl Value {
 
     /// Fallible way to create a Value from something that impl Serialize
     pub fn try_from_serializable<T: Serialize + ?Sized>(value: &T) -> TeraResult<Value> {
-        Serialize::serialize(value, ser::ValueSerializer)
-            .map_err(|err| Error::message(err.to_string()))
+        ser::to_value(value).map_err(|err| Error::message(err.to_string()))
     }
 
     /// Creates a normal string that will be escaped
@@ -1061,6 +1060,16 @@ impl Value {
 
 impl Serialize for Value {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        ser::serialize_value(self, serializer)
+    }
+}
+
+impl Value {
+    /// The serialization that doesn't pass through Values
+    pub(crate) fn serialize_inner<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0 (unreleased)
+
+- Do not reserialize existing Value when serializing to a Value
+
 ## 2.1.1 (2026-08-11)
 
 - Fix component default value not allowing negative numbers

@@ -1,3 +1,4 @@
+use std::cell::{Cell, RefCell};
 use std::sync::Arc;
 
 use crate::value::key::Key;
@@ -5,6 +6,46 @@ use serde::{Serialize, Serializer, ser};
 
 use crate::value::utils::SerializationFailed;
 use crate::value::{Map, SmartString, StringKind, Value, ValueInner};
+
+/// Magic name we use in serde to mean we already have a Value
+const VALUE_PASSTHROUGH_NAME: &str = "$__tera::private::Value";
+
+thread_local! {
+    /// True while a `try_from_serializable` call is running on this thread.
+    static IN_VALUE_SERIALIZER: Cell<bool> = const { Cell::new(false) };
+    /// We store the cloned Value in there
+    static PASSTHROUGH_SLOT: RefCell<Option<Value>> = const { RefCell::new(None) };
+}
+
+/// Serializes into a Value, cloning any Value it encounters instead of re-serializing it
+pub(crate) fn to_value<T: Serialize + ?Sized>(value: &T) -> Result<Value, SerializationFailed> {
+    let prev = IN_VALUE_SERIALIZER.replace(true);
+    let result = value.serialize(ValueSerializer);
+    IN_VALUE_SERIALIZER.replace(prev);
+    result
+}
+
+pub(crate) fn serialize_value<S: Serializer>(
+    value: &Value,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    if !IN_VALUE_SERIALIZER.get() {
+        return value.serialize_inner(serializer);
+    }
+    PASSTHROUGH_SLOT.with(|slot| *slot.borrow_mut() = Some(value.clone()));
+    let result = serializer.serialize_newtype_struct(VALUE_PASSTHROUGH_NAME, &ValueBody(value));
+    PASSTHROUGH_SLOT.with(|slot| slot.borrow_mut().take());
+    result
+}
+
+/// Custom struct we use with VALUE_PASSTHROUGH_NAME to serialize efficiently
+struct ValueBody<'a>(&'a Value);
+
+impl Serialize for ValueBody<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.0.serialize_inner(serializer)
+    }
+}
 
 pub struct ValueSerializer;
 
@@ -111,9 +152,14 @@ impl Serializer for ValueSerializer {
 
     fn serialize_newtype_struct<T: Serialize + ?Sized>(
         self,
-        _name: &'static str,
+        name: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error> {
+        if name == VALUE_PASSTHROUGH_NAME
+            && let Some(v) = PASSTHROUGH_SLOT.with(|slot| slot.borrow_mut().take())
+        {
+            return Ok(v);
+        }
         value.serialize(self)
     }
 
@@ -572,5 +618,55 @@ mod tests {
         let result = 3.15f64.serialize(MapKeySerializer);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("map key must be"));
+    }
+
+    #[test]
+    fn from_serializable_value_is_cloned() {
+        let value = Value::from_serializable(&HashMap::from([("a", "b")]));
+        let round_tripped = Value::from_serializable(&value);
+        assert!(std::ptr::eq(
+            value.as_map().unwrap(),
+            round_tripped.as_map().unwrap()
+        ));
+    }
+
+    #[test]
+    fn from_serializable_nested_values_are_cloned() {
+        #[derive(serde_derive::Serialize)]
+        struct Section {
+            name: &'static str,
+            children: Vec<Value>,
+        }
+        let child = Value::from_serializable(&HashMap::from([("a", "b")]));
+        let section = Value::from_serializable(&Section {
+            name: "w",
+            children: vec![child.clone()],
+        });
+        let map = section.as_map().unwrap();
+        assert_eq!(map.get(&Key::Str("name")).unwrap().as_str(), Some("w"));
+        let children = map.get(&Key::Str("children")).unwrap().as_array().unwrap();
+        assert!(std::ptr::eq(
+            child.as_map().unwrap(),
+            children[0].as_map().unwrap()
+        ));
+    }
+
+    #[test]
+    fn regular_serialization_works() {
+        struct KeyedByValue(Value);
+        impl Serialize for KeyedByValue {
+            fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                let mut map = serializer.serialize_map(Some(1))?;
+                ser::SerializeMap::serialize_entry(&mut map, &Value::from("k"), &self.0)?;
+                ser::SerializeMap::end(map)
+            }
+        }
+        let inner = Value::from_serializable(&HashMap::from([("a", "b")]));
+        let value = Value::from_serializable(&KeyedByValue(inner.clone()));
+        let entry = value.as_map().unwrap().get(&Key::Str("k")).unwrap();
+        assert!(std::ptr::eq(
+            inner.as_map().unwrap(),
+            entry.as_map().unwrap()
+        ));
     }
 }
