@@ -1,0 +1,8 @@
+$$ components
+{% component note() %}
+<aside>{{ body }}</aside>
+{% endcomponent note %}
+$$ tpl
+{% <note> %}
+  hello
+{% </note> %}

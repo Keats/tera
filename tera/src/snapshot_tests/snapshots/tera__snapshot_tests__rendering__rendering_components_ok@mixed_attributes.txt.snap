@@ -3,8 +3,7 @@ source: tera/src/snapshot_tests/rendering.rs
 expression: "&out"
 input_file: tera/src/snapshot_tests/rendering_inputs/success/components/mixed_attributes.txt
 ---
-
-  <div class="card priority-5" >
+<div class="card priority-5" >
     <h3>Bob</h3>
     <p>Age: 18</p>
   </div>

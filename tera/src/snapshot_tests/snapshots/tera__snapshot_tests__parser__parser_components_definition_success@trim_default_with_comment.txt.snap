@@ -1,0 +1,21 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: "components[0]"
+input_file: tera/src/snapshot_tests/parser_inputs/success/components/def/trim_default_with_comment.txt
+---
+ComponentDefinition {
+    name: "greet",
+    kwargs: {
+        "label": ComponentArgument {
+            default: None,
+            typ: None,
+        },
+    },
+    rest_param_name: None,
+    metadata: {},
+    body: [
+        Var {
+            name: "label",
+        } @ 3:2-3:7 (55..60),
+    ],
+}

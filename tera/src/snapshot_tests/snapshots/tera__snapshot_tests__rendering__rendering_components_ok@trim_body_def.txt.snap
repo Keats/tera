@@ -1,0 +1,9 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/components/trim_body_def.txt
+---
+<div>
+<a href="a">a</a>
+<a href="b">b</a>
+</div>

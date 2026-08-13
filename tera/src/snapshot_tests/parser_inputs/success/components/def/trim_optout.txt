@@ -1,0 +1,3 @@
+{% component greet(label) {"trim": false} %}
+{{label}}
+{% endcomponent %}

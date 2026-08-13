@@ -1,0 +1,8 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/components/trim_def_doesnt_touch_body.txt
+---
+<aside>
+  hello
+</aside>
