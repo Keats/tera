@@ -115,8 +115,8 @@ Tera does not perform contextual auto-escaping, e.g. by parsing the template to 
 
 Filters/Tests/Functions have a very similar signature, and they all take at least the same 2 arguments:
 
-- [Kwargs](TODO: link to docs.rs): to extract the keyword arguments, in the right type handling errors automatically
-- [State](TODO: link to docs.rs): to access the current context
+- [Kwargs](https://docs.rs/tera/latest/tera/struct.Kwargs.html): to extract the keyword arguments, in the right type handling errors automatically
+- [State](https://docs.rs/tera/latest/tera/struct.State.html): to access the current context
 
 Filters and tests take the value it's running on as the first parameter: this parameter can be a classic `Value` or
 any value we can convert to. For example, the simplest filter is the following:
@@ -150,7 +150,7 @@ impl Test<&str, TeraResult<bool>> for Matching {
 
 Notice how to get arguments from the `Kwargs` instance. Missing arguments and type mismatch are handled automatically
 for you and will report the error properly without you having to do any work.
-See the docs.rs documentation for more details.
+See the docs.rs documentation for more details or look at some examples in [tera-contrib](https://github.com/Keats/tera/tree/master/tera-contrib/src). 
 
 ## Template
 
