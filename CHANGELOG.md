@@ -3,7 +3,7 @@
 ## 2.2.0 (unreleased)
 
 - Do not reserialize existing Value when serializing to a Value
-- Automatically trim start/end of component definition (with an opt-out metadata `{"trim": false}` if needed)
+- Allow trimming start/end of component definition with metadata `{"trim": true}`
 
 ## 2.1.1 (2026-08-11)
 

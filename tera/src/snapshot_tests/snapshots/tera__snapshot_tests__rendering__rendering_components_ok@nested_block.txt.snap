@@ -3,14 +3,17 @@ source: tera/src/snapshot_tests/rendering.rs
 expression: "&out"
 input_file: tera/src/snapshot_tests/rendering_inputs/success/components/nested_block.txt
 ---
+
 <div class="outer">
   <h1>Hello</h1>
   
   Before inner
-  <p class="inner">World</p>
+  
+<p class="inner">World</p>
 
     Nested content
   
+
   After inner
 
 </div>

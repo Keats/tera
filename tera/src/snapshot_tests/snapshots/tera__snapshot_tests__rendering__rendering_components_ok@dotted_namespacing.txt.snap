@@ -4,15 +4,21 @@ expression: "&out"
 input_file: tera/src/snapshot_tests/rendering_inputs/success/components/dotted_namespacing.txt
 ---
 <div class="page">
-  <button class="btn btn-secondary">Click me</button>
+  
+<button class="btn btn-secondary">Click me</button>
 
-  <label for="email">Email Address*</label>
+
+  
+<label for="email">Email Address*</label>
 <input type="text" name="email" required>
 
-  <div class="advanced-widget">
+
+  
+<div class="advanced-widget">
   <h3>Advanced Settings</h3>
   
     <p>This is advanced content!</p>
   
 </div>
+
 </div>

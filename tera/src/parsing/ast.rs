@@ -755,13 +755,13 @@ impl ComponentDefinition {
         self.kwargs.keys().map(|k| k.as_str()).collect()
     }
 
-    /// Trim body unless the `trim` metadata field is set to `false`
+    /// Trim body unless the `trim` metadata field is set to `false` or unset
     pub fn maybe_trim_body(&mut self) {
         let needs_trimming = self
             .metadata
             .get("trim")
             .and_then(|v| v.as_bool())
-            .unwrap_or(true);
+            .unwrap_or(false);
         if !needs_trimming {
             return;
         }

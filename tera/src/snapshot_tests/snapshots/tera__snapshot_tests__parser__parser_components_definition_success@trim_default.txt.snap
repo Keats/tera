@@ -14,8 +14,10 @@ ComponentDefinition {
     rest_param_name: None,
     metadata: {},
     body: [
+        "\n",
         Var {
             name: "label",
         } @ 2:2-2:7 (31..36),
+        "\n",
     ],
 }

@@ -1,5 +1,5 @@
 $$ components
-{% component note() %}
+{% component note() {"trim": true} %}
 <aside>{{ body }}</aside>
 {% endcomponent note %}
 $$ tpl

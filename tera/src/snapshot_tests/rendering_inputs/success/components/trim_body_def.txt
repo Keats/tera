@@ -1,5 +1,5 @@
 $$ components
-{% component coverlink(dest) %}
+{% component coverlink(dest) {"trim": true} %}
 <a href="{{ dest }}">{{ dest }}</a>
 {% endcomponent coverlink %}
 $$ tpl
