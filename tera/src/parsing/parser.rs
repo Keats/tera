@@ -1706,23 +1706,45 @@ impl<'a> Parser<'a> {
         res
     }
 
+    // https://github.com/Keats/tera/issues/1005
+    // We error on template code that cannot be reached at parse time since it's always a user mistake
+    fn unreachable_code_error(&self, span: &Span) -> Error {
+        Error::syntax_error(
+            "This content would be ignored: only `extends`, `block` and `component` are allowed at the top level of a child template.".to_string(),
+            span,
+        )
+    }
+
     fn parse_until_inner<F: Fn(&Token) -> bool>(
         &mut self,
         end_check_fn: F,
     ) -> TeraResult<Vec<Node>> {
         let mut nodes = Vec::new();
 
-        while let Some((token, _)) = self.next()? {
+        while let Some((token, span)) = self.next()? {
+            let at_top_level_of_child_template =
+                self.output.parent.is_some() && self.body_contexts.is_empty();
             match token {
                 Token::Content(c) => {
                     // We have pushed an empty content to replace comment so we ignore those
                     if !c.is_empty() {
+                        if at_top_level_of_child_template && !c.chars().all(|ch| ch.is_whitespace())
+                        {
+                            // The error span will be weird for the error message with a newline
+                            // but can't be bothered to make a hacky fix just for that case
+                            return Err(self.unreachable_code_error(&span));
+                        }
                         nodes.push(Node::Content(c.to_owned()));
                     }
                 }
                 Token::VariableStart(_) => {
                     let expr = self.parse_expression(0)?;
                     expect_token!(self, Token::VariableEnd(..), "}}")?;
+                    if at_top_level_of_child_template {
+                        let mut err_span = span;
+                        err_span.expand(&self.current_span);
+                        return Err(self.unreachable_code_error(&err_span));
+                    }
                     nodes.push(Node::Expression(expr));
                 }
                 Token::TagStart(_) => {
@@ -1748,7 +1770,13 @@ impl<'a> Parser<'a> {
                     });
                     let node = self.parse_tag(is_first_non_ws)?;
                     expect_token!(self, Token::TagEnd(..), "%}")?;
+                    // `extends` and `component` don't return a Node when parsing
                     if let Some(n) = node {
+                        if at_top_level_of_child_template && !matches!(n, Node::Block(_)) {
+                            let mut err_span = span;
+                            err_span.expand(&self.current_span);
+                            return Err(self.unreachable_code_error(&err_span));
+                        }
                         nodes.push(n);
                     }
                 }

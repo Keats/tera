@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/build_errors.rs
+expression: "&err"
+input_file: tera/src/snapshot_tests/build_errors/syntax/content_in_children_at_top_level4.txt
+---
+error: This content would be ignored: only `extends`, `block` and `component` are allowed at the top level of a child template.
+ --> child:1:23
+  |
+1 | {% extends "parent" %}
+  |                       ^
