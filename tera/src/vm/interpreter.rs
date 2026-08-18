@@ -327,7 +327,7 @@ impl<'tera> VirtualMachine<'tera> {
                     let (top, top_span) = state.stack.pop();
                     if top.is_undefined() {
                         rendering_error!(
-                            format!("Tried to render a variable that is not defined"),
+                            "Tried to render a variable that is undefined".to_string(),
                             top_span
                         );
                     }
@@ -944,8 +944,8 @@ impl<'tera> VirtualMachine<'tera> {
             component_recursion_depth: depth,
         };
 
-        let mut state = State::new_with_chunk(&context, chunk);
-        state.filters = Some(&self.tera.filters);
+        let mut state =
+            State::new_with_chunk(self.tera, &context, chunk, self.autoescape_enabled());
         let mut output = Vec::with_capacity(1024);
         vm.interpret(&mut state, &mut output)?;
 
@@ -967,9 +967,13 @@ impl<'tera> VirtualMachine<'tera> {
         };
 
         // We create a dummy state for variables to be written to, but we don't keep it around
-        let mut include_state = State::new_with_chunk(state.context, &tpl.chunk);
+        let mut include_state = State::new_with_chunk(
+            self.tera,
+            state.context,
+            &tpl.chunk,
+            vm.autoescape_enabled(),
+        );
         include_state.include_parent = Some(state);
-        include_state.filters = Some(&self.tera.filters);
         vm.interpret(&mut include_state, output)?;
         Ok(())
     }
@@ -1009,9 +1013,8 @@ impl<'tera> VirtualMachine<'tera> {
         } else {
             &self.template.chunk
         };
-        let mut state = State::new_with_chunk(context, chunk);
+        let mut state = State::new_with_chunk(self.tera, context, chunk, self.autoescape_enabled());
         state.global_context = Some(global_context);
-        state.filters = Some(&self.tera.filters);
 
         if let Some(block) = block_name {
             state.capture_block = Some(block);

@@ -1,11 +1,16 @@
 # Changelog
 
+## 2.3.0 (unreleased)
+
+- Add `State::{escape,autoescaping_enabled,escape_if_needed}`
+
 ## 2.2.0 (2026-08-20)
 
 - Do not reserialize existing Value when serializing to a Value
 - Error on content in children templates that would have been ignored
 - Allows blocks inside if/elif/else again like in v1
 - Allows the indentation character of the `indent` filter to be configured
+- Add chained filter sections
 
 ## 2.1.1 (2026-08-11)
 

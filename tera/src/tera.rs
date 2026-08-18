@@ -1326,8 +1326,7 @@ impl Tera {
             .map_err(Error::message)?;
 
         let vm = VirtualMachine::new_with_autoescape(self, template, autoescape);
-        let mut state = State::new_with_chunk(&component_context, chunk);
-        state.filters = Some(&self.filters);
+        let mut state = State::new_with_chunk(self, &component_context, chunk, autoescape);
         vm.interpret(&mut state, &mut write)?;
 
         Ok(())
