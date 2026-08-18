@@ -153,6 +153,31 @@ li > :is(ul, ol) {
   margin-bottom: 0;
 }
 
+table {
+  border-collapse: collapse;
+  margin: 0 0 1.25rem;
+  font-size: 0.9rem;
+  display: block;
+  max-width: fit-content;
+  overflow-x: auto;
+}
+
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.9rem;
+  text-align: left;
+}
+
+th {
+  background: var(--bg-sidebar);
+  color: var(--text-bright);
+  font-weight: 600;
+}
+
+tbody tr:nth-child(even) {
+  background: rgba(251, 241, 199, 0.03);
+}
+
 hr {
   border: none;
   border-top: 1px solid var(--border);
