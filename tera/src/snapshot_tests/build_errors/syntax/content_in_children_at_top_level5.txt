@@ -1,0 +1,5 @@
+$$ parent
+{% block main %}{% endblock main %}
+$$ child
+{% extends "parent" %}
+{% set a = 1 %}

@@ -1,0 +1,5 @@
+$$ parent
+{% block main %}{% endblock main %}
+$$ child
+{% extends "parent" %}
+{% for i in [1,2,3] %}{{i}}{% endfor %}

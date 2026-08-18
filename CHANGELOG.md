@@ -3,6 +3,7 @@
 ## 2.2.0 (unreleased)
 
 - Do not reserialize existing Value when serializing to a Value
+- Error on content in children templates that would have been ignored
 
 ## 2.1.1 (2026-08-11)
 
