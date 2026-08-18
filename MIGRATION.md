@@ -28,7 +28,7 @@ they can be enabled one by one.
 - `int` and `float` filter do not have a default anymore
 - `round` filter does not take a `common` method anymore, it's the default and should not be filled if needed
 - `indent` filter now takes a `width` param rather than `prefix`
-- `map`, `group_by` and `filter` filter will error if the attribute ends up being undefined on one of the value
+- `group_by` filter will error if the attribute ends up being undefined on one of the value
 - `as_str` has been renamed to `str`
 - `divisibleby` has been renamed to `divisible_by`
 - `escape` has been renamed to `escape_html`
