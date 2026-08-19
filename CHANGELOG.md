@@ -4,6 +4,7 @@
 
 - Do not reserialize existing Value when serializing to a Value
 - Error on content in children templates that would have been ignored
+- Allows blocks inside if/elif/else again like in v1
 
 ## 2.1.1 (2026-08-11)
 

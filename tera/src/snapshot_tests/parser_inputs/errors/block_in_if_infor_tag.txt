@@ -1,0 +1,3 @@
+{% for v in array %}
+{% if true %}{% block popup -%} hello {%- endblock %}{% endif %}
+{% endfor %}
