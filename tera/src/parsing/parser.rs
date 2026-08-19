@@ -99,7 +99,7 @@ enum BodyContext {
 
 impl BodyContext {
     fn can_contain_blocks(&self) -> bool {
-        matches!(self, BodyContext::Block | BodyContext::Capture)
+        matches!(self, BodyContext::Block | BodyContext::Capture | BodyContext::If)
     }
 }
 
@@ -1569,7 +1569,7 @@ impl<'a> Parser<'a> {
             Token::Ident("block") => {
                 if self.body_contexts.iter().any(|b| !b.can_contain_blocks()) {
                     return Err(Error::syntax_error(
-                        "Blocks cannot be written in a tag other than block or filter section."
+                        "Blocks cannot be written in a tag other than block, if/elif/else or filter section."
                             .to_string(),
                         &self.current_span,
                     ));

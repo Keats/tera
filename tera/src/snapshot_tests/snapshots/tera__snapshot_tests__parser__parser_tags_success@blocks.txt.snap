@@ -29,4 +29,40 @@ input_file: tera/src/snapshot_tests/parser_inputs/success/tags/blocks.txt
             } @ 8:31-8:38 (139..146),
         ],
     },
+    If {
+        expr: true @ 10:6-10:10 (178..182),
+        body: [
+            "\n",
+            Block {
+                name: "hello" @ 11:9-11:14 (195..200),
+                body: [],
+            },
+            "\n",
+        ],
+        false_body: [
+            If {
+                expr: BinaryOperation {
+                    op: Equal,
+                    left: 0 @ 12:8-12:9 (232..233),
+                    right: 1 @ 12:13-12:14 (237..238),
+                } @ 12:8-12:14 (232..238),
+                body: [
+                    "\n",
+                    Block {
+                        name: "hello2" @ 13:9-13:15 (251..257),
+                        body: [],
+                    },
+                    "\n",
+                ],
+                false_body: [
+                    "\n",
+                    Block {
+                        name: "hello3" @ 15:9-15:15 (302..308),
+                        body: [],
+                    },
+                    "\n",
+                ],
+            },
+        ],
+    },
 ]

@@ -1,0 +1,4 @@
+$$ parent
+{% if age == 18 %}{% block extra_feed %}Parent{% endblock extra_feed %}{% endif %}
+$$ child
+{% extends "parent" %}{% block extra_feed %}Child{% endblock extra_feed %}
