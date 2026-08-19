@@ -2,7 +2,6 @@ use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::str::FromStr;
 
-use crate::HashMap;
 use crate::errors::Error;
 use crate::utils::{Span, Spanned};
 use crate::value::{Key, Value, ValueInner, format_map};
@@ -259,7 +258,7 @@ impl fmt::Display for Expression {
 pub struct Filter {
     pub expr: Expression,
     pub name: String,
-    pub kwargs: HashMap<String, Expression>,
+    pub kwargs: BTreeMap<String, Expression>,
 }
 
 impl fmt::Display for Filter {
@@ -398,7 +397,7 @@ impl Array {
 pub struct Test {
     pub expr: Expression,
     pub name: String,
-    pub kwargs: HashMap<String, Expression>,
+    pub kwargs: BTreeMap<String, Expression>,
 }
 
 impl fmt::Display for Test {
@@ -463,7 +462,7 @@ impl fmt::Display for ComponentCall {
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionCall {
     pub name: String,
-    pub kwargs: HashMap<String, Expression>,
+    pub kwargs: BTreeMap<String, Expression>,
 }
 
 impl fmt::Display for FunctionCall {
@@ -633,9 +632,9 @@ pub struct If {
 /// A filter section node `{% filter name(param="value") %} content {% endfilter %}`
 #[derive(Clone, Debug, PartialEq)]
 pub struct FilterSection {
-    pub name: Spanned<String>,
-    pub kwargs: HashMap<String, Expression>,
-    /// The filter body
+    /// The filters to apply to the body
+    pub filters: Vec<Expression>,
+    /// The filter section body
     pub body: Vec<Node>,
 }
 
