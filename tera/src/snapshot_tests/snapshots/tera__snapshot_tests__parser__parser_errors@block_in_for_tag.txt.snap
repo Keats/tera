@@ -3,8 +3,13 @@ source: tera/src/snapshot_tests/parser.rs
 expression: res.unwrap_err()
 input_file: tera/src/snapshot_tests/parser_inputs/errors/block_in_for_tag.txt
 ---
-error: Blocks cannot be written in a tag other than block, if/elif/else or filter section.
+error: Blocks cannot be written inside a for loop.
  --> block_in_for_tag.txt:2:4
   |
 2 | {% block popup -%} hello {%- endblock %}
   |    ^^^^^
+
+note: the for loop starts here block_in_for_tag.txt:1:4
+  |
+1 | {% for v in array %}
+  |    ^^^

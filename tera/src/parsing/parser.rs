@@ -93,13 +93,26 @@ enum BodyContext {
     Block,
     If,
     ComponentDefinition,
-    /// A filter section/set block/component call
-    Capture,
+    /// A filter section/set block/component call, with its kind name to use in error messages
+    Capture(&'static str),
 }
 
 impl BodyContext {
     fn can_contain_blocks(&self) -> bool {
-        matches!(self, BodyContext::Block | BodyContext::Capture | BodyContext::If)
+        matches!(
+            self,
+            BodyContext::Block | BodyContext::Capture(_) | BodyContext::If
+        )
+    }
+
+    fn name(&self) -> &'static str {
+        match self {
+            BodyContext::ForLoop => "for loop",
+            BodyContext::Block => "block",
+            BodyContext::If => "if statement",
+            BodyContext::ComponentDefinition => "component definition",
+            BodyContext::Capture(name) => name,
+        }
     }
 }
 
@@ -122,8 +135,8 @@ pub struct Parser<'a> {
     next: Option<Result<(Token<'a>, Span), Error>>,
     // We keep track of the current span
     current_span: Span,
-    // A stack of our body context to know where we are
-    body_contexts: Vec<BodyContext>,
+    // A stack of our body context and their opening spans to know where we are
+    body_contexts: Vec<(BodyContext, Span)>,
     // The current array dimension, to avoid stack overflows with too many of them
     array_dimension: usize,
     // Current parser recursion depth
@@ -205,7 +218,9 @@ impl<'a> Parser<'a> {
     }
 
     fn is_in_loop(&self) -> bool {
-        self.body_contexts.contains(&BodyContext::ForLoop)
+        self.body_contexts
+            .iter()
+            .any(|(c, _)| *c == BodyContext::ForLoop)
     }
 
     // Parse something in brackets [..] after an ident or a literal array/map
@@ -984,7 +999,8 @@ impl<'a> Parser<'a> {
         expect_token!(self, Token::TagEnd(..), "%}")?;
 
         // Parse body content until {% </component> %}
-        self.body_contexts.push(BodyContext::Capture);
+        self.body_contexts
+            .push((BodyContext::Capture("component body"), start_span.clone()));
         let body = self.parse_until(|tok| matches!(tok, Token::ClosingTagStart))?;
         self.body_contexts.pop();
 
@@ -1093,7 +1109,8 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_for_loop(&mut self) -> TeraResult<ForLoop> {
-        self.body_contexts.push(BodyContext::ForLoop);
+        self.body_contexts
+            .push((BodyContext::ForLoop, self.current_span.clone()));
         let (mut name, _) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
         if RESERVED_NAMES.contains(&name) {
             return Err(Error::syntax_error(
@@ -1144,7 +1161,8 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_if(&mut self) -> TeraResult<If> {
-        self.body_contexts.push(BodyContext::If);
+        self.body_contexts
+            .push((BodyContext::If, self.current_span.clone()));
         let expr = self.parse_expression(0)?;
         expect_token!(self, Token::TagEnd(..), "%}")?;
         let body = self.parse_until(|tok| {
@@ -1202,13 +1220,16 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_component_definition(&mut self) -> TeraResult<ComponentDefinition> {
-        if !self.body_contexts.is_empty() {
-            return Err(Error::syntax_error(
+        if let Some((ctx, ctx_span)) = self.body_contexts.last() {
+            return Err(self.syntax_error_with_note(
                 "Component definitions cannot be written in another tag.".to_string(),
                 &self.current_span,
+                &format!("the {} starts here", ctx.name()),
+                ctx_span,
             ));
         }
-        self.body_contexts.push(BodyContext::ComponentDefinition);
+        self.body_contexts
+            .push((BodyContext::ComponentDefinition, self.current_span.clone()));
         let name = self.parse_dotted_component_name()?;
         let name_span = self.current_span.clone();
         if let Some(prev_span) = self.components_seen.get(&name) {
@@ -1454,6 +1475,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_set(&mut self, global: bool) -> TeraResult<Node> {
+        let tag_span = self.current_span.clone();
         let (name, _) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
         if RESERVED_NAMES.contains(&name) {
             return Err(Error::syntax_error(
@@ -1489,7 +1511,8 @@ impl<'a> Parser<'a> {
                     }
                 }
 
-                self.body_contexts.push(BodyContext::Capture);
+                self.body_contexts
+                    .push((BodyContext::Capture("`set` block"), tag_span));
                 let body = self.parse_until(|tok| matches!(tok, Token::Ident("endset")))?;
                 self.body_contexts.pop();
                 self.next_or_error()?;
@@ -1557,24 +1580,32 @@ impl<'a> Parser<'a> {
                         &self.current_span,
                     ));
                 }
-                if !self.body_contexts.is_empty() {
-                    return Err(Error::syntax_error(
+                if let Some((ctx, ctx_span)) = self.body_contexts.last() {
+                    return Err(self.syntax_error_with_note(
                         "`extends` cannot be nested in other tags.".to_string(),
                         &self.current_span,
+                        &format!("the {} starts here", ctx.name()),
+                        ctx_span,
                     ));
                 }
                 self.output.parent = Some(name.to_string());
                 Ok(None)
             }
             Token::Ident("block") => {
-                if self.body_contexts.iter().any(|b| !b.can_contain_blocks()) {
-                    return Err(Error::syntax_error(
-                        "Blocks cannot be written in a tag other than block, if/elif/else or filter section."
-                            .to_string(),
+                if let Some((ctx, ctx_span)) = self
+                    .body_contexts
+                    .iter()
+                    .find(|(c, _)| !c.can_contain_blocks())
+                {
+                    return Err(self.syntax_error_with_note(
+                        format!("Blocks cannot be written inside a {}.", ctx.name()),
                         &self.current_span,
+                        &format!("the {} starts here", ctx.name()),
+                        ctx_span,
                     ));
                 }
-                self.body_contexts.push(BodyContext::Block);
+                self.body_contexts
+                    .push((BodyContext::Block, self.current_span.clone()));
                 let (name, name_span) = expect_token!(self, Token::Ident(s) => s, "identifier")?;
                 if self.blocks_seen.contains(name) {
                     return Err(Error::syntax_error(
@@ -1613,6 +1644,10 @@ impl<'a> Parser<'a> {
                 Ok(Some(Node::If(node)))
             }
             Token::Ident("filter") => {
+                self.body_contexts.push((
+                    BodyContext::Capture("filter section"),
+                    self.current_span.clone(),
+                ));
                 let mut filters = Vec::with_capacity(1);
 
                 loop {
@@ -1629,7 +1664,6 @@ impl<'a> Parser<'a> {
                     }
                 }
 
-                self.body_contexts.push(BodyContext::Capture);
                 let body = self.parse_until(|tok| matches!(tok, Token::Ident("endfilter")))?;
                 self.next_or_error()?;
                 self.body_contexts.pop();
@@ -1644,17 +1678,17 @@ impl<'a> Parser<'a> {
                 let is_break = tag_token == Token::Ident("break");
                 let kw = if is_break { "break" } else { "continue" };
                 let mut in_loop = false;
-                for ctx in self.body_contexts.iter().rev() {
+                for (ctx, ctx_span) in self.body_contexts.iter().rev() {
                     if *ctx == BodyContext::ForLoop {
                         in_loop = true;
                         break;
                     }
-                    if *ctx == BodyContext::Capture {
-                        return Err(Error::syntax_error(
-                            format!(
-                                "`{kw}` cannot be used inside a filter section, `set` block or component body"
-                            ),
+                    if let BodyContext::Capture(name) = ctx {
+                        return Err(self.syntax_error_with_note(
+                            format!("`{kw}` cannot be used inside a {name}"),
                             &self.current_span,
+                            &format!("the {name} starts here"),
+                            ctx_span,
                         ));
                     }
                 }

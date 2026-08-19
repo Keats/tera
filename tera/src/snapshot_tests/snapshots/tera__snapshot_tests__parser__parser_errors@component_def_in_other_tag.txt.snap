@@ -8,3 +8,8 @@ error: Component definitions cannot be written in another tag.
   |
 2 | {% component popup() -%} hello {%- endcomponent %}
   |    ^^^^^^^^^
+
+note: the for loop starts here component_def_in_other_tag.txt:1:4
+  |
+1 | {% for v in array %}
+  |    ^^^
