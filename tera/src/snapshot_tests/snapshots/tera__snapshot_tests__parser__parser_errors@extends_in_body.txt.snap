@@ -8,3 +8,8 @@ error: `extends` cannot be nested in other tags.
   |
 1 | {% if true %}{% extends "a" %}{% endif %}
   |                         ^^^
+
+note: the if statement starts here extends_in_body.txt:1:4
+  |
+1 | {% if true %}{% extends "a" %}{% endif %}
+  |    ^^
