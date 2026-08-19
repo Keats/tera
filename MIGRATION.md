@@ -39,6 +39,7 @@ they can be enabled one by one.
 - `addslashes`, `spaceless`, `get_env`, `map`, `filter`, `concat` and `slice` filter have been removed (concat and slice are redundant with other features described later)
 - `first`, `last` and `nth` now return None when the array is empty instead of an empty string.
 - `unique` doesn't take arguments anymore
+- `date` locale argument has been removed for now
 
 ### Macros are gone
 
