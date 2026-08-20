@@ -902,7 +902,7 @@ need to call the `safe` filter after `newlines_to_br`.
 ##### indent
 Indents a string by injecting a prefix at the start of each line.
 The `width` argument (default `4`) specifies how many indent characters to insert per line.
-The `char` argument (default `" "`) specifies the indent character, such as `"\t"` for a tab.
+The `indentation` argument (default `" "`) specifies the indent character, such as `"\t"` for a tab.
 If the `first` argument (default `false`) is set `true`, the prefix is inserted for the first line.
 If the `blank` argument (default `false`) is set `true`, the prefix is inserted for blank/whitespace lines.
 
