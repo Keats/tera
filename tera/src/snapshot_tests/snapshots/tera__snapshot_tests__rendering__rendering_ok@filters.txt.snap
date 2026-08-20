@@ -59,6 +59,9 @@ indent4:a
 END
 indent5:a
 END
+indent6:	one
+	two
+	three
 Bob
 7
 Child

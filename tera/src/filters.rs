@@ -246,13 +246,22 @@ pub(crate) fn truncate(val: &str, kwargs: Kwargs, _: &State) -> TeraResult<Strin
 
 /// Return a copy of the string with each line indented by 4 spaces.
 /// The first line and blank lines are not indented by default.
+/// The indent character defaults to a space.
 /// Max width of 1000 to avoid DOS
 pub(crate) fn indent(val: &str, kwargs: Kwargs, _: &State) -> TeraResult<String> {
     let width = kwargs.get::<usize>("width")?.unwrap_or(4).min(1000);
+    let indentation = kwargs.get::<&str>("indentation")?.unwrap_or(" ");
+    let mut characters = indentation.chars();
+    let indent_character = characters
+        .next()
+        .filter(|_| characters.next().is_none())
+        .ok_or_else(|| {
+            Error::message("The `indentation` argument must contain exactly one character")
+        })?;
     let indent_first_line = kwargs.get::<bool>("first")?.unwrap_or(false);
     let indent_blank_line = kwargs.get::<bool>("blank")?.unwrap_or(false);
 
-    let indent = " ".repeat(width);
+    let indent = indent_character.to_string().repeat(width);
     let mut res = String::with_capacity(val.len() * 2);
 
     let mut first_line = true;
@@ -663,6 +672,20 @@ mod tests {
             as_str(map.into(), Kwargs::default(), &state),
             r#"{"hello": "world", "other": 2}"#
         );
+    }
+
+    #[test]
+    fn test_indent_indentation() {
+        let ctx = Context::new();
+        let state = State::new(&ctx);
+
+        let kwargs = Kwargs::from([("width", 2.into()), ("indentation", "·".into())]);
+        assert_eq!(indent("one\ntwo", kwargs, &state).unwrap(), "one\n··two");
+
+        for indentation in ["", "ab"] {
+            let kwargs = Kwargs::from([("indentation", indentation.into())]);
+            assert!(indent("one\ntwo", kwargs, &state).is_err());
+        }
     }
 
     #[test]
