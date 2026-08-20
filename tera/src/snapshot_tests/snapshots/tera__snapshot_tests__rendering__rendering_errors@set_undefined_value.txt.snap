@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&err"
+input_file: tera/src/snapshot_tests/rendering_inputs/errors/set_undefined_value.txt
+---
+error: Variable `icon` exists but its value is undefined
+ --> set_undefined_value.txt:2:4
+  |
+2 | {{ icon }}
+  |    ^^^^

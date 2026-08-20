@@ -882,16 +882,17 @@ impl<'tera> VirtualMachine<'tera> {
         span: &Span,
     ) -> Error {
         let available_vars = state.available_variables();
-        let available_msg = if available_vars.is_empty() {
-            String::new()
+        let msg = if available_vars.iter().any(|x| x == name) {
+            format!("Variable `{name}` exists but its value is undefined")
         } else {
-            format!(" Available variables: {}", available_vars.join(", "))
+            let available_msg = if available_vars.is_empty() {
+                String::new()
+            } else {
+                format!(" Available variables: {}", available_vars.join(", "))
+            };
+            format!("Variable `{name}` is not defined.{available_msg}")
         };
-        self.rendering_error(
-            format!("Variable `{name}` is not defined.{available_msg}"),
-            chunk,
-            span,
-        )
+        self.rendering_error(msg, chunk, span)
     }
 
     fn undefined_field_error(
