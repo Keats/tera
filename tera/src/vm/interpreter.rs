@@ -155,7 +155,7 @@ impl<'tera> VirtualMachine<'tera> {
                 let current_span: SpanRange = $span_idx..=$span_idx;
 
                 let body = if $has_body {
-                    Some(state.stack.pop().0.mark_safe())
+                    Some(state.stack.pop().0)
                 } else {
                     None
                 };
@@ -182,7 +182,12 @@ impl<'tera> VirtualMachine<'tera> {
                         return Err(e);
                     }
                 };
-                state.stack.push(Value::safe_string(&val), current_span);
+                let val = if self.autoescape_enabled() {
+                    Value::safe_string(&val)
+                } else {
+                    Value::from(val)
+                };
+                state.stack.push(val, current_span);
             }};
         }
 
@@ -620,7 +625,12 @@ impl<'tera> VirtualMachine<'tera> {
                 }
                 Instruction::EndCapture => {
                     let captured = state.capture_buffers.pop().unwrap();
-                    let val = Value::safe_string(&String::from_utf8(captured)?);
+                    let raw = String::from_utf8(captured)?;
+                    let val = if self.autoescape_enabled() {
+                        Value::safe_string(&raw)
+                    } else {
+                        Value::from(raw)
+                    };
                     state.stack.push(val, current_ip..=current_ip);
                 }
                 Instruction::StartIterate(is_key_value)

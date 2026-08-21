@@ -356,3 +356,26 @@ fn render_str_errors() {
     let out = tera.render_str(r#"{% include "missing.html" %}"#, &ctx, false);
     assert!(out.is_err());
 }
+
+#[test]
+fn render_capture_body_safety() {
+    let mut tera = Tera::default();
+    tera.autoescape_on(vec![".html"]);
+    tera.register_filter("is_safe", |s: Value, _: Kwargs, _: &State| s.is_safe());
+    tera.add_raw_templates(vec![
+        ("components.html", "{% component hey() %}a & b{% endcomponent %}{% component ho() %}{{body | is_safe }}{% endcomponent %}"),
+        ("a.txt", "{% set x %}a & b{% endset %}{{ x | is_safe }}-{{ <hey/> | is_safe }}-{% <ho> %}a & b{% </ho> %}"),
+        ("a.html", "{% set x %}a & b{% endset %}{{ x | is_safe }}-{{ <hey/> | is_safe }}-{% <ho> %}a & b{% </ho> %}"),
+    ]).unwrap();
+    let ctx = Context::default();
+
+    // It should only mark things as safe when autoescaping is enabled: capture, component output and component body
+    assert_eq!(
+        tera.render("a.txt", &ctx).unwrap().as_str(),
+        "false-false-false"
+    );
+    assert_eq!(
+        tera.render("a.html", &ctx).unwrap().as_str(),
+        "true-true-true"
+    );
+}
