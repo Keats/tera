@@ -1,13 +1,13 @@
+use std::borrow::Cow;
+use std::collections::BTreeMap;
+
 use crate::args::{ArgFromValue, Kwargs};
 use crate::errors::TeraResult;
 use crate::filters::StoredFilter;
 use crate::parsing::Chunk;
 use crate::vm::for_loop::ForLoop;
 use crate::vm::stack::Stack;
-use crate::{Context, HashMap, Value};
-
-use std::borrow::Cow;
-use std::collections::BTreeMap;
+use crate::{Context, Error, EscapeFn, HashMap, Tera, Value, escape_html};
 
 /// Special string indicating request to dump context
 pub(crate) static MAGICAL_DUMP_VAR: &str = "__tera_context";
@@ -43,12 +43,24 @@ pub struct State<'tera> {
     pub(crate) current_block_name: Option<&'tera str>,
     /// Reference to registered filters for calling filters from within filters (e.g., map filter)
     pub(crate) filters: Option<&'tera HashMap<Cow<'static, str>, StoredFilter>>,
+    /// The escape fn defined in the Tera instance
+    pub(crate) escape_fn: EscapeFn,
+    /// Whether the current content has autoescape enabled or not
+    pub(crate) autoescaping_enabled: bool,
 }
 
 impl<'t> State<'t> {
-    pub(crate) fn new_with_chunk(context: &'t Context, chunk: &'t Chunk) -> Self {
+    pub(crate) fn new_with_chunk(
+        tera: &'t Tera,
+        context: &'t Context,
+        chunk: &'t Chunk,
+        autoescape_enabled: bool,
+    ) -> Self {
         let mut s = Self::new(context);
         s.chunk = Some(chunk);
+        s.escape_fn = tera.escape_fn;
+        s.filters = Some(&tera.filters);
+        s.autoescaping_enabled = autoescape_enabled;
         s
     }
 
@@ -70,6 +82,8 @@ impl<'t> State<'t> {
             blocks: Vec::new(),
             current_block_name: None,
             filters: None,
+            escape_fn: escape_html,
+            autoescaping_enabled: true,
         }
     }
 
@@ -137,6 +151,44 @@ impl<'t> State<'t> {
         } else {
             T::from_value(&value).map(Some)
         }
+    }
+
+    /// Whether autoescaping is enabled for the current content
+    pub fn autoescaping_enabled(&self) -> bool {
+        self.autoescaping_enabled
+    }
+
+    /// Escapes a string using the escape fn defined in the Tera struct, but only
+    /// if the current content needs escaping and is not already safe.
+    /// If you need unconditional escaping, use `escape`
+    pub fn escape_if_needed(&self, value: &Value) -> TeraResult<String> {
+        if value.is_undefined() {
+            return Err(Error::message("Tried to escape an undefined value"));
+        }
+
+        let mut formatted = Vec::new();
+        value.format(&mut formatted)?;
+        let formatted =
+            String::from_utf8(formatted).expect("Value::format only writes valid UTF-8");
+
+        if !self.autoescaping_enabled || value.is_safe() {
+            return Ok(formatted);
+        }
+
+        self.escape(&formatted)
+    }
+
+    /// Escapes a string using the escape fn defined in the Tera struct
+    pub fn escape(&self, input: &str) -> TeraResult<String> {
+        let mut buf: Vec<u8> = Vec::with_capacity(input.len());
+        (self.escape_fn)(input, &mut buf)?;
+        let escaped = String::from_utf8(buf).map_err(|e| {
+            Error::message(format!(
+                "String `{input}` could not be converted to UTF-8 after escaping: {e}"
+            ))
+        })?;
+
+        Ok(escaped)
     }
 
     pub(crate) fn dump_context(&self) -> Value {
@@ -212,5 +264,58 @@ impl<'t> State<'t> {
         }
 
         vars.into_iter().collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Tera;
+
+    #[test]
+    fn can_handle_escaping() {
+        let mut tera = Tera::default();
+        tera.register_function("force_esc", |kwargs: Kwargs, state: &State| {
+            let text = kwargs.must_get::<&str>("text")?;
+            state.escape(text)
+        });
+        tera.register_function("esc_if_needed", |kwargs: Kwargs, state: &State| {
+            let text = kwargs.must_get::<Value>("text")?;
+            state.escape_if_needed(&text)
+        });
+        let mut ctx = Context::new();
+        ctx.insert("name", "<script>");
+
+        // First with autoescape disabled
+        tera.autoescape_on(vec![".txt"]);
+        tera.add_raw_template(
+            "tpl.html",
+            "{{ force_esc(text=name) | safe }} - {{esc_if_needed(text=name)}}",
+        )
+        .unwrap();
+        tera.add_raw_template(
+            "tpl2.html",
+            "{% set safe_name = name | safe %}{{ esc_if_needed(text=name) | safe }} - {{ esc_if_needed(text=safe_name) | safe }}",
+        )
+            .unwrap();
+        assert_eq!(
+            tera.render("tpl.html", &ctx).unwrap(),
+            "&lt;script&gt; - <script>"
+        );
+
+        //  and a custom fn
+        tera.set_escape_fn(|input, out| out.write_all(input.to_uppercase().as_bytes()));
+        assert_eq!(
+            tera.render("tpl.html", &ctx).unwrap(),
+            "<SCRIPT> - <script>"
+        );
+
+        // and then autoescape enabled
+        tera.reset_escape_fn();
+        tera.autoescape_on(vec![".html"]);
+        assert_eq!(
+            tera.render("tpl2.html", &ctx).unwrap(),
+            "&lt;script&gt; - <script>"
+        );
     }
 }
