@@ -962,7 +962,9 @@ impl<'tera> VirtualMachine<'tera> {
         let vm = Self {
             tera: self.tera,
             template: tpl,
-            autoescape_override: self.autoescape_override,
+            // If we include eg a .txt file that includes html in a html file with autoescape on .html
+            // we want it escaped
+            autoescape_override: Some(self.autoescape_enabled()),
             component_recursion_depth: self.component_recursion_depth,
         };
 
@@ -971,7 +973,8 @@ impl<'tera> VirtualMachine<'tera> {
             self.tera,
             state.context,
             &tpl.chunk,
-            vm.autoescape_enabled(),
+            // We use the current template autoescape, not the one being included
+            self.autoescape_enabled(),
         );
         include_state.include_parent = Some(state);
         vm.interpret(&mut include_state, output)?;
