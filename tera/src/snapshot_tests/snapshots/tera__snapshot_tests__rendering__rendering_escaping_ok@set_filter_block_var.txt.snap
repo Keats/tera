@@ -1,0 +1,8 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/escaping/set_filter_block_var.txt
+---
+
+Escaped only once: &lt;p&gt;Some HTML chars &amp; more&lt;/p&gt; 
+Escaped twice: &amp;lt;p&amp;gt;Some HTML chars &amp;amp; more&amp;lt;/p&amp;gt;

@@ -1,0 +1,2 @@
+$$ tpl.html
+{% filter replace(from="&", to="and") %}A & B{% endfilter %}

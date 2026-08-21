@@ -1,0 +1,8 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/escaping/join_filter.txt
+---
+
+&lt;p&gt;Some HTML chars &amp; more&lt;/p&gt; &amp; &lt;raw&gt;
+a &amp; b

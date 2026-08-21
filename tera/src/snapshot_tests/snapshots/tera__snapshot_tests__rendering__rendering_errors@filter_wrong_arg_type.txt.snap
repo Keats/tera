@@ -3,7 +3,7 @@ source: tera/src/snapshot_tests/rendering.rs
 expression: "&err"
 input_file: tera/src/snapshot_tests/rendering_inputs/errors/filter_wrong_arg_type.txt
 ---
-error: Invalid type for the value, expected `&str` but got `array`
+error: Invalid type for the value, expected `string` but got `array`
  --> filter_wrong_arg_type.txt:1:4
   |
 1 | {{ [1] | upper }}

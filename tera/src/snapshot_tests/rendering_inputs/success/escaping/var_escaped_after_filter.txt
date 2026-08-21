@@ -1,0 +1,2 @@
+$$ tpl.html
+{{ some_html | upper }}

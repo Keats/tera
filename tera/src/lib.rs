@@ -85,7 +85,7 @@ pub mod value;
 pub(crate) mod vm;
 
 pub use crate::tera::{EscapeFn, Tera};
-pub use args::{ArgFromValue, Kwargs};
+pub use args::{ArgFromValue, Kwargs, StringInput};
 pub use components::{ComponentArg, ComponentArgType, ComponentInfo};
 pub use context::Context;
 pub use delimiters::Delimiters;

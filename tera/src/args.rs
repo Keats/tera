@@ -2,13 +2,13 @@ use serde::Deserialize;
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use crate::Value;
 use crate::errors::{Error, TeraResult};
 use crate::value::number::Number;
 use crate::value::{Key, Map, ValueInner};
+use crate::{State, Value};
 
 mod private {
-    use super::{Map, Number, Value};
+    use super::{Map, Number, StringInput, Value};
     use std::borrow::Cow;
 
     pub trait Sealed {}
@@ -38,6 +38,7 @@ mod private {
     impl Sealed for Map {}
     impl Sealed for &Map {}
     impl<T: Sealed> Sealed for Vec<T> {}
+    impl Sealed for StringInput<'_> {}
 }
 
 /// Converts a template Value into a type that can be used in Rust code
@@ -347,6 +348,71 @@ impl<const N: usize> From<[(&'static str, Value); N]> for Kwargs {
             map.insert(k.into(), v);
         }
         Kwargs::new(Arc::new(map))
+    }
+}
+
+/// A Value::String with some helpers around it for safety
+/// The main usage is to use it as the value or string parameters for filters operating
+/// on strings (for example a filter block)
+///
+/// # Examples
+///
+/// ```
+/// use tera::{Tera, Kwargs, State, StringInput};
+/// let mut tera = Tera::default();
+/// tera.register_filter("is_safe", |x: StringInput, _: Kwargs, _: &State| x.is_safe());
+/// tera.register_filter("uppercase", |x: StringInput, _: Kwargs, _: &State| x.inherit_safety(x.as_str().to_uppercase()));
+/// ```
+#[derive(Debug)]
+pub struct StringInput<'a> {
+    pub(crate) inner: &'a Value,
+}
+
+impl<'a> StringInput<'a> {
+    /// Returns this StringInput as a Value, with the correct safety flag
+    pub fn into_value(self) -> Value {
+        self.inner.clone()
+    }
+
+    /// Returns the actual string
+    pub fn as_str(&self) -> &'a str {
+        self.inner.as_str().unwrap()
+    }
+
+    /// `true` if the original value was marked safe
+    pub fn is_safe(&self) -> bool {
+        self.inner.is_safe()
+    }
+
+    /// Returns a new Value for the given output, inheriting the StringInput safety
+    pub fn inherit_safety(&self, output: String) -> Value {
+        if self.is_safe() {
+            Value::safe_string(&output)
+        } else {
+            Value::from(output)
+        }
+    }
+
+    /// Render the current string as if it was used in `{{ }}` context, taking
+    /// into account its own safety flag as well as whether autoescaping is currently enabled.
+    pub fn rendered(&self, state: &State) -> TeraResult<Cow<'_, str>> {
+        if self.is_safe() || !state.autoescaping_enabled() {
+            Ok(Cow::Borrowed(self.as_str()))
+        } else {
+            Ok(Cow::Owned(state.escape(self.as_str())?))
+        }
+    }
+}
+
+impl<'k> ArgFromValue<'k> for StringInput<'_> {
+    type Output = StringInput<'k>;
+
+    fn from_value(value: &'k Value) -> TeraResult<Self::Output> {
+        if value.is_string() {
+            Ok(StringInput { inner: value })
+        } else {
+            Err(Error::invalid_arg_type("string", value.name()))
+        }
     }
 }
 

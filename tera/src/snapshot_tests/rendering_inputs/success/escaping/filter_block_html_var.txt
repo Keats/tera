@@ -1,0 +1,4 @@
+$$ tpl.html
+{% filter indent -%}
+{{ some_html }}
+{%- endfilter %}

@@ -1,0 +1,6 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/escaping/filter_after_safe_value.txt
+---
+<P>SOME HTML CHARS & MORE</P>

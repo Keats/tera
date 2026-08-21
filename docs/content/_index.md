@@ -864,17 +864,23 @@ Also takes an optional `pat` argument to trim by that pattern instead of whitesp
 
 Example: `{{ value | trim(pat="|") }}`
 
+The output is never a safe string.
+
 ##### trim_start
 Removes leading whitespace if the variable is a string.
 Also takes an optional `pat` argument to trim by that pattern instead of whitespace:
 
 Example: `{{ value | trim_start(pat="|") }}`
 
+The output is never a safe string.
+
 ##### trim_end
 Removes trailing whitespace if the variable is a string.
 Also takes an optional `pat` argument to trim by that pattern instead of whitespace:
 
 Example: `{{ value | trim_end(pat="|") }}`
+
+The output is never a safe string.
 
 ##### truncate
 Truncates a string to the indicated length. If the string has a smaller length than
@@ -888,6 +894,8 @@ For example, `{{ value | truncate(length=10, end="") }}` will not append anythin
 
 If you have the `unicode` feature enabled, the truncation will be done by graphemes rather than bytes.
 Avoid using that filter with user strings if that feature is not enabled.
+
+The output is never a safe string.
 
 ##### newlines_to_br
 Replaces line breaks (`\n` or `\r\n`) with HTML line breaks (`<br>`).
@@ -933,6 +941,11 @@ Returns the length of an array, an object, or a string.
 
 ##### reverse
 Returns a reversed string or array.
+
+##### escape
+
+Escape a string input using the currently defined escape function.
+This is aware of the current state of the input so an already safe string will not be escaped.
 
 ##### escape_html
 Escapes a string's HTML. Specifically, it makes these replacements:

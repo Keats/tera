@@ -1,0 +1,9 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/escaping/escape_filter.txt
+---
+
+&lt;p&gt;Some HTML chars &amp; more&lt;/p&gt;
+&lt;p&gt;Some HTML chars &amp; more&lt;/p&gt;
+<p>Some HTML chars & more</p>

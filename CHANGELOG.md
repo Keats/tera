@@ -3,6 +3,9 @@
 ## 2.3.0 (unreleased)
 
 - Add `State::{escape,autoescaping_enabled,escape_if_needed}`
+- Add `StringInput` to use for input/parameters that is safety aware and use it for built-in filters: this
+means you should need less `| safe` and that string safety is passed around correctly. Filters that delete
+characters (`trim*`, `truncate`) do not automatically mark their output as safe even if the input was safe.
 
 ## 2.2.0 (2026-08-20)
 
