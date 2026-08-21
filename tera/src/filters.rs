@@ -517,12 +517,13 @@ pub(crate) fn sort(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Vec<V
 
     if let Some(attribute) = kwargs.get::<&str>("attribute")? {
         let mut decorated = Vec::with_capacity(val.len());
-        for v in val {
+        for (i, v) in val.iter().enumerate() {
             let key = match v.get_from_path(attribute) {
                 Some(key) => key,
                 None => {
                     return Err(Error::message(format!(
-                        "Value {v} does not have an attribute after following path: {attribute}"
+                        "Value at index {i} (a {}) does not have an attribute at path: {attribute}",
+                        v.name()
                     )));
                 }
             };
@@ -599,11 +600,12 @@ pub(crate) fn group_by(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<M
 
     let attribute = kwargs.must_get::<&str>("attribute")?;
     let mut grouped: HashMap<Key, Vec<Value>> = HashMap::new();
-    for v in val {
+    for (i, v) in val.iter().enumerate() {
         match v.get_from_path(attribute) {
             None => {
                 return Err(Error::message(format!(
-                    "Value {v} does not have an attribute after following path: {attribute}"
+                    "Value at index {i} (a {}) does not have an attribute at path: {attribute}",
+                    v.name()
                 )));
             }
             Some(x) if x.is_none() => (),
