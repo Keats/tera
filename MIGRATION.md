@@ -40,6 +40,7 @@ they can be enabled one by one.
 - `first`, `last` and `nth` now return None when the array is empty instead of an empty string.
 - `unique` doesn't take arguments anymore
 - `date` locale argument has been removed for now
+- `date` filter format strings have changed, see https://docs.rs/jiff/latest/jiff/fmt/strtime/index.html for what's available
 
 ### Macros are gone
 
