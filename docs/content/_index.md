@@ -827,11 +827,14 @@ If you are building with something like HTMX you can also re-render a single com
 Tera has the following filters built-in:
 
 ##### safe
-Marks a variable as safe: HTML will not be escaped anymore.
-`safe` only works if it is the last filter of the expression:
+Marks a variable as safe.
 
+- `{{ content | safe }}` will not be escaped
 - `{{ content | replace(from="Robert", to="Bob") | safe }}` will not be escaped
-- `{{ content | safe | replace(from="Robert", to="Bob") }}` will be escaped
+- `{{ content | safe | replace(from="Robert", to="Bob") }}` will not be escaped either because the `content` is marked as safe and the `replace` filter is safety aware and will escape the `to` parameter if needed
+- `{{ content | safe | trim }}` will be escaped because `trim` is not safety aware
+
+Safety is preserved through safety aware filters when possible (`replace`, `upper` etc) but dropped by all others.
 
 ##### lower
 Converts a string to lowercase.

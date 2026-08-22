@@ -215,7 +215,7 @@ pub(crate) fn replace(val: StringInput, kwargs: Kwargs, state: &State) -> TeraRe
 pub(crate) fn capitalize(val: StringInput, _: Kwargs, _: &State) -> Value {
     let mut chars = val.as_str().chars();
     match chars.next() {
-        None => Value::from(String::new()),
+        None => val.inherit_safety(String::new()),
         Some(f) => val
             .inherit_safety(f.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase()),
     }

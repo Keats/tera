@@ -294,7 +294,9 @@ impl Tera {
 
     /// Register a filter with Tera.
     ///
-    /// If a filter with that name already exists, it will be overwritten
+    /// If a filter with that name already exists, it will be overwritten.
+    /// If your filter is returning a String, make sure you check [crate::StringInput] to handle
+    /// string safety correctly if relevant.
     ///
     /// ```
     /// # use tera::{Tera, Kwargs, State};

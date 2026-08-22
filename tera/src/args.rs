@@ -385,6 +385,9 @@ impl<'a> StringInput<'a> {
     }
 
     /// Returns a new Value for the given output, inheriting the StringInput safety
+    /// This should only be used when the new output is taken directly from the StringInput
+    /// and there's no deletion/decoding etc that could make the output unsafe.
+    /// If it's misused, it could mark some unsafe strings as safe.
     pub fn inherit_safety(&self, output: String) -> Value {
         if self.is_safe() {
             Value::safe_string(&output)
