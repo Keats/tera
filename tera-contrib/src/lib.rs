@@ -1,3 +1,16 @@
+//! Additional features for Tera that require 3rd party dependencies
+//! These are in a separate package so the crate version can be changed independently
+//! of the tera crate.
+//!
+//! To use them, call the Tera.{register_filter,register_function,register_test} functions:
+//!
+//! ```no_compile
+//! use tera::Tera;
+//!
+//! let mut tera = Tera::default();
+//! tera.register_filter("b64_encode", tera_contrib::base64::b64_encode);
+//! ```
+//!
 #[cfg(feature = "base64")]
 pub mod base64;
 #[cfg(feature = "date")]

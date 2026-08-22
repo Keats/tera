@@ -5,10 +5,7 @@ use crate::delimiters::Delimiters;
 use crate::snapshot_tests::utils::{create_multi_templates_tera, normalize_line_endings};
 use crate::tera::Tera;
 
-#[cfg(not(feature = "preserve_order"))]
 use crate::args::Kwargs;
-
-#[cfg(not(feature = "preserve_order"))]
 use crate::vm::state::State;
 use crate::{Context, Value};
 
