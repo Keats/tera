@@ -42,6 +42,10 @@ they can be enabled one by one.
 - `date` locale argument has been removed for now
 - `date` filter format strings have changed, see https://docs.rs/jiff/latest/jiff/fmt/strtime/index.html for what's available
 
+### `include ignore missing`
+
+It's gone and not supported anymore.
+
 ### Macros are gone
 
 Yep completely gone. Nada.
