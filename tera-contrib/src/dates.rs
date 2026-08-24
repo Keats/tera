@@ -1,7 +1,15 @@
+use icu_calendar::{Gregorian, Iso};
+use icu_datetime::fieldsets::enums::CompositeFieldSet;
+use icu_datetime::pattern::{DateTimePattern, FixedCalendarDateTimeNames};
+use icu_locale::Locale;
+use icu_time::zone::models::AtTime;
+use icu_time::{TimeZoneInfo, ZonedDateTime};
 use jiff::fmt::temporal::{DateTimeParser, Pieces};
 use jiff::tz::TimeZone;
 use jiff::{Timestamp, Zoned};
+use jiff_icu::ConvertFrom;
 use tera::{Kwargs, Number, State, TeraResult, Value};
+use writeable::TryWriteable;
 
 static PARSER: DateTimeParser = DateTimeParser::new();
 
@@ -64,14 +72,24 @@ pub fn now(kwargs: Kwargs, _: &State) -> TeraResult<Value> {
 /// Takes:
 ///   1. optional `format` argument, defaulting to `%Y-%m-%d`
 ///   2. optional `timezone` argument, defaulting to not set
+///   3. optional `locale` argument, defaulting to not set
+///
+/// If `locale` is set, `format` is required.
+/// `format` uses 2 different formats depending on whether `locale` is set or not:
+///
+///   1. if `locale` is not set: `strftime` like format seen in [jiff documentation](https://docs.rs/jiff/latest/jiff/fmt/strtime/index.html#conversion-specifications)
+///   2. if `locale` is set: [UTS-35 datetime patterns](https://unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table)
 ///
 /// ```text
 /// {{ value | date }}
 /// {{ value | date(format="%B %d, %Y") }}
 /// {{ timestamp | date(format="%Y-%m-%d %H:%M", timezone="Europe/Paris") }}
+/// {{ value | date(locale="fr", format="d MMMM y") }}
+/// {{ timestamp | date(locale="de", format="EEEE d. MMMM y, HH:mm", timezone="Europe/Berlin") }}
 /// ```
 pub fn date(val: &Value, kwargs: Kwargs, _: &State) -> TeraResult<String> {
-    let format = kwargs.get::<&str>("format")?.unwrap_or("%Y-%m-%d");
+    let format = kwargs.get::<&str>("format")?;
+    let locale = kwargs.get::<&str>("locale")?;
     let timezone = match kwargs.get::<&str>("timezone")? {
         Some(t) => Some(
             TimeZone::get(t).map_err(|_| tera::Error::message(format!("Unknown timezone: {t}")))?,
@@ -84,8 +102,66 @@ pub fn date(val: &Value, kwargs: Kwargs, _: &State) -> TeraResult<String> {
         zoned = zoned.with_time_zone(tz);
     }
 
-    jiff::fmt::strtime::format(format, &zoned)
-        .map_err(|e| tera::Error::message(format!("Invalid date format `{format}`: {e}")))
+    match locale {
+        // that's a lof ot types just to format a date...
+        // https://docs.rs/icu_datetime/latest/icu_datetime/pattern/struct.FixedCalendarDateTimeNames.html#method.include_for_pattern
+        Some(locale_str) => {
+            let Some(fmt) = format else {
+                return Err(tera::Error::message(
+                    "Setting `locale` requires setting a `format` as well",
+                ));
+            };
+
+            // A `%` in the format is almost certainly a strftime format and is likely and error
+            // since we can't use strftime here.
+            // Revisit if someone actually needs the literal % in their date output but it's better
+            // to error for now IMO
+            if fmt.contains('%') {
+                return Err(tera::Error::message(format!(
+                    "Invalid date format `{fmt}`: strftime formats cannot be localized, \
+                     use a UTS-35 pattern instead (eg `d MMMM y`)"
+                )));
+            }
+            // Allow using fr-FR or fr_FR
+            let locale = Locale::try_from_str(&locale_str.replace('_', "-"))
+                .map_err(|_| tera::Error::message(format!("Invalid locale: {locale_str}")))?;
+            let pattern = DateTimePattern::try_from_pattern_str(fmt).map_err(|e| {
+                tera::Error::message(format!("Invalid UTS-35 date format `{fmt}`: {e}"))
+            })?;
+            let mut names =
+                FixedCalendarDateTimeNames::<Gregorian, CompositeFieldSet>::try_new(locale.into())
+                    .map_err(|e| {
+                        tera::Error::message(format!(
+                            "Failed to load data for locale {locale_str}: {e}"
+                        ))
+                    })?;
+            let formatter = names.include_for_pattern(&pattern).map_err(|e| {
+                tera::Error::message(format!(
+                    "Invalid date format `{fmt}` for locale {locale_str}: {e}"
+                ))
+            })?;
+
+            let iso = ZonedDateTime::<Iso, TimeZoneInfo<AtTime>>::convert_from(&zoned);
+            let zdt = ZonedDateTime {
+                date: iso.date.to_calendar(Gregorian),
+                time: iso.time,
+                zone: iso.zone,
+            };
+
+            formatter
+                .format(&zdt)
+                .try_write_to_string()
+                .map(|s| s.into_owned())
+                .map_err(|(e, _)| {
+                    tera::Error::message(format!("Failed to format date with `{fmt}`: {e}"))
+                })
+        }
+        None => {
+            let fmt = format.unwrap_or("%Y-%m-%d");
+            jiff::fmt::strtime::format(fmt, &zoned)
+                .map_err(|e| tera::Error::message(format!("Invalid date format `{fmt}`: {e}")))
+        }
+    }
 }
 
 /// Tests whether a date is before another date.
@@ -139,16 +215,18 @@ mod tests {
     #[test]
     fn test_ok_date() {
         let inputs = vec![
-            (Value::from(1482720453), None, None, "2016-12-26"),
+            (Value::from(1482720453), None, None, None, "2016-12-26"),
             (
                 Value::from(1482720453),
                 Some("%Y-%m-%d %H:%M"),
+                None,
                 None,
                 "2016-12-26 02:47",
             ),
             // RFC3339
             (
                 Value::from("1985-04-12T23:20:50.52Z"),
+                None,
                 None,
                 None,
                 "1985-04-12",
@@ -158,12 +236,14 @@ mod tests {
                 Value::from("1996-12-19T16:39:57[-08:00]"),
                 Some("%Y-%m-%d %z"),
                 None,
+                None,
                 "1996-12-19 -0800",
             ),
             // a bare RFC3339 offset (no brackets) preserves the offset too
             (
                 Value::from("1996-12-19T16:39:57-08:00"),
                 Some("%Y-%m-%d %H:%M %z"),
+                None,
                 None,
                 "1996-12-19 16:39 -0800",
             ),
@@ -172,6 +252,7 @@ mod tests {
                 Value::from("2017-03-05"),
                 Some("%a, %d %b %Y %H:%M:%S %z"),
                 None,
+                None,
                 "Sun, 05 Mar 2017 00:00:00 +0000",
             ),
             // naive datetime
@@ -179,11 +260,13 @@ mod tests {
                 Value::from("2017-03-05T00:00:00.602"),
                 Some("%a, %d %b %Y %H:%M:%S"),
                 None,
+                None,
                 "Sun, 05 Mar 2017 00:00:00",
             ),
             // with a timezone
             (
                 Value::from("2019-09-19T01:48:44.581Z"),
+                None,
                 None,
                 Some("America/New_York"),
                 "2019-09-18",
@@ -191,18 +274,72 @@ mod tests {
             (
                 Value::from(1648252203),
                 None,
+                None,
                 Some("Europe/Berlin"),
                 "2022-03-26",
             ),
+            // And now with locales
+            (
+                Value::from("2026-08-24"),
+                Some("d MMMM y"),
+                Some("fr"),
+                None,
+                "24 août 2026",
+            ),
+            (
+                Value::from("2026-08-24"),
+                Some("d MMMM y"),
+                Some("fr-FR"),
+                None,
+                "24 août 2026",
+            ),
+            (
+                Value::from("2026-08-24"),
+                Some("d MMMM y"),
+                Some("fr_FR"),
+                None,
+                "24 août 2026",
+            ),
+            (
+                Value::from("2026-08-24"),
+                Some("EEEE d MMMM y"),
+                Some("fr_FR"),
+                None,
+                "lundi 24 août 2026",
+            ),
+            (
+                Value::from("2026-08-24"),
+                Some("y年M月d日"),
+                Some("ja"),
+                None,
+                "2026年8月24日",
+            ),
+            (
+                Value::from(1787574924),
+                Some("d MMMM y à HH:mm"),
+                Some("fr"),
+                Some("Europe/Paris"),
+                "24 août 2026 à 14:35",
+            ),
+            (
+                Value::from("2026-08-24T14:35:00"),
+                Some("MMMM d y [zzz]"),
+                Some("it"),
+                Some("America/New_York"),
+                "agosto 24 2026 [GMT-4]",
+            ),
         ];
 
-        for (value, format, timezone, expected) in inputs {
+        for (value, format, locale, timezone, expected) in inputs {
             let mut map = Map::new();
             if let Some(f) = format {
                 map.insert("format".into(), f.into());
             }
             if let Some(tz) = timezone {
                 map.insert("timezone".into(), tz.into());
+            }
+            if let Some(l) = locale {
+                map.insert("locale".into(), l.into());
             }
             let kwargs = Kwargs::new(Arc::new(map));
             let ctx = Context::new();
@@ -214,22 +351,32 @@ mod tests {
     #[test]
     fn test_bad_date_call() {
         let inputs = vec![
-            (Value::from(1482720453), Some("%1"), None),
-            (Value::from(1482720453), Some("%+S"), None),
+            (Value::from(1482720453), Some("%1"), None, None),
+            (Value::from(1482720453), Some("%+S"), None, None),
             (
                 Value::from("2019-09-19T01:48:44.581Z"),
                 Some("%+S"),
                 Some("Narnia"),
+                None,
             ),
+            // unknown locale
+            (Value::from(1482720453), Some("MMMM"), None, Some("unknown")),
+            // missing format with locale
+            (Value::from(1482720453), None, None, Some("fr")),
+            // strftime formats error when a locale is set
+            (Value::from(1482720453), Some("%Y-%m-%d"), None, Some("fr")),
         ];
 
-        for (value, format, timezone) in inputs {
+        for (value, format, timezone, locale) in inputs {
             let mut map = Map::new();
             if let Some(f) = format {
                 map.insert("format".into(), f.into());
             }
             if let Some(tz) = timezone {
                 map.insert("timezone".into(), tz.into());
+            }
+            if let Some(l) = locale {
+                map.insert("locale".into(), l.into());
             }
             let kwargs = Kwargs::new(Arc::new(map));
             let ctx = Context::new();

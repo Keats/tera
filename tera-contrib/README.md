@@ -8,15 +8,15 @@ but you can insert them in your Tera instance with whatever name you want.
 
 Enable only what you need via Cargo features:
 
-| Feature | Provides                                                           |
-|---------|--------------------------------------------------------------------|
-| `base64` | `b64_encode`, `b64_decode` filters                                 |
-| `date` | `now` function, `date` filter, `before`/`after` tests              |
-| `filesize_format` | `filesize_format` filter                                           |
-| `format` | `format` filter (Rust-like formatting)                             |
-| `json` | `json_encode` filter                                               |
-| `rand` | `get_random`, `shuffle` functions                                  |
-| `regex` | `striptags`, `spaceless`, `regex_replace` filters, `matching` test |
-| `slug` | `slug` filter                                                      |
-| `urlencode` | `urlencode`, `urlencode_strict` filters                            |
+| Feature | Provides                                                                |
+|---------|-------------------------------------------------------------------------|
+| `base64` | `b64_encode`, `b64_decode` filters                                      |
+| `date` | `now` function, `date` filter, `before`/`after` tests |
+| `filesize_format` | `filesize_format` filter                                                |
+| `format` | `format` filter (Rust-like formatting)                                  |
+| `json` | `json_encode` filter                                                    |
+| `rand` | `get_random`, `shuffle` functions                                       |
+| `regex` | `striptags`, `spaceless`, `regex_replace` filters, `matching` test      |
+| `slug` | `slug` filter                                                           |
+| `urlencode` | `urlencode`, `urlencode_strict` filters                                 |
 
