@@ -3,4 +3,4 @@ source: tera/src/snapshot_tests/rendering.rs
 expression: "&normalized_out"
 input_file: tera/src/snapshot_tests/rendering_inputs/success/escaping/replace_filter_block_html_var.txt
 ---
-&lt;p&gt;Some HTML chars and more&lt;/p&gt;
+andlt;pandgt;Some HTML chars andamp; moreandlt;/pandgt;

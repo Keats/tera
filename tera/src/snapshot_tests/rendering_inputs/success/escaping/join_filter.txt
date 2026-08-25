@@ -2,3 +2,4 @@ $$ tpl.html
 {% set x %}{{ some_html }}{% endset %}
 {{ [x, "<raw>"] | join(sep=" & ") }}
 {{ ["a", "b"] | join(sep=" & ") }}
+{{ [none, 1, true, "<b>"] | join(sep=",") }}

@@ -1,4 +1,4 @@
 $$ tpl.html
 {% set x %}{{ some_html }} {% endset %}
 Escaped only once: {{x}}
-Escaped twice: {{x | trim}}
+Escaped once as well: {{x | trim}}

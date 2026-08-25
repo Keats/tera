@@ -624,6 +624,10 @@ If you want to do that, use components.
 While you can `set` values in included templates, those values only exist while rendering
 them: the template calling `include` doesn't see them.
 
+For escaping purposes, what's important is where the file is being included.
+For example if you have autoescape on for `.html` files, `<script>alert("hello")</script>` in `partial.txt` and
+`{% include "partial.txt" %}` in `base.html`, the content of `partial.txt` will be rendered escaped.
+
 ### Inheritance
 
 Tera uses the same kind of inheritance as Jinja2 and Django templates:
@@ -832,7 +836,7 @@ Marks a variable as safe.
 - `{{ content | safe }}` will not be escaped
 - `{{ content | replace(from="Robert", to="Bob") | safe }}` will not be escaped
 - `{{ content | safe | replace(from="Robert", to="Bob") }}` will not be escaped either because the `content` is marked as safe and the `replace` filter is safety aware and will escape the `to` parameter if needed
-- `{{ content | safe | trim }}` will be escaped because `trim` is not safety aware
+- `{{ content | safe | truncate(length=10) }}` will be escaped because `truncate` is not safety aware
 
 Safety is preserved through safety aware filters when possible (`replace`, `upper` etc) but dropped by all others.
 
@@ -867,23 +871,17 @@ Also takes an optional `pat` argument to trim by that pattern instead of whitesp
 
 Example: `{{ value | trim(pat="|") }}`
 
-The output is never a safe string.
-
 ##### trim_start
 Removes leading whitespace if the variable is a string.
 Also takes an optional `pat` argument to trim by that pattern instead of whitespace:
 
 Example: `{{ value | trim_start(pat="|") }}`
 
-The output is never a safe string.
-
 ##### trim_end
 Removes trailing whitespace if the variable is a string.
 Also takes an optional `pat` argument to trim by that pattern instead of whitespace:
 
 Example: `{{ value | trim_end(pat="|") }}`
-
-The output is never a safe string.
 
 ##### truncate
 Truncates a string to the indicated length. If the string has a smaller length than
@@ -1253,7 +1251,5 @@ There are 3 arguments, all integers:
 The template rendering will error with the given message when encountered.
 
 There is only one string argument: `message` which is the message to display as the error
-
-
 
 {% endraw %}

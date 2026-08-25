@@ -164,50 +164,51 @@ pub(crate) fn pluralize(val: Value, kwargs: Kwargs, _: &State) -> TeraResult<Str
     Ok(if is_singular { singular } else { plural }.to_string())
 }
 
-pub(crate) fn trim(val: &str, kwargs: Kwargs, _: &State) -> TeraResult<String> {
-    if let Some(pat) = kwargs.get::<&str>("pat")? {
-        Ok(val
+pub(crate) fn trim(val: StringInput, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
+    let res = if let Some(pat) = kwargs.get::<&str>("pat")? {
+        val.as_str()
             .trim_start_matches(pat)
             .trim_end_matches(pat)
-            .to_string())
+            .to_string()
     } else {
-        Ok(val.trim().to_string())
-    }
+        val.as_str().trim().to_string()
+    };
+
+    Ok(val.inherit_safety(res))
 }
 
-pub(crate) fn trim_start(val: &str, kwargs: Kwargs, _: &State) -> TeraResult<String> {
-    if let Some(pat) = kwargs.get::<&str>("pat")? {
-        Ok(val.trim_start_matches(pat).to_string())
+pub(crate) fn trim_start(val: StringInput, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
+    let res = if let Some(pat) = kwargs.get::<&str>("pat")? {
+        val.as_str().trim_start_matches(pat).to_string()
     } else {
-        Ok(val.trim_start().to_string())
-    }
+        val.as_str().trim_start().to_string()
+    };
+
+    Ok(val.inherit_safety(res))
 }
 
-pub(crate) fn trim_end(val: &str, kwargs: Kwargs, _: &State) -> TeraResult<String> {
-    if let Some(pat) = kwargs.get::<&str>("pat")? {
-        Ok(val.trim_end_matches(pat).to_string())
+pub(crate) fn trim_end(val: StringInput, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
+    let res = if let Some(pat) = kwargs.get::<&str>("pat")? {
+        val.as_str().trim_end_matches(pat).to_string()
     } else {
-        Ok(val.trim_end().to_string())
-    }
+        val.as_str().trim_end().to_string()
+    };
+
+    Ok(val.inherit_safety(res))
 }
 
 pub(crate) fn replace(val: StringInput, kwargs: Kwargs, state: &State) -> TeraResult<Value> {
-    let from = kwargs.must_get::<StringInput>("from")?;
+    let from = kwargs.must_get::<&str>("from")?;
     let to = kwargs.must_get::<StringInput>("to")?;
 
     // If we have autoescaping enabled and either the value or the replacement is safe,
-    // we go through StringInput to render everything as if it was {{ }}
-    // otherwise we do a basic str replace
+    // we go through StringInput otherwise we do a basic str replace
     let be_safe = state.autoescaping_enabled() && (val.is_safe() || to.is_safe());
     if be_safe {
-        let out = val
-            .rendered(state)?
-            .replace(&*from.rendered(state)?, &to.rendered(state)?);
+        let out = val.rendered(state)?.replace(from, &to.rendered(state)?);
         Ok(Value::safe_string(&out))
     } else {
-        Ok(Value::from(
-            val.as_str().replace(from.as_str(), to.as_str()),
-        ))
+        Ok(Value::from(val.as_str().replace(from, to.as_str())))
     }
 }
 
@@ -270,25 +271,38 @@ pub(crate) fn truncate(val: &str, kwargs: Kwargs, _: &State) -> TeraResult<Strin
 /// The first line and blank lines are not indented by default.
 /// The indent character defaults to a space.
 /// Max width of 1000 to avoid DOS
-pub(crate) fn indent(val: StringInput, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
+pub(crate) fn indent(val: StringInput, kwargs: Kwargs, state: &State) -> TeraResult<Value> {
     let width = kwargs.get::<usize>("width")?.unwrap_or(4).min(1000);
-    let indentation = kwargs.get::<&str>("indentation")?.unwrap_or(" ");
-    let mut characters = indentation.chars();
-    let indent_character = characters
-        .next()
-        .filter(|_| characters.next().is_none())
-        .ok_or_else(|| {
-            Error::message("The `indentation` argument must contain exactly one character")
-        })?;
+    let indentation = kwargs.get::<StringInput>("indentation")?;
     let indent_first_line = kwargs.get::<bool>("first")?.unwrap_or(false);
     let indent_blank_line = kwargs.get::<bool>("blank")?.unwrap_or(false);
 
-    let indent = indent_character.to_string().repeat(width);
-    let s = val.as_str();
-    let mut res = String::with_capacity(s.len() * 2);
+    if let Some(ref i) = indentation
+        && i.as_str().chars().count() != 1
+    {
+        return Err(Error::message(
+            "The `indentation` argument must contain exactly one character",
+        ));
+    }
+
+    let be_safe = state.autoescaping_enabled()
+        && (val.is_safe() || indentation.as_ref().is_some_and(|x| x.is_safe()));
+
+    let val = if be_safe {
+        val.rendered(state)?
+    } else {
+        Cow::Borrowed(val.as_str())
+    };
+    let indent = match indentation {
+        Some(ref i) if be_safe => i.rendered(state)?.repeat(width),
+        Some(i) => i.as_str().repeat(width),
+        None => " ".repeat(width),
+    };
+
+    let mut res = String::with_capacity(val.len() * 2);
 
     let mut first_line = true;
-    for line in s.lines() {
+    for line in val.lines() {
         if first_line {
             if indent_first_line {
                 res.push_str(&indent);
@@ -303,11 +317,15 @@ pub(crate) fn indent(val: StringInput, kwargs: Kwargs, _: &State) -> TeraResult<
         res.push_str(line);
     }
 
-    if s.ends_with('\n') {
+    if val.ends_with('\n') {
         res.push('\n');
     }
 
-    Ok(val.inherit_safety(res))
+    if be_safe {
+        Ok(Value::safe_string(&res))
+    } else {
+        Ok(Value::from(res))
+    }
 }
 
 pub(crate) fn as_str(val: Value, _: Kwargs, _: &State) -> String {
@@ -514,7 +532,11 @@ pub(crate) fn join(val: &[Value], kwargs: Kwargs, state: &State) -> TeraResult<V
     if be_safe {
         let mut parts = Vec::with_capacity(val.len());
         for v in val {
-            parts.push(state.escape_if_needed(v)?);
+            if v.is_undefined() {
+                parts.push(String::new())
+            } else {
+                parts.push(state.escape_if_needed(v)?);
+            }
         }
         let sep_rendered = match &sep {
             Some(s) => s.rendered(state)?,

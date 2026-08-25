@@ -5,4 +5,4 @@ input_file: tera/src/snapshot_tests/rendering_inputs/success/escaping/set_filter
 ---
 
 Escaped only once: &lt;p&gt;Some HTML chars &amp; more&lt;/p&gt; 
-Escaped twice: &amp;lt;p&amp;gt;Some HTML chars &amp;amp; more&amp;lt;/p&amp;gt;
+Escaped once as well: &lt;p&gt;Some HTML chars &amp; more&lt;/p&gt;

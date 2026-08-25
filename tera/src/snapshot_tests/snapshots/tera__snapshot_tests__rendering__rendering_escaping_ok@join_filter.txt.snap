@@ -6,3 +6,4 @@ input_file: tera/src/snapshot_tests/rendering_inputs/success/escaping/join_filte
 
 &lt;p&gt;Some HTML chars &amp; more&lt;/p&gt; &amp; &lt;raw&gt;
 a &amp; b
+,1,true,&lt;b&gt;
