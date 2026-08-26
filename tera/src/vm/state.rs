@@ -69,13 +69,13 @@ impl<'t> State<'t> {
     pub fn new(context: &'t Context) -> Self {
         Self {
             stack: Stack::new(),
-            for_loops: Vec::with_capacity(4),
+            for_loops: Vec::new(),
             set_variables: BTreeMap::new(),
             context,
             global_context: None,
             chunk: None,
-            capture_buffers: Vec::with_capacity(4),
-            escape_buffer: Vec::with_capacity(128),
+            capture_buffers: Vec::new(),
+            escape_buffer: Vec::new(),
             include_parent: None,
             capture_block: None,
             block_buffer: Vec::new(),

@@ -18,9 +18,7 @@ pub(crate) struct Stack {
 
 impl Stack {
     pub(crate) fn new() -> Self {
-        Self {
-            values: Vec::with_capacity(64),
-        }
+        Self { values: Vec::new() }
     }
 
     #[inline]
