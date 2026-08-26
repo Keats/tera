@@ -331,27 +331,7 @@ impl<'tera> VirtualMachine<'tera> {
                             top_span
                         );
                     }
-
-                    if !self.autoescape_enabled() || top.is_safe() {
-                        if let Some(captured) = state.capture_buffers.last_mut() {
-                            top.format(captured)?;
-                        } else {
-                            top.format(output)?;
-                        }
-                    } else {
-                        // Avoiding String as much as possible
-                        state.escape_buffer.clear();
-                        top.format(&mut state.escape_buffer)?;
-                        // SAFETY: the buffer was just filled by Value::format, which only
-                        // writes valid UTF-8
-                        let escaped =
-                            unsafe { std::str::from_utf8_unchecked(&state.escape_buffer) };
-                        if let Some(captured) = state.capture_buffers.last_mut() {
-                            (self.tera.escape_fn)(escaped, captured)?;
-                        } else {
-                            (self.tera.escape_fn)(escaped, output)?;
-                        }
-                    }
+                    self.write_value(&top, state, output)?;
                 }
                 Instruction::Set(name) => {
                     let (val, _) = state.stack.pop();
@@ -846,31 +826,48 @@ impl<'tera> VirtualMachine<'tera> {
                         &root
                     };
 
-                    if !self.autoescape_enabled() || val.is_safe() {
-                        if let Some(captured) = state.capture_buffers.last_mut() {
-                            val.format(captured)?;
-                        } else {
-                            val.format(output)?;
-                        }
-                    } else {
-                        state.escape_buffer.clear();
-                        val.format(&mut state.escape_buffer)?;
-                        // SAFETY: the buffer was just filled by Value::format, which only
-                        // writes valid UTF-8
-                        let escaped =
-                            unsafe { std::str::from_utf8_unchecked(&state.escape_buffer) };
-                        if let Some(captured) = state.capture_buffers.last_mut() {
-                            (self.tera.escape_fn)(escaped, captured)?;
-                        } else {
-                            (self.tera.escape_fn)(escaped, output)?;
-                        }
-                    }
+                    self.write_value(val, state, output)?;
                 }
             }
 
             ip += 1;
         }
 
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_value(
+        &self,
+        value: &Value,
+        state: &mut State<'tera>,
+        output: &mut impl Write,
+    ) -> TeraResult<()> {
+        if !self.autoescape_enabled() || value.is_safe() {
+            if let Some(captured) = state.capture_buffers.last_mut() {
+                value.format(captured)?;
+            } else {
+                value.format(output)?;
+            }
+        } else if let ValueInner::String(s) = &value.inner {
+            if let Some(captured) = state.capture_buffers.last_mut() {
+                (self.tera.escape_fn)(s.as_str(), captured)?;
+            } else {
+                (self.tera.escape_fn)(s.as_str(), output)?;
+            }
+        } else {
+            // Avoiding String as much as possible for composite values.
+            state.escape_buffer.clear();
+            value.format(&mut state.escape_buffer)?;
+            // SAFETY: the buffer was just filled by Value::format, which only
+            // writes valid UTF-8
+            let escaped = unsafe { std::str::from_utf8_unchecked(&state.escape_buffer) };
+            if let Some(captured) = state.capture_buffers.last_mut() {
+                (self.tera.escape_fn)(escaped, captured)?;
+            } else {
+                (self.tera.escape_fn)(escaped, output)?;
+            }
+        }
         Ok(())
     }
 
