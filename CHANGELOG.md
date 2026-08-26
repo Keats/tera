@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.3.0 (unreleased)
+## 2.3.0 (2026-08-26)
 
 - Add `State::{escape,autoescaping_enabled,escape_if_needed}`
 - Add `StringInput` to use for input/parameters that is safety aware and use it for built-in filters: this
