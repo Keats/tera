@@ -20,3 +20,4 @@ API documentation is available on [docs.rs](https://docs.rs/crate/tera/).
 
 Tera documentation is available on its [site](http://keats.github.io/tera/).
 
+See the [here](CHANGELOG.md) for changes to tera and [there for tera-contrib](tera-contrib/CHANGELOG.md).
