@@ -838,7 +838,8 @@ Marks a variable as safe.
 - `{{ content | safe | replace(from="Robert", to="Bob") }}` will not be escaped either because the `content` is marked as safe and the `replace` filter is safety aware and will escape the `to` parameter if needed
 - `{{ content | safe | truncate(length=10) }}` will be escaped because `truncate` is not safety aware
 
-Safety is preserved through safety aware filters when possible (`replace`, `upper` etc) but dropped by all others.
+Safety is preserved through safety aware filters when the template author specifies exactly what changes
+(`replace`, `trim`, `upper` etc) but dropped by the rest.
 
 ##### lower
 Converts a string to lowercase.

@@ -4,7 +4,7 @@
 //!
 //! To use them, call the Tera.{register_filter,register_function,register_test} functions:
 //!
-//! ```no_compile
+//! ```ignore
 //! use tera::Tera;
 //!
 //! let mut tera = Tera::default();

@@ -523,11 +523,12 @@ pub(crate) fn nth(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Value>
 pub(crate) fn join(val: &[Value], kwargs: Kwargs, state: &State) -> TeraResult<Value> {
     let sep = kwargs.get::<StringInput>("sep")?;
 
-    // If we have autoescaping enabled and either one of the values or the separator is safe,
-    // we go through StringInput to render everything as if it was {{ }}
+    // If we have autoescaping enabled and either one of the values (only string counts)
+    // or the separator is safe, we go through StringInput to render everything as if it was {{ }}
     // otherwise we do a basic str replace
     let be_safe = state.autoescaping_enabled()
-        && (val.iter().any(|x| x.is_safe()) || sep.as_ref().is_some_and(|x| x.is_safe()));
+        && (val.iter().any(|x| x.is_string() && x.is_safe())
+            || sep.as_ref().is_some_and(|x| x.is_safe()));
 
     if be_safe {
         let mut parts = Vec::with_capacity(val.len());
