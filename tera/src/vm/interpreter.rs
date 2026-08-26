@@ -155,7 +155,7 @@ impl<'tera> VirtualMachine<'tera> {
                 let current_span: SpanRange = $span_idx..=$span_idx;
 
                 let body = if $has_body {
-                    Some(state.stack.pop().0.mark_safe())
+                    Some(state.stack.pop().0)
                 } else {
                     None
                 };
@@ -182,7 +182,12 @@ impl<'tera> VirtualMachine<'tera> {
                         return Err(e);
                     }
                 };
-                state.stack.push(Value::safe_string(&val), current_span);
+                let val = if self.autoescape_enabled() {
+                    Value::safe_string(&val)
+                } else {
+                    Value::from(val)
+                };
+                state.stack.push(val, current_span);
             }};
         }
 
@@ -600,7 +605,12 @@ impl<'tera> VirtualMachine<'tera> {
                 }
                 Instruction::EndCapture => {
                     let captured = state.capture_buffers.pop().unwrap();
-                    let val = Value::safe_string(&String::from_utf8(captured)?);
+                    let raw = String::from_utf8(captured)?;
+                    let val = if self.autoescape_enabled() {
+                        Value::safe_string(&raw)
+                    } else {
+                        Value::from(raw)
+                    };
                     state.stack.push(val, current_ip..=current_ip);
                 }
                 Instruction::StartIterate(is_key_value)
@@ -959,7 +969,9 @@ impl<'tera> VirtualMachine<'tera> {
         let vm = Self {
             tera: self.tera,
             template: tpl,
-            autoescape_override: self.autoescape_override,
+            // If we include eg a .txt file that includes html in a html file with autoescape on .html
+            // we want it escaped
+            autoescape_override: Some(self.autoescape_enabled()),
             component_recursion_depth: self.component_recursion_depth,
         };
 
@@ -968,7 +980,8 @@ impl<'tera> VirtualMachine<'tera> {
             self.tera,
             state.context,
             &tpl.chunk,
-            vm.autoescape_enabled(),
+            // We use the current template autoescape, not the one being included
+            self.autoescape_enabled(),
         );
         include_state.include_parent = Some(state);
         vm.interpret(&mut include_state, output)?;

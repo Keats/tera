@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::{LazyLock, RwLock};
 
 use regex::Regex;
-use tera::{Filter, Kwargs, State, TeraResult, Test};
+use tera::{Filter, Kwargs, State, StringInput, TeraResult, Test, Value};
 
 static STRIPTAGS_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(<!--.*?-->|<[^>]*>)").unwrap());
@@ -30,8 +30,10 @@ pub fn striptags(val: &str, _: Kwargs, _: &State) -> String {
 /// ```text
 /// {{ value | spaceless }}
 /// ```
-pub fn spaceless(val: &str, _: Kwargs, _: &State) -> String {
-    SPACELESS_RE.replace_all(val, "><").into_owned()
+pub fn spaceless(val: StringInput, _: Kwargs, _: &State) -> Value {
+    // We're removing spaces between HTML tags so if it was safe before, it should still be safe
+    // Of course if it's used outside of HTML content it might be wrong.
+    val.inherit_safety(SPACELESS_RE.replace_all(val.as_str(), "><").into_owned())
 }
 
 fn get_or_create_regex(cache: &RwLock<HashMap<String, Regex>>, pattern: &str) -> TeraResult<Regex> {
@@ -94,8 +96,8 @@ impl Filter<&str, TeraResult<String>> for RegexReplace {
 mod tests {
     use super::*;
     use std::sync::Arc;
-    use tera::Context;
     use tera::value::Map;
+    use tera::{ArgFromValue, Context, StringInput};
 
     #[test]
     fn test_striptags() {
@@ -127,6 +129,7 @@ mod tests {
                 r#"<strong>foo</strong><a href="http://example.com">bar</a>"#,
                 "foobar",
             ),
+            ("a &amp; b", "a &amp; b"),
         ];
         for (input, expected) in tests {
             let ctx = Context::new();
@@ -149,8 +152,13 @@ mod tests {
         for (input, expected) in tests {
             let ctx = Context::new();
             let state = State::new(&ctx);
-            let res = spaceless(input, Kwargs::default(), &state);
-            assert_eq!(expected, res);
+            let val = Value::from(input);
+            let res = spaceless(
+                StringInput::from_value(&val).unwrap(),
+                Kwargs::default(),
+                &state,
+            );
+            assert_eq!(expected, res.as_str().unwrap());
         }
     }
 

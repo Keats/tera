@@ -624,6 +624,10 @@ If you want to do that, use components.
 While you can `set` values in included templates, those values only exist while rendering
 them: the template calling `include` doesn't see them.
 
+For escaping purposes, what's important is where the file is being included.
+For example if you have autoescape on for `.html` files, `<script>alert("hello")</script>` in `partial.txt` and
+`{% include "partial.txt" %}` in `base.html`, the content of `partial.txt` will be rendered escaped.
+
 ### Inheritance
 
 Tera uses the same kind of inheritance as Jinja2 and Django templates:
@@ -827,11 +831,15 @@ If you are building with something like HTMX you can also re-render a single com
 Tera has the following filters built-in:
 
 ##### safe
-Marks a variable as safe: HTML will not be escaped anymore.
-`safe` only works if it is the last filter of the expression:
+Marks a variable as safe.
 
+- `{{ content | safe }}` will not be escaped
 - `{{ content | replace(from="Robert", to="Bob") | safe }}` will not be escaped
-- `{{ content | safe | replace(from="Robert", to="Bob") }}` will be escaped
+- `{{ content | safe | replace(from="Robert", to="Bob") }}` will not be escaped either because the `content` is marked as safe and the `replace` filter is safety aware and will escape the `to` parameter if needed
+- `{{ content | safe | truncate(length=10) }}` will be escaped because `truncate` is not safety aware
+
+Safety is preserved through safety aware filters when the template author specifies exactly what changes
+(`replace`, `trim`, `upper` etc) but dropped by the rest.
 
 ##### lower
 Converts a string to lowercase.
@@ -889,6 +897,8 @@ For example, `{{ value | truncate(length=10, end="") }}` will not append anythin
 If you have the `unicode` feature enabled, the truncation will be done by graphemes rather than bytes.
 Avoid using that filter with user strings if that feature is not enabled.
 
+The output is never a safe string.
+
 ##### newlines_to_br
 Replaces line breaks (`\n` or `\r\n`) with HTML line breaks (`<br>`).
 
@@ -933,6 +943,11 @@ Returns the length of an array, an object, or a string.
 
 ##### reverse
 Returns a reversed string or array.
+
+##### escape
+
+Escape a string input using the currently defined escape function.
+This is aware of the current state of the input so an already safe string will not be escaped.
 
 ##### escape_html
 Escapes a string's HTML. Specifically, it makes these replacements:
@@ -1237,7 +1252,5 @@ There are 3 arguments, all integers:
 The template rendering will error with the given message when encountered.
 
 There is only one string argument: `message` which is the message to display as the error
-
-
 
 {% endraw %}

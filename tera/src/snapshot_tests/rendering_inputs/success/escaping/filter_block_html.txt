@@ -1,0 +1,5 @@
+$$ tpl.html
+{% filter indent %}
+<p>I should not be escaped</p>
+<p> This either</p>
+{%- endfilter %}

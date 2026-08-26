@@ -1,0 +1,8 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/escaping/filter_block_html.txt
+---
+
+    <p>I should not be escaped</p>
+    <p> This either</p>

@@ -1,0 +1,4 @@
+$$ included.txt
+{{ some_html }}
+$$ tpl.html
+Both escaped: {% include "included.txt" %}{% set x %}{% include "included.txt" %}{% endset %}{{ x }}

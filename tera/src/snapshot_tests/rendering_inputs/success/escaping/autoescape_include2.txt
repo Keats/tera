@@ -1,0 +1,4 @@
+$$ included.html
+{{ some_html }}
+$$ tpl
+Not escaped: {% include "included.html" %}

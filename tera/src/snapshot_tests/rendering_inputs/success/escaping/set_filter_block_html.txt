@@ -1,0 +1,2 @@
+$$ tpl.html
+{% set x | upper %}<b>a</b>{% endset %}{{ x }}

@@ -1,0 +1,2 @@
+$$ tpl.html
+{% filter truncate(length=10) %}<p>should be escaped</p>{% endfilter %}

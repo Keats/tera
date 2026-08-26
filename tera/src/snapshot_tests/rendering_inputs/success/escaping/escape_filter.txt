@@ -1,0 +1,5 @@
+$$ tpl.html
+{% set x %}{{ some_html }}{% endset %}
+{{ x | escape }}
+{{ some_html | escape }}
+{{ some_html | safe | escape }}

@@ -24,19 +24,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: Resolve Zola next commit
-        id: zola
-        run: echo "sha=$(git ls-remote https://github.com/getzola/zola refs/heads/next | cut -f1)" >> "$GITHUB_OUTPUT"
-      - name: Cache Zola binary
-        id: cache-zola
-        uses: actions/cache@v5
+      - name: Build Zola + upload Pages artifact
+        uses: getzola/github-pages@066755243e69f508fd1a74739fbf1a65f656c790
         with:
-          path: ~/.cargo/bin/zola
-          key: zola-next-${{ steps.zola.outputs.sha }}
-      - name: Install Zola (next branch)
-        if: steps.cache-zola.outputs.cache-hit != 'true'
-        # Use next branch temporarily since these docs are built with it
-        run: cargo install --git https://github.com/getzola/zola --branch next --locked zola
+          zola_version: v0.23.4
 
       - name: Build docs
         run: zola build

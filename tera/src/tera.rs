@@ -294,7 +294,9 @@ impl Tera {
 
     /// Register a filter with Tera.
     ///
-    /// If a filter with that name already exists, it will be overwritten
+    /// If a filter with that name already exists, it will be overwritten.
+    /// If your filter is returning a String, make sure you check [crate::StringInput] to handle
+    /// string safety correctly if relevant.
     ///
     /// ```
     /// # use tera::{Tera, Kwargs, State};
@@ -474,7 +476,8 @@ impl Tera {
         self.register_filter("upper", crate::filters::upper);
         self.register_filter("lower", crate::filters::lower);
         self.register_filter("wordcount", crate::filters::wordcount);
-        self.register_filter("escape_html", crate::filters::escape);
+        self.register_filter("escape", crate::filters::escape);
+        self.register_filter("escape_html", crate::filters::escape_html);
         self.register_filter("escape_xml", crate::filters::escape_xml);
         self.register_filter("newlines_to_br", crate::filters::newlines_to_br);
         self.register_filter("pluralize", crate::filters::pluralize);
