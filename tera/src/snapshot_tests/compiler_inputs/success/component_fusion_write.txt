@@ -1,0 +1,3 @@
+{% component hey() %}A{% endcomponent hey -%}
+{{ <hey /> }}
+{% <hey> %}B{% </hey> %}

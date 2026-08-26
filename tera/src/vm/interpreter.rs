@@ -144,7 +144,7 @@ impl<'tera> VirtualMachine<'tera> {
         }
 
         macro_rules! component {
-            ($name:expr, $span_idx:expr, $has_body:expr) => {{
+            ($name:expr, $span_idx:expr, $has_body:expr, $direct:expr) => {{
                 let (kwargs, _) = state.stack.pop();
                 let kwargs = kwargs.into_map().expect("to have kwargs");
                 let (component_def, component_chunk) = self
@@ -169,7 +169,21 @@ impl<'tera> VirtualMachine<'tera> {
                     Err(msg) => rendering_error!(msg, current_span),
                 };
 
-                let val = match self.render_component(&component_chunk, context) {
+                let rendered = if $direct {
+                    let result = if state.capture_buffers.is_empty() {
+                        self.render_component_to(&component_chunk, context, output)
+                    } else {
+                        let last = state.capture_buffers.len() - 1;
+                        let mut buf = std::mem::take(&mut state.capture_buffers[last]);
+                        let result = self.render_component_to(&component_chunk, context, &mut buf);
+                        state.capture_buffers[last] = buf;
+                        result
+                    };
+                    result.map(|()| None)
+                } else {
+                    self.render_component(&component_chunk, context).map(Some)
+                };
+                let val = match rendered {
                     Ok(v) => v,
                     Err(mut e) => {
                         if let ErrorKind::RenderingError(ref mut report) = e.kind {
@@ -182,12 +196,14 @@ impl<'tera> VirtualMachine<'tera> {
                         return Err(e);
                     }
                 };
-                let val = if self.autoescape_enabled() {
-                    Value::safe_string(&val)
-                } else {
-                    Value::from(val)
-                };
-                state.stack.push(val, current_span);
+                if let Some(val) = val {
+                    let val = if self.autoescape_enabled() {
+                        Value::safe_string(&val)
+                    } else {
+                        Value::from(val)
+                    };
+                    state.stack.push(val, current_span);
+                }
             }};
         }
 
@@ -536,10 +552,16 @@ impl<'tera> VirtualMachine<'tera> {
                     state.stack.push(val.into(), current_ip..=current_ip);
                 }
                 Instruction::RenderBodyComponent(name) => {
-                    component!(name, current_ip, true);
+                    component!(name, current_ip, true, false);
+                }
+                Instruction::RenderInlineComponentToOutput(name) => {
+                    component!(name, current_ip, false, true);
+                }
+                Instruction::RenderBodyComponentToOutput(name) => {
+                    component!(name, current_ip, true, true);
                 }
                 Instruction::RenderInlineComponent(name) => {
-                    component!(name, current_ip, false);
+                    component!(name, current_ip, false, false);
                 }
                 Instruction::RenderBlock(block_name) => {
                     let Some(block_lineage) = self
@@ -938,6 +960,17 @@ impl<'tera> VirtualMachine<'tera> {
     }
 
     fn render_component(&self, chunk: &Chunk, context: Context) -> TeraResult<String> {
+        let mut output = Vec::with_capacity(1024);
+        self.render_component_to(chunk, context, &mut output)?;
+        Ok(String::from_utf8(output)?)
+    }
+
+    fn render_component_to(
+        &self,
+        chunk: &Chunk,
+        context: Context,
+        output: &mut impl Write,
+    ) -> TeraResult<()> {
         let depth = self.component_recursion_depth + 1;
         if depth > MAX_COMPONENT_RECURSION_DEPTH {
             return Err(Error::message(
@@ -950,13 +983,9 @@ impl<'tera> VirtualMachine<'tera> {
             autoescape_override: self.autoescape_override,
             component_recursion_depth: depth,
         };
-
         let mut state =
             State::new_with_chunk(self.tera, &context, chunk, self.autoescape_enabled());
-        let mut output = Vec::with_capacity(1024);
-        vm.interpret(&mut state, &mut output)?;
-
-        Ok(String::from_utf8(output)?)
+        vm.interpret(&mut state, output)
     }
 
     fn render_include(

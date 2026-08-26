@@ -49,8 +49,12 @@ pub(crate) enum Instruction {
     CallFunction(String),
     /// Render the given inline component
     RenderInlineComponent(String),
+    /// Render the given inline component directly to the output
+    RenderInlineComponentToOutput(String),
     /// Render the given component with body
     RenderBodyComponent(String),
+    /// Render the given component with body directly to the output
+    RenderBodyComponentToOutput(String),
     /// Apply the given filter
     ApplyFilter(String),
     /// Run the given test
@@ -232,12 +236,39 @@ impl Chunk {
 
         let mut i = 0;
 
-        // Placeholder for mem::replace - cheapest instruction (no heap allocation)
+        // Placeholder for mem::replace - cheapest instruction
         let placeholder = (Instruction::WriteTop, Vec::new());
 
         while i < old_instructions.len() {
             // Record the mapping for this instruction
             index_map[i] = optimized.len();
+
+            // A component is commonly rendered directly so we write a fast path
+            // for the VM that can skip the various dispatch
+            if i + 1 < old_instructions.len()
+                && !is_jump_target[i + 1]
+                && matches!(
+                    &old_instructions[i].0,
+                    Instruction::RenderInlineComponent(_) | Instruction::RenderBodyComponent(_)
+                )
+                && matches!(&old_instructions[i + 1].0, Instruction::WriteTop)
+            {
+                let (instr, spans) =
+                    std::mem::replace(&mut old_instructions[i], placeholder.clone());
+                let direct_instr = match instr {
+                    Instruction::RenderInlineComponent(name) => {
+                        Instruction::RenderInlineComponentToOutput(name)
+                    }
+                    Instruction::RenderBodyComponent(name) => {
+                        Instruction::RenderBodyComponentToOutput(name)
+                    }
+                    _ => unreachable!(),
+                };
+                index_map[i + 1] = optimized.len();
+                optimized.push((direct_instr, spans));
+                i += 2;
+                continue;
+            }
 
             // Try to collect a path: LoadName followed by any number of LoadAttr except for the magic dump var
             if matches!(&old_instructions[i].0, Instruction::LoadName(n) if n.as_str() != MAGICAL_DUMP_VAR)

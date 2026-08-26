@@ -14,6 +14,7 @@ fn compiler_ok() {
             .nodes;
         let mut compiler = Compiler::new(&path.file_name().unwrap().to_string_lossy());
         compiler.compile(nodes);
+        compiler.chunk.optimize();
 
         insta::assert_debug_snapshot!(compiler.chunk);
     });
@@ -30,6 +31,7 @@ fn compiler_blocks() {
             .nodes;
         let mut compiler = Compiler::new(&path.file_name().unwrap().to_string_lossy());
         compiler.compile(nodes);
+        compiler.chunk.optimize();
 
         let mut s = String::with_capacity(1000);
         s.push_str(&format!("{:?}", compiler.chunk));
@@ -37,7 +39,8 @@ fn compiler_blocks() {
 
         let mut blocks: Vec<_> = compiler.blocks.into_iter().collect();
         blocks.sort_by(|a, b| a.0.cmp(&b.0));
-        for (name, chunk) in blocks {
+        for (name, mut chunk) in blocks {
+            chunk.optimize();
             s.push_str(&format!(">> Block: {name}\n"));
             s.push_str(&format!("{chunk:?}"));
             s.push_str("---\n");

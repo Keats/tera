@@ -9,8 +9,7 @@ input_file: tera/src/snapshot_tests/compiler_inputs/success/for.txt
 0002 ApplyFilter("sort")
 0003 StartIterate(false)
 0004 StoreLocal("v")
-0005 Iterate(9)
-0006 LoadName("v")
-0007 WriteTop
-0008 Jump(5)
-0009 PopLoop
+0005 Iterate(8)
+0006 WritePath(["v"])
+0007 Jump(5)
+0008 PopLoop

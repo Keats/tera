@@ -1,0 +1,14 @@
+---
+source: tera/src/snapshot_tests/compiler.rs
+expression: compiler.chunk
+input_file: tera/src/snapshot_tests/compiler_inputs/success/component_fusion_write.txt
+---
+=== component_fusion_write.txt ===
+0000 BuildMap(0)
+0001 RenderInlineComponentToOutput("hey")
+0002 WriteText("\n")
+0003 Capture
+0004 WriteText("B")
+0005 EndCapture
+0006 BuildMap(0)
+0007 RenderBodyComponentToOutput("hey")

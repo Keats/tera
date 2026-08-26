@@ -6,14 +6,13 @@ input_file: tera/src/snapshot_tests/compiler_inputs/success/filter_section.txt
 === filter_section.txt ===
 0000 Capture
 0001 WriteText("\nHello ")
-0002 LoadName("world")
-0003 WriteTop
-0004 WriteText("\n")
-0005 EndCapture
-0006 LoadConst(String("lang"))
-0007 LoadConst(String("fr"))
-0008 BuildMap(1)
-0009 ApplyFilter("capitalize")
-0010 BuildMap(0)
-0011 ApplyFilter("safe")
-0012 WriteTop
+0002 WritePath(["world"])
+0003 WriteText("\n")
+0004 EndCapture
+0005 LoadConst(String("lang"))
+0006 LoadConst(String("fr"))
+0007 BuildMap(1)
+0008 ApplyFilter("capitalize")
+0009 BuildMap(0)
+0010 ApplyFilter("safe")
+0011 WriteTop
