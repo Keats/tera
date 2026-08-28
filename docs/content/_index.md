@@ -670,7 +670,7 @@ Again, straight from Jinja2 docs:
 {% extends "base.html" %}
 {% block title %}Index{% endblock title %}
 {% block head %}
-    {{/* super() */}}
+    {{ super() }}
     <style type="text/css">
         .important { color: #336699; }
     </style>
@@ -695,12 +695,12 @@ Nested blocks also work in Tera. Consider the following templates:
 
 // parent
 {% extends "grandparent" %}
-{% block hey %}hi and grandma says {{/* super() */}} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}
+{% block hey %}hi and grandma says {{ super() }} {% block ending %}sincerely{% endblock ending %}{% endblock hey %}
 
 // child
 {% extends "parent" %}
-{% block hey %}dad says {{/* super() */}}{% endblock hey %}
-{% block ending %}{{/* super() */}} with love{% endblock ending %}
+{% block hey %}dad says {{ super() }}{% endblock hey %}
+{% block ending %}{{ super() }} with love{% endblock ending %}
 ```
 The block `ending` is nested in the `hey` block. Rendering the `child` template will do the following:
 
