@@ -27,6 +27,7 @@ jobs:
         uses: getzola/github-pages@066755243e69f508fd1a74739fbf1a65f656c790
         with:
           zola_version: v0.23.4
+          working_directory: "docs"
 
   deploy:
     needs: build
