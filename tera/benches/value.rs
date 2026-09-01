@@ -2,7 +2,7 @@ use std::hint::black_box;
 use std::path::PathBuf;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use serde_derive::Serialize;
+use serde::Serialize;
 
 use tera::value::Value;
 

@@ -45,7 +45,6 @@ glob_fs = ["dep:walkdir", "dep:globset"]
 criterion = "0.8"
 insta = { version = "1", features = ["glob"] }
 serde = { version = "1", features = ["derive"] }
-serde_derive = "1.0.156"
 tempfile = "3"
 
 [package.metadata.docs.rs]
