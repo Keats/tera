@@ -1210,7 +1210,6 @@ dependencies = [
  "itoa",
  "pulldown-cmark-escape",
  "serde",
- "serde_derive",
  "tempfile",
  "unicode-segmentation",
  "walkdir",

@@ -244,7 +244,7 @@ impl<'de> de::Deserializer<'de> for &Value {
 mod tests {
     use super::*;
     use serde::Deserialize;
-    use serde_derive::Serialize;
+    use serde::Serialize;
 
     #[derive(Debug, Serialize, Deserialize, PartialEq)]
     enum Kind {

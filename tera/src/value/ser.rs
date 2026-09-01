@@ -632,7 +632,7 @@ mod tests {
 
     #[test]
     fn from_serializable_nested_values_are_cloned() {
-        #[derive(serde_derive::Serialize)]
+        #[derive(serde::Serialize)]
         struct Section {
             name: &'static str,
             children: Vec<Value>,
