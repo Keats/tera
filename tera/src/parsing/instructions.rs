@@ -348,6 +348,8 @@ impl fmt::Debug for Chunk {
 mod tests {
     use super::*;
 
+    // Expected size is based on a typical 64-bit target
+    #[cfg(target_pointer_width = "64")]
     #[test]
     fn test_size() {
         assert_eq!(std::mem::size_of::<Instruction>(), 32);
