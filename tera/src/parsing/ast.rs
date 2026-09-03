@@ -724,6 +724,7 @@ impl Type {
 pub struct ComponentArgument {
     pub default: Option<Value>,
     pub typ: Option<Type>,
+    pub implicit: bool,
 }
 
 impl ComponentArgument {
@@ -761,6 +762,7 @@ impl ComponentDefinition {
         &self,
         provided_keys: impl Iterator<Item = &'a str>,
         get_value: impl Fn(&str) -> Option<Value>,
+        get_implicit_value: impl Fn(&str) -> Value,
         body: Option<Value>,
     ) -> Result<crate::Context, String> {
         let mut context = crate::Context::new();
@@ -808,7 +810,14 @@ impl ComponentDefinition {
 
         // Validate and apply each expected argument
         for (key, arg_def) in &self.kwargs {
-            match get_value(key) {
+            let mut kw_value = get_value(key);
+            if kw_value.is_none() && arg_def.implicit {
+                let val = get_implicit_value(key);
+                if !val.is_undefined() {
+                    kw_value = Some(val);
+                }
+            }
+            match kw_value {
                 Some(value) => {
                     if !arg_def.type_matches(&value) {
                         return Err(format!(
@@ -828,7 +837,13 @@ impl ComponentDefinition {
                             .typ
                             .map(|t| format!(" (type: `{}`)", t.as_str()))
                             .unwrap_or_default();
-                        return Err(format!("Argument `{key}`{typ_msg} missing."));
+                        if arg_def.implicit {
+                            return Err(format!(
+                                "Implicit argument `{key}`{typ_msg} not found in context or passed directly."
+                            ));
+                        } else {
+                            return Err(format!("Argument `{key}`{typ_msg} missing."));
+                        }
                     }
                 },
             }

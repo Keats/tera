@@ -11,6 +11,7 @@ ComponentDefinition {
             typ: Some(
                 String,
             ),
+            implicit: false,
         },
     },
     rest_param_name: None,

@@ -1,0 +1,10 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&err"
+input_file: tera/src/snapshot_tests/rendering_inputs/errors/components/missing_implicit.txt
+---
+error: Implicit argument `unknown` not found in context or passed directly.
+ --> tpl:1:3
+  |
+1 | {{<show />}}
+  |   ^^^^^^^^

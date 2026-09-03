@@ -13,6 +13,7 @@ ComponentDefinition {
             typ: Some(
                 Array,
             ),
+            implicit: false,
         },
         "array_of_maps": ComponentArgument {
             default: Some(
@@ -21,6 +22,7 @@ ComponentDefinition {
             typ: Some(
                 Array,
             ),
+            implicit: false,
         },
         "map": ComponentArgument {
             default: Some(
@@ -29,6 +31,7 @@ ComponentDefinition {
             typ: Some(
                 Map,
             ),
+            implicit: false,
         },
     },
     rest_param_name: None,

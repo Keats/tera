@@ -1,0 +1,4 @@
+$$ components
+{% component show(@name: number) %}{{name}}{% endcomponent show %}
+$$ tpl
+{{<show />}}
