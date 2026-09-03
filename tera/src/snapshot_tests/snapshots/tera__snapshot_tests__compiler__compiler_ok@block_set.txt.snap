@@ -6,14 +6,13 @@ input_file: tera/src/snapshot_tests/compiler_inputs/success/block_set.txt
 === block_set.txt ===
 0000 Capture
 0001 WriteText("\nHello ")
-0002 LoadName("world")
-0003 WriteTop
-0004 WriteText("\n")
-0005 EndCapture
-0006 BuildMap(0)
-0007 ApplyFilter("upper")
-0008 LoadConst(String("lang"))
-0009 LoadConst(String("fr"))
-0010 BuildMap(1)
-0011 ApplyFilter("trans")
-0012 Set("hero")
+0002 WritePath(["world"])
+0003 WriteText("\n")
+0004 EndCapture
+0005 BuildMap(0)
+0006 ApplyFilter("upper")
+0007 LoadConst(String("lang"))
+0008 LoadConst(String("fr"))
+0009 BuildMap(1)
+0010 ApplyFilter("trans")
+0011 Set("hero")

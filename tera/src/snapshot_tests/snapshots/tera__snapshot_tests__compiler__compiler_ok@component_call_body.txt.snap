@@ -8,5 +8,4 @@ input_file: tera/src/snapshot_tests/compiler_inputs/success/component_call_body.
 0001 WriteText("\nHello world.\n")
 0002 EndCapture
 0003 BuildMap(0)
-0004 RenderBodyComponent("footer")
-0005 WriteTop
+0004 RenderBodyComponentToOutput("footer")
