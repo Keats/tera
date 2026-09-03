@@ -69,6 +69,7 @@ pub struct ComponentArg {
     name: String,
     default: Option<Value>,
     arg_type: Option<ComponentArgType>,
+    implicit: bool,
 }
 
 impl ComponentArg {
@@ -84,9 +85,13 @@ impl ComponentArg {
     pub fn arg_type(&self) -> Option<ComponentArgType> {
         self.arg_type
     }
-    /// Whether this param is required, eg no default value
+    /// Whether this param is required, eg no default value for a non-implicit arg
     pub fn is_required(&self) -> bool {
-        self.default.is_none()
+        !self.implicit && self.default.is_none()
+    }
+    /// Whether this param is implicit
+    pub fn is_implicit(&self) -> bool {
+        self.implicit
     }
 }
 
@@ -127,6 +132,7 @@ impl From<&ComponentDefinition> for ComponentInfo {
                 name: name.clone(),
                 default: arg.default.clone(),
                 arg_type: arg.typ.map(ComponentArgType::from),
+                implicit: arg.implicit,
             })
             .collect();
 

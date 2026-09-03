@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.0 (unreleased)
+
+- Add implicit parameters for components
+- Because of the above, `Tera::render_component` no longer errors on parameters not defined directly in the component
+
+
 ## 2.3.0 (2026-08-26)
 
 - Add `State::{escape,autoescaping_enabled,escape_if_needed}`

@@ -753,6 +753,18 @@ spread operator:
 By doing that, any extra parameters other than `label` and `variant` will be collected into a map called `rest` that
 can be used like any other maps.
 
+Components can also have implicit parameters:
+
+```jinja
+{% component render_hero(@page) %}
+{{page.hero}}
+{% endcomponent %}
+```
+
+Any parameter prefixed with `@` is considered implicit: Tera will try to find that value _somewhere_ in the context
+tree, going from the local scope all the way to the global context. Implicit parameters can have types, default values
+and can also be passed explicitly when rendering a component.
+
 Lastly, you can attach metadata to a component:
 
 ```jinja

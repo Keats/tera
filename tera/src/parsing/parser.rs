@@ -1299,6 +1299,13 @@ impl<'a> Parser<'a> {
                 break;
             }
 
+            let implicit = if matches!(self.next, Some(Ok((Token::At, _)))) {
+                self.next_or_error()?;
+                true
+            } else {
+                false
+            };
+
             let (arg_name, arg_name_span) =
                 expect_token!(self, Token::Ident(id) => id, "identifier")?;
             if arg_name == "body" {
@@ -1316,7 +1323,10 @@ impl<'a> Parser<'a> {
                 ));
             }
             kwarg_spans.insert(arg_name, arg_name_span);
-            let mut kwarg = ComponentArgument::default();
+            let mut kwarg = ComponentArgument {
+                implicit,
+                ..Default::default()
+            };
 
             // First a potential type
             if let Some(Ok((Token::Colon, _))) = self.next {

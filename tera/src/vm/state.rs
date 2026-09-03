@@ -27,6 +27,11 @@ pub struct State<'tera> {
     pub(crate) context: &'tera Context,
     /// The global context from Tera, checked after user context
     pub(crate) global_context: Option<&'tera Context>,
+    /// The state that called this component.
+    /// We pass it for components since they can use implicit (@value) parameters and we still
+    /// want to reach the scope of whoever called us. This is only used for getting the kwargs
+    /// value of a component.
+    pub(crate) component_parent: Option<&'tera State<'tera>>,
     /// To handle the capture instructions
     pub(crate) capture_buffers: Vec<Vec<u8>>,
     /// Scratch buffer for escaping output to avoid per-write allocations
@@ -73,6 +78,7 @@ impl<'t> State<'t> {
             set_variables: BTreeMap::new(),
             context,
             global_context: None,
+            component_parent: None,
             chunk: None,
             capture_buffers: Vec::new(),
             escape_buffer: Vec::new(),
@@ -135,6 +141,20 @@ impl<'t> State<'t> {
         }
 
         Value::undefined()
+    }
+
+    /// Loads the value for an `@implicit` component argument: the normal lookup first so locals
+    /// shadow like they do anywhere else, then the scope of whoever called us.
+    pub(crate) fn get_implicit_value(&self, name: &str) -> Value {
+        let val = self.get_value(name);
+        if !val.is_undefined() {
+            return val;
+        }
+
+        match self.component_parent {
+            Some(parent) => parent.get_implicit_value(name),
+            None => Value::undefined(),
+        }
     }
 
     /// Get a variable from the context by name and convert it to the specified type.

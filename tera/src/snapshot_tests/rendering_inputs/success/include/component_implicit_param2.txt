@@ -1,0 +1,7 @@
+$$ components
+{% component show(@name) %}{{name}}{% endcomponent show %}
+{% component includer() %}{% include "inc" %}{% endcomponent includer %}
+$$ inc
+{{<show />}}
+$$ tpl
+{{ <includer/> }}

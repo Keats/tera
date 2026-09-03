@@ -1,0 +1,10 @@
+$$ components
+{% component show(@name) %}{{name}}{% endcomponent show %}
+{% component div(title) %}{{ <show /> }}{% endcomponent div %}
+{% component wrapper() %}{% set name = "FromWrapper" %}{{ <div title="hey" /> }}{% endcomponent wrapper %}
+$$ tpl
+{{<div title="hey" />}}
+{{<wrapper />}}
+{% set name = "Jane" %}{{<div title="hey" />}}
+{% for name in numbers %}{{<div title="hey" />}}{% endfor %}
+{% set val %}{{<div title="hey" />}}{% endset %}{{val}}

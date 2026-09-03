@@ -1,0 +1,6 @@
+---
+source: tera/src/snapshot_tests/rendering.rs
+expression: "&normalized_out"
+input_file: tera/src/snapshot_tests/rendering_inputs/success/include/component_implicit_param2.txt
+---
+Bob

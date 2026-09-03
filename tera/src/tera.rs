@@ -1231,7 +1231,10 @@ impl Tera {
 
     /// Renders a component by name with the given context and optional body content.
     ///
-    /// The context should contain the component's arguments as key-value pairs.
+    /// The context should contain the component's arguments as key-value pairs and any values
+    /// looked up implicitly in child components. If the component has a rest parameter,
+    /// all the additional values _will_ be added to it.
+    ///
     ///
     /// # Examples
     ///
@@ -1318,18 +1321,27 @@ impl Tera {
             .get(&chunk.name)
             .expect("Component source template must exist");
 
+        // We just pass the current context as parent so nested components still get everything
+        // they might need
+        let mut parent = State::new(context);
+        parent.global_context = Some(&self.global_context);
+
         // Build the component context by validating and applying defaults
         let body_value = body.map(Value::safe_string);
         let component_context = component_def
             .build_context(
-                context.data.keys().map(|k| k.as_ref()),
+                context.data.keys().map(|k| k.as_ref()).filter(|k| {
+                    component_def.rest_param_name.is_some() || component_def.kwargs.contains_key(*k)
+                }),
                 |key| context.get(key).cloned(),
+                |key| parent.get_implicit_value(key),
                 body_value,
             )
             .map_err(Error::message)?;
 
         let vm = VirtualMachine::new_with_autoescape(self, template, autoescape);
         let mut state = State::new_with_chunk(self, &component_context, chunk, autoescape);
+        state.component_parent = Some(&parent);
         vm.interpret(&mut state, &mut write)?;
 
         Ok(())
@@ -1564,7 +1576,10 @@ mod tests {
             "components.html",
             r#"{% component Button(label, variant="primary") %}<button class="{{ variant }}">{{ label }}</button>{% endcomponent Button %}
 {% component Card(title) %}<div><h1>{{ title }}</h1>{{ body }}</div>{% endcomponent Card %}
-{% component Display(content) %}{{ content }}{% endcomponent Display %}"#,
+{% component Display(content) %}{{ content }}{% endcomponent Display %}
+{% component show(@name, @lang = "fr") %}{{ name }}-{{ lang }}{% endcomponent show %}
+{% component wrapper() %}{{ <show /> }}{% endcomponent wrapper %}
+"#,
         )
         .unwrap();
         tera.add_raw_template(
@@ -1610,6 +1625,21 @@ mod tests {
         .unwrap();
         insta::assert_snapshot!(String::from_utf8(buffer).unwrap(), @r#"<button class="primary">Y</button>"#);
 
+        // Values the component doesn't declare could be needed in children implicitly so don't error
+        insta::assert_snapshot!(
+            tera.render_component("Button", &context! { label => "x", bad => "y" }, None, true).unwrap(),
+            @r#"<button class="primary">x</button>"#
+        );
+
+        insta::assert_snapshot!(
+            tera.render_component("wrapper", &context! { name => "Vincent" }, None, true).unwrap(),
+            @"Vincent-fr"
+        );
+        insta::assert_snapshot!(
+            tera.render_component("show", &context! { name => "Vincent" }, None, true).unwrap(),
+            @"Vincent-fr"
+        );
+
         // Errors
         assert!(
             tera.render_component("Nope", &Context::new(), None, true)
@@ -1617,10 +1647,6 @@ mod tests {
         );
         assert!(
             tera.render_component("Button", &Context::new(), None, true)
-                .is_err()
-        );
-        assert!(
-            tera.render_component("Button", &context! { label => "x", bad => "y" }, None, true)
                 .is_err()
         );
     }

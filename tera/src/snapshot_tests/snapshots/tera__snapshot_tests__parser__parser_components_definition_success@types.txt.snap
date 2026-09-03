@@ -11,6 +11,7 @@ ComponentDefinition {
             typ: Some(
                 Integer,
             ),
+            implicit: false,
         },
         "data": ComponentArgument {
             default: Some(
@@ -19,12 +20,14 @@ ComponentDefinition {
             typ: Some(
                 Map,
             ),
+            implicit: false,
         },
         "greeting": ComponentArgument {
             default: None,
             typ: Some(
                 String,
             ),
+            implicit: false,
         },
     },
     rest_param_name: None,

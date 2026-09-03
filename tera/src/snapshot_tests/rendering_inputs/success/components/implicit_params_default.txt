@@ -1,0 +1,4 @@
+$$ components
+{% component show(@unknown = "hey") %}{{unknown}}{% endcomponent show %}
+$$ tpl
+{{<show />}}
