@@ -254,28 +254,78 @@ impl fmt::Display for Expression {
     }
 }
 
+/// Arguments of a function call
+#[derive(Clone, Debug, PartialEq)]
+pub struct Arguments {
+    /// Positional arguments
+    pub positional: Vec<Expression>,
+
+    /// Named arguments
+    pub named: BTreeMap<String, Expression>,
+}
+
+impl Arguments {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            positional: Vec::new(),
+            named: BTreeMap::new(),
+        }
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.positional.is_empty() && self.named.is_empty()
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.positional.len() + self.named.len()
+    }
+}
+
+impl fmt::Display for Arguments {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Display positional arguments
+        if !self.positional.is_empty() {
+            write!(f, "[",)?;
+
+            // Print first args, then following ones with commas
+            write!(f, "{}", self.positional[0])?;
+            for arg in self.positional[1..].iter() {
+                write!(f, ", {}", arg)?;
+            }
+            write!(f, "]",)?;
+        }
+
+        // Display named arguments
+        if !self.named.is_empty() {
+            write!(f, "{{",)?;
+            let mut keys = self.named.keys().collect::<Vec<_>>();
+            keys.sort();
+
+            let key = keys[0];
+            write!(f, "{}={}", key, self.named[key])?;
+            for key in keys[1..].iter() {
+                write!(f, ", {}={}", key, self.named[*key])?;
+            }
+            write!(f, "}}",)?;
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Filter {
     pub expr: Expression,
     pub name: String,
-    pub kwargs: BTreeMap<String, Expression>,
+    pub kwargs: Arguments,
 }
 
 impl fmt::Display for Filter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(| {}", self.expr)?;
-        write!(f, " {}", self.name)?;
-        write!(f, "{{",)?;
-        let mut keys = self.kwargs.keys().collect::<Vec<_>>();
-        keys.sort();
-        for (i, k) in keys.iter().enumerate() {
-            if i == self.kwargs.len() - 1 {
-                write!(f, "{}={}", k, self.kwargs[*k])?
-            } else {
-                write!(f, "{}={}, ", k, self.kwargs[*k])?
-            }
-        }
-        write!(f, "}})",)
+        write!(f, "(| {} {}{})", self.expr, self.name, self.kwargs)
     }
 }
 
@@ -397,27 +447,12 @@ impl Array {
 pub struct Test {
     pub expr: Expression,
     pub name: String,
-    pub kwargs: BTreeMap<String, Expression>,
+    pub kwargs: Arguments,
 }
 
 impl fmt::Display for Test {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(is {}", self.expr)?;
-        write!(f, " {}", self.name)?;
-        write!(f, "{{",)?;
-
-        let mut keys = self.kwargs.keys().collect::<Vec<_>>();
-        keys.sort();
-        for (i, k) in keys.iter().enumerate() {
-            if i == self.kwargs.len() - 1 {
-                write!(f, "{}={}", k, self.kwargs[*k])?
-            } else {
-                write!(f, "{}={}, ", k, self.kwargs[*k])?
-            }
-        }
-
-        write!(f, "}})",)?;
-        Ok(())
+        write!(f, "(is {} {}{})", self.expr, self.name, self.kwargs)
     }
 }
 
@@ -462,23 +497,12 @@ impl fmt::Display for ComponentCall {
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionCall {
     pub name: String,
-    pub kwargs: BTreeMap<String, Expression>,
+    pub kwargs: Arguments,
 }
 
 impl fmt::Display for FunctionCall {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)?;
-        write!(f, "{{",)?;
-        let mut keys = self.kwargs.keys().collect::<Vec<_>>();
-        keys.sort();
-        for (i, k) in keys.iter().enumerate() {
-            if i == self.kwargs.len() - 1 {
-                write!(f, "{}={}", k, self.kwargs[*k])?
-            } else {
-                write!(f, "{}={}, ", k, self.kwargs[*k])?
-            }
-        }
-        write!(f, "}}",)
+        write!(f, "{}{}", self.name, self.kwargs)
     }
 }
 

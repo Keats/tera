@@ -6,10 +6,10 @@ use std::sync::Arc;
 use crate::delimiters::Delimiters;
 use crate::errors::{Error, ErrorKind, ReportError, TeraResult};
 use crate::parsing::ast::{
-    Array, ArrayEntry, BinaryOperation, Block, BlockSet, ComponentArgument, ComponentCall,
-    ComponentDefinition, Expression, Filter, FilterSection, ForLoop, FunctionCall, GetAttr,
-    GetItem, If, Include, ListComprehension, Map, MapEntry, Set, Slice, Ternary, Test, Type,
-    UnaryOperation, Var,
+    Arguments, Array, ArrayEntry, BinaryOperation, Block, BlockSet, ComponentArgument,
+    ComponentCall, ComponentDefinition, Expression, Filter, FilterSection, ForLoop, FunctionCall,
+    GetAttr, GetItem, If, Include, ListComprehension, Map, MapEntry, Set, Slice, Ternary, Test,
+    Type, UnaryOperation, Var,
 };
 use crate::parsing::ast::{BinaryOperator, Node, UnaryOperator};
 use crate::parsing::lexer::{Token, tokenize};
@@ -388,23 +388,56 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn parse_kwargs(&mut self) -> TeraResult<BTreeMap<String, Expression>> {
-        let mut kwargs = BTreeMap::new();
+    fn parse_kwargs(&mut self) -> TeraResult<Arguments> {
+        let mut kwargs = Arguments::new();
         let mut kwarg_spans: HashMap<&str, Span> = HashMap::new();
+
+        // Parsing arguments is done in two steps.
+        // We first expect positional arguments, then named arguments.
+        // If we encounter a positional argument after a named one,
+        // then we have an error.
         expect_token!(self, Token::LeftParen, "(")?;
 
-        loop {
-            if matches!(self.next, Some(Ok((Token::RightParen, _)))) {
-                break;
-            }
+        // If we encounter the right parenthesis,
+        // we are done reading both positional and named arguments
+        macro_rules! check_right_paren {
+            () => {
+                if matches!(self.next, Some(Ok((Token::RightParen, _)))) {
+                    expect_token!(self, Token::RightParen, ")")?;
+                    return Ok(kwargs);
+                }
+            };
+        }
 
+        loop {
+            check_right_paren!();
             if !kwargs.is_empty() {
                 expect_token!(self, Token::Comma, ",")?;
             }
+            check_right_paren!();
 
-            if matches!(self.next, Some(Ok((Token::RightParen, _)))) {
+            // We want to peek at the two next tokens.
+            // If we have an identifier followed by an assign sign,
+            // we want to stop this loop and move to the next one.
+            // Basically we are done reading positional arguments
+            // and we are now reading named arguments.
+            if matches!(self.next, Some(Ok((Token::Ident(_), _))))
+                && matches!(self.lexer.peek(), Some(Ok((Token::Assign, _))))
+            {
                 break;
             }
+
+            // Otherwise parse the current value and store it as a positional argument
+            let value = self.parse_expression(0)?;
+            kwargs.positional.push(value);
+        }
+
+        loop {
+            check_right_paren!();
+            if !kwargs.is_empty() {
+                expect_token!(self, Token::Comma, ",")?;
+            }
+            check_right_paren!();
 
             let (arg_name, arg_name_span) =
                 expect_token!(self, Token::Ident(id) => id, "identifier")?;
@@ -419,12 +452,8 @@ impl<'a> Parser<'a> {
             kwarg_spans.insert(arg_name, arg_name_span);
             expect_token!(self, Token::Assign, "=")?;
             let value = self.parse_expression(0)?;
-            kwargs.insert(arg_name.to_string(), value);
+            kwargs.named.insert(arg_name.to_string(), value);
         }
-
-        expect_token!(self, Token::RightParen, ")")?;
-
-        Ok(kwargs)
     }
 
     fn parse_dotted_component_name(&mut self) -> TeraResult<String> {
@@ -526,7 +555,7 @@ impl<'a> Parser<'a> {
 
     fn parse_filter(&mut self, expr: Expression) -> TeraResult<Expression> {
         let (name, mut span) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
-        let mut kwargs = BTreeMap::new();
+        let mut kwargs = Arguments::new();
 
         // We have potentially args to handle
         if matches!(self.next, Some(Ok((Token::LeftParen, _)))) {
@@ -546,7 +575,7 @@ impl<'a> Parser<'a> {
 
     fn parse_test(&mut self, expr: Expression) -> TeraResult<Expression> {
         let (name, mut span) = expect_token!(self, Token::Ident(id) => id, "identifier")?;
-        let mut kwargs = BTreeMap::new();
+        let mut kwargs = Arguments::new();
 
         // We have potentially args to handle
         if matches!(self.next, Some(Ok((Token::LeftParen, _)))) {

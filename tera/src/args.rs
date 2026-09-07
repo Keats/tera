@@ -334,6 +334,31 @@ impl Kwargs {
         }
     }
 
+    /// Try to get the given positional value and convert it to the given type
+    /// Returns None if not found
+    pub fn get_pos<'k, T>(&'k self, index: u64) -> TeraResult<Option<T>>
+    where
+        T: ArgFromValue<'k, Output = T>,
+    {
+        match self.values.get(&Key::U64(index)) {
+            Some(v) => T::from_value(v).map(|v| Some(v)),
+            None => Ok(None),
+        }
+    }
+
+    /// Try to get the given key value.
+    /// Returns an error if not found.
+    pub fn must_get_pos<'k, T>(&'k self, index: u64) -> TeraResult<T>
+    where
+        T: ArgFromValue<'k, Output = T>,
+    {
+        if let Some(v) = self.get_pos(index)? {
+            Ok(v)
+        } else {
+            Err(Error::missing_arg(index))
+        }
+    }
+
     /// Iterates over all the provided arguments. Order is not guaranteed unless the
     /// "preserve_order" feature is set.
     pub fn iter(&self) -> impl Iterator<Item = (&Key<'static>, &Value)> {

@@ -1,14 +1,13 @@
 //! AST -> bytecode
 
-use std::collections::{BTreeMap, HashSet};
-
 use crate::HashMap;
 use crate::parsing::ast::{
-    ArrayEntry, BinaryOperator, Block, Expression, MapEntry, Node, UnaryOperator,
+    Arguments, ArrayEntry, BinaryOperator, Block, Expression, MapEntry, Node, UnaryOperator,
 };
 use crate::parsing::instructions::{Chunk, Instruction};
 use crate::utils::Span;
 use crate::value::Value;
+use std::collections::HashSet;
 
 /// We need to handle some pc jumps but we only know to where after we are done processing it
 #[derive(Debug)]
@@ -58,10 +57,20 @@ impl Compiler {
         }
     }
 
-    fn compile_kwargs(&mut self, kwargs: BTreeMap<String, Expression>) {
+    fn compile_kwargs(&mut self, kwargs: Arguments) {
         let num_args = kwargs.len();
+
+        // Push positional arguments
+        for (i, value) in kwargs.positional.into_iter().enumerate() {
+            self.chunk.add(
+                Instruction::LoadConst(Value::from(i)),
+                Some(value.span().clone()),
+            );
+            self.compile_expr(value);
+        }
+
         // TODO: push a single instr for all keys as a Vec<String> like Python? bench first
-        for (key, value) in kwargs {
+        for (key, value) in kwargs.named {
             self.chunk.add(
                 Instruction::LoadConst(Value::from(key)),
                 Some(value.span().clone()),
