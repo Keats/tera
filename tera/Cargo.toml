@@ -6,6 +6,7 @@ license = "MIT"
 description = "A template engine for Rust based on Jinja2/Django"
 repository = "https://github.com/Keats/tera"
 documentation = "https://docs.rs/tera"
+homepage = "https://keats.github.io/tera/"
 readme = "../README.md"
 keywords = ["template", "html", "django", "markup", "jinja2"]
 categories = ["template-engine"]
