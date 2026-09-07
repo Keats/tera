@@ -765,6 +765,18 @@ Any parameter prefixed with `@` is considered implicit: Tera will try to find th
 tree, going from the local scope all the way to the global context. Implicit parameters can have types, default values
 and can also be passed explicitly when rendering a component.
 
+Implicit lookup can cross component boundaries:
+
+```jinja
+{% component wrapper() %}
+  {{ <render_hero /> }}
+{% endcomponent %}
+```
+
+Here the `render_hero` component can resolve `@page` from wherever the `wrapper` component was rendered even though
+`wrapper` does not declare it explicitly.
+If `wrapper` defines a local `page`, that value is passed to `render_hero` instead of the one in the outer context.
+
 Lastly, you can attach metadata to a component:
 
 ```jinja

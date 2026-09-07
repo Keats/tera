@@ -1119,7 +1119,8 @@ impl Tera {
     /// The global context is automatically included into every template,
     /// which is useful for sharing common data.
     ///
-    /// The global context is *not* passed if you call `render_component`.
+    /// The global context is *not* passed if you call `render_component` but it is available there
+    /// for implicit parameter lookup: the components must declare the implicit parameters.
     ///
     /// ```
     /// # use tera::{Tera, Context, context};
