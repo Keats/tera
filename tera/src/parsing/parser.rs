@@ -18,7 +18,7 @@ use crate::value::{Key, Value, ValueInner};
 use crate::{HashMap, HashSet};
 
 /// Maximum recursion depth for the parser, shared between expression and statement parsing
-const MAX_RECURSION_DEPTH: usize = 40;
+pub(crate) const MAX_RECURSION_DEPTH: usize = 40;
 /// We only allow that many dimensions in an array literal
 const MAX_DIMENSION_ARRAY: usize = 2;
 /// How many nesting of brackets can we have in an variable, eg `a[b[e]]` counts as 2

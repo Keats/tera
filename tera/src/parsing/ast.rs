@@ -166,6 +166,122 @@ impl Expression {
             Expression::ListComprehension(s) => s.span_mut().expand(span),
         }
     }
+
+    /// Drops `self` iteratively instead of relying on the default, recursive `Drop` glue.
+    ///
+    /// `Expression` is a boxed recursive tree (each nested expression sits behind a `Box` in
+    /// its `Spanned<T>` wrapper), so the compiler-generated `Drop` implementation walks it
+    /// recursively -- one stack frame per level. For a sufficiently deep left-leaning chain
+    /// (`1 + 1 + ... + 1`), simply *dropping* the tree can overflow the stack on its own, even
+    /// with nothing else recursing over it.
+    ///
+    /// This matters specifically because `Compiler::compile_expr`'s recursion guard (see
+    /// `parsing/compiler.rs`) can return an error *before* fully consuming a deeply nested
+    /// `Expression` it was handed -- at that point the still-mostly-intact remainder of the
+    /// tree would otherwise be dropped in one shot by the caller. Call this method instead of
+    /// letting that happen implicitly.
+    ///
+    /// This does not need to be (and is not) a general `Drop` impl: every other place an
+    /// `Expression` is consumed already walks it one level at a time via `compile_expr`'s own
+    /// (now depth-guarded) recursion, so the tree is always shallow by the time it would
+    /// naturally go out of scope.
+    pub(crate) fn drop_iteratively(self) {
+        let mut stack = vec![self];
+        while let Some(expr) = stack.pop() {
+            match expr {
+                Expression::BinaryOperation(e) => {
+                    let (op, _) = e.into_parts();
+                    stack.push(op.left);
+                    stack.push(op.right);
+                }
+                Expression::UnaryOperation(e) => {
+                    let (op, _) = e.into_parts();
+                    stack.push(op.expr);
+                }
+                Expression::GetAttr(e) => {
+                    let (attr, _) = e.into_parts();
+                    stack.push(attr.expr);
+                }
+                Expression::GetItem(e) => {
+                    let (item, _) = e.into_parts();
+                    stack.push(item.expr);
+                    stack.push(item.sub_expr);
+                }
+                Expression::Slice(e) => {
+                    let (slice, _) = e.into_parts();
+                    stack.push(slice.expr);
+                    if let Some(e) = slice.start {
+                        stack.push(e);
+                    }
+                    if let Some(e) = slice.end {
+                        stack.push(e);
+                    }
+                    if let Some(e) = slice.step {
+                        stack.push(e);
+                    }
+                }
+                Expression::Filter(e) => {
+                    let (filter, _) = e.into_parts();
+                    stack.push(filter.expr);
+                    stack.extend(filter.kwargs.into_values());
+                }
+                Expression::Test(e) => {
+                    let (test, _) = e.into_parts();
+                    stack.push(test.expr);
+                    stack.extend(test.kwargs.into_values());
+                }
+                Expression::Ternary(e) => {
+                    let (t, _) = e.into_parts();
+                    stack.push(t.expr);
+                    stack.push(t.true_expr);
+                    stack.push(t.false_expr);
+                }
+                Expression::ListComprehension(e) => {
+                    let (lc, _) = e.into_parts();
+                    stack.push(lc.expr);
+                    stack.push(lc.target);
+                    if let Some(e) = lc.condition {
+                        stack.push(e);
+                    }
+                }
+                Expression::ComponentCall(e) => {
+                    let (cc, _) = e.into_parts();
+                    for entry in cc.kwargs {
+                        match entry {
+                            MapEntry::KeyValue { value, .. } => stack.push(value),
+                            MapEntry::Spread(e) => stack.push(e),
+                        }
+                    }
+                    // `cc.body` is `Vec<Node>`, a statement tree the parser already bounds via
+                    // its own `MAX_RECURSION_DEPTH` guard on nesting depth, so it can't reach
+                    // the size needed to overflow on drop the way an expression chain can.
+                }
+                Expression::FunctionCall(e) => {
+                    let (fc, _) = e.into_parts();
+                    stack.extend(fc.kwargs.into_values());
+                }
+                Expression::Array(e) => {
+                    let (array, _) = e.into_parts();
+                    for entry in array.items {
+                        match entry {
+                            ArrayEntry::Item(e) | ArrayEntry::Spread(e) => stack.push(e),
+                        }
+                    }
+                }
+                Expression::Map(e) => {
+                    let (map, _) = e.into_parts();
+                    for entry in map.entries {
+                        match entry {
+                            MapEntry::KeyValue { value, .. } => stack.push(value),
+                            MapEntry::Spread(e) => stack.push(e),
+                        }
+                    }
+                }
+                // Leaf variants: nothing to recurse into, drop normally.
+                Expression::Const(_) | Expression::Var(_) => {}
+            }
+        }
+    }
 }
 
 impl fmt::Debug for Expression {

@@ -64,7 +64,7 @@ impl Template {
         let extends = parser_output.parent;
 
         let mut body_compiler = Compiler::new(tpl_name);
-        body_compiler.compile(parser_output.nodes);
+        body_compiler.compile(parser_output.nodes)?;
 
         // Optimize the main chunk
         let mut chunk = body_compiler.chunk;
@@ -93,7 +93,7 @@ impl Template {
             .map(|c| {
                 let mut compiler = Compiler::new(tpl_name);
                 // We don't need the nodes again after it's compiled
-                compiler.compile(c.body.clone());
+                compiler.compile(c.body.clone())?;
                 // Collect filter/test/function/include/component calls from component body
                 for (name, spans) in compiler.filter_calls {
                     filter_calls.entry(name).or_default().extend(spans);
@@ -112,9 +112,9 @@ impl Template {
                 }
                 let mut chunk = compiler.chunk;
                 chunk.optimize();
-                (c.name.clone(), (c, chunk))
+                Ok((c.name.clone(), (c, chunk)))
             })
-            .collect();
+            .collect::<TeraResult<_>>()?;
         let block_name_spans = body_compiler.block_name_spans;
 
         Ok(Self {
