@@ -1273,6 +1273,8 @@ impl Tera {
         body: Option<&str>,
         autoescape: bool,
     ) -> TeraResult<String> {
+        // TODO(v3): right now we have to put everything in context but ideally the function shape
+        // would be splitting arguments and ambient context.
         let mut output = Vec::new();
         self.render_component_to(component_name, context, body, autoescape, &mut output)?;
         Ok(String::from_utf8(output)?)

@@ -753,7 +753,8 @@ spread operator:
 By doing that, any extra parameters other than `label` and `variant` will be collected into a map called `rest` that
 can be used like any other maps.
 
-Components can also have implicit parameters:
+Components are hermetic: they only have access to the given arguments.
+There is a way out though: implicit parameters.
 
 ```jinja
 {% component render_hero(@page) %}
@@ -761,14 +762,43 @@ Components can also have implicit parameters:
 {% endcomponent %}
 ```
 
-Any parameter prefixed with `@` is considered implicit: Tera will try to find that value _somewhere_ in the context
-tree, going from the local scope all the way to the global context. Implicit parameters can have types, default values
-and can also be passed explicitly when rendering a component.
+Any parameter prefixed with `@` is considered implicit.
+Implicit parameters can have types and default values and inside the components are used just like ordinary variables.
+
+The resolution order for implicit parameters is the following:
+
+1. Any argument passed to the component directly
+2. Lookup in the caller context (and parent callers) including loop variables, local assignments, parent component parameters
+3. Lookup in the template render context
+4. Lookup in the global context
+5. Use the default value
+
+If we still can't find a value, it errors.
+
+```jinja
+{% component greeting(@lang: string = "en") %}
+  {% if lang == "fr" %}Bonjour{% else %}Hello{% endif %}
+{% endcomponent greeting %}
+
+{# This outputs Hello if lang is not defined anywhere #}
+{{ <greeting /> }}
+
+{% set lang = "fr" %}
+{# This outputs Bonjour because we just defined lang #}
+{{ <greeting /> }}
+{# This outputs Hello because we pass an explicit argument #}
+{{ <greeting lang="en" /> }}
+```
 
 Implicit lookup can cross component boundaries:
 
 ```jinja
+{% component render_hero(@page) %}
+  {{page.hero}}
+{% endcomponent %}
+
 {% component wrapper() %}
+  {# we cannot use {{page}} here since it's not declared as argument of wrapper #}
   {{ <render_hero /> }}
 {% endcomponent %}
 ```
@@ -776,6 +806,23 @@ Implicit lookup can cross component boundaries:
 Here the `render_hero` component can resolve `@page` from wherever the `wrapper` component was rendered even though
 `wrapper` does not declare it explicitly.
 If `wrapper` defines a local `page`, that value is passed to `render_hero` instead of the one in the outer context.
+
+```jinja
+{% component greeting(@lang: string = "en") %}
+  {% if lang == "fr" %}Bonjour{% else %}Hello{% endif %}
+{% endcomponent greeting %}
+
+{% component english_greeting(lang = "en") %}
+  {{ <greeting /> }}
+{% endcomponent english_greeting %}
+
+{% set lang = "fr" %}
+{# This outputs Hello because the english_greeting component defines a lang parameter which has precedence #}
+{{ <english_greeting /> }}
+{# This outputs Bonjour #}
+{{ <english_greeting lang="fr" /> }}
+```
+
 
 Lastly, you can attach metadata to a component:
 

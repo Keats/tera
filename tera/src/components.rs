@@ -85,7 +85,8 @@ impl ComponentArg {
     pub fn arg_type(&self) -> Option<ComponentArgType> {
         self.arg_type
     }
-    /// Whether this param is required, eg no default value for a non-implicit arg
+    /// Whether this param is required, eg no default value for a non-implicit arg.
+    /// The argument needs to be passed explicitly
     pub fn is_required(&self) -> bool {
         !self.implicit && self.default.is_none()
     }
