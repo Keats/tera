@@ -353,13 +353,23 @@ pub(crate) fn int(val: Value, kwargs: Kwargs, _: &State) -> TeraResult<Value> {
     match val.kind() {
         ValueKind::String => {
             let s = val.as_str().unwrap().trim();
-            let s = match base {
-                2 => s.trim_start_matches("0b"),
-                8 => s.trim_start_matches("0o"),
-                16 => s.trim_start_matches("0x"),
-                _ => s,
+            // The sign comes before the base prefix so it has to be split off first
+            let (sign, digits) = match s.as_bytes().first() {
+                Some(b'-' | b'+') => s.split_at(1),
+                _ => ("", s),
             };
-            match i128::from_str_radix(s, base) {
+            let digits = match base {
+                2 => digits.trim_start_matches("0b"),
+                8 => digits.trim_start_matches("0o"),
+                16 => digits.trim_start_matches("0x"),
+                _ => digits,
+            };
+            let s = if sign.is_empty() {
+                Cow::Borrowed(digits)
+            } else {
+                Cow::Owned(format!("{sign}{digits}"))
+            };
+            match i128::from_str_radix(&s, base) {
                 Ok(v) => Ok(v.into()),
                 Err(_) => {
                     if s.contains('.') {
@@ -799,6 +809,27 @@ mod tests {
         // Doesn't make sense
         assert!(int("hello".into(), Kwargs::default(), &state).is_err());
         assert!(int(vec![1, 2].into(), Kwargs::default(), &state).is_err());
+    }
+
+    #[test]
+    fn test_int_signed_base_prefix() {
+        let ctx = Context::new();
+        let state = State::new(&ctx);
+        let tests: Vec<(&str, u32, i64)> = vec![
+            ("-0b1010", 2, -10),
+            ("+0b1010", 2, 10),
+            ("-0o17", 8, -15),
+            ("+0o17", 8, 15),
+            ("-0xff", 16, -255),
+            ("+0xff", 16, 255),
+        ];
+        for (input, base, expected) in tests {
+            assert_eq!(
+                int(input.into(), Kwargs::from([("base", base.into())]), &state).unwrap(),
+                expected.into(),
+                "input: {input}, base: {base}"
+            );
+        }
     }
 
     #[test]
