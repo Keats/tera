@@ -19,6 +19,8 @@ use crate::{HashMap, HashSet};
 
 /// Maximum recursion depth for the parser, shared between expression and statement parsing
 const MAX_RECURSION_DEPTH: usize = 40;
+/// How many expressions can be handled in a single expression, `a + b` being one.
+const MAX_EXPRESSION_COMPLEXITY: usize = 256;
 /// We only allow that many dimensions in an array literal
 const MAX_DIMENSION_ARRAY: usize = 2;
 /// How many nesting of brackets can we have in an variable, eg `a[b[e]]` counts as 2
@@ -139,8 +141,12 @@ pub struct Parser<'a> {
     body_contexts: Vec<(BodyContext, Span)>,
     // The current array dimension, to avoid stack overflows with too many of them
     array_dimension: usize,
-    // Current parser recursion depth
+    // Current parser recursion depth, only for expressions
     recursion_depth: usize,
+    // Current tag nesting depth, eg how many nested if/for we are in
+    nesting_depth: usize,
+    // Current expression complexity
+    expression_complexity: usize,
     // We limit the number of nesting for brackets in idents
     num_left_brackets: usize,
     blocks_seen: HashSet<String>,
@@ -159,6 +165,8 @@ impl<'a> Parser<'a> {
             current_span: Span::default(),
             body_contexts: Vec::new(),
             recursion_depth: 0,
+            nesting_depth: 0,
+            expression_complexity: 0,
             array_dimension: 0,
             num_left_brackets: 0,
             blocks_seen: HashSet::with_capacity(10),
@@ -328,6 +336,7 @@ impl<'a> Parser<'a> {
         loop {
             match self.next {
                 Some(Ok((Token::Dot, _))) | Some(Ok((Token::QuestionMarkDot, _))) => {
+                    self.bump_expression_complexity()?;
                     let is_optional = matches!(self.next, Some(Ok((Token::QuestionMarkDot, _))));
                     if is_optional {
                         expect_token!(self, Token::QuestionMarkDot, "?.")?;
@@ -371,6 +380,7 @@ impl<'a> Parser<'a> {
                 }
                 // Subscript
                 Some(Ok((Token::LeftBracket, _)) | Ok((Token::QuestionMarkLeftBracket, _))) => {
+                    self.bump_expression_complexity()?;
                     expr = self.parse_subscript(expr)?;
                 }
                 // Function call after a chain
@@ -694,10 +704,27 @@ impl<'a> Parser<'a> {
         Ok(Expression::Array(Spanned::new(array, span)))
     }
 
+    fn bump_expression_complexity(&mut self) -> TeraResult<()> {
+        self.expression_complexity += 1;
+        if self.expression_complexity > MAX_EXPRESSION_COMPLEXITY {
+            Err(Error::syntax_error(
+                "The expression is too complex".to_string(),
+                &self.current_span,
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
     /// This is called recursively so we do put a limit as to how many times it can call itself
     /// to avoid stack overflow. In practice, normal users will not run into the limit at all.
     /// We're talking 100 parentheses for example
     fn inner_parse_expression(&mut self, min_bp: u8) -> TeraResult<Expression> {
+        // If it's a new expression, this means the expression complexity is back to 0
+        if self.recursion_depth == 0 {
+            self.expression_complexity = 0;
+        }
+
         self.recursion_depth += 1;
         if self.recursion_depth > MAX_RECURSION_DEPTH {
             self.recursion_depth -= 1;
@@ -840,6 +867,7 @@ impl<'a> Parser<'a> {
                 Token::Ident("or") => BinaryOperator::Or,
                 Token::Ident("is") => BinaryOperator::Is,
                 Token::LeftBracket => {
+                    self.bump_expression_complexity()?;
                     lhs = self.parse_subscript(lhs)?;
                     continue;
                 }
@@ -870,6 +898,7 @@ impl<'a> Parser<'a> {
             if l_bp < min_bp {
                 break;
             }
+            self.bump_expression_complexity()?;
 
             // Advance past the op
             self.next_or_error()?;
@@ -1729,16 +1758,16 @@ impl<'a> Parser<'a> {
 
     fn parse_until<F: Fn(&Token) -> bool>(&mut self, end_check_fn: F) -> TeraResult<Vec<Node>> {
         // We want to avoid stack overflow when having super nested templates, eg 40+ nested if
-        self.recursion_depth += 1;
-        if self.recursion_depth > MAX_RECURSION_DEPTH {
-            self.recursion_depth -= 1;
+        self.nesting_depth += 1;
+        if self.nesting_depth > MAX_RECURSION_DEPTH {
+            self.nesting_depth -= 1;
             return Err(Error::syntax_error(
                 "The template nesting is too deep".to_string(),
                 &self.current_span,
             ));
         }
         let res = self.parse_until_inner(end_check_fn);
-        self.recursion_depth -= 1;
+        self.nesting_depth -= 1;
         res
     }
 
