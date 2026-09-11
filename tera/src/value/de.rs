@@ -97,10 +97,21 @@ impl<'de> de::Deserializer<'de> for ValueDeserializer {
         visitor.visit_enum(EnumDeserializer { variant, params })
     }
 
+    fn deserialize_newtype_struct<V>(
+        self,
+        _name: &'static str,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_newtype_struct(self)
+    }
+
     forward_to_deserialize_any! {
         bool u8 u16 u32 u64 i8 i16 i32 i64 i128 u128 f32 f64 char str string unit
         seq bytes byte_buf map unit_struct
-        tuple_struct struct tuple ignored_any identifier newtype_struct
+        tuple_struct struct tuple ignored_any identifier
     }
 }
 
@@ -232,11 +243,31 @@ impl<'de> de::Deserializer<'de> for &Value {
         ValueDeserializer::from_value(self.clone()).deserialize_any(visitor)
     }
 
+    fn deserialize_option<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        ValueDeserializer::from_value(self.clone()).deserialize_option(visitor)
+    }
+
+    fn deserialize_newtype_struct<V: de::Visitor<'de>>(
+        self,
+        name: &'static str,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error> {
+        ValueDeserializer::from_value(self.clone()).deserialize_newtype_struct(name, visitor)
+    }
+
+    fn deserialize_enum<V: de::Visitor<'de>>(
+        self,
+        name: &'static str,
+        variants: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value, Self::Error> {
+        ValueDeserializer::from_value(self.clone()).deserialize_enum(name, variants, visitor)
+    }
+
     forward_to_deserialize_any! {
         bool u8 u16 u32 u64 i8 i16 i32 i64 i128 u128 f32 f64 char str string unit
         seq bytes byte_buf map unit_struct
         tuple_struct struct tuple ignored_any identifier
-        option enum newtype_struct
     }
 }
 
@@ -245,6 +276,9 @@ mod tests {
     use super::*;
     use serde::Deserialize;
     use serde::Serialize;
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    struct UserId(u64);
 
     #[derive(Debug, Serialize, Deserialize, PartialEq)]
     enum Kind {
@@ -263,6 +297,9 @@ mod tests {
         kind2: Kind,
         kind3: Kind,
         kind4: Kind,
+        maybe: Option<u64>,
+        nothing: Option<u64>,
+        user_id: UserId,
     }
 
     #[test]
@@ -275,9 +312,14 @@ mod tests {
             kind2: Kind::Comment(String::new()),
             kind3: Kind::Tuple(1, 1),
             kind4: Kind::Other { truthy: true },
+            maybe: Some(42),
+            nothing: None,
+            user_id: UserId(1),
         };
         let val = Value::from_serializable(&instance);
+        let out = Content::deserialize(&val).unwrap();
+        assert_eq!(out, instance);
         let out = Content::deserialize(val).unwrap();
-        assert_eq!(out, instance)
+        assert_eq!(out, instance);
     }
 }

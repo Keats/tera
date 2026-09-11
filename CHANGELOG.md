@@ -5,6 +5,7 @@
 - Add implicit parameters for components
 - Add `Tera::render_component_with_implicits` and `Tera::render_component_with_implicits_to` to render a component with implicit parameters as a separate context.
 - Fix bug in `unique` filter treating distinct maps as the same
+- Fix some deserializing issues with Value
 
 
 ## 2.3.0 (2026-08-26)
