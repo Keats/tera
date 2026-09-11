@@ -7,3 +7,6 @@ input_file: tera/src/snapshot_tests/rendering_inputs/success/sort_and_unique.txt
 [1, 1.5, 2.0, 3]
 ["a", "b", "c"]
 [1.0, 2]
+2
+2
+4

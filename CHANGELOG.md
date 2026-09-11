@@ -1,9 +1,10 @@
 # Changelog
 
-## 2.4.0 (unreleased)
+## 2.4.0 (2026-09-11)
 
 - Add implicit parameters for components
 - Add `Tera::render_component_with_implicits` and `Tera::render_component_with_implicits_to` to render a component with implicit parameters as a separate context.
+- Fix bug in `unique` filter treating distinct maps as the same
 
 
 ## 2.3.0 (2026-08-26)

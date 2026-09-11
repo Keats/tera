@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::collections::BTreeSet;
 use std::fmt::Write;
 use std::sync::Arc;
 
@@ -618,12 +617,11 @@ pub(crate) fn unique(val: &[Value], _: Kwargs, _: &State) -> Vec<Value> {
         return Vec::new();
     }
 
-    let mut seen = BTreeSet::new();
+    // Using a set cause issues with maps because we do impl some Ord which messes up things
     let mut res = Vec::with_capacity(val.len());
 
     for v in val {
-        if !seen.contains(v) {
-            seen.insert(v.clone());
+        if !res.contains(v) {
             res.push(v.clone());
         }
     }
