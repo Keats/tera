@@ -1,0 +1,29 @@
+---
+source: tera/src/snapshot_tests/parser.rs
+expression: "components[0]"
+input_file: tera/src/snapshot_tests/parser_inputs/success/components/def/implicit_param.txt
+---
+ComponentDefinition {
+    name: "display",
+    kwargs: {
+        "config": ComponentArgument {
+            default: Some(
+                Map({}),
+            ),
+            typ: Some(
+                Map,
+            ),
+            implicit: true,
+        },
+        "page": ComponentArgument {
+            default: None,
+            typ: None,
+            implicit: true,
+        },
+    },
+    rest_param_name: None,
+    metadata: {},
+    body: [
+        "Hello",
+    ],
+}

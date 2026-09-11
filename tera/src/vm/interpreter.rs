@@ -163,6 +163,7 @@ impl<'tera> VirtualMachine<'tera> {
                 let context = match component_def.build_context(
                     kwargs.keys().filter_map(|k| k.as_str()),
                     |key| kwargs.get(&Key::Str(key)).cloned(),
+                    |key| state.get_implicit_value(key),
                     body,
                 ) {
                     Ok(ctx) => ctx,
@@ -171,17 +172,19 @@ impl<'tera> VirtualMachine<'tera> {
 
                 let rendered = if $direct {
                     let result = if state.capture_buffers.is_empty() {
-                        self.render_component_to(&component_chunk, context, output)
+                        self.render_component_to(&component_chunk, context, &*state, output)
                     } else {
                         let last = state.capture_buffers.len() - 1;
                         let mut buf = std::mem::take(&mut state.capture_buffers[last]);
-                        let result = self.render_component_to(&component_chunk, context, &mut buf);
+                        let result =
+                            self.render_component_to(&component_chunk, context, &*state, &mut buf);
                         state.capture_buffers[last] = buf;
                         result
                     };
                     result.map(|()| None)
                 } else {
-                    self.render_component(&component_chunk, context).map(Some)
+                    self.render_component(&component_chunk, context, &*state)
+                        .map(Some)
                 };
                 let val = match rendered {
                     Ok(v) => v,
@@ -959,9 +962,14 @@ impl<'tera> VirtualMachine<'tera> {
         Error::new(ErrorKind::RenderingError(Box::new(err)))
     }
 
-    fn render_component(&self, chunk: &Chunk, context: Context) -> TeraResult<String> {
+    fn render_component(
+        &self,
+        chunk: &Chunk,
+        context: Context,
+        parent: &State<'_>,
+    ) -> TeraResult<String> {
         let mut output = Vec::with_capacity(1024);
-        self.render_component_to(chunk, context, &mut output)?;
+        self.render_component_to(chunk, context, parent, &mut output)?;
         Ok(String::from_utf8(output)?)
     }
 
@@ -969,6 +977,7 @@ impl<'tera> VirtualMachine<'tera> {
         &self,
         chunk: &Chunk,
         context: Context,
+        parent: &State<'_>,
         output: &mut impl Write,
     ) -> TeraResult<()> {
         let depth = self.component_recursion_depth + 1;
@@ -985,6 +994,7 @@ impl<'tera> VirtualMachine<'tera> {
         };
         let mut state =
             State::new_with_chunk(self.tera, &context, chunk, self.autoescape_enabled());
+        state.component_parent = Some(parent);
         vm.interpret(&mut state, output)
     }
 
@@ -1013,6 +1023,7 @@ impl<'tera> VirtualMachine<'tera> {
             self.autoescape_enabled(),
         );
         include_state.include_parent = Some(state);
+        include_state.component_parent = Some(state);
         vm.interpret(&mut include_state, output)?;
         Ok(())
     }

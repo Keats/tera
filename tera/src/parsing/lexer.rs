@@ -120,6 +120,7 @@ pub enum Token<'a> {
     LeftBrace,
     RightBrace,
     Spread,
+    At,
 }
 
 impl<'a> fmt::Debug for Token<'a> {
@@ -170,6 +171,7 @@ impl<'a> fmt::Debug for Token<'a> {
             Token::LeftBrace => write!(f, "LEFT_BRACE"),
             Token::RightBrace => write!(f, "RIGHT_BRACE"),
             Token::Spread => write!(f, "SPREAD"),
+            Token::At => write!(f, "AT"),
         }
     }
 }
@@ -220,6 +222,7 @@ impl<'a> fmt::Display for Token<'a> {
             Token::LeftBrace => write!(f, "`{{`"),
             Token::RightBrace => write!(f, "`}}`"),
             Token::Spread => write!(f, "`...`"),
+            Token::At => write!(f, "`@`"),
         }
     }
 }
@@ -593,6 +596,7 @@ fn basic_tokenize(
                         Some(b']') => Some(Token::RightBracket),
                         Some(b'{') => Some(Token::LeftBrace),
                         Some(b'}') => Some(Token::RightBrace),
+                        Some(b'@') => Some(Token::At),
                         Some(b'\'') => lex_string!(b'\''),
                         Some(b'"') => lex_string!(b'"'),
                         Some(b'`') => lex_string!(b'`'),
@@ -619,6 +623,7 @@ fn basic_tokenize(
                             }
                         })
                         .count();
+
                     if ident_len > 0 {
                         let ident = advance!(ident_len);
 

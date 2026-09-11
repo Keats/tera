@@ -1119,7 +1119,8 @@ impl Tera {
     /// The global context is automatically included into every template,
     /// which is useful for sharing common data.
     ///
-    /// The global context is *not* passed if you call `render_component`.
+    /// The global context is *not* passed if you call `render_component` but it is available there
+    /// for implicit parameter lookup: the components must declare the implicit parameters.
     ///
     /// ```
     /// # use tera::{Tera, Context, context};
@@ -1231,7 +1232,11 @@ impl Tera {
 
     /// Renders a component by name with the given context and optional body content.
     ///
-    /// The context should contain the component's arguments as key-value pairs.
+    /// The context should contain the component's arguments as key-value pairs. Unknown arguments
+    /// will error.
+    /// If the component has a rest parameter, all the additional values _will_ be added to it.
+    /// If the component needs implicit parameters, use [`render_component_with_implicits`](Self::render_component_with_implicits).
+    ///
     ///
     /// # Examples
     ///
@@ -1305,6 +1310,29 @@ impl Tera {
         context: &Context,
         body: Option<&str>,
         autoescape: bool,
+        write: impl Write,
+    ) -> TeraResult<()> {
+        self.inner_render_component(
+            component_name,
+            context,
+            &Context::default(),
+            body,
+            autoescape,
+            write,
+        )
+    }
+
+    /// This exists to paper over the new implicit arguments that didn't exist
+    /// for the initial v2 release.
+    /// For v3, we can replace render_component* with the render_component_with_implicits
+    /// and get back to having only 2 functions
+    fn inner_render_component(
+        &self,
+        component_name: &str,
+        args: &Context,
+        implicits: &Context,
+        body: Option<&str>,
+        autoescape: bool,
         mut write: impl Write,
     ) -> TeraResult<()> {
         let (component_def, chunk) = self
@@ -1318,21 +1346,124 @@ impl Tera {
             .get(&chunk.name)
             .expect("Component source template must exist");
 
+        let mut parent = State::new(implicits);
+        parent.global_context = Some(&self.global_context);
+
         // Build the component context by validating and applying defaults
         let body_value = body.map(Value::safe_string);
         let component_context = component_def
             .build_context(
-                context.data.keys().map(|k| k.as_ref()),
-                |key| context.get(key).cloned(),
+                args.data.keys().map(|k| k.as_ref()),
+                |key| args.get(key).cloned(),
+                |key| parent.get_implicit_value(key),
                 body_value,
             )
             .map_err(Error::message)?;
 
         let vm = VirtualMachine::new_with_autoescape(self, template, autoescape);
         let mut state = State::new_with_chunk(self, &component_context, chunk, autoescape);
+        state.component_parent = Some(&parent);
         vm.interpret(&mut state, &mut write)?;
 
         Ok(())
+    }
+
+    /// Renders a component by name with the given context and optional body content.
+    ///
+    /// The context should contain the component's arguments as key-value pairs. Unknown arguments
+    /// will error.
+    /// If the component has a rest parameter, all the additional values _will_ be added to it.
+    /// If the component (or a children) depends on implicit parameters, you can pass it as a separate
+    /// context in this function.
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use tera::{Tera, Context, context};
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template(
+    ///     "components.html",
+    ///     r#"{% component Button(label, @lang) %}<button>{{ label }}-{{lang}}</button>{% endcomponent Button %}
+    /// {% component Card(title) %}<div><h1>{{ title }}</h1>{{ body }}</div>{% endcomponent Card %}"#,
+    /// ).unwrap();
+    ///
+    /// // Render a component with arguments
+    /// let html = tera.render_component_with_implicits(
+    ///     "Button",
+    ///     &context! { label => "Click me" },
+    ///     &context! { lang => "fr" },
+    ///     None,
+    ///     true,
+    /// ).unwrap();
+    /// assert_eq!(html, "<button>Click me-fr</button>");
+    ///
+    /// // Render a component with body content
+    /// let html = tera.render_component_with_implicits(
+    ///     "Card",
+    ///     &context! { title => "My Card" },
+    ///     &context! { },
+    ///     Some("<p>Card content here</p>"),
+    ///     true,
+    /// ).unwrap();
+    /// assert_eq!(html, "<div><h1>My Card</h1><p>Card content here</p></div>");
+    /// ```
+    pub fn render_component_with_implicits(
+        &self,
+        component_name: &str,
+        args: &Context,
+        implicits: &Context,
+        body: Option<&str>,
+        autoescape: bool,
+    ) -> TeraResult<String> {
+        let mut output = Vec::new();
+        self.inner_render_component(
+            component_name,
+            args,
+            implicits,
+            body,
+            autoescape,
+            &mut output,
+        )?;
+        Ok(String::from_utf8(output)?)
+    }
+
+    /// Renders a component by name to something that implements [`Write`].
+    ///
+    /// Same as [`render_component_with_implicits`](Self::render_component_with_implicits) but writes to a [`Write`] implementor
+    /// instead of returning a String.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use tera::{Tera, Context, context};
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_template(
+    ///     "components.html",
+    ///     r#"{% component Button(label, @lang) %}<button>{{ label }}-{{lang}}</button>{% endcomponent Button %}"#,
+    /// ).unwrap();
+    ///
+    /// let mut buffer = Vec::new();
+    /// tera.render_component_with_implicits_to(
+    ///     "Button",
+    ///     &context! { label => "Click me" },
+    ///     &context! { lang => "fr" },
+    ///     None,
+    ///     true,
+    ///     &mut buffer,
+    /// ).unwrap();
+    /// assert_eq!(buffer, b"<button>Click me-fr</button>");
+    /// ```
+    pub fn render_component_with_implicits_to(
+        &self,
+        component_name: &str,
+        args: &Context,
+        implicits: &Context,
+        body: Option<&str>,
+        autoescape: bool,
+        write: impl Write,
+    ) -> TeraResult<()> {
+        self.inner_render_component(component_name, args, implicits, body, autoescape, write)
     }
 
     /// Renders a block by name with the given context.
@@ -1564,7 +1695,11 @@ mod tests {
             "components.html",
             r#"{% component Button(label, variant="primary") %}<button class="{{ variant }}">{{ label }}</button>{% endcomponent Button %}
 {% component Card(title) %}<div><h1>{{ title }}</h1>{{ body }}</div>{% endcomponent Card %}
-{% component Display(content) %}{{ content }}{% endcomponent Display %}"#,
+{% component Display(content) %}{{ content }}{% endcomponent Display %}
+{% component show(@name, @lang = "fr") %}{{ name }}-{{ lang }}{% endcomponent show %}
+{% component wrapper() %}{{ <show /> }}{% endcomponent wrapper %}
+{% component attrs(...rest) %}{% for k, v in rest %}{{k}}={{v}} {% endfor %} || {{ <show /> }}{% endcomponent attrs %}
+"#,
         )
         .unwrap();
         tera.add_raw_template(
@@ -1610,17 +1745,48 @@ mod tests {
         .unwrap();
         insta::assert_snapshot!(String::from_utf8(buffer).unwrap(), @r#"<button class="primary">Y</button>"#);
 
+        // with implicits context
+
+        insta::assert_snapshot!(
+            tera.render_component_with_implicits("wrapper", &Context::default(), &context! { name => "Vincent" }, None, true).unwrap(),
+            @"Vincent-fr"
+        );
+        insta::assert_snapshot!(
+            tera.render_component_with_implicits("show",&Context::default(), &context! { name => "Vincent" }, None, true).unwrap(),
+            @"Vincent-fr"
+        );
+        // Explicit > implicits
+        insta::assert_snapshot!(
+            tera.render_component_with_implicits("show", &context! { name => "Jane" }, &context! { name => "Vincent" }, None, true).unwrap(),
+            @"Jane-fr"
+        );
+        // Implicits are not in ...rest
+        insta::assert_snapshot!(
+            tera.render_component_with_implicits("attrs", &context! { class => "btn" }, &context! { name => "Vincent" }, None, true).unwrap(),
+            @"class=btn  || Vincent-fr"
+        );
+
         // Errors
+        assert!(
+            tera.render_component("Button", &context! { label => "x", bad => "y" }, None, true)
+                .is_err()
+        );
+        assert!(
+            tera.render_component_with_implicits(
+                "show",
+                &context! { bad => "y" },
+                &context! { name => "Vincent" },
+                None,
+                true
+            )
+            .is_err()
+        );
         assert!(
             tera.render_component("Nope", &Context::new(), None, true)
                 .is_err()
         );
         assert!(
             tera.render_component("Button", &Context::new(), None, true)
-                .is_err()
-        );
-        assert!(
-            tera.render_component("Button", &context! { label => "x", bad => "y" }, None, true)
                 .is_err()
         );
     }

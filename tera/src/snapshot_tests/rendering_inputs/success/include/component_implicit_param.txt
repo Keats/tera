@@ -1,0 +1,6 @@
+$$ components
+{% component show(@name) %}{{name}}{% endcomponent show %}
+$$ inc
+{{<show />}}
+$$ tpl
+{% set name = "from base" %}{% include "inc" %}

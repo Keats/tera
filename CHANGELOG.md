@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.0 (unreleased)
+
+- Add implicit parameters for components
+- Add `Tera::render_component_with_implicits` and `Tera::render_component_with_implicits_to` to render a component with implicit parameters as a separate context.
+
+
 ## 2.3.0 (2026-08-26)
 
 - Add `State::{escape,autoescaping_enabled,escape_if_needed}`

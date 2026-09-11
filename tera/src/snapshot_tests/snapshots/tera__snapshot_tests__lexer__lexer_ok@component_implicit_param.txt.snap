@@ -1,0 +1,27 @@
+---
+source: tera/src/snapshot_tests/lexer.rs
+expression: "&tokens"
+input_file: tera/src/snapshot_tests/lexer_inputs/success/component_implicit_param.txt
+---
+[
+    TAG_START(false),
+    IDENT(component),
+    IDENT(display),
+    LEFT_PAREN,
+    AT,
+    IDENT(page),
+    COMMA,
+    AT,
+    IDENT(config),
+    COLON,
+    IDENT(map),
+    ASSIGN,
+    LEFT_BRACE,
+    RIGHT_BRACE,
+    RIGHT_PAREN,
+    TAG_END(false),
+    CONTENT("Hello"),
+    TAG_START(false),
+    IDENT(endcomponent),
+    TAG_END(false),
+]

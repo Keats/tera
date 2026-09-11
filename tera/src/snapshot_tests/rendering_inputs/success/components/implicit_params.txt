@@ -1,0 +1,4 @@
+$$ components
+{% component show(@name = "default", @global_lang) %}{{name}}-{{global_lang}}{% endcomponent show %}
+$$ tpl
+{{<show />}}

@@ -35,6 +35,7 @@ pub fn create_multi_templates_tera(body: &str) -> (Tera, String) {
     let mut tera = Tera::default();
     tera.autoescape_on(vec![".html"]);
     tera.add_raw_templates(tpls).unwrap();
+    tera.global_context().insert("global_lang", "fr");
 
     (tera, last_filename)
 }
