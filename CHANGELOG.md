@@ -3,7 +3,7 @@
 ## 2.4.0 (unreleased)
 
 - Add implicit parameters for components
-- Because of the above, `Tera::render_component` no longer errors on parameters not defined directly in the component
+- Add `Tera::render_component_with_implicits` and `Tera::render_component_with_implicits_to` to render a component with implicit parameters as a separate context.
 
 
 ## 2.3.0 (2026-08-26)
