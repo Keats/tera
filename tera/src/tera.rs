@@ -1701,6 +1701,22 @@ mod tests {
         tera.add_from_glob("examples/second_glob/**/*").unwrap();
 
         assert!(tera.get_template("base.html").is_some());
+        assert!(tera.get_template("globby_glob_globs.html").is_some());
+    }
+
+    #[cfg(feature = "glob_fs")]
+    #[test]
+    fn can_reload_multiple_globs() {
+        let mut tera = Tera::default();
+        tera.load_from_glob("examples/basic/templates/**/*")
+            .unwrap();
+
+        tera.add_from_glob("examples/second_glob/**/*").unwrap();
+
+        tera.full_reload().unwrap();
+
+        assert!(tera.get_template("base.html").is_some());
+        assert!(tera.get_template("globby_glob_globs.html").is_some());
     }
 
     #[cfg(feature = "glob_fs")]
