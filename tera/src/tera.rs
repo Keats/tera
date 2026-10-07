@@ -124,6 +124,7 @@ impl Tera {
         let prev_templates = std::mem::take(&mut self.templates);
         let prev_glob = self.glob.replace(dirs.to_string());
 
+        // we keep manually-added templates
         self.templates = prev_templates
             .iter()
             .filter(|(_, tpl)| !tpl.from_glob)
