@@ -25,6 +25,12 @@ impl<'a, const N: usize> From<&'a [&'a str; N]> for TeraGlobDir<'a> {
     }
 }
 
+impl<'a> From<Vec<&'a str>> for TeraGlobDir<'a> {
+    fn from(value: Vec<&'a str>) -> Self {
+        Self(value)
+    }
+}
+
 impl<'a> IntoIterator for TeraGlobDir<'a> {
     type Item = &'a str;
     type IntoIter = std::vec::IntoIter<Self::Item>;

@@ -230,7 +230,9 @@ impl Tera {
     #[cfg(feature = "glob_fs")]
     pub fn full_reload(&mut self) -> TeraResult<()> {
         if let Some(glob) = self.glob.clone().as_ref() {
-            self.load_from_glob(glob)
+            let globs: Vec<&str> = glob.split(",").collect();
+
+            self.load_from_glob(globs)
         } else {
             Err(Error::message(
                 "Reloading is only available if you are using a glob",
