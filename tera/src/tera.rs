@@ -124,6 +124,12 @@ impl Tera {
         let prev_templates = std::mem::take(&mut self.templates);
         let prev_glob = self.glob.replace(dirs.to_string());
 
+        self.templates = prev_templates
+            .iter()
+            .filter(|(_, tpl)| !tpl.from_glob)
+            .map(|(name, tpl)| (name.clone(), tpl.clone()))
+            .collect();
+
         let mut all_entries = Vec::new();
 
         for dir in dirs.into_iter() {
