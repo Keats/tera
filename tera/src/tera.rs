@@ -160,16 +160,9 @@ impl Tera {
     }
 
     /// Loads all the parsed templates found in the `dir` glob,
-    /// without deleting previous glob templates
+    /// without deleting previous glob templates.
     ///
-    /// A glob is a pattern for matching multiple file paths, employing special characters such as
-    /// the single asterisk (`*`) to match any sequence of characters within a single directory
-    /// level, and the double asterisk (`**`) to match any sequence of characters across multiple
-    /// directory levels, thereby providing a flexible and concise way to select files based on
-    /// their names, extensions, or hierarchical relationships. For example, the glob pattern
-    /// `templates/*.html` will match all files with the `.html` extension located directly inside
-    /// the `templates` folder, while the glob pattern `templates/**/*.html` will match all files
-    /// with the `.html` extension directly inside or in a subdirectory of `templates`.
+    /// See `Tera::load_from_glob` for more details.
     ///
     /// # Examples
     ///
