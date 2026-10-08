@@ -25,7 +25,7 @@ html {
 
 body {
   display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   min-height: 100dvh;
 }
 
@@ -222,7 +222,7 @@ pre {
 
 @media (max-width: 768px) {
   body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .sidebar {
