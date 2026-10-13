@@ -42,7 +42,7 @@ for example a `.txt` included in a `.html` will now be autoescaped if Tera autoe
 
 see [migration guide](./MIGRATION.md) for all the changes.
 
-## 1.21.1 (2025-10-30)
+## 1.20.1 (2025-10-30)
 
 - Replace unmaintained unic-segment dependency
 
