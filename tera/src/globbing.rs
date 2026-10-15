@@ -5,6 +5,7 @@ use walkdir::WalkDir;
 
 use crate::errors::{Error, TeraResult};
 
+#[derive(Debug)]
 pub struct TeraGlobDir<'a>(Vec<&'a str>);
 
 impl<'a> From<&'a str> for TeraGlobDir<'a> {
@@ -28,6 +29,12 @@ impl<'a, const N: usize> From<&'a [&'a str; N]> for TeraGlobDir<'a> {
 impl<'a> From<Vec<&'a str>> for TeraGlobDir<'a> {
     fn from(value: Vec<&'a str>) -> Self {
         Self(value)
+    }
+}
+
+impl<'a> From<&'a Vec<String>> for TeraGlobDir<'a> {
+    fn from(value: &'a Vec<String>) -> Self {
+        Self(value.iter().map(|s| s.as_str()).collect())
     }
 }
 

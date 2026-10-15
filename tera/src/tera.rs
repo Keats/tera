@@ -68,7 +68,7 @@ pub struct Tera {
     /// The glob used to load templates if there was one.
     /// Only used if the `glob_fs` feature is turned on
     #[allow(dead_code)]
-    pub(crate) glob: Option<String>,
+    pub(crate) glob: Vec<String>,
     pub(crate) templates: HashMap<String, Template>,
     /// Which extensions does Tera automatically autoescape on.
     /// Defaults to [".html", ".htm", ".xml"]
@@ -122,7 +122,7 @@ impl Tera {
         let dirs: TeraGlobDir<'a> = glob.into();
 
         let prev_templates = std::mem::take(&mut self.templates);
-        let prev_glob = self.glob.replace(dirs.to_string());
+        let prev_glob = std::mem::take(&mut self.glob);
 
         // we keep manually-added templates
         self.templates = prev_templates
@@ -135,6 +135,8 @@ impl Tera {
 
         for dir in dirs.into_iter() {
             let entries = load_from_glob(dir)?;
+
+            self.glob.push(dir.to_string());
             all_entries.extend(entries.into_iter());
         }
 
@@ -189,18 +191,12 @@ impl Tera {
     {
         let dirs: TeraGlobDir<'a> = glob.into();
 
-        let glob = self.glob.get_or_insert_default();
-
-        if !glob.is_empty() {
-            glob.push_str(",");
-        }
-
-        *glob += dirs.to_string().as_str();
-
         let mut all_entries = Vec::new();
 
         for dir in dirs.into_iter() {
             let entries = load_from_glob(dir)?;
+
+            self.glob.push(dir.to_string());
             all_entries.extend(entries.into_iter());
         }
 
@@ -236,10 +232,10 @@ impl Tera {
     /// Templates added manually are preserved.
     #[cfg(feature = "glob_fs")]
     pub fn full_reload(&mut self) -> TeraResult<()> {
-        if let Some(glob) = self.glob.clone().as_ref() {
-            let globs: Vec<&str> = glob.split(",").collect();
+        if self.glob.len() > 0 {
+            let current_globs = self.glob.clone();
 
-            self.load_from_glob(globs)
+            self.load_from_glob(&current_globs)
         } else {
             Err(Error::message(
                 "Reloading is only available if you are using a glob",
@@ -1604,7 +1600,7 @@ impl Tera {
 impl Default for Tera {
     fn default() -> Self {
         let mut tera = Self {
-            glob: None,
+            glob: Vec::new(),
             templates: HashMap::new(),
             autoescape_suffixes: vec![
                 Cow::Borrowed(".html"),
