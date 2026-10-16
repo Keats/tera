@@ -129,23 +129,23 @@ impl Tera {
             .map(|(name, tpl)| (name.clone(), tpl.clone()))
             .collect();
 
-        let mut all_entries = Vec::new();
+        let mut all_glob_entries = Vec::new();
 
         // Insert globs already registered
         for dir in self.glob.iter() {
-            all_entries.extend(load_from_glob(dir)?.into_iter());
+            all_glob_entries.extend(load_from_glob(dir)?.into_iter());
         }
 
         // Add new globs
         let is_new_and_valid = !glob.is_empty() && self.glob.insert(glob.to_string());
 
         if is_new_and_valid {
-            all_entries.extend(load_from_glob(glob)?.into_iter());
+            all_glob_entries.extend(load_from_glob(glob)?.into_iter());
         }
 
         let result = {
             let mut errors = Vec::new();
-            for (path, name) in all_entries {
+            for (path, name) in all_glob_entries {
                 match self.add_file(&path, Some(&name)) {
                     Ok((key, _)) => {
                         if let Some(tpl) = self.templates.get_mut(&key) {
