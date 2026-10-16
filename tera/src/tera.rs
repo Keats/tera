@@ -68,7 +68,7 @@ pub struct Tera {
     /// The glob used to load templates if there was one.
     /// Only used if the `glob_fs` feature is turned on
     #[allow(dead_code)]
-    pub(crate) glob: Vec<String>,
+    pub(crate) glob: HashSet<String>,
     pub(crate) templates: HashMap<String, Template>,
     /// Which extensions does Tera automatically autoescape on.
     /// Defaults to [".html", ".htm", ".xml"]
@@ -103,6 +103,9 @@ impl Tera {
     /// the `templates` folder, while the glob pattern `templates/**/*.html` will match all files
     /// with the `.html` extension directly inside or in a subdirectory of `templates`.
     ///
+    /// If this function is called multiple times, it adds each glob directory and finds templates from
+    /// all registered directories. Duplicate directories are ignored.
+    ///
     /// # Examples
     ///
     /// Basic usage:
@@ -122,7 +125,7 @@ impl Tera {
         let dirs: TeraGlobDir<'a> = glob.into();
 
         let prev_templates = std::mem::take(&mut self.templates);
-        let prev_glob = std::mem::take(&mut self.glob);
+        let prev_glob = self.glob.clone();
 
         // we keep manually-added templates
         self.templates = prev_templates
@@ -133,11 +136,18 @@ impl Tera {
 
         let mut all_entries = Vec::new();
 
-        for dir in dirs.into_iter() {
-            let entries = load_from_glob(dir)?;
+        // Insert globs already registered
+        for dir in self.glob.iter() {
+            all_entries.extend(load_from_glob(dir)?.into_iter());
+        }
 
-            self.glob.push(dir.to_string());
-            all_entries.extend(entries.into_iter());
+        // Add new globs
+        for dir in dirs.into_iter() {
+            let is_new = self.glob.insert(dir.to_string());
+
+            if is_new {
+                all_entries.extend(load_from_glob(dir)?.into_iter());
+            }
         }
 
         let result = {
@@ -168,60 +178,6 @@ impl Tera {
         result
     }
 
-    /// Loads all the parsed templates found in the `dir` glob,
-    /// without deleting previous glob templates.
-    ///
-    /// See `Tera::load_from_glob` for more details.
-    ///
-    /// # Examples
-    ///
-    /// Basic usage:
-    ///
-    /// ```
-    /// # use tera::Tera;
-    /// let mut tera = Tera::default();
-    /// tera.load_from_glob("examples/basic/templates/**/*").unwrap();
-    ///
-    /// tera.add_from_glob(["examples/basic/templates/**/*", "examples/dashboard/**/*"]).unwrap();
-    /// ```
-    #[cfg(feature = "glob_fs")]
-    pub fn add_from_glob<'a, T>(&mut self, glob: T) -> TeraResult<()>
-    where
-        T: Into<TeraGlobDir<'a>>,
-    {
-        let dirs: TeraGlobDir<'a> = glob.into();
-
-        let mut all_entries = Vec::new();
-
-        for dir in dirs.into_iter() {
-            let entries = load_from_glob(dir)?;
-
-            self.glob.push(dir.to_string());
-            all_entries.extend(entries.into_iter());
-        }
-
-        let result = {
-            let mut errors = Vec::new();
-            for (path, name) in all_entries {
-                match self.add_file(&path, Some(&name)) {
-                    Ok((key, _)) => {
-                        if let Some(tpl) = self.templates.get_mut(&key) {
-                            tpl.from_glob = true;
-                        }
-                    }
-                    Err(e) => errors.push(format!("Failed to load {}: {e}", path.display())),
-                }
-            }
-            if !errors.is_empty() {
-                Err(Error::message(errors.join("\n")))
-            } else {
-                self.finalize_templates()
-            }
-        };
-
-        result
-    }
-
     /// Re-parse all templates found in the glob given to Tera.
     ///
     /// Use this when you are watching a directory and want to reload everything,
@@ -233,9 +189,7 @@ impl Tera {
     #[cfg(feature = "glob_fs")]
     pub fn full_reload(&mut self) -> TeraResult<()> {
         if self.glob.len() > 0 {
-            let current_globs = self.glob.clone();
-
-            self.load_from_glob(&current_globs)
+            self.load_from_glob(&[])
         } else {
             Err(Error::message(
                 "Reloading is only available if you are using a glob",
@@ -1600,7 +1554,7 @@ impl Tera {
 impl Default for Tera {
     fn default() -> Self {
         let mut tera = Self {
-            glob: Vec::new(),
+            glob: HashSet::new(),
             templates: HashMap::new(),
             autoescape_suffixes: vec![
                 Cow::Borrowed(".html"),
@@ -1695,7 +1649,7 @@ mod tests {
         tera.load_from_glob("examples/basic/templates/**/*")
             .unwrap();
 
-        tera.add_from_glob("examples/second_glob/**/*").unwrap();
+        tera.load_from_glob("examples/second_glob/**/*").unwrap();
 
         assert!(tera.get_template("base.html").is_some());
         assert!(tera.get_template("globby_glob_globs.html").is_some());
@@ -1708,7 +1662,7 @@ mod tests {
         tera.load_from_glob("examples/basic/templates/**/*")
             .unwrap();
 
-        tera.add_from_glob("examples/second_glob/**/*").unwrap();
+        tera.load_from_glob("examples/second_glob/**/*").unwrap();
 
         tera.full_reload().unwrap();
 
