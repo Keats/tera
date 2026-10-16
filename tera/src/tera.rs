@@ -19,7 +19,7 @@ use crate::{ComponentInfo, Context, HashMap, escape_html};
 
 use crate::delimiters::Delimiters;
 #[cfg(feature = "glob_fs")]
-use crate::globbing::{TeraGlobDir, load_from_glob};
+use crate::globbing::load_from_glob;
 use crate::parsing::Chunk;
 use crate::parsing::ast::ComponentDefinition;
 
@@ -115,15 +115,10 @@ impl Tera {
     /// let mut tera = Tera::default();
     /// tera.load_from_glob("examples/basic/templates/**/*").unwrap();
     ///
-    /// tera.load_from_glob(["examples/basic/templates/**/*", "examples/dashboard/**/*"]).unwrap();
+    /// tera.load_from_glob("examples/dashboard/**/*").unwrap();
     /// ```
     #[cfg(feature = "glob_fs")]
-    pub fn load_from_glob<'a, T>(&mut self, glob: T) -> TeraResult<()>
-    where
-        T: Into<TeraGlobDir<'a>>,
-    {
-        let dirs: TeraGlobDir<'a> = glob.into();
-
+    pub fn load_from_glob(&mut self, glob: &str) -> TeraResult<()> {
         let prev_templates = std::mem::take(&mut self.templates);
         let prev_glob = self.glob.clone();
 
@@ -142,12 +137,10 @@ impl Tera {
         }
 
         // Add new globs
-        for dir in dirs.into_iter() {
-            let is_new = self.glob.insert(dir.to_string());
+        let is_new_and_valid = !glob.is_empty() && self.glob.insert(glob.to_string());
 
-            if is_new {
-                all_entries.extend(load_from_glob(dir)?.into_iter());
-            }
+        if is_new_and_valid {
+            all_entries.extend(load_from_glob(glob)?.into_iter());
         }
 
         let result = {
@@ -189,7 +182,7 @@ impl Tera {
     #[cfg(feature = "glob_fs")]
     pub fn full_reload(&mut self) -> TeraResult<()> {
         if self.glob.len() > 0 {
-            self.load_from_glob(&[])
+            self.load_from_glob("")
         } else {
             Err(Error::message(
                 "Reloading is only available if you are using a glob",
@@ -1625,19 +1618,6 @@ mod tests {
         tera.load_from_glob("examples/basic/templates/**/*")
             .unwrap();
         tera.full_reload().unwrap();
-
-        assert!(tera.get_template("base.html").is_some());
-    }
-
-    #[cfg(feature = "glob_fs")]
-    #[test]
-    fn can_add_slice_of_globs() {
-        let mut tera = Tera::default();
-        tera.load_from_glob(&[
-            "examples/basic/templates/**/*",
-            "examples/basic/templates/**/*",
-        ])
-        .unwrap();
 
         assert!(tera.get_template("base.html").is_some());
     }

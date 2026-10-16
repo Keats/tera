@@ -5,54 +5,6 @@ use walkdir::WalkDir;
 
 use crate::errors::{Error, TeraResult};
 
-#[derive(Debug)]
-pub struct TeraGlobDir<'a>(Vec<&'a str>);
-
-impl<'a> From<&'a str> for TeraGlobDir<'a> {
-    fn from(value: &'a str) -> Self {
-        Self(vec![value])
-    }
-}
-
-impl<'a> From<&'a String> for TeraGlobDir<'a> {
-    fn from(value: &'a String) -> Self {
-        Self(vec![value.as_str()])
-    }
-}
-
-impl<'a, const N: usize> From<&'a [&'a str; N]> for TeraGlobDir<'a> {
-    fn from(value: &'a [&'a str; N]) -> Self {
-        Self(value.to_vec())
-    }
-}
-
-impl<'a> From<Vec<&'a str>> for TeraGlobDir<'a> {
-    fn from(value: Vec<&'a str>) -> Self {
-        Self(value)
-    }
-}
-
-impl<'a> From<&'a Vec<String>> for TeraGlobDir<'a> {
-    fn from(value: &'a Vec<String>) -> Self {
-        Self(value.iter().map(|s| s.as_str()).collect())
-    }
-}
-
-impl<'a> IntoIterator for TeraGlobDir<'a> {
-    type Item = &'a str;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl<'a> std::fmt::Display for TeraGlobDir<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.join(","))
-    }
-}
-
 /// Loads the glob and find all files matching that glob,
 /// returning a list of (path, filename)
 pub fn load_from_glob(glob: &str) -> TeraResult<Vec<(PathBuf, String)>> {
