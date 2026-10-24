@@ -42,6 +42,8 @@ pub struct State<'tera> {
     pub(crate) capture_block: Option<&'tera str>,
     /// The buffer just for the one block we want to return
     pub(crate) block_buffer: Vec<u8>,
+    /// Set once `capture_block` has been rendered, nothing after it can change it
+    pub(crate) block_captured: bool,
 
     /// (block name, all_chunks, level).
     pub(crate) blocks: Vec<(&'tera str, &'tera Vec<Chunk>, usize)>,
@@ -85,6 +87,7 @@ impl<'t> State<'t> {
             include_parent: None,
             capture_block: None,
             block_buffer: Vec::new(),
+            block_captured: false,
             blocks: Vec::new(),
             current_block_name: None,
             filters: None,
