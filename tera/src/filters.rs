@@ -8,7 +8,7 @@ use crate::utils;
 use crate::value::number::Number;
 use crate::value::{FunctionResult, Key, Map, ValueKind};
 use crate::vm::state::State;
-use crate::{HashMap, StringInput, Value};
+use crate::{HashMap, HashSet, StringInput, Value};
 
 /// The filter function type definition
 pub trait Filter<Arg, Res: FunctionResult>: Sync + Send + 'static {
@@ -612,16 +612,49 @@ pub(crate) fn sort(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Vec<V
     }
 }
 
+/// A hashable key that is equal for two values exactly when `Value::eq` says they are.
+/// Integral floats get the key of the integer they equal so `1` and `1.0` collide.
+fn unique_key(v: &Value) -> Option<Key<'_>> {
+    if let Some(s) = v.as_str() {
+        return Some(Key::Str(s));
+    }
+    if v.is_f64() {
+        let f = v.as_f64()?;
+        // NaN and infinities have a NaN fract so they end up here too
+        return if f.fract() != 0.0 {
+            None
+        } else if f >= i128::MIN as f64 && f < i128::MAX as f64 {
+            Some(Key::I128(f as i128))
+        } else if f >= 0.0 && f < u128::MAX as f64 {
+            Some(Key::U128(f as u128))
+        } else {
+            None
+        };
+    }
+    v.as_key().ok()
+}
+
 pub(crate) fn unique(val: &[Value], _: Kwargs, _: &State) -> Vec<Value> {
     if val.is_empty() {
         return Vec::new();
     }
 
-    // Using a set cause issues with maps because we do impl some Ord which messes up things
     let mut res = Vec::with_capacity(val.len());
+    let mut seen = HashSet::with_capacity(val.len());
+    // Maps, arrays and non-integral floats can't go in the set (our Ord impl can't tell maps
+    // apart) but they can only equal each other, so they get a linear scan among themselves
+    let mut seen_unhashable: Vec<&Value> = Vec::new();
 
     for v in val {
-        if !res.contains(v) {
+        let is_new = match unique_key(v) {
+            Some(key) => seen.insert(key),
+            None if seen_unhashable.contains(&v) => false,
+            None => {
+                seen_unhashable.push(v);
+                true
+            }
+        };
+        if is_new {
             res.push(v.clone());
         }
     }
