@@ -202,6 +202,8 @@ impl<'k> ArgFromValue<'k> for Cow<'_, str> {
     fn from_value(value: &'k Value) -> TeraResult<Self::Output> {
         match &value.inner {
             ValueInner::String(s) => Ok(Cow::Borrowed(s.as_str())),
+            // Undefined displays as empty, which would hide missing variables.
+            ValueInner::Undefined => Err(Error::invalid_arg_type("string", "undefined")),
             _ => Ok(Cow::Owned(format!("{value}"))),
         }
     }

@@ -33,6 +33,8 @@ fn handles_undefined_correctly() {
         ("{% if hey.other or true %}truthy{% endif %}", None),
         ("{{ m.key | default(value='fallback') }}", Some("fallback")),
         ("{{ m.key.foo | default(value='fallback') }}", None),
+        ("{{ hey | safe }}", None),
+        ("{{ m.key | safe }}", None),
     ];
 
     for (input, expected) in tests {
