@@ -155,13 +155,21 @@ pub(crate) fn rem(lhs: &Value, rhs: &Value) -> TeraResult<Value> {
             }
 
             let val = match (left, right) {
-                (Number::Integer(a), Number::Integer(b)) => match a.checked_rem_euclid(b) {
-                    Some(val) => Value::from(val),
+                (Number::Integer(a), Number::Integer(b)) => match a.checked_rem(b) {
+                    Some(r) if r != 0 && (r < 0) != (b < 0) => Value::from(r + b),
+                    Some(r) => Value::from(r),
                     None => {
                         return Err(Error::message(format!("Unable to perform {lhs} % {rhs}")));
                     }
                 },
-                (Number::Float(a), Number::Float(b)) => Value::from(a.rem_euclid(b)),
+                (Number::Float(a), Number::Float(b)) => {
+                    let r = a % b;
+                    if r != 0.0 && (r < 0.0) != (b < 0.0) {
+                        Value::from(r + b)
+                    } else {
+                        Value::from(r)
+                    }
+                }
                 _ => unreachable!(),
             };
             Ok(val)
@@ -198,13 +206,14 @@ pub(crate) fn floor_div(lhs: &Value, rhs: &Value) -> TeraResult<Value> {
             }
 
             let val = match (left, right) {
-                (Number::Integer(a), Number::Integer(b)) => match a.checked_div_euclid(b) {
-                    Some(val) => Value::from(val),
+                (Number::Integer(a), Number::Integer(b)) => match a.checked_div(b) {
+                    Some(q) if a % b != 0 && (a < 0) != (b < 0) => Value::from(q - 1),
+                    Some(q) => Value::from(q),
                     None => {
                         return Err(Error::message(format!("Unable to perform {lhs} // {rhs}")));
                     }
                 },
-                (Number::Float(a), Number::Float(b)) => Value::from(a.div_euclid(b)),
+                (Number::Float(a), Number::Float(b)) => Value::from((a / b).floor()),
                 _ => unreachable!(),
             };
             Ok(val)
@@ -305,5 +314,24 @@ mod tests {
         assert!(err.to_string().contains("Unable to perform"));
         let err = add(&Value::from(u128::MAX), &Value::from(0u64)).unwrap_err();
         assert!(err.to_string().contains("out of range"));
+    }
+
+    #[test]
+    fn floor_div_and_rem_round_towards_negative_infinity() {
+        let cases = [
+            (7, 2, 3, 1),
+            (-7, 2, -4, 1),
+            (7, -2, -4, -1),
+            (-7, -2, 3, -1),
+            (6, -3, -2, 0),
+        ];
+        for (a, b, q, r) in cases {
+            let (a, b) = (Value::from(a), Value::from(b));
+            assert_eq!(floor_div(&a, &b).unwrap(), Value::from(q), "{a} // {b}");
+            assert_eq!(rem(&a, &b).unwrap(), Value::from(r), "{a} % {b}");
+        }
+        let (a, b) = (Value::from(7.0), Value::from(-2.0));
+        assert_eq!(floor_div(&a, &b).unwrap(), Value::from(-4.0));
+        assert_eq!(rem(&a, &b).unwrap(), Value::from(-1.0));
     }
 }
