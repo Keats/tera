@@ -664,7 +664,10 @@ pub(crate) fn group_by(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<M
     }
 
     let attribute = kwargs.must_get::<&str>("attribute")?;
-    let mut grouped: HashMap<Key, Vec<Value>> = HashMap::new();
+    // Groups are kept in the order their key is first seen so the output is stable
+    // with `preserve_order`
+    let mut grouped: Vec<(Key, Vec<Value>)> = Vec::new();
+    let mut group_index: HashMap<Key, usize> = HashMap::new();
     for (i, v) in val.iter().enumerate() {
         match v.get_from_path(attribute) {
             None => {
@@ -676,10 +679,11 @@ pub(crate) fn group_by(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<M
             Some(x) if x.is_none() => (),
             Some(x) => {
                 let key = x.as_key()?;
-                if let Some(arr) = grouped.get_mut(&key) {
-                    arr.push(v.clone());
+                if let Some(&idx) = group_index.get(&key) {
+                    grouped[idx].1.push(v.clone());
                 } else {
-                    grouped.insert(key, vec![v.clone()]);
+                    group_index.insert(key.clone(), grouped.len());
+                    grouped.push((key, vec![v.clone()]));
                 }
             }
         }
@@ -870,6 +874,35 @@ mod tests {
             round(2.245, Kwargs::from([("precision", 2.into())]), &state).unwrap(),
             (2.25).into()
         );
+    }
+
+    #[cfg(feature = "preserve_order")]
+    #[test]
+    fn group_by_keeps_first_seen_order() {
+        let ctx = Context::new();
+        let state = State::new(&ctx);
+        let years = [
+            2025, 2018, 2023, 2018, 2020, 2016, 2025, 2021, 2019, 2024, 2017, 2022,
+        ];
+        let posts: Vec<Value> = years
+            .iter()
+            .map(|year| {
+                let mut post = Map::new();
+                post.insert("year".into(), (*year).into());
+                Value::from(post)
+            })
+            .collect();
+
+        let grouped =
+            group_by(&posts, Kwargs::from([("attribute", "year".into())]), &state).unwrap();
+        let keys: Vec<String> = grouped.keys().map(|k| k.to_string()).collect();
+        assert_eq!(
+            keys,
+            [
+                "2025", "2018", "2023", "2020", "2016", "2021", "2019", "2024", "2017", "2022"
+            ]
+        );
+        assert_eq!(grouped[&Key::I64(2018)].len(), Some(2));
     }
 
     #[cfg(feature = "unicode")]
