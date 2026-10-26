@@ -1468,6 +1468,10 @@ impl Tera {
 
     /// Renders a block by name with the given context.
     ///
+    /// Rendering stops as soon as the block has been rendered, so nothing after it in the
+    /// template is evaluated. With the same context, `render` can therefore fail (an undefined
+    /// variable further down, say) where `render_block` succeeds.
+    ///
     /// # Examples
     ///
     /// ```
@@ -1497,6 +1501,10 @@ impl Tera {
     }
 
     /// Renders a block by name with the given context to something that implements [`Write`].
+    ///
+    /// Rendering stops as soon as the block has been rendered, so nothing after it in the
+    /// template is evaluated. With the same context, `render` can therefore fail (an undefined
+    /// variable further down, say) where `render_block` succeeds.
     ///
     /// # Examples
     ///
@@ -2049,5 +2057,44 @@ mod tests {
             .render_block("nested.html", "outer", &Context::new())
             .unwrap();
         assert_eq!(outer, "<o>inner</o>");
+    }
+
+    #[test]
+    fn render_block_stops_after_the_block() {
+        let mut tera = Tera::default();
+        tera.add_raw_templates(vec![
+            (
+                "base.html",
+                "{% block outer %}<o>{% block inner %}inner{% endblock %}{{ missing }}</o>{% endblock %}{{ missing }}",
+            ),
+            (
+                "child.html",
+                "{% extends \"base.html\" %}{% block inner %}child-{{super()}}{% endblock %}",
+            ),
+            (
+                "outer.html",
+                "{% extends \"base.html\" %}{% block outer %}{{super()}}{{ missing }}{% endblock %}",
+            ),
+        ])
+        .unwrap();
+
+        // Nothing after the block is rendered so the undefined variables are never reached
+        let inner = tera
+            .render_block("base.html", "inner", &Context::new())
+            .unwrap();
+        assert_eq!(inner, "inner");
+        let inner = tera
+            .render_block("child.html", "inner", &Context::new())
+            .unwrap();
+        assert_eq!(inner, "child-inner");
+        let inner = tera
+            .render_block("outer.html", "inner", &Context::new())
+            .unwrap();
+        assert_eq!(inner, "inner");
+        // The block itself still errors
+        assert!(
+            tera.render_block("base.html", "outer", &Context::new())
+                .is_err()
+        );
     }
 }

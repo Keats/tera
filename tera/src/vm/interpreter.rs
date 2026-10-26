@@ -504,6 +504,9 @@ impl<'tera> VirtualMachine<'tera> {
                         state.chunk = old_chunk;
                         state.blocks[pos].2 = level;
                         res?;
+                        if state.block_captured {
+                            return Ok(());
+                        }
                         let val = String::from_utf8(super_output)?;
                         state
                             .stack
@@ -587,6 +590,7 @@ impl<'tera> VirtualMachine<'tera> {
                         let mut buf = Vec::with_capacity(256);
                         let r = self.interpret(state, &mut buf);
                         state.block_buffer = buf;
+                        state.block_captured = true;
                         r
                     } else {
                         self.interpret(state, output)
@@ -595,6 +599,9 @@ impl<'tera> VirtualMachine<'tera> {
                     state.current_block_name = old_block_name;
                     state.blocks.pop();
                     res?;
+                    if state.block_captured {
+                        return Ok(());
+                    }
                 }
                 Instruction::Jump(target_ip) => {
                     ip = *target_ip;
