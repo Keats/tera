@@ -618,18 +618,8 @@ fn unique_key(v: &Value) -> Option<Key<'_>> {
     if let Some(s) = v.as_str() {
         return Some(Key::Str(s));
     }
-    if v.is_f64() {
-        let f = v.as_f64()?;
-        // NaN and infinities have a NaN fract so they end up here too
-        return if f.fract() != 0.0 {
-            None
-        } else if f >= i128::MIN as f64 && f < i128::MAX as f64 {
-            Some(Key::I128(f as i128))
-        } else if f >= 0.0 && f < u128::MAX as f64 {
-            Some(Key::U128(f as u128))
-        } else {
-            None
-        };
+    if v.is_number() {
+        return v.as_number()?.as_integer().map(Key::I128);
     }
     v.as_key().ok()
 }
@@ -640,9 +630,10 @@ pub(crate) fn unique(val: &[Value], _: Kwargs, _: &State) -> Vec<Value> {
     }
 
     let mut res = Vec::with_capacity(val.len());
-    let mut seen = HashSet::with_capacity(val.len());
-    // Maps, arrays and non-integral floats can't go in the set (our Ord impl can't tell maps
-    // apart) but they can only equal each other, so they get a linear scan among themselves
+    let mut seen = HashSet::new();
+    // Maps, arrays, non-integral floats and numbers outside i128 can't go in the set (our Ord
+    // impl can't tell maps apart) but they can only equal each other, so they get a linear scan
+    // among themselves
     let mut seen_unhashable: Vec<&Value> = Vec::new();
 
     for v in val {
@@ -830,6 +821,24 @@ mod tests {
         // Doesn't make sense
         assert!(int("hello".into(), Kwargs::default(), &state).is_err());
         assert!(int(vec![1, 2].into(), Kwargs::default(), &state).is_err());
+    }
+
+    #[test]
+    fn test_unique_numbers_outside_i128() {
+        let ctx = Context::new();
+        let state = State::new(&ctx);
+        let big = 1_u128 << 127;
+        let input: Vec<Value> = vec![
+            big.into(),
+            (big as f64).into(),
+            u128::MAX.into(),
+            1.into(),
+            1.0.into(),
+        ];
+        assert_eq!(
+            unique(&input, Kwargs::default(), &state),
+            vec![Value::from(big), u128::MAX.into(), 1.into()]
+        );
     }
 
     #[test]
