@@ -2021,6 +2021,27 @@ mod tests {
     }
 
     #[test]
+    fn render_block_inside_capture() {
+        let mut tera = Tera::default();
+        tera.add_raw_templates(vec![
+            (
+                "filter.html",
+                "{% filter upper %}{% block content %}hello{% endblock %}{% endfilter %}",
+            ),
+            (
+                "set.html",
+                "{% set x %}{% block content %}hello{% endblock %}{% endset %}",
+            ),
+        ])
+        .unwrap();
+
+        for name in ["filter.html", "set.html"] {
+            let result = tera.render_block(name, "content", &Context::new()).unwrap();
+            assert_eq!(result, "hello", "{name}");
+        }
+    }
+
+    #[test]
     fn render_block_works() {
         let mut tera = Tera::default();
         tera.add_raw_templates(vec![

@@ -588,7 +588,9 @@ impl<'tera> VirtualMachine<'tera> {
                     let old_block_name = state.current_block_name.replace(block_name);
                     let res = if state.capture_block == Some(block_name.as_str()) {
                         let mut buf = Vec::with_capacity(256);
+                        let old_capture_buffers = std::mem::take(&mut state.capture_buffers);
                         let r = self.interpret(state, &mut buf);
+                        state.capture_buffers = old_capture_buffers;
                         state.block_buffer = buf;
                         state.block_captured = true;
                         r
