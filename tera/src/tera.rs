@@ -1468,6 +1468,10 @@ impl Tera {
 
     /// Renders a block by name with the given context.
     ///
+    /// Rendering stops as soon as the block has been rendered, so nothing after it in the
+    /// template is evaluated. With the same context, `render` can therefore fail (an undefined
+    /// variable further down, say) where `render_block` succeeds.
+    ///
     /// # Examples
     ///
     /// ```
@@ -1497,6 +1501,10 @@ impl Tera {
     }
 
     /// Renders a block by name with the given context to something that implements [`Write`].
+    ///
+    /// Rendering stops as soon as the block has been rendered, so nothing after it in the
+    /// template is evaluated. With the same context, `render` can therefore fail (an undefined
+    /// variable further down, say) where `render_block` succeeds.
     ///
     /// # Examples
     ///
