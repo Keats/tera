@@ -115,16 +115,47 @@ pub fn escape_html(input: &str, buf: &mut dyn std::io::Write) -> std::io::Result
 
     #[cfg(not(feature = "fast_escape"))]
     {
-        for c in input.as_bytes() {
-            match c {
-                b'&' => buf.write_all(b"&amp;")?,
-                b'<' => buf.write_all(b"&lt;")?,
-                b'>' => buf.write_all(b"&gt;")?,
-                b'"' => buf.write_all(b"&quot;")?,
-                b'\'' => buf.write_all(b"&#39;")?,
-                _ => buf.write_all(&[*c])?,
+        // Write the unescaped runs in one go: `buf` is a `dyn Write`, so a call per byte is slow
+        let bytes = input.as_bytes();
+        let mut start = 0;
+        for (i, c) in bytes.iter().enumerate() {
+            let escaped: &[u8] = match c {
+                b'&' => b"&amp;",
+                b'<' => b"&lt;",
+                b'>' => b"&gt;",
+                b'"' => b"&quot;",
+                b'\'' => b"&#39;",
+                _ => continue,
             };
+            buf.write_all(&bytes[start..i])?;
+            buf.write_all(escaped)?;
+            start = i + 1;
         }
-        Ok(())
+        buf.write_all(&bytes[start..])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn can_escape_html() {
+        let tests = vec![
+            ("", ""),
+            ("no special chars", "no special chars"),
+            ("<b>", "&lt;b&gt;"),
+            ("&&", "&amp;&amp;"),
+            (
+                r#"<a href="x">it's</a>"#,
+                "&lt;a href=&quot;x&quot;&gt;it&#39;s&lt;/a&gt;",
+            ),
+            ("é <ü> ✓", "é &lt;ü&gt; ✓"),
+        ];
+        for (input, expected) in tests {
+            let mut buf = Vec::new();
+            escape_html(input, &mut buf).unwrap();
+            assert_eq!(String::from_utf8(buf).unwrap(), expected);
+        }
     }
 }
