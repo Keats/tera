@@ -5,3 +5,4 @@
 {{ [{'a': 1}, {'a': 2}] | unique | length }}
 {{ [{'a': 1}, {'a': 1}, {'b': 1}] | unique | length }}
 {{ [[1], [2], [1], {'a': 1}, {'a': 1}, 1, 1.0] | unique | length }}
+{{ [2.0, 2, 1.5, 1.5, 'a', 'a' | safe, true, true, 1, -0.0, 0, none, none] | unique | safe }}

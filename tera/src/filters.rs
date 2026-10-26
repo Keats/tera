@@ -8,7 +8,7 @@ use crate::utils;
 use crate::value::number::Number;
 use crate::value::{FunctionResult, Key, Map, ValueKind};
 use crate::vm::state::State;
-use crate::{HashMap, StringInput, Value};
+use crate::{HashMap, HashSet, StringInput, Value};
 
 /// The filter function type definition
 pub trait Filter<Arg, Res: FunctionResult>: Sync + Send + 'static {
@@ -612,16 +612,40 @@ pub(crate) fn sort(val: &[Value], kwargs: Kwargs, _: &State) -> TeraResult<Vec<V
     }
 }
 
+/// A hashable key that is equal for two values exactly when `Value::eq` says they are.
+/// Integral floats get the key of the integer they equal so `1` and `1.0` collide.
+fn unique_key(v: &Value) -> Option<Key<'_>> {
+    if let Some(s) = v.as_str() {
+        return Some(Key::Str(s));
+    }
+    if v.is_number() {
+        return v.as_number()?.as_integer().map(Key::I128);
+    }
+    v.as_key().ok()
+}
+
 pub(crate) fn unique(val: &[Value], _: Kwargs, _: &State) -> Vec<Value> {
     if val.is_empty() {
         return Vec::new();
     }
 
-    // Using a set cause issues with maps because we do impl some Ord which messes up things
     let mut res = Vec::with_capacity(val.len());
+    let mut seen = HashSet::new();
+    // Maps, arrays, non-integral floats and numbers outside i128 can't go in the set (our Ord
+    // impl can't tell maps apart) but they can only equal each other, so they get a linear scan
+    // among themselves
+    let mut seen_unhashable: Vec<&Value> = Vec::new();
 
     for v in val {
-        if !res.contains(v) {
+        let is_new = match unique_key(v) {
+            Some(key) => seen.insert(key),
+            None if seen_unhashable.contains(&v) => false,
+            None => {
+                seen_unhashable.push(v);
+                true
+            }
+        };
+        if is_new {
             res.push(v.clone());
         }
     }
@@ -797,6 +821,24 @@ mod tests {
         // Doesn't make sense
         assert!(int("hello".into(), Kwargs::default(), &state).is_err());
         assert!(int(vec![1, 2].into(), Kwargs::default(), &state).is_err());
+    }
+
+    #[test]
+    fn test_unique_numbers_outside_i128() {
+        let ctx = Context::new();
+        let state = State::new(&ctx);
+        let big = 1_u128 << 127;
+        let input: Vec<Value> = vec![
+            big.into(),
+            (big as f64).into(),
+            u128::MAX.into(),
+            1.into(),
+            1.0.into(),
+        ];
+        assert_eq!(
+            unique(&input, Kwargs::default(), &state),
+            vec![Value::from(big), u128::MAX.into(), 1.into()]
+        );
     }
 
     #[test]
