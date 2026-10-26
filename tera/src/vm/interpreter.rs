@@ -504,6 +504,9 @@ impl<'tera> VirtualMachine<'tera> {
                         state.chunk = old_chunk;
                         state.blocks[pos].2 = level;
                         res?;
+                        if state.block_captured {
+                            return Ok(());
+                        }
                         let val = String::from_utf8(super_output)?;
                         state
                             .stack

@@ -2063,6 +2063,10 @@ mod tests {
                 "child.html",
                 "{% extends \"base.html\" %}{% block inner %}child-{{super()}}{% endblock %}",
             ),
+            (
+                "outer.html",
+                "{% extends \"base.html\" %}{% block outer %}{{super()}}{{ missing }}{% endblock %}",
+            ),
         ])
         .unwrap();
 
@@ -2075,6 +2079,10 @@ mod tests {
             .render_block("child.html", "inner", &Context::new())
             .unwrap();
         assert_eq!(inner, "child-inner");
+        let inner = tera
+            .render_block("outer.html", "inner", &Context::new())
+            .unwrap();
+        assert_eq!(inner, "inner");
         // The block itself still errors
         assert!(
             tera.render_block("base.html", "outer", &Context::new())
