@@ -133,14 +133,14 @@ impl Tera {
 
         // Insert globs already registered
         for dir in self.glob.iter() {
-            all_glob_entries.extend(load_from_glob(dir)?.into_iter());
+            all_glob_entries.extend(load_from_glob(dir)?);
         }
 
         // Add new globs
         let is_new_and_valid = !glob.is_empty() && self.glob.insert(glob.to_string());
 
         if is_new_and_valid {
-            all_glob_entries.extend(load_from_glob(glob)?.into_iter());
+            all_glob_entries.extend(load_from_glob(glob)?);
         }
 
         let result = {
@@ -181,7 +181,7 @@ impl Tera {
     /// Templates added manually are preserved.
     #[cfg(feature = "glob_fs")]
     pub fn full_reload(&mut self) -> TeraResult<()> {
-        if self.glob.len() > 0 {
+        if !self.glob.is_empty() {
             self.load_from_glob("")
         } else {
             Err(Error::message(
