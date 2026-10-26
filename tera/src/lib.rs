@@ -64,6 +64,7 @@
 //! [Django]: https://docs.djangoproject.com/en/3.1/topics/templates/
 
 #![deny(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod args;
 mod components;
