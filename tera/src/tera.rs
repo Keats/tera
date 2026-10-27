@@ -68,7 +68,7 @@ pub struct Tera {
     /// The glob used to load templates if there was one.
     /// Only used if the `glob_fs` feature is turned on
     #[allow(dead_code)]
-    pub(crate) glob: HashSet<String>,
+    pub(crate) glob: Vec<String>,
     pub(crate) templates: HashMap<String, Template>,
     /// Which extensions does Tera automatically autoescape on.
     /// Defaults to [".html", ".htm", ".xml"]
@@ -137,9 +137,11 @@ impl Tera {
         }
 
         // Add new globs
-        let is_new_and_valid = !glob.is_empty() && self.glob.insert(glob.to_string());
+        let is_new = self.glob.iter().find(|p| p.as_str() == glob).is_none();
+        let is_new_and_valid = !glob.is_empty() && is_new;
 
         if is_new_and_valid {
+            self.glob.push(glob.to_string());
             all_glob_entries.extend(load_from_glob(glob)?);
         }
 
@@ -1547,7 +1549,7 @@ impl Tera {
 impl Default for Tera {
     fn default() -> Self {
         let mut tera = Self {
-            glob: HashSet::new(),
+            glob: Vec::new(),
             templates: HashMap::new(),
             autoescape_suffixes: vec![
                 Cow::Borrowed(".html"),
