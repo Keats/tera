@@ -103,9 +103,6 @@ impl Tera {
     /// the `templates` folder, while the glob pattern `templates/**/*.html` will match all files
     /// with the `.html` extension directly inside or in a subdirectory of `templates`.
     ///
-    /// If this function is called multiple times, it adds each glob directory and finds templates from
-    /// all registered directories. Duplicate directories are ignored.
-    ///
     /// # Examples
     ///
     /// Basic usage:
@@ -114,8 +111,6 @@ impl Tera {
     /// # use tera::Tera;
     /// let mut tera = Tera::default();
     /// tera.load_from_glob("examples/basic/templates/**/*").unwrap();
-    ///
-    /// tera.load_from_glob("examples/dashboard/**/*").unwrap();
     /// ```
     #[cfg(feature = "glob_fs")]
     pub fn load_from_glob(&mut self, glob: &str) -> TeraResult<()> {
@@ -129,53 +124,92 @@ impl Tera {
             .map(|(name, tpl)| (name.clone(), tpl.clone()))
             .collect();
 
+        let result = self.load_glob_inner(glob, false);
+
+        // Reset to what was there before
+        if result.is_err() {
+            self.templates = prev_templates;
+            self.glob = prev_glob;
+        }
+
+        result
+    }
+
+    /// Shared logic in load_from_glob and add_from_glob
+    fn load_glob_inner(&mut self, glob: &str, is_add: bool) -> TeraResult<()> {
+        let mut errors = Vec::new();
         let mut all_glob_entries = Vec::new();
 
         // Add new globs
         let is_new = self.glob.iter().find(|p| p.as_str() == glob).is_none();
         let is_new_and_valid = !glob.is_empty() && is_new;
 
-        let result = {
-            let mut errors = Vec::new();
-
-            // Insert globs already registered
+        // Insert globs already registered
+        if is_add {
             for dir in self.glob.iter() {
                 match load_from_glob(dir) {
                     Ok(p) => all_glob_entries.extend(p),
                     Err(e) => errors.push(format!("Failed to read glob directory {}: {e}", dir)),
                 }
             }
+        }
 
-            if is_new_and_valid {
-                self.glob.push(glob.to_string());
+        if is_new_and_valid {
+            self.glob.push(glob.to_string());
 
-                match load_from_glob(glob) {
-                    Ok(p) => all_glob_entries.extend(p),
-                    Err(e) => errors.push(format!("Failed to read glob directory {}: {e}", glob)),
-                }
+            match load_from_glob(glob) {
+                Ok(p) => all_glob_entries.extend(p),
+                Err(e) => errors.push(format!("Failed to read glob directory {}: {e}", glob)),
             }
+        }
 
-            for (path, name) in all_glob_entries {
-                match self.add_file(&path, Some(&name)) {
-                    Ok((key, _)) => {
-                        if let Some(tpl) = self.templates.get_mut(&key) {
-                            tpl.from_glob = true;
-                        }
+        for (path, name) in all_glob_entries {
+            match self.add_file(&path, Some(&name)) {
+                Ok((key, _)) => {
+                    if let Some(tpl) = self.templates.get_mut(&key) {
+                        tpl.from_glob = true;
                     }
-                    Err(e) => errors.push(format!("Failed to load {}: {e}", path.display())),
                 }
+                Err(e) => errors.push(format!("Failed to load {}: {e}", path.display())),
             }
-            if !errors.is_empty() {
-                Err(Error::message(errors.join("\n")))
-            } else {
-                self.finalize_templates()
-            }
-        };
+        }
+        if !errors.is_empty() {
+            Err(Error::message(errors.join("\n")))
+        } else {
+            self.finalize_templates()
+        }
+    }
+
+    /// Adds an additional glob directory for template search and registry.
+    /// Duplicate directories are ignored. See `Tera::load_from_glob` for more details.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use tera::Tera;
+    /// let mut tera = Tera::default();
+    /// tera.load_from_glob("examples/basic/templates/**/*").unwrap();
+    ///
+    /// tera.add_from_glob("examples/second_glob/**/*").unwrap();
+    /// ```
+    #[cfg(feature = "glob_fs")]
+    pub fn add_from_glob(&mut self, glob: &str) -> TeraResult<()> {
+        let prev_templates = std::mem::take(&mut self.templates);
+
+        // we keep manually-added templates
+        self.templates = prev_templates
+            .iter()
+            .filter(|(_, tpl)| !tpl.from_glob)
+            .map(|(name, tpl)| (name.clone(), tpl.clone()))
+            .collect();
+
+        let result = self.load_glob_inner(glob, true);
 
         // Reset to what was there before
         if result.is_err() {
             self.templates = prev_templates;
-            self.glob = prev_glob;
         }
 
         result
@@ -192,7 +226,7 @@ impl Tera {
     #[cfg(feature = "glob_fs")]
     pub fn full_reload(&mut self) -> TeraResult<()> {
         if !self.glob.is_empty() {
-            self.load_from_glob("")
+            self.add_from_glob("")
         } else {
             Err(Error::message(
                 "Reloading is only available if you are using a glob",
@@ -1639,10 +1673,22 @@ mod tests {
         tera.load_from_glob("examples/basic/templates/**/*")
             .unwrap();
 
-        tera.load_from_glob("examples/second_glob/**/*").unwrap();
+        tera.add_from_glob("examples/second_glob/**/*").unwrap();
 
         assert!(tera.get_template("base.html").is_some());
         assert!(tera.get_template("globby_glob_globs.html").is_some());
+    }
+
+    #[cfg(feature = "glob_fs")]
+    #[test]
+    fn load_glob_replaces_previous_glob() {
+        let mut tera = Tera::default();
+        tera.load_from_glob("examples/second_glob/**/*").unwrap();
+        tera.load_from_glob("examples/basic/templates/**/*")
+            .unwrap();
+
+        assert!(tera.get_template("base.html").is_some());
+        assert!(tera.get_template("globby_glob_globs.html").is_none());
     }
 
     #[cfg(feature = "glob_fs")]
@@ -1652,7 +1698,7 @@ mod tests {
         tera.load_from_glob("examples/basic/templates/**/*")
             .unwrap();
 
-        tera.load_from_glob("examples/second_glob/**/*").unwrap();
+        tera.add_from_glob("examples/second_glob/**/*").unwrap();
 
         tera.full_reload().unwrap();
 
