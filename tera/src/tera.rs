@@ -136,6 +136,7 @@ impl Tera {
     }
 
     /// Shared logic in load_from_glob and add_from_glob
+    #[cfg(feature = "glob_fs")]
     fn load_glob_inner(&mut self, glob: &str, is_add: bool) -> TeraResult<()> {
         let mut errors = Vec::new();
         let mut all_glob_entries = Vec::new();
