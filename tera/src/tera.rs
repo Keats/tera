@@ -131,17 +131,20 @@ impl Tera {
 
         let mut all_glob_entries = Vec::new();
 
-        // Insert globs already registered
-        for dir in self.glob.iter() {
-            all_glob_entries.extend(load_from_glob(dir)?);
-        }
-
         // Add new globs
         let is_new = self.glob.iter().find(|p| p.as_str() == glob).is_none();
         let is_new_and_valid = !glob.is_empty() && is_new;
 
         let result = {
             let mut errors = Vec::new();
+
+            // Insert globs already registered
+            for dir in self.glob.iter() {
+                match load_from_glob(dir) {
+                    Ok(p) => all_glob_entries.extend(p),
+                    Err(e) => errors.push(format!("Failed to read glob directory {}: {e}", dir)),
+                }
+            }
 
             if is_new_and_valid {
                 self.glob.push(glob.to_string());
