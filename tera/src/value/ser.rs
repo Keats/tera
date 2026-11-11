@@ -9,6 +9,8 @@ use crate::value::{Map, SmartString, StringKind, Value, ValueInner};
 
 /// Magic name we use in serde to mean we already have a Value
 const VALUE_PASSTHROUGH_NAME: &str = "$__tera::private::Value";
+/// Magic name used by serde_json to store arbitrary-precision numbers
+const SERDE_JSON_NUMBER: &str = "$serde_json::private::Number";
 
 thread_local! {
     /// True while a `try_from_serializable` call is running on this thread.
@@ -215,12 +217,13 @@ impl Serializer for ValueSerializer {
 
     fn serialize_struct(
         self,
-        _name: &'static str,
+        name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Ok(SerializeStruct {
-            fields: Map::with_capacity(len),
-        })
+        if name == SERDE_JSON_NUMBER {
+            return Ok(SerializeStruct::SerdeJsonNumber(None));
+        }
+        Ok(SerializeStruct::Fields(Map::with_capacity(len)))
     }
 
     fn serialize_struct_variant(
@@ -534,8 +537,14 @@ impl ser::SerializeMap for SerializeMap {
     }
 }
 
-pub struct SerializeStruct {
-    fields: Map,
+pub enum SerializeStruct {
+    Fields(Map),
+    /// When `serde_json`'s feature `arbitrary_precision` is enabled, numbers
+    /// are represented as a struct with a special name and the number as a
+    /// single (string) field. If we did not handle this explicitly, serializing
+    /// such a struct would result in a map with a field with that special
+    /// struct name as its key.
+    SerdeJsonNumber(Option<Value>),
 }
 
 impl ser::SerializeStruct for SerializeStruct {
@@ -548,12 +557,58 @@ impl ser::SerializeStruct for SerializeStruct {
         value: &T,
     ) -> Result<(), Self::Error> {
         let value = value.serialize(ValueSerializer)?;
-        self.fields.insert(Key::Str(key), value);
+        match self {
+            SerializeStruct::Fields(fields) => {
+                fields.insert(Key::Str(key), value);
+            }
+            SerializeStruct::SerdeJsonNumber(num) => {
+                if num.is_some() {
+                    return Err(SerializationFailed(
+                        "expected serde_json number to have only one field".into(),
+                    ));
+                }
+                *num = Some(value);
+            }
+        }
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(ValueInner::Map(Arc::new(self.fields)).into())
+        let value = match self {
+            SerializeStruct::Fields(fields) => ValueInner::Map(Arc::new(fields)).into(),
+            SerializeStruct::SerdeJsonNumber(Some(value)) => {
+                let ValueInner::String(value) = value.inner else {
+                    return Err(SerializationFailed(
+                        "expected serde_json number to store a string".into(),
+                    ));
+                };
+                if let Ok(value) = value.as_str().parse::<u64>() {
+                    value.into()
+                } else if let Ok(value) = value.as_str().parse::<i64>() {
+                    value.into()
+                } else if let Ok(value) = value.as_str().parse::<u128>() {
+                    value.into()
+                } else if let Ok(value) = value.as_str().parse::<i128>() {
+                    value.into()
+                } else if let Ok(value) = value.as_str().parse::<f64>() {
+                    // At this point, we potentially lose precision compared
+                    // to serde_json with feature arbitrary_precision
+                    // enabled. That's fine, since Tera itself doesn't have an
+                    // arbitrary_precision feature.
+                    value.into()
+                } else {
+                    return Err(SerializationFailed(
+                        "serde_json number should parse at least as f64".into(),
+                    ));
+                }
+            }
+            SerializeStruct::SerdeJsonNumber(None) => {
+                return Err(SerializationFailed(
+                    "serde_json number should not be empty".into(),
+                ));
+            }
+        };
+        Ok(value)
     }
 }
 
@@ -668,5 +723,33 @@ mod tests {
             inner.as_map().unwrap(),
             entry.as_map().unwrap()
         ));
+    }
+
+    #[test]
+    fn arbitrary_precision_serde_json_numbers_serialize_to_numbers() {
+        let value: serde_json::Value = serde_json::from_str("1").unwrap();
+        let value = Value::from_serializable(&value);
+        assert!(value.is_u64());
+        assert_eq!(value, Value::from(1));
+
+        let value: serde_json::Value = serde_json::from_str("-1").unwrap();
+        let value = Value::from_serializable(&value);
+        assert!(value.is_i64());
+        assert_eq!(value, Value::from(-1));
+
+        let value: serde_json::Value = serde_json::from_str("100000000000000000000").unwrap();
+        let value = Value::from_serializable(&value);
+        assert!(value.is_u128());
+        assert_eq!(value, Value::from(100000000000000000000_u128));
+
+        let value: serde_json::Value = serde_json::from_str("-10000000000000000000").unwrap();
+        let value = Value::from_serializable(&value);
+        assert!(value.is_i128());
+        assert_eq!(value, Value::from(-10000000000000000000_i128));
+
+        let value: serde_json::Value = serde_json::from_str("1.1").unwrap();
+        let value = Value::from_serializable(&value);
+        assert!(value.is_f64());
+        assert_eq!(value, Value::from(1.1));
     }
 }
