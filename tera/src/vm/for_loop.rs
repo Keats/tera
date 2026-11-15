@@ -201,20 +201,21 @@ impl Loop {
 }
 
 #[derive(Debug)]
-pub(crate) struct ForLoop {
+pub(crate) struct ForLoop<'a> {
     iterator: ForLoopIterator,
     loop_data: Loop,
     pub(crate) end_ip: usize,
-    pub(crate) context: HashMap<String, Value>,
-    value_name: String,
-    key_name: Option<String>,
+    /// The names are borrowed from the chunk being run so we don't allocate them on every loop
+    pub(crate) context: HashMap<&'a str, Value>,
+    value_name: &'a str,
+    key_name: Option<&'a str>,
     current_values: (Option<Value>, Value),
     iterated: bool,
     /// List comprehension are desugared to for loops but we don't expose inner loop.* vars
     is_comprehension: bool,
 }
 
-impl ForLoop {
+impl<'a> ForLoop<'a> {
     pub fn new(container: Value) -> Self {
         let iterator =
             create_for_loop_iterator(&container).expect("Should only be called on iterable values");
@@ -232,7 +233,7 @@ impl ForLoop {
             loop_data,
             end_ip: 0,
             context: HashMap::new(),
-            value_name: String::new(), // Will be set by store_local
+            value_name: "", // Will be set by store_local
             key_name: None,
             current_values: (None, Value::undefined()), // Will be set by first advance()
             iterated: false,
@@ -246,13 +247,13 @@ impl ForLoop {
         for_loop
     }
 
-    pub(crate) fn store_local(&mut self, name: &str) {
+    pub(crate) fn store_local(&mut self, name: &'a str) {
         if self.key_name.is_none() && !self.value_name.is_empty() {
             // Second call - this is the key name
-            self.key_name = Some(name.to_string());
+            self.key_name = Some(name);
         } else {
             // First call - this is the value name
-            self.value_name = name.to_string();
+            self.value_name = name;
         }
     }
 
@@ -281,8 +282,8 @@ impl ForLoop {
         self.iterated
     }
 
-    pub(crate) fn store(&mut self, name: &str, value: Value) {
-        self.context.insert(name.to_string(), value);
+    pub(crate) fn store(&mut self, name: &'a str, value: Value) {
+        self.context.insert(name, value);
     }
 
     #[inline(always)]
@@ -313,7 +314,7 @@ impl ForLoop {
                     return Some(self.current_values.1.clone());
                 }
 
-                if self.key_name.as_deref() == Some(name) {
+                if self.key_name == Some(name) {
                     return Some(self.current_values.0.clone().unwrap_or(Value::none()));
                 }
 

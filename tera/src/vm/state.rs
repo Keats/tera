@@ -20,10 +20,11 @@ pub struct State<'tera> {
     pub(crate) stack: Stack,
     /// It can be None for things like tests as we don't expose Chunk outside of the crate
     pub(crate) chunk: Option<&'tera Chunk>,
-    pub(crate) for_loops: Vec<ForLoop>,
+    pub(crate) for_loops: Vec<ForLoop<'tera>>,
     /// Any variables with {% set %} outside a for loop or {% set_global %} will be stored here
     /// Locals set in a for loop are set in `for_loops`
-    set_variables: BTreeMap<String, Value>,
+    /// The names are borrowed from the chunk being run
+    set_variables: BTreeMap<&'tera str, Value>,
     pub(crate) context: &'tera Context,
     /// The global context from Tera, checked after user context
     pub(crate) global_context: Option<&'tera Context>,
@@ -96,7 +97,7 @@ impl<'t> State<'t> {
         }
     }
 
-    pub(crate) fn store_local(&mut self, name: &str, value: Value) {
+    pub(crate) fn store_local(&mut self, name: &'t str, value: Value) {
         if let Some(forloop) = self.for_loops.last_mut() {
             forloop.store(name, value);
         } else {
@@ -104,8 +105,8 @@ impl<'t> State<'t> {
         }
     }
 
-    pub(crate) fn store_global(&mut self, name: &str, value: Value) {
-        self.set_variables.insert(name.to_string(), value);
+    pub(crate) fn store_global(&mut self, name: &'t str, value: Value) {
+        self.set_variables.insert(name, value);
     }
 
     /// Loads the value with the current name on the stack
@@ -227,10 +228,14 @@ impl<'t> State<'t> {
             context.insert(k.to_string(), v.clone());
         }
         // set_variables override user context
-        context.extend(self.set_variables.clone());
+        for (k, v) in &self.set_variables {
+            context.insert(k.to_string(), v.clone());
+        }
 
         for forloop in &self.for_loops {
-            context.extend(forloop.context.clone());
+            for (k, v) in &forloop.context {
+                context.insert(k.to_string(), v.clone());
+            }
         }
 
         context.into()
@@ -277,12 +282,12 @@ impl<'t> State<'t> {
         }
 
         for k in self.set_variables.keys() {
-            vars.insert(k.clone());
+            vars.insert(k.to_string());
         }
 
         for forloop in &self.for_loops {
             for k in forloop.context.keys() {
-                vars.insert(k.clone());
+                vars.insert(k.to_string());
             }
         }
 
