@@ -1,0 +1,1 @@
+{{ name | truncate(length=10) }}{{ name | default(value=other) }}{{ get_url(path="a", cachebust=cachebust) }}{% if count is divisibleby(divisor=2) %}even{% endif %}

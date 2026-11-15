@@ -1,0 +1,29 @@
+---
+source: tera/src/snapshot_tests/compiler.rs
+expression: compiler.chunk
+input_file: tera/src/snapshot_tests/compiler_inputs/success/literal_kwargs.txt
+---
+=== literal_kwargs.txt ===
+0000 LoadName("name")
+0001 LoadConst(Map({String("length"): I64(10)}))
+0002 ApplyFilter("truncate")
+0003 WriteTop
+0004 LoadName("name")
+0005 LoadConst(String("value"))
+0006 LoadName("other")
+0007 BuildMap(1)
+0008 ApplyFilter("default")
+0009 WriteTop
+0010 LoadConst(String("cachebust"))
+0011 LoadName("cachebust")
+0012 LoadConst(String("path"))
+0013 LoadConst(String("a"))
+0014 BuildMap(2)
+0015 CallFunction("get_url")
+0016 WriteTop
+0017 LoadName("count")
+0018 LoadConst(Map({String("divisor"): I64(2)}))
+0019 RunTest("divisibleby")
+0020 PopJumpIfFalse(22)
+0021 WriteText("even")
+0022 WriteText("\n")

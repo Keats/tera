@@ -59,6 +59,18 @@ impl Compiler {
     }
 
     fn compile_kwargs(&mut self, kwargs: BTreeMap<String, Expression>) {
+        // Literal arguments can't change between renders: build the map once here rather than
+        // on every call
+        if !kwargs.is_empty() && kwargs.values().all(Expression::is_literal) {
+            let map: BTreeMap<String, Value> = kwargs
+                .into_iter()
+                .filter_map(|(key, value)| Some((key, value.as_value()?)))
+                .collect();
+            self.chunk
+                .add(Instruction::LoadConst(Value::from(map)), None);
+            return;
+        }
+
         let num_args = kwargs.len();
         // TODO: push a single instr for all keys as a Vec<String> like Python? bench first
         for (key, value) in kwargs {
