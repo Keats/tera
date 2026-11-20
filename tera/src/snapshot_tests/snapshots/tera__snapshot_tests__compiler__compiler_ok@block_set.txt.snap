@@ -11,8 +11,6 @@ input_file: tera/src/snapshot_tests/compiler_inputs/success/block_set.txt
 0004 EndCapture
 0005 BuildMap(0)
 0006 ApplyFilter("upper")
-0007 LoadConst(String("lang"))
-0008 LoadConst(String("fr"))
-0009 BuildMap(1)
-0010 ApplyFilter("trans")
-0011 Set("hero")
+0007 LoadConst(Map({String("lang"): String("fr")}))
+0008 ApplyFilter("trans")
+0009 Set("hero")

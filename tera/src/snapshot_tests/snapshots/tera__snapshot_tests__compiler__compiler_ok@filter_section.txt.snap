@@ -9,10 +9,8 @@ input_file: tera/src/snapshot_tests/compiler_inputs/success/filter_section.txt
 0002 WritePath(["world"])
 0003 WriteText("\n")
 0004 EndCapture
-0005 LoadConst(String("lang"))
-0006 LoadConst(String("fr"))
-0007 BuildMap(1)
-0008 ApplyFilter("capitalize")
-0009 BuildMap(0)
-0010 ApplyFilter("safe")
-0011 WriteTop
+0005 LoadConst(Map({String("lang"): String("fr")}))
+0006 ApplyFilter("capitalize")
+0007 BuildMap(0)
+0008 ApplyFilter("safe")
+0009 WriteTop
