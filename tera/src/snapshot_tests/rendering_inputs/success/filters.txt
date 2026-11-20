@@ -44,6 +44,8 @@ indent3:{{ "one\ntwo\nthree\n\n" | indent(blank=true) }}
 indent4:{{ "a\nb\n" | indent }}END
 indent5:{{ "a\n" | indent(blank=true) }}END
 indent6:{{ "one\ntwo\nthree" | indent(first=true, width=1, indentation="\t") }}
+indent7:{{ "a\n  \nb" | indent }}END
+indent8:{{ "a\n  \nb" | indent(blank=true) }}END
 {{ "name" | read_ctx }}
 {{ "vectors.1.2" | read_ctx }}
 {{ "objects.0.label" | read_ctx }}

@@ -309,7 +309,7 @@ pub(crate) fn indent(val: StringInput, kwargs: Kwargs, state: &State) -> TeraRes
             first_line = false
         } else {
             res.push('\n');
-            if !line.is_empty() || indent_blank_line {
+            if indent_blank_line || !line.trim_start().is_empty() {
                 res.push_str(&indent);
             }
         }

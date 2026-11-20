@@ -62,6 +62,12 @@ END
 indent6:	one
 	two
 	three
+indent7:a
+  
+    bEND
+indent8:a
+      
+    bEND
 Bob
 7
 Child
