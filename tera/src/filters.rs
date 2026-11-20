@@ -545,12 +545,17 @@ pub(crate) fn join(val: &[Value], kwargs: Kwargs, state: &State) -> TeraResult<V
         Ok(Value::safe_string(&parts.join(&*sep_rendered)))
     } else {
         let sep_str = sep.as_ref().map(|s| s.as_str()).unwrap_or("");
-        Ok(Value::from(
-            val.iter()
-                .map(|x| format!("{x}"))
-                .collect::<Vec<_>>()
-                .join(sep_str),
-        ))
+        let mut out = String::new();
+        for (i, x) in val.iter().enumerate() {
+            if i > 0 {
+                out.push_str(sep_str);
+            }
+            match x.as_str() {
+                Some(s) => out.push_str(s),
+                None => write!(out, "{x}").unwrap(),
+            }
+        }
+        Ok(Value::from(out))
     }
 }
 
