@@ -160,6 +160,17 @@ fn test_get_referenced_templates() {
         ("box.html", r#"{% extends "box_base.html" %}{% block b %}{% endblock %}"#),
         ("box_base.html", r#"{% block b %}{% endblock %}"#),
         ("uses_box.html", r#"{% include "box.html" %}{% include "box.html" %}"#),
+        (
+            "components.html",
+            r#"{% component Button(label) %}{% include "icon.html" %}{{<Badge/>}}{% endcomponent Button %}"#,
+        ),
+        ("badges.html", r#"{% component Badge() %}!{% endcomponent Badge %}"#),
+        ("icon.html", ""),
+        ("uses_button.html", r#"{{<Button label="Ok"/>}}"#),
+        (
+            "own_component.html",
+            r#"{% component Local() %}{% endcomponent Local %}{{<Local/>}}"#,
+        ),
     ])
     .unwrap();
 
@@ -181,6 +192,11 @@ fn test_get_referenced_templates() {
             HashSet::from(["box.html", "box_base.html"]),
         ),
         ("footer.html", HashSet::new()),
+        (
+            "uses_button.html",
+            HashSet::from(["components.html", "icon.html", "badges.html"]),
+        ),
+        ("own_component.html", HashSet::new()),
     ];
 
     for (template_name, expected) in expected_cases {
