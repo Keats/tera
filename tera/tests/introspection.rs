@@ -137,3 +137,75 @@ fn test_get_template_variables() {
         );
     }
 }
+
+#[test]
+fn test_get_referenced_templates() {
+    let mut tera = Tera::new();
+    tera.set_fallback_prefixes(["themes/cool/"]).unwrap();
+    tera.add_raw_templates(vec![
+        ("grandparent.html", r#"{% block content %}{% endblock %}{% include "footer.html" %}"#),
+        (
+            "parent.html",
+            r#"{% extends "grandparent.html" %}{% block content %}{% include "nav.html" %}{% endblock %}"#,
+        ),
+        (
+            "child.html",
+            r#"{% extends "parent.html" %}{% block content %}{% include "widget.html" %}{% endblock %}"#,
+        ),
+        ("widget.html", r#"{% include "widget_part.html" %}"#),
+        ("widget_part.html", ""),
+        ("footer.html", ""),
+        // only found through the fallback prefix
+        ("themes/cool/nav.html", ""),
+        ("box.html", r#"{% extends "box_base.html" %}{% block b %}{% endblock %}"#),
+        ("box_base.html", r#"{% block b %}{% endblock %}"#),
+        ("uses_box.html", r#"{% include "box.html" %}{% include "box.html" %}"#),
+        (
+            "components.html",
+            r#"{% component Button(label) %}{% include "icon.html" %}{{<Badge/>}}{% endcomponent Button %}"#,
+        ),
+        ("badges.html", r#"{% component Badge() %}!{% endcomponent Badge %}"#),
+        ("icon.html", ""),
+        ("uses_button.html", r#"{{<Button label="Ok"/>}}"#),
+        (
+            "own_component.html",
+            r#"{% component Local() %}{% endcomponent Local %}{{<Local/>}}"#,
+        ),
+    ])
+    .unwrap();
+
+    let expected_cases: Vec<(&str, HashSet<&str>)> = vec![
+        (
+            "child.html",
+            HashSet::from([
+                "parent.html",
+                "grandparent.html",
+                "footer.html",
+                "themes/cool/nav.html",
+                "widget.html",
+                "widget_part.html",
+            ]),
+        ),
+        ("widget.html", HashSet::from(["widget_part.html"])),
+        (
+            "uses_box.html",
+            HashSet::from(["box.html", "box_base.html"]),
+        ),
+        ("footer.html", HashSet::new()),
+        (
+            "uses_button.html",
+            HashSet::from(["components.html", "icon.html", "badges.html"]),
+        ),
+        ("own_component.html", HashSet::new()),
+    ];
+
+    for (template_name, expected) in expected_cases {
+        assert_eq!(
+            tera.get_referenced_templates(template_name).unwrap(),
+            expected,
+            "unexpected referenced templates for template `{template_name}`",
+        );
+    }
+
+    assert!(tera.get_referenced_templates("missing.html").is_err());
+}
