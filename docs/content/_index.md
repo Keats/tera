@@ -1125,8 +1125,8 @@ Removes duplicate items from an array.
 ##### group_by
 Groups an array using the required `attribute` argument. The filter takes an array and returns
 a map where the keys are the values of the `attribute` stringified and the values are all elements of
-the initial array having that `attribute`. Values with missing `attribute` or where `attribute` is null
-will be discarded.
+the initial array having that `attribute`. Values where `attribute` is null will be discarded, and
+the filter will error if `attribute` is missing on one of the values.
 
 Example:
 
