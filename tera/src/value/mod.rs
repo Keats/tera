@@ -1001,6 +1001,42 @@ impl Value {
             ValueInner::Array(arr) => Ok(slice_items(arr, start, end, step).into()),
             ValueInner::String(s) => {
                 let kind = s.kind();
+                if step == 1 {
+                    let text = s.as_str();
+                    // Nonnegative bounds can be resolved while scanning the requested prefix.
+                    // Only negative bounds need the full character/grapheme count.
+                    let len = if start.is_some_and(|x| x < 0) || end.is_some_and(|x| x < 0) {
+                        self.len().unwrap()
+                    } else {
+                        // An upper bound; the iterator below clamps to the actual end.
+                        text.len()
+                    } as i128;
+                    let resolve = |bound: Option<i128>, default: i128| {
+                        let index = bound.unwrap_or(default);
+                        let index = if index < 0 {
+                            index.saturating_add(len)
+                        } else {
+                            index
+                        };
+                        index.clamp(0, len) as usize
+                    };
+                    let start = resolve(start, 0);
+                    let end = resolve(end, len);
+                    let slice = if start >= end {
+                        ""
+                    } else {
+                        #[cfg(feature = "unicode")]
+                        let mut indices = text.grapheme_indices(true).map(|(i, _)| i);
+                        #[cfg(not(feature = "unicode"))]
+                        let mut indices = text.char_indices().map(|(i, _)| i);
+                        let from = indices.nth(start).unwrap_or(text.len());
+                        let to = indices.nth(end - start - 1).unwrap_or(text.len());
+                        &text[from..to]
+                    };
+                    return Ok(Value {
+                        inner: ValueInner::String(SmartString::new(slice, kind)),
+                    });
+                }
                 #[cfg(feature = "unicode")]
                 let input: Vec<&str> = s.as_str().graphemes(true).collect();
                 #[cfg(not(feature = "unicode"))]
@@ -1389,6 +1425,43 @@ impl<I: Into<Value>> FunctionResult for I {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn contiguous_string_slices_preserve_bounds_and_safety() {
+        for value in [Value::from("aé😀z"), Value::safe_string("aé😀z")] {
+            for (start, end, expected) in [
+                (None, None, "aé😀z"),
+                (Some(1), Some(3), "é😀"),
+                (Some(-3), Some(-1), "é😀"),
+                (Some(i128::MIN), Some(i128::MAX), "aé😀z"),
+                (Some(2), Some(1), ""),
+                (Some(100), Some(200), ""),
+                (None, Some(-100), ""),
+            ] {
+                let result = value.slice(start, end, Some(1)).unwrap();
+                assert_eq!(result.as_str(), Some(expected));
+                assert_eq!(result.is_safe(), value.is_safe());
+            }
+        }
+        assert_eq!(
+            Value::from("").slice(None, None, None).unwrap().as_str(),
+            Some("")
+        );
+    }
+
+    #[cfg(feature = "unicode")]
+    #[test]
+    fn contiguous_string_slices_use_grapheme_boundaries() {
+        let value = Value::from("e\u{0301}👩‍💻🇮🇳x");
+        assert_eq!(
+            value.slice(Some(1), Some(3), None).unwrap().as_str(),
+            Some("👩‍💻🇮🇳")
+        );
+        assert_eq!(
+            value.slice(Some(-4), Some(-3), None).unwrap().as_str(),
+            Some("e\u{0301}")
+        );
+    }
 
     // "école" with é = 'e' + U+0301
     #[cfg(not(feature = "unicode"))]
