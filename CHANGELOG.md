@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.0 (unreleased)
+
+- Skip whitespace-only lines in the indent filter unless blank=true
+- Make // and % floor for negative divisors to match other template engines
+- Error when the safe filter receives an undefined value
+
+
+
 ## 2.4.0 (2026-09-11)
 
 - Add implicit parameters for components
