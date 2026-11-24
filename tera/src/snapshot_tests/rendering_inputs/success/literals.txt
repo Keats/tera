@@ -26,3 +26,6 @@ Hello
 {{ {"hello": "world"}["hello"] }}
 {{ 1.0 }}
 {{ 3.5 - 0.5 }}
+{{ [none, 1, {"a": none, "b": [none]}] | safe }}
+[{{ none }}]
+{{ [none, 1] | join(sep=",") }}

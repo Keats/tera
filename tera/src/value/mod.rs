@@ -51,6 +51,7 @@ pub(crate) fn format_map(map: &Map, f: &mut impl std::io::Write) -> std::io::Res
         f.write_all(b": ")?;
         match &value.inner {
             ValueInner::String(smart_str) => write!(f, "{:?}", smart_str.as_str())?,
+            ValueInner::None => f.write_all(b"none")?,
             _ => value.format(f)?,
         }
     }
@@ -489,6 +490,7 @@ impl Value {
 
                     match &elem.inner {
                         ValueInner::String(v) => write!(f, "{:?}", v.as_str())?,
+                        ValueInner::None => f.write_all(b"none")?,
                         _ => elem.format(f)?,
                     }
                 }
