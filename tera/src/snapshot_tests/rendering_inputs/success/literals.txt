@@ -29,3 +29,5 @@ Hello
 {{ [none, 1, {"a": none, "b": [none]}] | safe }}
 [{{ none }}]
 {{ [none, 1] | join(sep=",") }}
+{{ [none, 1] | str }}
+{{ "a" ~ [none] }}

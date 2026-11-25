@@ -34,3 +34,5 @@ world
 [none, 1, {"a": none, "b": [none]}]
 []
 ,1
+[none, 1]
+a[none]
