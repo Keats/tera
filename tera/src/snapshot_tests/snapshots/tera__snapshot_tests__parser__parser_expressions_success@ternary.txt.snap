@@ -4,5 +4,5 @@ expression: Expressions(expr_nodes)
 input_file: tera/src/snapshot_tests/parser_inputs/success/expr/ternary.txt
 ---
 true if truthy else false
-1 if (== a b) else null
+1 if (== a b) else none
 'a' if (or (> a b) (> a c)) else 'b'

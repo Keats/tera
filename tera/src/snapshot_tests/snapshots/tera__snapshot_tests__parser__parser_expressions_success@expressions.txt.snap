@@ -92,8 +92,8 @@ three' indent{})
 <input{label: 'Name', type: 'text'}/>
 (| <input{}/> safe{})
 <input{n: (- a 1)}/>
-<input{label: null}/>
-(== a null)
+<input{label: none}/>
+(== a none)
 (+ 1 (| 2 round{}))
 (== a (| b upper{}))
 (** -2 2)

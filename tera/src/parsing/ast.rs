@@ -223,7 +223,7 @@ impl fmt::Display for Expression {
                     }
                     write!(f, "]")
                 }
-                ValueInner::None => write!(f, "null"),
+                ValueInner::None => write!(f, "none"),
                 ValueInner::Undefined => write!(f, "undefined"),
                 ValueInner::Bytes(_) => write!(f, "<bytes>"),
                 ValueInner::Map(s) => {

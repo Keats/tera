@@ -6,7 +6,7 @@
 - Make // and % floor for negative divisors to match other template engines
 - Error when the safe filter receives an undefined value
 - Add `Tera::get_referenced_templates` to know which template files are required to render a given template
-
+- Print `none` inside of arrays/map when the value is Value::None instead of nothing
 
 
 ## 2.4.0 (2026-09-11)
