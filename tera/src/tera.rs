@@ -80,6 +80,8 @@ pub struct Tera {
     pub(crate) tests: HashMap<Cow<'static, str>, StoredTest>,
     pub(crate) functions: HashMap<Cow<'static, str>, StoredFunction>,
     pub(crate) components: HashMap<String, (ComponentDefinition, Chunk)>,
+    /// The name of the template each component in `components` was defined in.
+    component_templates: HashMap<String, String>,
     /// Custom delimiters for template syntax
     delimiters: Delimiters,
     /// Fallback prefixes to try when a template is not found by exact name.
@@ -408,6 +410,58 @@ impl Tera {
         Ok(vars)
     }
 
+    /// Returns the names of all the templates that a template references through `extends`,
+    /// `include` and the components it calls, either directly or through the templates it
+    /// references. A component call references the template the component is defined in.
+    ///
+    /// The names are the ones the templates were added with, after resolving fallback prefixes.
+    /// The template itself is not part of the result.
+    ///
+    /// This is meant for dependency tracking, eg to know which templates need to be re-rendered
+    /// when another template changes. Like [`Tera::get_template_variables`], it doesn't care about
+    /// if statements or blocks being overridden: every reference found is reported.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::collections::HashSet;
+    /// # use tera::Tera;
+    /// let mut tera = Tera::default();
+    /// tera.add_raw_templates(vec![
+    ///     ("base.html", r#"{% include "nav.html" %}{% block content %}{% endblock %}"#),
+    ///     ("nav.html", ""),
+    ///     ("page.html", r#"{% extends "base.html" %}{% block content %}{% endblock %}"#),
+    /// ]).unwrap();
+    ///
+    /// let referenced = tera.get_referenced_templates("page.html").unwrap();
+    /// assert_eq!(referenced, HashSet::from(["base.html", "nav.html"]));
+    /// ```
+    pub fn get_referenced_templates(&self, template_name: &str) -> TeraResult<HashSet<&str>> {
+        let template = self.must_get_template(template_name)?;
+        let mut referenced: HashSet<&str> = HashSet::new();
+        let mut templates_to_visit: Vec<&Template> = vec![template];
+
+        while let Some(current_template) = templates_to_visit.pop() {
+            let component_templates = current_template
+                .component_calls
+                .keys()
+                .filter_map(|c| self.component_templates.get(c));
+            for name in current_template
+                .parents
+                .iter()
+                .chain(current_template.include_calls.keys())
+                .chain(component_templates)
+            {
+                let tpl = self.must_get_template(name)?;
+                if tpl.name != template.name && referenced.insert(tpl.name.as_str()) {
+                    templates_to_visit.push(tpl);
+                }
+            }
+        }
+
+        Ok(referenced)
+    }
+
     /// Returns information about a registered component definition.
     ///
     /// Returns `None` if no component with the given name is found.
@@ -680,6 +734,12 @@ impl Tera {
                 (component_name.to_string(), data)
             })
             .collect();
+        let component_templates: HashMap<String, String> = component_sources
+            .iter()
+            .map(|(component_name, (tpl_name, _))| {
+                (component_name.to_string(), tpl_name.to_string())
+            })
+            .collect();
 
         // 2nd loop: we check whether all called components/filters/tests/functions are defined
         // as well as finding each block lineage
@@ -764,6 +824,7 @@ impl Tera {
         }
 
         self.components = components;
+        self.component_templates = component_templates;
         self.set_templates_auto_escape();
         Ok(())
     }
@@ -1551,6 +1612,7 @@ impl Default for Tera {
             tests: HashMap::new(),
             functions: HashMap::new(),
             components: HashMap::new(),
+            component_templates: HashMap::new(),
             delimiters: Delimiters::default(),
             fallback_prefixes: Vec::new(),
         };
