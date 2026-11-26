@@ -30,6 +30,133 @@ pub type Map = HashMap<Key<'static>, Value>;
 #[cfg(feature = "preserve_order")]
 pub type Map = indexmap::IndexMap<Key<'static>, Value>;
 
+#[cfg(not(feature = "no_fmt"))]
+const DEC_DIGITS_LUT: &[u8; 200] = b"\
+    0001020304050607080910111213141516171819\
+    2021222324252627282930313233343536373839\
+    4041424344454647484950515253545556575859\
+    6061626364656667686970717273747576777879\
+    8081828384858687888990919293949596979899";
+
+#[cfg(not(feature = "no_fmt"))]
+#[inline]
+fn write_u64_fast(mut v: u64, f: &mut impl std::io::Write) -> std::io::Result<()> {
+    if v < 10 {
+        let b = [b'0' + (v as u8)];
+        return f.write_all(&b);
+    }
+    if v < 100 {
+        let d = (v as usize) * 2;
+        return f.write_all(&DEC_DIGITS_LUT[d..d + 2]);
+    }
+    let mut buf = [0u8; 20];
+    let mut pos = buf.len();
+    while v >= 100 {
+        let rem = ((v % 100) as usize) * 2;
+        v /= 100;
+        pos -= 2;
+        buf[pos] = DEC_DIGITS_LUT[rem];
+        buf[pos + 1] = DEC_DIGITS_LUT[rem + 1];
+    }
+    if v < 10 {
+        pos -= 1;
+        buf[pos] = b'0' + (v as u8);
+    } else {
+        let d = (v as usize) * 2;
+        pos -= 2;
+        buf[pos] = DEC_DIGITS_LUT[d];
+        buf[pos + 1] = DEC_DIGITS_LUT[d + 1];
+    }
+    f.write_all(&buf[pos..])
+}
+
+#[cfg(not(feature = "no_fmt"))]
+#[inline]
+fn write_i64_fast(v: i64, f: &mut impl std::io::Write) -> std::io::Result<()> {
+    if v >= 0 {
+        return write_u64_fast(v as u64, f);
+    }
+    let mut buf = [0u8; 21];
+    let mut pos = buf.len();
+    let mut u = v.unsigned_abs();
+    while u >= 100 {
+        let rem = ((u % 100) as usize) * 2;
+        u /= 100;
+        pos -= 2;
+        buf[pos] = DEC_DIGITS_LUT[rem];
+        buf[pos + 1] = DEC_DIGITS_LUT[rem + 1];
+    }
+    if u < 10 {
+        pos -= 1;
+        buf[pos] = b'0' + (u as u8);
+    } else {
+        let d = (u as usize) * 2;
+        pos -= 2;
+        buf[pos] = DEC_DIGITS_LUT[d];
+        buf[pos + 1] = DEC_DIGITS_LUT[d + 1];
+    }
+    pos -= 1;
+    buf[pos] = b'-';
+    f.write_all(&buf[pos..])
+}
+
+#[cfg(not(feature = "no_fmt"))]
+#[inline]
+fn write_u128_fast(mut v: u128, f: &mut impl std::io::Write) -> std::io::Result<()> {
+    if v <= u64::MAX as u128 {
+        return write_u64_fast(v as u64, f);
+    }
+    let mut buf = [0u8; 40];
+    let mut pos = buf.len();
+    while v >= 100 {
+        let rem = ((v % 100) as usize) * 2;
+        v /= 100;
+        pos -= 2;
+        buf[pos] = DEC_DIGITS_LUT[rem];
+        buf[pos + 1] = DEC_DIGITS_LUT[rem + 1];
+    }
+    if v < 10 {
+        pos -= 1;
+        buf[pos] = b'0' + (v as u8);
+    } else {
+        let d = (v as usize) * 2;
+        pos -= 2;
+        buf[pos] = DEC_DIGITS_LUT[d];
+        buf[pos + 1] = DEC_DIGITS_LUT[d + 1];
+    }
+    f.write_all(&buf[pos..])
+}
+
+#[cfg(not(feature = "no_fmt"))]
+#[inline]
+fn write_i128_fast(v: i128, f: &mut impl std::io::Write) -> std::io::Result<()> {
+    if v >= 0 {
+        return write_u128_fast(v as u128, f);
+    }
+    let mut buf = [0u8; 41];
+    let mut pos = buf.len();
+    let mut u = v.unsigned_abs();
+    while u >= 100 {
+        let rem = ((u % 100) as usize) * 2;
+        u /= 100;
+        pos -= 2;
+        buf[pos] = DEC_DIGITS_LUT[rem];
+        buf[pos + 1] = DEC_DIGITS_LUT[rem + 1];
+    }
+    if u < 10 {
+        pos -= 1;
+        buf[pos] = b'0' + (u as u8);
+    } else {
+        let d = (u as usize) * 2;
+        pos -= 2;
+        buf[pos] = DEC_DIGITS_LUT[d];
+        buf[pos + 1] = DEC_DIGITS_LUT[d + 1];
+    }
+    pos -= 1;
+    buf[pos] = b'-';
+    f.write_all(&buf[pos..])
+}
+
 #[inline]
 pub(crate) fn format_map(map: &Map, f: &mut impl std::io::Write) -> std::io::Result<()> {
     let mut key_val: Box<_> = map.iter().collect();
@@ -474,12 +601,39 @@ impl Value {
         matches!(self.kind(), ValueKind::Bytes)
     }
 
+    #[inline]
     pub(crate) fn format(&self, f: &mut impl std::io::Write) -> std::io::Result<()> {
         match &self.inner {
             ValueInner::None | ValueInner::Undefined => Ok(()),
             ValueInner::Bool(v) => f.write_all(if *v { b"true" } else { b"false" }),
-            ValueInner::Bytes(v) => f.write_all(String::from_utf8_lossy(v).as_bytes()),
             ValueInner::String(v) => f.write_all(v.as_str().as_bytes()),
+            ValueInner::U64(v) => {
+                #[cfg(feature = "no_fmt")]
+                {
+                    let mut buf = itoa::Buffer::new();
+                    f.write_all(buf.format(*v).as_bytes())
+                }
+                #[cfg(not(feature = "no_fmt"))]
+                write_u64_fast(*v, f)
+            }
+            ValueInner::I64(v) => {
+                #[cfg(feature = "no_fmt")]
+                {
+                    let mut buf = itoa::Buffer::new();
+                    f.write_all(buf.format(*v).as_bytes())
+                }
+                #[cfg(not(feature = "no_fmt"))]
+                write_i64_fast(*v, f)
+            }
+            _ => self.format_cold(f),
+        }
+    }
+
+    #[cold]
+    #[inline(never)]
+    fn format_cold(&self, f: &mut impl std::io::Write) -> std::io::Result<()> {
+        match &self.inner {
+            ValueInner::Bytes(v) => f.write_all(String::from_utf8_lossy(v).as_bytes()),
             ValueInner::Array(v) => {
                 f.write_all(b"[")?;
 
@@ -503,24 +657,6 @@ impl Value {
                 // Debug rather than Display so integral floats keep their `.0`
                 write!(f, "{v:?}")
             }
-            ValueInner::U64(v) => {
-                #[cfg(feature = "no_fmt")]
-                {
-                    let mut buf = itoa::Buffer::new();
-                    f.write_all(buf.format(*v).as_bytes())
-                }
-                #[cfg(not(feature = "no_fmt"))]
-                write!(f, "{v}")
-            }
-            ValueInner::I64(v) => {
-                #[cfg(feature = "no_fmt")]
-                {
-                    let mut buf = itoa::Buffer::new();
-                    f.write_all(buf.format(*v).as_bytes())
-                }
-                #[cfg(not(feature = "no_fmt"))]
-                write!(f, "{v}")
-            }
             ValueInner::U128(v) => {
                 #[cfg(feature = "no_fmt")]
                 {
@@ -528,7 +664,7 @@ impl Value {
                     f.write_all(buf.format(**v).as_bytes())
                 }
                 #[cfg(not(feature = "no_fmt"))]
-                write!(f, "{}", **v)
+                write_u128_fast(**v, f)
             }
             ValueInner::I128(v) => {
                 #[cfg(feature = "no_fmt")]
@@ -537,8 +673,9 @@ impl Value {
                     f.write_all(buf.format(**v).as_bytes())
                 }
                 #[cfg(not(feature = "no_fmt"))]
-                write!(f, "{}", **v)
+                write_i128_fast(**v, f)
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1407,5 +1544,63 @@ mod tests {
         let v = Value::from("e\u{0301}cole");
         assert_eq!(v.len(), Some(5));
         assert_eq!(v.reverse().unwrap().as_str(), Some("eloce\u{0301}"));
+    }
+
+    #[test]
+    fn format_integers_matches_display_boundaries() {
+        for v in [0u64, 1, 9, 10, 99, 100, 999, 1000, u64::MAX] {
+            let mut buf = Vec::new();
+            Value::from(v).format(&mut buf).unwrap();
+            assert_eq!(String::from_utf8(buf).unwrap(), v.to_string());
+        }
+        for v in [
+            i64::MIN,
+            -1000,
+            -100,
+            -99,
+            -10,
+            -9,
+            -1,
+            0,
+            9,
+            10,
+            99,
+            100,
+            i64::MAX,
+        ] {
+            let mut buf = Vec::new();
+            Value::from(v).format(&mut buf).unwrap();
+            assert_eq!(String::from_utf8(buf).unwrap(), v.to_string());
+        }
+        for v in [
+            0u128,
+            9,
+            10,
+            99,
+            100,
+            u64::MAX as u128,
+            u64::MAX as u128 + 1,
+            u128::MAX,
+        ] {
+            let mut buf = Vec::new();
+            Value::from(v).format(&mut buf).unwrap();
+            assert_eq!(String::from_utf8(buf).unwrap(), v.to_string());
+        }
+        for v in [
+            i128::MIN,
+            i64::MIN as i128 - 1,
+            -100,
+            -10,
+            -1,
+            0,
+            10,
+            100,
+            i64::MAX as i128 + 1,
+            i128::MAX,
+        ] {
+            let mut buf = Vec::new();
+            Value::from(v).format(&mut buf).unwrap();
+            assert_eq!(String::from_utf8(buf).unwrap(), v.to_string());
+        }
     }
 }
