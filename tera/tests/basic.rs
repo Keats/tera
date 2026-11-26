@@ -4,6 +4,21 @@ use serde::Serialize;
 
 use tera::{Context, Filter, Function, Kwargs, State, Tera};
 
+#[test]
+fn sliced_strings_keep_their_escaping_behavior() {
+    let mut context = Context::new();
+    context.insert("body", "<b>café</b>");
+    assert_eq!(
+        Tera::one_off("{{ body[:8] }}", &context, true).unwrap(),
+        "&lt;b&gt;café&lt;"
+    );
+    context.insert_value("body", tera::Value::safe_string("<b>café</b>"));
+    assert_eq!(
+        Tera::one_off("{{ body[:8] }}", &context, true).unwrap(),
+        "<b>café<"
+    );
+}
+
 #[derive(Serialize)]
 struct Test {
     a: String,
