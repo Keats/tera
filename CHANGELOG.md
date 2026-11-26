@@ -5,6 +5,7 @@
 - Skip whitespace-only lines in the indent filter unless blank=true
 - Make // and % floor for negative divisors to match other template engines
 - Error when the safe filter receives an undefined value
+- Add `Tera::get_referenced_templates` to know which template files are required to render a given template
 
 
 

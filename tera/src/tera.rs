@@ -80,8 +80,6 @@ pub struct Tera {
     pub(crate) tests: HashMap<Cow<'static, str>, StoredTest>,
     pub(crate) functions: HashMap<Cow<'static, str>, StoredFunction>,
     pub(crate) components: HashMap<String, (ComponentDefinition, Chunk)>,
-    /// The name of the template each component in `components` was defined in.
-    component_templates: HashMap<String, String>,
     /// Custom delimiters for template syntax
     delimiters: Delimiters,
     /// Fallback prefixes to try when a template is not found by exact name.
@@ -445,7 +443,8 @@ impl Tera {
             let component_templates = current_template
                 .component_calls
                 .keys()
-                .filter_map(|c| self.component_templates.get(c));
+                .filter_map(|c| self.components.get(c))
+                .map(|(_, chunk)| &chunk.name);
             for name in current_template
                 .parents
                 .iter()
@@ -734,12 +733,6 @@ impl Tera {
                 (component_name.to_string(), data)
             })
             .collect();
-        let component_templates: HashMap<String, String> = component_sources
-            .iter()
-            .map(|(component_name, (tpl_name, _))| {
-                (component_name.to_string(), tpl_name.to_string())
-            })
-            .collect();
 
         // 2nd loop: we check whether all called components/filters/tests/functions are defined
         // as well as finding each block lineage
@@ -824,7 +817,6 @@ impl Tera {
         }
 
         self.components = components;
-        self.component_templates = component_templates;
         self.set_templates_auto_escape();
         Ok(())
     }
@@ -1612,7 +1604,6 @@ impl Default for Tera {
             tests: HashMap::new(),
             functions: HashMap::new(),
             components: HashMap::new(),
-            component_templates: HashMap::new(),
             delimiters: Delimiters::default(),
             fallback_prefixes: Vec::new(),
         };
